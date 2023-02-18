@@ -1,0 +1,19 @@
+.button-row {
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+#jsonEditorTree {
+  height: calc(100vh - 180px);
+}
+
+.button-row button {
+  display: table-cell;
+  margin-right: 20px;
+  line-height: 30px;
+}
+
+.button-row mat-slide-toggle {
+  margin-right: 20px;
+}
+

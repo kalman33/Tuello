@@ -1,0 +1,37 @@
+<div class="container" >
+  <div fxFlex="99%">
+
+    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+       <button mat-flat-button color="primary" (click)="save()" >
+          <mat-icon>save</mat-icon>
+          {{ 'mmn.recorder-http.button.saveAs' | translate }}
+        </button>
+
+      <button mat-flat-button color="primary" (click)="selectFile()">
+        <mat-icon>save_alt</mat-icon>
+        {{ 'mmn.recorder-http.button.import' | translate }}
+      </button>
+      <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json">
+      <button mat-flat-button color="primary" (click)="effacerEnregistrements()">
+        <mat-icon>delete_outline</mat-icon>
+        {{ 'mmn.recorder-http.button.delete' | translate }}
+      </button>
+
+      <button mat-flat-button
+              color="primary"
+              (click)="copyToClipboard()"
+              [matTooltip]="'mmn.recorder-http.button.copyToClipboard' | translate"
+              [attr.aria-label]="'mmn.recorder-http.button.copyToClipboard' | translate">
+        <mat-icon>content_copy</mat-icon>
+        {{ 'mmn.recorder-http.button.copy' | translate }}
+      </button>
+    </div>
+    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" >
+        <mat-slide-toggle  [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>
+        <mat-slide-toggle  [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
+    </div>
+
+    <div id="jsonEditorTree"></div>
+
+  </div>
+</div>

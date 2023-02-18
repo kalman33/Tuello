@@ -1,0 +1,648 @@
+// Import de httpmock.js dans la page
+import { recordHttpListener } from './utils/recordHttpListener';
+import { recordHttpUserActionListener } from './utils/recordUserActionListener';
+import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
+import { run } from './utils/uiplayer';
+import * as lightbox from './utils/lightbox';
+import * as jsonViewer from './utils/jsonViewer';
+import { IUserAction } from '../../src/app/spy-http/models/UserAction';
+import { displayEffect } from './utils/utils';
+import { activateSearchElements, desactivateSearchElements } from './utils/searchElements';
+import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
+
+let show = false;
+let clickedElement: string;
+
+document.addEventListener("mousedown", function(event){
+  clickedElement = event.target['innerHTML'];
+}, true);
+
+
+chrome.storage.local.get(['disabled'], function (result) {
+  if (!result.disabled) {
+    document.onreadystatechange = () => {
+      if (document.readyState === 'interactive') {
+        init();
+      }
+    };
+  } else {
+    chrome.runtime.sendMessage({
+      action: 'updateIcon',
+      value: 'tuello-stop-32x32.png'
+    });
+  }
+});
+
+let scriptInjected = false;
+
+function init() {
+  return new Promise((resolve, reject) => {
+    if (scriptInjected) {
+      // Tuello est déjà injecté
+      resolve(false);
+    } else {
+      scriptInjected = true;
+      // Import de httpmock.js dans la page
+      const script = document.createElement('script');
+      script.setAttribute('type', 'text/javascript');
+      script.setAttribute('src', chrome.runtime.getURL('httpmock.js'));
+      document.documentElement.appendChild(script);
+
+      // Import de httprecorder.js dans la page
+      const scriptRecorder = document.createElement('script');
+      scriptRecorder.setAttribute('type', 'text/javascript');
+      scriptRecorder.setAttribute('src', chrome.runtime.getURL('httprecorder.js'));
+      document.documentElement.appendChild(scriptRecorder);
+
+      // Import de uirecorder.js dans la page
+      const scriptUiRecorder = document.createElement('script');
+      scriptUiRecorder.setAttribute('type', 'text/javascript');
+      scriptUiRecorder.setAttribute('src', chrome.runtime.getURL('uirecorder.js'));
+      document.documentElement.appendChild(scriptUiRecorder);
+
+      // Import de des styles liés au player
+      var head = document.head || document.getElementsByTagName("head")[0];
+      if (head) {
+        head.insertAdjacentHTML(
+          'beforeend',
+          `<style>
+          .tuello-circle {
+              pointer-events: none;
+              width: 30px; height: 30px;
+              border-radius: 100%;
+              border: 6px solid #D12566;
+              position: fixed;
+              z-index: 9999999999999;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              animation: ring 1.5s infinite;
+          }
+          
+          @keyframes ring {
+            0% {
+            width: 30px;
+            height: 30px;
+            opacity: 1;
+            }
+            100% {
+            width: 100px;
+            height: 100px;
+            opacity: 0;
+            }
+          }
+          #cover-spin {
+            position:fixed;
+            width:100%;
+            left:0;right:0;top:0;bottom:0;
+            z-index:9999;
+            display:none;
+        }
+        
+        @-webkit-keyframes spin {
+          from {-webkit-transform:rotate(0deg);}
+          to {-webkit-transform:rotate(360deg);}
+        }
+        
+        @keyframes spin {
+          from {transform:rotate(0deg);}
+          to {transform:rotate(360deg);}
+        }
+        
+        #cover-spin::after {
+            content:'';
+            display:block;
+            position:absolute;
+            right:15px;top:30px;
+            width:40px;height:40px;
+            border-style:solid;
+            border-color:black;
+            border-top-color:transparent;
+            border-width: 4px;
+            border-radius:50%;
+            -webkit-animation: spin .8s linear infinite;
+            animation: spin .8s linear infinite;
+        }
+        
+        
+          </style>`
+        );
+      }
+      
+
+      // ajout du spinner
+      const spinner = document.createElement('div');
+      spinner.id = 'cover-spin';
+      if (document && document.body) {
+        document.body.prepend(spinner);
+      }
+
+
+      let iframe;
+
+      // création de l'iframe portant l'app
+
+      if (window.self === window.top) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'iframeTuello';
+        iframe.style.setProperty('height', '100%', 'important');
+        iframe.style.setProperty('width', '550px', 'important');
+        iframe.style.setProperty('min-width', '1px', 'important');
+        iframe.style.setProperty('position', 'fixed', 'important');
+        iframe.style.setProperty('top', '0', 'important');
+        iframe.style.setProperty('right', '0', 'important');
+        iframe.style.setProperty('z-index', '9999999999999', 'important');
+        iframe.style.setProperty('transform', 'translateX(570px)', 'important');
+        iframe.style.setProperty('transition', 'all .4s', 'important');
+        iframe.style.setProperty('box-shadow', '0 0 15px 2px rgba(0,0,0,0.12)', 'important');
+        iframe.frameBorder = 'none';
+        iframe.src = chrome.runtime.getURL('index.html');
+
+        /**iframe.onreadystatechange = () => {
+              if ( iframe.readyState == 'complete' ) {
+                resolve(true);
+              }
+            }*/
+        iframe.addEventListener('load', event => {
+          resolve(true);
+        });
+
+        document.body.appendChild(iframe);
+
+        /** 
+        chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+          if (msg === 'toggle') {
+            show = !show;
+            iframe.style.setProperty('transform', show ? 'translateX(0)' : 'translateX(570px)', 'important');
+          }
+          sendResponse();
+          return true;
+        });*/
+      }
+      chrome.storage.local.get(['mouseCoordinates'], results => {
+        if (results.mouseCoordinates) {
+          addMouseCoordinates();
+        }
+      });
+
+      chrome.storage.local.get(['trackPlay'], results => {
+        if (results.trackPlay) {
+          activateRecordTracks();
+          
+        }
+      });
+
+      chrome.storage.local.get(['searchElementsActivated'], results => {
+        if (results['searchElementsActivated']) {
+          activateSearchElements();
+        }
+      });
+    }
+  });
+}
+
+// gestion de l'activation et la désactivation du devtools et du record ui
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message=== 'JSON_VIEWER'){
+    try {
+      const json = JSON.parse(clickedElement);
+      jsonViewer.open(json);
+  } catch (e) {
+     // error
+     console.log('Tuello : La donnée n est pas du json', e);
+  }
+    
+  }
+  if (message === 'toggle') {
+    if (document.getElementById('iframeTuello')) {
+      const transform = window.getComputedStyle(document.getElementById('iframeTuello')).transform;
+      if (transform.indexOf('570') >= 0 || transform == 'none') {
+        if (document.getElementById('iframeTuello').style.display === 'none') {
+          document.getElementById('iframeTuello').style.display = '';
+        }
+        show = true;
+        document.getElementById('iframeTuello').style.setProperty('transform', 'translateX(0)', 'important');
+      } else {
+        show = false;
+        document.getElementById('iframeTuello').style.setProperty('transform', 'translateX(570px)', 'important');
+      }
+    }
+    sendResponse();
+  }
+  if (message === 'open') {
+    show = true;
+    document.getElementById('iframeTuello').style.setProperty('transform', 'translateX(0)', 'important');
+    sendResponse();
+  }
+  if (message.from === 'background') {
+    if (message.devtools) {
+      // on désactive le mock et le record de la popup
+      window.postMessage(
+        {
+          type: 'RECORD_HTTP_ACTIVATED',
+          value: false
+        },
+        '*'
+      );
+      window.removeEventListener('message', recordHttpListener);
+
+      chrome.storage.local.get(['deepMockLevel'], results => {
+        window.postMessage(
+          {
+            type: 'MOCK_HTTP_ACTIVATED',
+            value: false,
+            deepMockLevel: results.deepMockLevel || 0
+          },
+          '*'
+        );
+      });
+      sendResponse();
+    } else {
+      // on regarde si le mock et le record sont activés et on active la popup le cas échéant
+      chrome.storage.local.get(['httpRecord', 'httpMock', 'mmaRecords', 'deepMockLevel'], results => {
+        if (results.httpMock) {
+          window.postMessage(
+            {
+              type: 'MOCK_HTTP_ACTIVATED',
+              value: true,
+              mmaRecords: results.mmaRecords,
+              deepMockLevel: results.deepMockLevel || 0
+            },
+            '*'
+          );
+        }
+        if (results.httpRecord) {
+          window.postMessage(
+            {
+              type: 'RECORD_HTTP_ACTIVATED',
+              value: true
+            },
+            '*'
+          );
+          window.addEventListener('message', recordHttpListener);
+        }
+        sendResponse();
+      });
+    }
+  }
+  switch (message.action) {
+    case 'ACTIVATE':
+      init().then(() => {
+        if (window.self === window.top) {
+          document.getElementById('iframeTuello').style.display = '';
+        }
+        sendResponse();
+      });
+      return true;
+      break;
+    case 'RECORDER_UI':
+      activateRecordUI(message);
+      sendResponse();
+      break;
+    case 'VIEW_IMAGE':
+      if (window.self === window.top) {
+        // on envoit un post message au uirecorder.js
+        window.postMessage(
+          {
+            type: 'VIEW_IMAGE',
+            value: message.value
+          },
+          '*'
+        );
+      }
+      sendResponse();
+      break;
+    case 'HIDE':
+      if (window.self === window.top) {
+        document.getElementById('iframeTuello').style.display = 'none';
+        show = false;
+        setTimeout(() => {
+          chrome.runtime.sendMessage({
+            action: 'HIDE_OK'
+          });
+        }, 1);
+      }
+      sendResponse();
+      break;
+    case 'SHOW':
+      if (window.self === window.top) {
+        show = true;
+        document.getElementById('iframeTuello').style.display = '';
+      }
+      sendResponse();
+      break;
+    case 'VIEW_CLICK_ACTION':
+      const action: IUserAction = message.value;
+      displayEffect(action.x, action.y);
+      break;
+    case 'MOUSE_COORDINATES':
+      if (message.value) {
+        addMouseCoordinates();
+      } else {
+        removeMouseCoordinates();
+      }
+      sendResponse();
+      break;
+
+    case 'HTTP_RECORD_STATE':
+      window.postMessage(
+        {
+          type: 'RECORD_HTTP_ACTIVATED',
+          value: message.value
+        },
+        '*'
+      );
+      if (message.value) {
+        window.addEventListener('message', recordHttpListener);
+      } else {
+        window.removeEventListener('message', recordHttpListener);
+      }
+      sendResponse();
+      break;
+
+    case 'HTTP_MOCK_STATE':
+      chrome.storage.local.get(['mmaRecords', 'deepMockLevel'], results => {
+        window.postMessage(
+          {
+            type: 'MOCK_HTTP_ACTIVATED',
+            value: message.value,
+            mmaRecords: results.mmaRecords,
+            deepMockLevel: results.deepMockLevel || 0
+          },
+          '*'
+        );
+        sendResponse();
+      });
+      break;
+    case 'MMA_RECORDS_CHANGE':
+      chrome.storage.local.get(['httpMock', 'deepMockLevel', 'mmaRecords'], results => {
+        if (results.httpMock) {
+          window.postMessage(
+            {
+              type: 'MOCK_HTTP_ACTIVATED',
+              value: true,
+              mmaRecords: results.mmaRecords,
+              deepMockLevel: results.deepMockLevel || 0
+            },
+            '*'
+          );
+        }
+        sendResponse();
+      });
+      break;
+    case 'TRACK_PLAY_STATE':
+      if (message.value) {
+        activateRecordTracks();
+      } else {
+        desactivateRecordTracks();
+      }
+
+      sendResponse();
+      break;
+      case 'SEARCH_ELEMENTS_ACTIVATED':
+        if (message.value) {
+          activateSearchElements();
+        } else {
+          desactivateSearchElements();
+        }
+        sendResponse();
+        break;
+      
+    case 'ACTIONS_RESULTS':
+      if (window.self === window.top) {
+        // SHOW
+        document.getElementById('iframeTuello').style.display = '';
+        document.getElementById('iframeTuello').style.setProperty('transform', 'translateX(0)', 'important');
+        show = true;
+
+        chrome.runtime.sendMessage({
+          action: 'updateIcon',
+          value: 'tuello-32x32.png'
+        });
+
+        chrome.runtime.sendMessage({
+          action: 'FINISH_PLAY_ACTIONS'
+        });
+
+        // disabled Mock http
+        chrome.runtime.sendMessage({
+          action: 'MOCK_HTTP_USER_ACTION',
+          value: false
+        });
+
+        if (message.value && message.value.comparisonResults) {
+          // settimeout permet à tuello de s'afficher et permettre d'ecouter ce message
+          setTimeout(() => {
+            chrome.runtime.sendMessage({
+              action: 'SHOW_COMPARISON_RESULTS',
+              value: message.value.comparisonResults
+            });
+          }, 1);
+        }
+      }
+      sendResponse();
+      break;
+    case 'PLAY_USER_ACTION':
+      run(message.value)
+        .then(() => {
+          sendResponse();
+          return true;
+        })
+        .catch(() => {
+          sendResponse();
+          return true;
+        });
+      return true;
+      break;
+    case 'MOCK_HTTP_USER_ACTION':
+      chrome.storage.local.get(['deepMockLevel'], results => {
+        window.postMessage(
+          {
+            type: 'MOCK_HTTP_ACTIVATED',
+            value: message.value,
+            mmaRecords: message.data,
+            deepMockLevel: results.deepMockLevel || 0
+          },
+          '*'
+        );
+      });
+      sendResponse();
+      break;
+  }
+  return true;
+});
+
+/**
+ * Listener des post message provenant de httpmock.js et httprecorder.js et de uirecorder.js
+ */
+window.addEventListener(
+  'message',
+  event => {
+    if (event.data.type) {
+      switch (event.data.type) {
+        case 'RECORD_HTTP_READY':
+          // init : on regarde si le mode enregistrement est activé pour prévenir httprecord
+          chrome.storage.local.get(['httpRecord'], results => {
+            if (results.httpRecord) {
+              window.postMessage(
+                {
+                  type: 'RECORD_HTTP_ACTIVATED',
+                  value: true
+                },
+                '*'
+              );
+              window.addEventListener('message', recordHttpListener);
+            }
+          });
+          break;
+        case 'UI_RECORDER_READY':
+          chrome.storage.local.get(['uiRecordActivated'], results => {
+            if (results.uiRecordActivated) {
+              // on previent background qu'on a démarré le recording
+              chrome.runtime.sendMessage({
+                action: 'RECORDER_UI',
+                value: true
+              });
+            }
+          });
+          break;
+
+        case 'RECORD_MOCK_READY':
+          // init : on regarde si le mode mock est activé pour prévenir httpmock
+          chrome.storage.local.get(['httpMock', 'mmaRecords', 'deepMockLevel'], results => {
+            if (results.httpMock) {
+              window.postMessage(
+                {
+                  type: 'MOCK_HTTP_ACTIVATED',
+                  value: true,
+                  mmaRecords: results.mmaRecords,
+                  deepMockLevel: results.deepMockLevel || 0
+                },
+                '*'
+              );
+            }
+          });
+
+          break;
+        case 'RECORD_USER_ACTION':
+          chrome.runtime.sendMessage({
+            action: 'RECORD_USER_ACTION',
+            value: event.data.value
+          });
+          break;
+        case 'RECORD_BY_IMAGE_ACTION':
+          chrome.runtime.sendMessage(
+            {
+              action: 'RECORD_BY_IMAGE_ACTION',
+              value: event.data.value
+            },
+            response => {
+              lightbox.open({ content: 'Capture Img OK', autocCloseMs: 800 });
+            }
+          );
+          break;
+        case 'SCREENSHOT_ACTION':
+          const isPopupVisible =
+            document.getElementById('iframeTuello') && document.getElementById('iframeTuello').style.display !== 'none' ? true : false;
+          chrome.runtime.sendMessage(
+            {
+              action: 'SCREENSHOT_ACTION',
+              value: isPopupVisible
+            },
+            response => {
+              lightbox.open({ content: 'Capture OK', autocCloseMs: 800 });
+            }
+          );
+          break;
+        case 'COMMENT_ACTION':
+          chrome.runtime.sendMessage({
+            action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
+            value: true
+          });
+          chrome.storage.local.get(['messages'], results => {
+            let placeholder = 'Add comment';
+            let submitButton = 'Submit';
+
+            if (results.messages) {
+              const msgs = results.messages.default;
+              placeholder = msgs['mmn.record.placeholder'];
+              submitButton = msgs['mmn.record.button.submit'];
+            }
+            lightbox.addcss(chrome.runtime.getURL('comment.css'));
+            const formElt = document.createElement('form');
+            formElt.id = 'comment';
+            formElt.name = 'comment';
+            formElt.onsubmit = lightbox.close;
+
+            const formInputFieldset = document.createElement('fieldset');
+            const formTextarea = document.createElement('textarea');
+            formTextarea.placeholder = placeholder;
+            formTextarea.name = 'inputComment';
+            formTextarea.setAttribute('required', '');
+            formInputFieldset.appendChild(formTextarea);
+            formElt.appendChild(formInputFieldset);
+
+            const formButtonFieldset = document.createElement('fieldset');
+            const formButton = document.createElement('button');
+            formButton.type = 'submit';
+            formButton.innerText = submitButton;
+            formButtonFieldset.appendChild(formButton);
+            formElt.appendChild(formButtonFieldset);
+
+            lightbox.open({ content: formElt }).then(comment => {
+              chrome.runtime.sendMessage(
+                {
+                  action: 'COMMENT_ACTION',
+                  value: comment
+                },
+                () => {
+                  chrome.runtime.sendMessage({
+                    action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
+                    value: false
+                  });
+                }
+              );
+            });
+          });
+          break;
+        case 'RECORD_WINDOW_SIZE':
+          chrome.runtime.sendMessage({
+            action: 'RECORD_WINDOW_SIZE',
+            value: event.data.value
+          });
+          break;
+        case 'VIEW_IMAGE_CLOSED':
+          // send message to popup
+          chrome.runtime.sendMessage({
+            action: 'VIEW_IMAGE_CLOSED'
+          });
+          break;
+      }
+    }
+  },
+  false
+);
+
+// permet d'activer le recording d'ui
+function activateRecordUI(message) {
+  // on envoit un post message au uirecorder.js
+  window.postMessage(
+    {
+      type: 'UI_RECORDER_ACTIVATED',
+      value: message.value
+    },
+    '*'
+  );
+  window.postMessage(
+    {
+      type: 'RECORD_HTTP_ACTIVATED',
+      value: message.value
+    },
+    '*'
+  );
+  if (message.value) {
+    window.addEventListener('message', recordHttpUserActionListener);
+  } else {
+    window.removeEventListener('message', recordHttpUserActionListener);
+  }
+}

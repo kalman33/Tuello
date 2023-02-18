@@ -1,0 +1,47 @@
+<div class="container" >
+  <div fxFlex="100%">
+
+    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+      <button mat-icon-button [attr.aria-label]="'mmn.spy-http.results.button.return.aria-label' | translate" (click)="back()">
+        <mat-icon>keyboard_backspace</mat-icon>
+      </button>
+    </div>
+        <table mat-table [dataSource]="this.playerService.comparisonResults" class="mat-elevation-z0">
+
+          <!--- Note that these columns can be defined in any order.
+                The actual rendered columns are set as a property on the row definition" -->
+
+          <!-- Position Column -->
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef> {{'mmn.spy-http.results.table.column1' | translate }} </th>
+            <td mat-cell *matCellDef="let element"> {{element.actionId | slice:0:5}} </td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="comparisonImage">
+            <th mat-header-cell *matHeaderCellDef> {{'mmn.spy-http.results.table.column2' | translate }}  </th>
+            <td mat-cell *matCellDef="let element"> <img (click)="chromeExtentionUtilsService.openImageViewer(element.comparisonImage)" [src]="element.comparisonImage" /> </td>
+          </ng-container>
+
+          <!-- Weight Column -->
+          <ng-container matColumnDef="actualImage">
+            <th mat-header-cell *matHeaderCellDef> {{'mmn.spy-http.results.table.column3' | translate }}  </th>
+            <td mat-cell *matCellDef="let element"> <img (click)="chromeExtentionUtilsService.openImageViewer(element.actualImage)" [src]="element.actualImage" /> </td>
+          </ng-container>
+
+          <!-- Symbol Column -->
+          <ng-container matColumnDef="misMatchPercentage">
+            <th mat-header-cell *matHeaderCellDef> {{'mmn.spy-http.results.table.column4' | translate }}  </th>
+            <td mat-cell *matCellDef="let element"> {{element.compareResult.misMatchPercentage}} % </td>
+          </ng-container>
+
+          <ng-container matColumnDef="imageDataUrl">
+            <th mat-header-cell *matHeaderCellDef> {{'mmn.spy-http.results.table.column5' | translate }}  </th>
+            <td mat-cell *matCellDef="let element"> <img (click)="chromeExtentionUtilsService.openImageViewer(element.compareResult.imageDataUrl)" [src]="element.compareResult.imageDataUrl" /> </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+    </div>
+  </div>

@@ -1,0 +1,9 @@
+<h1 mat-dialog-title>{{ 'mmn.spy-http.button.record' | translate }}</h1>
+<mat-dialog-content class="mat-typography">
+  <p>{{ 'mmn.spy-http.record-dialog.content' | translate }}</p>
+</mat-dialog-content>
+
+<div mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>{{ 'mmn.spy-http.record-dialog.new' | translate }}</button>
+  <button mat-button [mat-dialog-close]="'add'" cdkFocusInitial>{{ 'mmn.spy-http.record-dialog.add' | translate }}</button>
+</div>

@@ -1,0 +1,83 @@
+<div class="navbar-container" >
+
+  <!-- Top navbar -->
+  <mat-toolbar class="navbar" color="primary" [@fadeInAnimation]="stateFadeAnimation" (@fadeInAnimation.done)="animationDone($event)">
+    <div style="cursor: pointer"  class="nav-icon" [ngClass]="{'open' : isOpen}" (click)="snav.toggle(); isOpen = !isOpen">
+      <div></div>
+    </div>
+    <a class="navbar-brand" [routerLink]="['/']" [skipLocationChange]="true">
+      <img src="assets/img/tuello-128x128.png" width="40px" height="40px">
+    </a>
+    <div class="navbar-title">
+      <span class="navbar-spacer">{{title}}</span>
+    </div>
+    <mat-slide-toggle [checked]="activate" class="darkMode" (change)="toggleDesactivate($event)">
+    </mat-slide-toggle>
+
+    <button *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" class="toolbar-action" mat-icon-button
+            color="basic"
+            (click)="close()"
+            aria-label="Fermer"><mat-icon>close</mat-icon>
+    </button>
+  </mat-toolbar>
+
+  <mat-sidenav-container class="navbar-sidenav-container">
+    <!-- Side nav -->
+    <mat-sidenav #snav [mode]="'over'"
+      fixedTopGap="56" class="sidenav"
+                 (openedStart)="statesSlideInMenuAnimation = 'active'"
+                 (closed)="statesSlideInMenuAnimation = 'inactive'; isOpen= false"
+    >
+
+      <mat-nav-list [@slideInMenuAnimation]="statesSlideInMenuAnimation">
+        <a mat-list-item [routerLink]="['/recorder']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon>
+            camera
+          </mat-icon>
+          <p mat-line> {{ 'mmn.layout.mockAndRecord' | translate }}</p>
+        </a>
+        <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/spy']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon>
+            queue_play_next
+          </mat-icon>
+          <p mat-line>{{ 'mmn.layout.spyAndReplay' | translate }} </p>
+        </a>
+        <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/track']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon>
+            search
+          </mat-icon>
+          <p mat-line>{{ 'mmn.layout.trackResources' | translate }}</p>
+        </a>
+        <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/search']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon>
+            remove_red_eye
+          </mat-icon>
+          <p mat-line> {{ 'mmn.layout.searchElements' | translate }} </p>
+        </a>
+
+        <a mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon>
+            settings
+          </mat-icon>
+          <p mat-line> {{ 'mmn.layout.settings' | translate }} </p>
+        </a>
+
+        <div id="push-bottom" >
+            <mat-icon class="v-align-middle">contact_support</mat-icon>
+            <span class="v-align-middle">tuello33@gmail.com</span>
+            <mat-icon class="v-align-middle">info_outline</mat-icon>
+            <span class="v-align-middle">Version 1.0.0</span>
+        </div>
+      </mat-nav-list>
+
+    </mat-sidenav>
+
+    <!-- Main content -->
+    <mat-sidenav-content class="sidenav-content">
+      <div [@routeAnimations]="o.isActivated">
+        <router-outlet #o="outlet"></router-outlet>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+
+</div>

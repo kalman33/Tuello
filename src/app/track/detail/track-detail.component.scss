@@ -1,0 +1,28 @@
+.actions {
+  text-align: right;
+}
+
+div {
+  font-size: 12px;
+  align-items: center;
+  display: flex;
+}
+
+div img {
+  margin-left: 20px;
+}
+
+mat-icon {
+  font-size: 16px;
+}
+
+.data {
+  marging-left: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+::ng-deep .mat-tooltip {
+  font-size: 10px;
+}

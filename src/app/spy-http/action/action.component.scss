@@ -1,0 +1,64 @@
+.actions {
+  text-align: right;
+}
+
+div {
+  font-size: 12px;
+  align-items: center;
+  display: flex;
+}
+
+div img {
+  margin-left: 20px;
+}
+
+mat-icon {
+  font-size: 16px;
+}
+
+.label {
+  display: flex;
+  padding: .2em .2em;
+  margin: 5px 5px;
+  font-size: 75%;
+  font-weight: bold;
+  line-height: 1;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: .25em;
+  height: 15px;
+}
+
+.label mat-icon {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+
+}
+
+.actionType {
+  background-color: #6F9EAC;
+}
+
+.screenshot {
+  background-color: #EBBA7D;
+}
+
+.windowResize {
+  background-color: #95242e;
+}
+
+
+.delay {
+  background-color: #bbb;
+}
+
+.data {
+  marging-left: 5px;
+}
+
+::ng-deep .mat-tooltip {
+  font-size: 10px;
+}

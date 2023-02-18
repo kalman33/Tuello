@@ -1,0 +1,88 @@
+{
+  "name": "Tuello",
+  "version": "1.0",
+  "description": "Browser extension which allows you to intercept and modify HTTP Requests. It also allows you to record and replay user's browser actions",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "manifest_version": 3,
+  "permissions": [
+    "declarativeContent",
+    "storage",
+    "scripting",
+    "webNavigation",
+    "tabs",
+    "debugger",
+    "contextMenus",
+    "notifications",
+    "webRequest",
+    "declarativeNetRequest",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://*/",
+    "https://*/",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "contentscript.js",
+        "httpmock.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "img/jsoneditor-icons.svg",
+        "comment.css",
+        "jsoneditor.css",
+        "jsoneditor-default.css",
+        "httpmock.js",
+        "httprecorder.js",
+        "uirecorder.js",
+        "index.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "assets/logos/tuello-16x16.png",
+    "32": "assets/logos/tuello-32x32.png",
+    "48": "assets/logos/tuello-48x48.png",
+    "128": "assets/logos/tuello-128x128.png"
+  },
+  "commands": {
+    "PAUSE": {
+      "suggested_key": {
+        "default": "Alt+Shift+P",
+        "windows": "Alt+Shift+P",
+        "mac": "Alt+Shift+P"
+      },
+      "description": "Pause player"
+    },
+    "RESUME": {
+      "suggested_key": {
+        "default": "Alt+Shift+R",
+        "windows": "Alt+Shift+R",
+        "mac": "Alt+Shift+R"
+      },
+      "description": "Resume player"
+    }
+  }
+}

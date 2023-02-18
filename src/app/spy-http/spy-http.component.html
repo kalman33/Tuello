@@ -1,0 +1,119 @@
+<div class="container" >
+  <div fxFlex="99%">
+
+    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+      <button [disabled]="spyActif" mat-flat-button color="primary" (click)="startRecording()">
+        <mat-icon>mic</mat-icon>
+        {{ 'mmn.spy-http.button.record' | translate }}
+      </button>
+      <button mat-flat-button color="primary" (click)="deleteRecords()">
+        <mat-icon>delete</mat-icon>
+        {{ 'mmn.spy-http.button.delete' | translate }}
+      </button>
+      <button [disabled]="spyActif || actions?.length <=0" mat-flat-button color="primary" (click)="startPlaying()">
+        <mat-icon>play_circle_outline</mat-icon>
+        {{ 'mmn.spy-http.button.play' | translate }}
+      </button>
+      <button [disabled]="!spyActif" mat-flat-button color="primary" (click)="stopRecording()">
+        <mat-icon>stop</mat-icon>
+        {{ 'mmn.spy-http.button.stop' | translate }}
+      </button>
+    </div>
+
+    <mat-tab-group #tabGrp>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">list</mat-icon>
+          {{ 'mmn.spy-http.tabs.records' | translate }}
+        </ng-template>
+        <mat-list *ngIf="actions" cdkDropList [cdkDropListData]="actions"
+        (cdkDropListDropped)="onTaskDrop($event)">
+            <mat-list-item *ngFor="let action of actions; let i = index">
+              <mmn-action cdkDrag [index]='i' [action]="action" class="animated lightSpeedIn"
+                          [ngClass]="{'selected': playerService.pausedActionNumber === i}"
+                          (delete)='deleteAction($event)'
+                          (duplicate)='duplicateAction($event)'
+                          (modify)='modifyAction($event)'
+                          (preview)='previewAction($event)'
+                          (decreaseDelay)='decreaseDelayAction($event)'
+              ></mmn-action>
+            </mat-list-item>
+        </mat-list>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">call_received</mat-icon>
+          {{ 'mmn.spy-http.tabs.http' | translate }}
+        </ng-template>
+        <mat-list>
+          <mat-nav-list dense>
+            <mat-list-item style="cursor: pointer" (click)="visualiserFlux(httpRecord)"  *ngFor="let httpRecord of recorderHistoryService?.record?.httpRecords">
+              {{ httpRecord.key }}
+            </mat-list-item>
+          </mat-nav-list>
+        </mat-list>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">help_outline</mat-icon>
+          {{ 'mmn.spy-http.tabs.shortcuts' | translate }}
+        </ng-template>
+        <mat-list>
+          <mat-list-item>
+            <mat-icon color="accent" mat-list-icon>keyboard</mat-icon>
+            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.screenshot' | translate }}</div>
+            <div mat-line>ALT + MAJ + S </div>
+            <!--<div mat-line>Mobile:  Rotate</div>-->
+          </mat-list-item>
+          <mat-list-item>
+            <mat-icon color="accent" mat-list-icon>pause</mat-icon>
+            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.pause' | translate }}</div>
+            <div mat-line> ALT + MAJ + P </div>
+          </mat-list-item>
+          <mat-list-item>
+            <mat-icon color="accent" mat-list-icon>play_arrow</mat-icon>
+            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.resume' | translate }}</div>
+            <div mat-line> ALT + MAJ + R </div>
+          </mat-list-item>
+          <mat-list-item>
+            <mat-icon color="accent" mat-list-icon>image_search</mat-icon>
+            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.record.by.img' | translate }}</div>
+            <div mat-line>ALT + MAJ + click / Coord. + ALT + MAJ + I</div>
+            <!--<div mat-line>Mobile: {{ 'mmn.spy-http.tabs.shortcuts.record.by.img.shortcut' | translate }} </div>-->
+          </mat-list-item>
+          <mat-list-item>
+            <mat-icon color="accent" mat-list-icon>message</mat-icon>
+            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.add.comment' | translate }}</div>
+            <div mat-line>ALT + MAJ + C</div>
+          </mat-list-item>
+          <mat-divider></mat-divider>
+        </mat-list>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">import_export</mat-icon>
+          {{ 'mmn.spy-http.tabs.parameters' | translate }}
+        </ng-template>
+        <div class="button-row" [ngClass]="routeAnimationsElements">
+          <button mat-flat-button color="accent" (click)="save()" style="color: white;">
+            <mat-icon>save</mat-icon>
+            {{ 'mmn.spy-http.button.saveAs' | translate }}
+          </button>
+          <button mat-flat-button color="accent" style="color: white;" (click)="selectFile()">
+            <mat-icon>save_alt</mat-icon>
+            {{ 'mmn.spy-http.button.import' | translate }}
+          </button>
+          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json">
+          <button *ngIf="this.playerService.comparisonResults" mat-flat-button color="warn" [routerLink]="['/spy/results']" [skipLocationChange]="true">
+            <mat-icon>save</mat-icon>
+            {{ 'mmn.spy-http.button.results' | translate }}
+          </button>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+
+  </div>
+</div>
