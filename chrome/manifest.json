@@ -1,7 +1,7 @@
 {
   "name": "Tuello",
-  "version": "1.0",
-  "description": "Browser extension which allows you to intercept and modify HTTP Requests. It also allows you to record and replay user's browser actions",
+  "version": "1.0.0",
+  "description": "Intercept and modify HTTP Requests, Track ressources, search elements and record and replay user's browser actions",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },

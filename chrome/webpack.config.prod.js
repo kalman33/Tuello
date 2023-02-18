@@ -62,9 +62,10 @@ module.exports = {
           from: './chrome/manifest.json',
           to: '.',
         },
-        { from: './chrome/assets/logos/*',
-          to: './assets/logos'
-        },
+        {
+          from: './chrome/assets/logos/*',
+          to: './assets/logos/[name][ext]'
+        }
       ],
     }),
     new optimize.AggressiveMergingPlugin(),
