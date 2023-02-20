@@ -247,7 +247,7 @@ export function getXPath(element) {
           const parentsChildren = [...parentElement.children];
           // Count current tag 
           let tag = [];
-          parentsChildren.forEach(child => {
+          parentsChildren.filter(elt=>!elt.id || !elt.id.includes('tuello')).forEach(child => {
               if (child.tagName.toLowerCase() === tagName) tag.push(child) // Append to tag
           })
 
