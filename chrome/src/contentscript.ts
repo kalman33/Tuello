@@ -6,7 +6,7 @@ import { run } from './utils/uiplayer';
 import * as lightbox from './utils/lightbox';
 import * as jsonViewer from './utils/jsonViewer';
 import { IUserAction } from '../../src/app/spy-http/models/UserAction';
-import { displayEffect } from './utils/utils';
+import { addcss, displayEffect } from './utils/utils';
 import { activateSearchElements, desactivateSearchElements } from './utils/searchElements';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 
@@ -568,7 +568,7 @@ window.addEventListener(
               placeholder = msgs['mmn.record.placeholder'];
               submitButton = msgs['mmn.record.button.submit'];
             }
-            lightbox.addcss(chrome.runtime.getURL('comment.css'));
+            addcss(chrome.runtime.getURL('comment.css'));
             const formElt = document.createElement('form');
             formElt.id = 'comment';
             formElt.name = 'comment';

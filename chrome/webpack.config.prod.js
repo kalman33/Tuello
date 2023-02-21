@@ -54,7 +54,9 @@ module.exports = {
         {  from: './chrome/assets/jsoneditor-default.css',
           to: '.',
         },
-        
+        {  from: './node_modules/simptip/simptip.min.css',
+          to: '.',
+        },
         {  from: './chrome/assets/export/exportTuelloTemplate.js',
             to: '.',
         },

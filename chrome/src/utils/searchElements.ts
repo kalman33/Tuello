@@ -1,4 +1,9 @@
+import { addcss } from "./utils";
+
+let elementsFound = new Map<HTMLElement, string>();
+
 export function activateSearchElements() {
+  addcss(chrome.runtime.getURL('simptip.min.css'));
   searchElements();
 
   // on active le listener pour le click souris
@@ -13,37 +18,49 @@ export function desactivateSearchElements() {
 
 function searchElements() {
   //on supprime en premier tous les anciens canvas
-  removeSearchElements() ;
+  removeSearchElements();
   // recupération des elements
   chrome.storage.local.get(['tuelloElements'], results => {
     let elements = results['tuelloElements'];
 
-      elements.forEach(element => {
-          const nodes = findElement(element);
-          nodes.forEach((node: Node, index: number) => { 
-            const canvas = document.createElement('canvas');
-            canvas.id = "tuelloSearchElement" + index;
-            //Position canvas
-            canvas.title = element;
-            canvas.style.position = 'absolute';
-            canvas.style.border= '2px solid #D12566';
-            canvas.style.left = Math.ceil((node as HTMLElement).getBoundingClientRect().left + window.scrollX) - 2 + 'px';
-            canvas.style.top = Math.ceil((node as HTMLElement).getBoundingClientRect().top + window.scrollY) - 2 + 'px';
-            canvas.width = (node as HTMLElement).getBoundingClientRect().width + 2;
-            canvas.height = (node as HTMLElement).getBoundingClientRect().height + 2;
-            canvas.style.zIndex = '999999999';
-
-            document.body.appendChild(canvas); //Append canvas to body element
-          });
-
+    elements.forEach(element => {
+      const nodes = findElement(element);
+      nodes.forEach((node: Node, index: number) => {
+        /**const canvas = document.createElement('canvas');
+        canvas.id = "tuelloSearchElement" + index;
+        //Position canvas
+        canvas.title = element;
+        canvas.style.position = 'absolute';
+        canvas.style.border= '2px solid #D12566';
+        canvas.style.left = Math.ceil((node as HTMLElement).getBoundingClientRect().left + window.scrollX) - 2 + 'px';
+        canvas.style.top = Math.ceil((node as HTMLElement).getBoundingClientRect().top + window.scrollY) - 2 + 'px';
+        canvas.width = (node as HTMLElement).getBoundingClientRect().width + 2;
+        canvas.height = (node as HTMLElement).getBoundingClientRect().height + 2;
+        canvas.style.zIndex = '999999999';
+        
+        document.body.appendChild(canvas); //Append canvas to body element*/
+        const htmlElt = (node as HTMLElement);
+        elementsFound.set(htmlElt, htmlElt.style.backgroundColor);
+        htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
+        if (!htmlElt.classList.contains('simptip-position-top')) {
+          htmlElt.classList.add('simptip-fade');
+          htmlElt.classList.add('simptip-position-top');
+          htmlElt.setAttribute('data-tooltip', element);
+        }
       });
+    });
   });
 }
 
 function removeSearchElements() {
-  const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
-  elements.forEach((element) => {
-    element.remove();
+  // const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
+  elementsFound.forEach((value, key) => {
+    //element.style.backgroundColor
+    key.style.backgroundColor = value;
+    key.classList.remove('simptip-fade');
+    key.classList.remove('simptip-position-top');
+    key.removeAttribute('data-tooltip');
+
   });
 }
 
@@ -61,21 +78,21 @@ export function findElement(element: string): Node[] {
 }
 
 /** recherche des nodes contenant le texte */
-export function findByText(rootElement, text): Node[]{
+export function findByText(rootElement, text): Node[] {
   var filter = {
-      acceptNode: function(node){
-          // look for nodes that are text_nodes and include the following string.
-          if(node.nodeType === document.TEXT_NODE && node.nodeValue.includes(text)){
-               return NodeFilter.FILTER_ACCEPT;
-          }
-          return NodeFilter.FILTER_REJECT;
+    acceptNode: function (node) {
+      // look for nodes that are text_nodes and include the following string.
+      if (node.nodeType === document.TEXT_NODE && node.nodeValue.includes(text)) {
+        return NodeFilter.FILTER_ACCEPT;
       }
+      return NodeFilter.FILTER_REJECT;
+    }
   }
   var nodes = [];
   var walker = document.createTreeWalker(rootElement, NodeFilter.SHOW_TEXT, filter);
-  while(walker.nextNode()){
-     //give me the element containing the node
-     nodes.push(walker.currentNode.parentNode);
+  while (walker.nextNode()) {
+    //give me the element containing the node
+    nodes.push(walker.currentNode.parentNode);
   }
   return nodes;
 }

@@ -48,6 +48,7 @@
         "comment.css",
         "jsoneditor.css",
         "jsoneditor-default.css",
+        "simptip.min.css",
         "httpmock.js",
         "httprecorder.js",
         "uirecorder.js",

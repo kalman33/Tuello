@@ -1,4 +1,5 @@
 import JSONEditor from 'jsoneditor';
+import { addcss } from './utils';
 // Json Editor
 let jsonEditorTree: any;
 let opts: any;
@@ -98,19 +99,7 @@ function initContainer() {
   return jsonBoxContainer;
 }
 
-export function addcss(cssUrl: string) {
-  const cssId = cssUrl.substring(cssUrl.lastIndexOf('/') + 1);
-  if (!document.getElementById(cssId)) {
-    var head = document.getElementsByTagName('head')[0];
-    var link = document.createElement('link');
-    link.id = cssId;
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = cssUrl;
-    link.media = 'all';
-    head.appendChild(link);
-  }
-}
+
 
 /**
    * initialisation du jsoneditor
