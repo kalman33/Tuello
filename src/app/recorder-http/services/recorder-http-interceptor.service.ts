@@ -1,10 +1,8 @@
-import { filter, tap } from 'rxjs/operators';
 /**
  * @file
  * Intercepteur de requêtes pour afficher un indicateur visuel à l'utilisateur.
  */
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
 import { RecorderHttpService } from '../services/recorder-http.service';
 
 /**
@@ -15,9 +13,7 @@ import { RecorderHttpService } from '../services/recorder-http.service';
 })
 export class RecorderHttpInterceptorService {
   constructor(private recorderService: RecorderHttpService) {
-    // chrome.webRequest.onBeforeRequest()
-
-
+   
 
   }
   /**

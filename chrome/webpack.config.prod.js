@@ -10,7 +10,6 @@ module.exports = {
     background: join(__dirname, 'src/background.ts'),
     backgroundWrapper: join(__dirname, 'src/backgroundWrapper.ts'),
     contentscript: join(__dirname, 'src/contentscript.ts'),
-    devtools: join(__dirname, 'src/devtools/devtools.ts'),
     httpmock: join(__dirname, 'src/httpmock.ts'),
     httprecorder: join(__dirname, 'src/httprecorder.ts'),
     uirecorder: join(__dirname, 'src/uirecorder.ts'),
@@ -37,10 +36,6 @@ module.exports = {
         },
         {  from: './node_modules/jsoneditor/dist/jsoneditor.css',
             to: '.',
-        },
-        {
-          from: './chrome/src/devtools/devtools.html',
-          to: '.',
         },
         {  from: './chrome/src/popup/popup.html',
           to: '.',

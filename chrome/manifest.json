@@ -7,16 +7,10 @@
   },
   "manifest_version": 3,
   "permissions": [
-    "declarativeContent",
     "storage",
-    "scripting",
     "webNavigation",
     "tabs",
-    "debugger",
     "contextMenus",
-    "notifications",
-    "webRequest",
-    "declarativeNetRequest",
     "activeTab"
   ],
   "host_permissions": [
