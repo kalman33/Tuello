@@ -2,87 +2,74 @@
  * Listener des post message provenant de contentscript
  */
 import { UserAction } from './models/UserAction';
-import * as lightboxImg from './utils/imageviewer';
-import { findImage, recordImg } from './utils/imageRecorder';
+import * as lightbox from './utils/lightbox';
 import { ImageType } from '../../src/app/spy-http/models/UserAction';
+import { findImage, recordImg } from './utils/imageRecorder';
+import { recordHttpUserActionListener } from './utils/recordUserActionListener';
+import { addcss } from './utils/utils';
 
 let frame;
 
-function listAllEventListeners() {
-  const allElements = Array.prototype.slice.call(document.querySelectorAll('*'));
-  allElements.push(document);
-  allElements.push(window);
 
-  const types = [];
+export function launchUIRecorderHandler() {
+  chrome.storage.local.get(['uiRecordActivated'], results => {
+    if (results.uiRecordActivated) {
 
-  for (const ev in window) {
-    if (/^on/.test(ev)) {
-      types[types.length] = ev;
-    }
-  }
+      // on previent background qu'on a démarré le recording
+      chrome.runtime.sendMessage({
+        action: 'RECORDER_UI',
+        value: true
+      });
 
-  const elements = [];
-  // tslint:disable-next-line:prefer-for-of
-  for (let i = 0; i < allElements.length; i++) {
-    const currentElement = allElements[i];
-    // tslint:disable-next-line:prefer-for-of
-    for (let j = 0; j < types.length; j++) {
-      if (typeof currentElement[types[j]] === 'function') {
-        elements.push({
-          node: currentElement,
-          type: types[j],
-          func: currentElement[types[j]].toString()
-        });
+      // On active le recorder http
+      httpRecordUI(true);
+      
+      // si on est en devtools, on valorise l'index de l'iframe ou -1 si on est en top
+      if (window['TuelloFrameIndex'] !== undefined) {
+        frame = {
+          frameIndex: window['TuelloFrameIndex']
+        };
       }
-    }
-  }
 
-  return elements.sort((a, b) => {
-    return a.type.localeCompare(b.type);
-  });
-}
-removeEventListener('message', uiRecorderEventListener);
-addEventListener('message', uiRecorderEventListener);
-
-function uiRecorderEventListener(event) {
-  // si on est en devtools, on valorise l'index de l'iframe ou -1 si on est en top
-  if (window['TuelloFrameIndex'] !== undefined) {
-    frame = {
-      frameIndex: window['TuelloFrameIndex']
-    };
-  }
-  if (event.data.type && event.data.type === 'UI_RECORDER_ACTIVATED') {
-    if (event.data.value) {
       if (window.self === window.top) {
-        window.postMessage(
-          {
-            type: 'RECORD_WINDOW_SIZE'
-          },
-          '*'
-        );
+        chrome.runtime.sendMessage({
+          action: 'RECORD_WINDOW_SIZE'
+        });
       }
       // on crée un event de scroll si l'utilisateur n'est pas en haut de la page
       if ((window as any).scrollX !== 0 || (window as any).scrollY !== 0) {
-        window.postMessage(
-          {
-            type: 'RECORD_USER_ACTION',
-            value: {
-              scrollX: (window as any).scrollX,
-              scrollY: (window as any).scrollY,
-              type: 'scroll',
-              frame
-            }
-          },
-          '*'
-        );
+        chrome.runtime.sendMessage({
+          action: 'RECORD_USER_ACTION',
+          value: {
+            scrollX: (window as any).scrollX,
+            scrollY: (window as any).scrollY,
+            type: 'scroll',
+            frame
+          }
+        });
       }
       addListeners();
     } else {
       removeListeners();
+      httpRecordUI(false);
     }
-  }
-  if (event.data.type && event.data.type === 'VIEW_IMAGE') {
-    lightboxImg.open(event.data.value);
+  });
+}
+
+// permet d'activer le recording d'ui pour la partie http
+function httpRecordUI(activation: boolean) {
+
+  window.postMessage(
+    {
+      type: 'RECORD_HTTP_ACTIVATED',
+      value: activation
+    },
+    '*'
+  );
+  if (activation) {
+    window.addEventListener('message', recordHttpUserActionListener);
+  } else {
+    window.removeEventListener('message', recordHttpUserActionListener);
   }
 }
 
@@ -115,33 +102,78 @@ function listener(e) {
   } else {
     const useraction = new UserAction(e);
     useraction.frame = frame;
-    window.postMessage(
-      {
-        type: 'RECORD_USER_ACTION',
-        value: useraction
-      },
-      '*'
-    );
+    chrome.runtime.sendMessage({
+      action: 'RECORD_USER_ACTION',
+      value: useraction
+    });
   }
 }
 
 function keyboardListener(e) {
   if (e.altKey && e.shiftKey && (e.key === 'S' || e.code === 'KeyS')) {
-    window.postMessage(
-      {
-        type: 'SCREENSHOT_ACTION'
-      },
-      '*'
-    );
+    const isPopupVisible =
+            document.getElementById('iframeTuello') && document.getElementById('iframeTuello').style.display !== 'none' ? true : false;
+          chrome.runtime.sendMessage(
+            {
+              action: 'SCREENSHOT_ACTION',
+              value: isPopupVisible
+            },
+            response => {
+              lightbox.open({ content: 'Capture OK', autocCloseMs: 800 });
+            }
+          );
 
     return false;
   } else if (e.altKey && e.shiftKey && (e.key === 'C' || e.code === 'KeyC')) {
-    window.postMessage(
-      {
-        type: 'COMMENT_ACTION'
-      },
-      '*'
-    );
+    chrome.runtime.sendMessage({
+      action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
+      value: true
+    });
+    chrome.storage.local.get(['messages'], results => {
+      let placeholder = 'Add comment';
+      let submitButton = 'Submit';
+
+      if (results.messages) {
+        const msgs = results.messages.default;
+        placeholder = msgs['mmn.record.placeholder'];
+        submitButton = msgs['mmn.record.button.submit'];
+      }
+      addcss(chrome.runtime.getURL('comment.css'));
+      const formElt = document.createElement('form');
+      formElt.id = 'comment';
+      formElt.name = 'comment';
+      formElt.onsubmit = lightbox.close;
+
+      const formInputFieldset = document.createElement('fieldset');
+      const formTextarea = document.createElement('textarea');
+      formTextarea.placeholder = placeholder;
+      formTextarea.name = 'inputComment';
+      formTextarea.setAttribute('required', '');
+      formInputFieldset.appendChild(formTextarea);
+      formElt.appendChild(formInputFieldset);
+
+      const formButtonFieldset = document.createElement('fieldset');
+      const formButton = document.createElement('button');
+      formButton.type = 'submit';
+      formButton.innerText = submitButton;
+      formButtonFieldset.appendChild(formButton);
+      formElt.appendChild(formButtonFieldset);
+
+      lightbox.open({ content: formElt }).then(comment => {
+        chrome.runtime.sendMessage(
+          {
+            action: 'COMMENT_ACTION',
+            value: comment
+          },
+          () => {
+            chrome.runtime.sendMessage({
+              action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
+              value: false
+            });
+          }
+        );
+      });
+    });
 
     return false;
   } else if (e.altKey && e.shiftKey && (e.key === 'I' || e.code === 'KeyI')) {
@@ -154,13 +186,10 @@ function keyboardListener(e) {
     action.x = Math.ceil(rect.left + window.scrollX);
     action.y = Math.ceil(rect.top + window.scrollY);
     action.frame = frame;
-    window.postMessage(
-      {
-        type: 'RECORD_USER_ACTION',
-        value: action
-      },
-      '*'
-    );
+    chrome.runtime.sendMessage({
+      action: 'RECORD_USER_ACTION',
+      value: action
+    });
   }
 }
 
@@ -173,13 +202,10 @@ function mousedownListener(e) {
     useraction.y = e.pageY;
     useraction.hrefLocation = window.location.href;
     useraction.frame = frame;
-    window.postMessage(
-      {
-        type: 'RECORD_USER_ACTION',
-        value: useraction
-      },
-      '*'
-    );
+    chrome.runtime.sendMessage({
+      action: 'RECORD_USER_ACTION',
+      value: useraction
+    });
   }
 
 }
@@ -189,13 +215,10 @@ function resizeListener() {
   useraction.type = 'resize';
   useraction.hrefLocation = window.location.href;
   useraction.frame = frame;
-  window.postMessage(
-    {
-      type: 'RECORD_USER_ACTION',
-      value: useraction
-    },
-    '*'
-  );
+  chrome.runtime.sendMessage({
+    action: 'RECORD_USER_ACTION',
+    value: useraction
+  });
 }
 
 function recordImage(withClick: boolean) {
@@ -213,15 +236,17 @@ function recordImage(withClick: boolean) {
       action.value = base64Img;
       action.frame = frame;
       action.imageType = elt instanceof HTMLImageElement ? ImageType.IMG : ImageType.BACKGROUND;
-      window.postMessage(
+      chrome.runtime.sendMessage(
         {
-          type: 'RECORD_BY_IMAGE_ACTION',
+          action: 'RECORD_BY_IMAGE_ACTION',
           value: action
         },
-        '*'
+        response => {
+          lightbox.open({ content: 'Capture Img OK', autocCloseMs: 800 });
+        }
       );
       document.getElementById('cover-spin').style.setProperty('display', 'none', 'important');
-      // TODO : voir pour enlever ce settimeout : prb pas de retour du postmessage
+      // TODO : voir pour enlever ce settimeout 
       if (withClick) {
         setTimeout(() => {
           elt.click();
@@ -233,10 +258,4 @@ function recordImage(withClick: boolean) {
   }
 }
 
-// indique au contenscript qu'il s'est chargé
-window.postMessage(
-  {
-    type: 'UI_RECORDER_READY'
-  },
-  '*'
-);
+

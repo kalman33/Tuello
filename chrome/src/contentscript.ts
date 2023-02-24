@@ -1,14 +1,15 @@
 // Import de httpmock.js dans la page
-import { recordHttpListener } from './utils/recordHttpListener';
-import { recordHttpUserActionListener } from './utils/recordUserActionListener';
-import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
-import { run } from './utils/uiplayer';
-import * as lightbox from './utils/lightbox';
-import * as jsonViewer from './utils/jsonViewer';
 import { IUserAction } from '../../src/app/spy-http/models/UserAction';
-import { addcss, displayEffect } from './utils/utils';
+import { launchUIRecorderHandler } from './uirecorder';
+import * as lightboxImg from './utils/imageviewer';
+import * as jsonViewer from './utils/jsonViewer';
+import * as lightbox from './utils/lightbox';
+import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
+import { recordHttpListener } from './utils/recordHttpListener';
 import { activateSearchElements, desactivateSearchElements } from './utils/searchElements';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
+import { run } from './utils/uiplayer';
+import { addcss, displayEffect } from './utils/utils';
 
 let show = false;
 let clickedElement: string;
@@ -53,12 +54,6 @@ function init() {
       scriptRecorder.setAttribute('type', 'text/javascript');
       scriptRecorder.setAttribute('src', chrome.runtime.getURL('httprecorder.js'));
       document.documentElement.appendChild(scriptRecorder);
-
-      // Import de uirecorder.js dans la page
-      const scriptUiRecorder = document.createElement('script');
-      scriptUiRecorder.setAttribute('type', 'text/javascript');
-      scriptUiRecorder.setAttribute('src', chrome.runtime.getURL('uirecorder.js'));
-      document.documentElement.appendChild(scriptUiRecorder);
 
       // Import de des styles liés au player
       var head = document.head || document.getElementsByTagName("head")[0];
@@ -128,6 +123,9 @@ function init() {
           </style>`
         );
       }
+
+      // Gestion du UIRecorder
+      launchUIRecorderHandler();
       
 
       // ajout du spinner
@@ -295,20 +293,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return true;
       break;
-    case 'RECORDER_UI':
-      activateRecordUI(message);
-      sendResponse();
-      break;
     case 'VIEW_IMAGE':
       if (window.self === window.top) {
-        // on envoit un post message au uirecorder.js
-        window.postMessage(
-          {
-            type: 'VIEW_IMAGE',
-            value: message.value
-          },
-          '*'
-        );
+        lightboxImg.open(message.value);
       }
       sendResponse();
       break;
@@ -473,7 +460,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 /**
- * Listener des post message provenant de httpmock.js et httprecorder.js et de uirecorder.js
+ * Listener des post message provenant de httpmock.js et httprecorder.js
  */
 window.addEventListener(
   'message',
@@ -495,17 +482,6 @@ window.addEventListener(
             }
           });
           break;
-        case 'UI_RECORDER_READY':
-          chrome.storage.local.get(['uiRecordActivated'], results => {
-            if (results.uiRecordActivated) {
-              // on previent background qu'on a démarré le recording
-              chrome.runtime.sendMessage({
-                action: 'RECORDER_UI',
-                value: true
-              });
-            }
-          });
-          break;
 
         case 'RECORD_MOCK_READY':
           // init : on regarde si le mode mock est activé pour prévenir httpmock
@@ -524,93 +500,6 @@ window.addEventListener(
           });
 
           break;
-        case 'RECORD_USER_ACTION':
-          chrome.runtime.sendMessage({
-            action: 'RECORD_USER_ACTION',
-            value: event.data.value
-          });
-          break;
-        case 'RECORD_BY_IMAGE_ACTION':
-          chrome.runtime.sendMessage(
-            {
-              action: 'RECORD_BY_IMAGE_ACTION',
-              value: event.data.value
-            },
-            response => {
-              lightbox.open({ content: 'Capture Img OK', autocCloseMs: 800 });
-            }
-          );
-          break;
-        case 'SCREENSHOT_ACTION':
-          const isPopupVisible =
-            document.getElementById('iframeTuello') && document.getElementById('iframeTuello').style.display !== 'none' ? true : false;
-          chrome.runtime.sendMessage(
-            {
-              action: 'SCREENSHOT_ACTION',
-              value: isPopupVisible
-            },
-            response => {
-              lightbox.open({ content: 'Capture OK', autocCloseMs: 800 });
-            }
-          );
-          break;
-        case 'COMMENT_ACTION':
-          chrome.runtime.sendMessage({
-            action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
-            value: true
-          });
-          chrome.storage.local.get(['messages'], results => {
-            let placeholder = 'Add comment';
-            let submitButton = 'Submit';
-
-            if (results.messages) {
-              const msgs = results.messages.default;
-              placeholder = msgs['mmn.record.placeholder'];
-              submitButton = msgs['mmn.record.button.submit'];
-            }
-            addcss(chrome.runtime.getURL('comment.css'));
-            const formElt = document.createElement('form');
-            formElt.id = 'comment';
-            formElt.name = 'comment';
-            formElt.onsubmit = lightbox.close;
-
-            const formInputFieldset = document.createElement('fieldset');
-            const formTextarea = document.createElement('textarea');
-            formTextarea.placeholder = placeholder;
-            formTextarea.name = 'inputComment';
-            formTextarea.setAttribute('required', '');
-            formInputFieldset.appendChild(formTextarea);
-            formElt.appendChild(formInputFieldset);
-
-            const formButtonFieldset = document.createElement('fieldset');
-            const formButton = document.createElement('button');
-            formButton.type = 'submit';
-            formButton.innerText = submitButton;
-            formButtonFieldset.appendChild(formButton);
-            formElt.appendChild(formButtonFieldset);
-
-            lightbox.open({ content: formElt }).then(comment => {
-              chrome.runtime.sendMessage(
-                {
-                  action: 'COMMENT_ACTION',
-                  value: comment
-                },
-                () => {
-                  chrome.runtime.sendMessage({
-                    action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
-                    value: false
-                  });
-                }
-              );
-            });
-          });
-          break;
-        case 'RECORD_WINDOW_SIZE':
-          chrome.runtime.sendMessage({
-            action: 'RECORD_WINDOW_SIZE',
-            value: event.data.value
-          });
-          break;
         case 'VIEW_IMAGE_CLOSED':
           // send message to popup
           chrome.runtime.sendMessage({
@@ -623,26 +512,4 @@ window.addEventListener(
   false
 );
 
-// permet d'activer le recording d'ui
-function activateRecordUI(message) {
-  // on envoit un post message au uirecorder.js
-  window.postMessage(
-    {
-      type: 'UI_RECORDER_ACTIVATED',
-      value: message.value
-    },
-    '*'
-  );
-  window.postMessage(
-    {
-      type: 'RECORD_HTTP_ACTIVATED',
-      value: message.value
-    },
-    '*'
-  );
-  if (message.value) {
-    window.addEventListener('message', recordHttpUserActionListener);
-  } else {
-    window.removeEventListener('message', recordHttpUserActionListener);
-  }
-}
+

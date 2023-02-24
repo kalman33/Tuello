@@ -233,17 +233,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         loadRecordFromStorage();
       }
       initRecord();
-      if (sender && sender.tab && sender.tab.id >= 0) {
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'RECORDER_UI',
-          value: msg.value
-        });
-      } else {
-        port.postMessage({
-          action: 'RECORDER_UI',
-          value: msg.value
-        });
-      }
+      
       break;
 
     case 'VIEW_IMAGE':

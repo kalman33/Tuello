@@ -34,7 +34,6 @@ export class RecorderHistoryService {
     chrome.storage.local.get(['uiRecord'], results => {
       if (results['uiRecord']) {
         this.record = results['uiRecord'];
-
       }
     });
   }
