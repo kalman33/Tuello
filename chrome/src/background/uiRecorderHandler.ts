@@ -51,6 +51,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
 
     if (!record) {
       record = new Record();
+      record.actions = [];
       lastAction = null;
     }
 
@@ -261,13 +262,15 @@ export function addHttpUserAction(data: HttpReturn) {
 
 export function loadRecordFromStorage() {
   chrome.storage.local.get(['uiRecord'], results => {
-    if (results.uiRecord?.actions) {
+    if (results.uiRecord) {
       const data = results.uiRecord;
       record = new Record(data.windowSize);
       record.actions = data.actions;
       record.httpRecords = data.httpRecords;
-      lastAction = data.actions[data.actions.length - 1];
+      lastAction = data.actions && data.actions.length ? data.actions[data.actions.length - 1] : null;
       last = data.last;
+    } else {
+      last = Date.now();
     }
   });
 }

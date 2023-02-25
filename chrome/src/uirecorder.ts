@@ -14,10 +14,9 @@ let frame;
 export function launchUIRecorderHandler() {
   chrome.storage.local.get(['uiRecordActivated'], results => {
     if (results.uiRecordActivated) {
-
       // on previent background qu'on a démarré le recording
       chrome.runtime.sendMessage({
-        action: 'CONTINUE_UI_RECORDER',
+        action: 'LOAD_UI_RECORDERS',
         value: true
       });
 
@@ -46,7 +45,7 @@ export function launchUIRecorderHandler() {
             type: 'scroll',
             frame
           }
-        });
+        },() => {});
       }
       addListeners();
     } else {
@@ -87,13 +86,13 @@ function addListeners() {
   // remove listeners pour etre sur qu'il y en ai pas deux
   removeListeners();
 
-  document.addEventListener('keydown', keyboardListener, true);
-  document.addEventListener('click', listener, true);
-  document.addEventListener('scroll', listener, true);
-  document.addEventListener('input', listener, true);
+  document.addEventListener('keydown', keyboardListener);
+  document.addEventListener('click', listener);
+  document.addEventListener('scroll', listener);
+  document.addEventListener('input', listener);
   // document.addEventListener('change', listener); // select
-  document.addEventListener('mousedown', mousedownListener, true);
-  window.addEventListener('resize', resizeListener, true);
+  document.addEventListener('mousedown', mousedownListener);
+  window.addEventListener('resize', resizeListener);
 }
 
 function listener(e) {
@@ -106,7 +105,7 @@ function listener(e) {
     chrome.runtime.sendMessage({
       action: 'RECORD_USER_ACTION',
       value: useraction
-    });
+    },() => {});
   }
 }
 
@@ -190,7 +189,7 @@ function keyboardListener(e) {
     chrome.runtime.sendMessage({
       action: 'RECORD_USER_ACTION',
       value: action
-    });
+    },() => {});
   }
 }
 
@@ -206,7 +205,7 @@ function mousedownListener(e) {
     chrome.runtime.sendMessage({
       action: 'RECORD_USER_ACTION',
       value: useraction
-    });
+    },() => {});
   }
 
 }
@@ -219,7 +218,7 @@ function resizeListener() {
   chrome.runtime.sendMessage({
     action: 'RECORD_USER_ACTION',
     value: useraction
-  });
+  },() => {});
 }
 
 function recordImage(withClick: boolean) {

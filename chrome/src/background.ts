@@ -226,7 +226,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
       chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
       break;
-    case 'CONTINUE_UI_RECORDER':
+    case 'LOAD_UI_RECORDERS':
       // on charge les enregistrements du local storage
       loadRecordFromStorage();
       break;

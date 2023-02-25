@@ -323,9 +323,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'START_UI_RECORDER':
-      chrome.storage.local.set({ uiRecord: {
-        last: Date.now()
-      } });
+      
       launchUIRecorderHandler();
      break;
     case 'MOUSE_COORDINATES':
