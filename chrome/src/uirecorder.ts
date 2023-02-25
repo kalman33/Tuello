@@ -17,7 +17,7 @@ export function launchUIRecorderHandler() {
 
       // on previent background qu'on a démarré le recording
       chrome.runtime.sendMessage({
-        action: 'RECORDER_UI',
+        action: 'CONTINUE_UI_RECORDER',
         value: true
       });
 
@@ -97,6 +97,7 @@ function addListeners() {
 }
 
 function listener(e) {
+ 
   if (e.shiftKey && e.altKey) {
     recordImage(false);
   } else {

@@ -72,7 +72,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
         this.spyActif = true;
         // on previent background qui va prevenir contentscript qu'on a démarré le recording
         chrome.runtime.sendMessage({
-          action: 'RECORDER_UI',
+          action: 'START_UI_RECORDER',
           value: true
         });
       } else {
@@ -119,7 +119,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
     // on previent background qui va prevenir contentscript qu'on a stopé le recording
     chrome.runtime.sendMessage({
-      action: 'RECORDER_UI',
+      action: 'START_UI_RECORDER',
       value: false
     });
     if (this.recorderHistoryService.record) {

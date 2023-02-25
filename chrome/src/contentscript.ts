@@ -3,13 +3,12 @@ import { IUserAction } from '../../src/app/spy-http/models/UserAction';
 import { launchUIRecorderHandler } from './uirecorder';
 import * as lightboxImg from './utils/imageviewer';
 import * as jsonViewer from './utils/jsonViewer';
-import * as lightbox from './utils/lightbox';
 import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
 import { recordHttpListener } from './utils/recordHttpListener';
 import { activateSearchElements, desactivateSearchElements } from './utils/searchElements';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
-import { addcss, displayEffect } from './utils/utils';
+import { displayEffect } from './utils/utils';
 
 let show = false;
 let clickedElement: string;
@@ -322,6 +321,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const action: IUserAction = message.value;
       displayEffect(action.x, action.y);
       break;
+
+    case 'START_UI_RECORDER':
+      chrome.storage.local.set({ uiRecord: {
+        last: Date.now()
+      } });
+      launchUIRecorderHandler();
+     break;
     case 'MOUSE_COORDINATES':
       if (message.value) {
         addMouseCoordinates();

@@ -8,13 +8,11 @@ import { IFrame } from '../models/IFrame';
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 
 let lastAction: Action;
-let last = 0;
+let last;
 let record: Record;
 let pause = false;
 
-export function initRecord() {
-  last = Date.now();
-}
+
 
 export function setPause(val: boolean) {
   pause = val;
@@ -28,6 +26,7 @@ export function addRecordByImage(userAction: IUserAction, tabId: number, frameId
     const action = new Action(delay, ActionType.RECORD_BY_IMAGE, userAction);
     record.actions.push(action);
     last = now;
+    record.last = last;
     saveUiRecordToLocalStorage();
   } else {
     getSrcFromFrameId(tabId, frameId)
@@ -38,6 +37,7 @@ export function addRecordByImage(userAction: IUserAction, tabId: number, frameId
         const action = new Action(delay, ActionType.RECORD_BY_IMAGE, userAction);
         record.actions.push(action);
         last = now;
+        record.last = last;
         saveUiRecordToLocalStorage();
       });
   }
@@ -114,6 +114,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
           break;
       }
       last = now;
+      record.last = last;
       saveUiRecordToLocalStorage();
     } else {
       getSrcFromFrameId(tabId, frameId)
@@ -179,6 +180,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
               break;
           }
           last = now;
+          record.last = last;
           saveUiRecordToLocalStorage();
         });
     }
@@ -259,13 +261,13 @@ export function addHttpUserAction(data: HttpReturn) {
 
 export function loadRecordFromStorage() {
   chrome.storage.local.get(['uiRecord'], results => {
-    if (results.uiRecord) {
+    if (results.uiRecord?.actions) {
       const data = results.uiRecord;
       record = new Record(data.windowSize);
       record.actions = data.actions;
       record.httpRecords = data.httpRecords;
       lastAction = data.actions[data.actions.length - 1];
-      last = Date.now();
+      last = data.last;
     }
   });
 }

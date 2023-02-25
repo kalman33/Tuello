@@ -6,7 +6,6 @@ import {
   addScreenShot,
   addUserAction,
   deleteRecord,
-  initRecord,
   loadRecordFromStorage,
   setPause
 } from './background/uiRecorderHandler';
@@ -227,15 +226,30 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
       chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
       break;
-    case 'RECORDER_UI':
-      if (msg.value) {
-        // on charge les enregistrements du local storage
-        loadRecordFromStorage();
-      }
-      initRecord();
-      
+    case 'CONTINUE_UI_RECORDER':
+      // on charge les enregistrements du local storage
+      loadRecordFromStorage();
       break;
-
+    case 'START_UI_RECORDER':
+        // on envoie un message au content scrip
+      if (sender && sender.tab && sender.tab.id >= 0) {
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'START_UI_RECORDER',
+            value: msg.value
+          },
+          {
+            frameId: 0
+          }
+        );
+      } else {
+        port.postMessage({
+          action: 'START_UI_RECORDER',
+          value: msg.value
+        });
+      }
+        break;
     case 'VIEW_IMAGE':
       // on envoie un message au content scrip
       if (sender && sender.tab && sender.tab.id >= 0) {

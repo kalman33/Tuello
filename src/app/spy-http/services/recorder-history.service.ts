@@ -54,7 +54,7 @@ export class RecorderHistoryService {
 
     // on previent background qui va prevenir contentscript qu'on a démarré le recording
     chrome.runtime.sendMessage({
-      action: 'RECORDER_UI',
+      action: 'START_UI_RECORDER',
       value: true,
     });
   }
