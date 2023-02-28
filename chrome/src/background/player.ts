@@ -4,6 +4,7 @@ import { IFrame } from '../models/IFrame';
 import { getFrameIdFromSrc } from './uiRecorderHandler';
 import resemble from 'resemblejs';
 import { UserAction } from '../models/UserAction';
+import { PNG } from 'pngjs/browser';
 
 export class Player {
   yieldActions: Generator<Action>;
@@ -141,7 +142,15 @@ export class Player {
 
   compareImage(action: Action): Promise<any> {
     return new Promise ((resolve, reject) => {
-      chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, imgData => {
+      chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, {format: "png"} , imgData => {
+        
+        const capture = this.convertDataURIToBinary(imgData);
+
+        let png = new PNG({ filterType: 4 }).parse(capture, function (error, data) {
+          console.log(error, data);
+        });
+        
+        
         resemble(action.data)
           .compareTo(imgData)
           .onComplete(data => {
@@ -151,4 +160,8 @@ export class Player {
       });
     });
   }
+
+  convertDataURIToBinary = dataURI => 
+  Uint8Array.from(window.atob(dataURI.replace(/^data[^,]+,/,'')), v => v.charCodeAt(0));
+
 }
