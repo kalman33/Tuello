@@ -28,7 +28,7 @@ export class Player {
   }
 
   async treatAction() {
-    
+
     const action = this.yieldActions.next();
     this.count++;
     const userAction = action.value ? action.value.userAction : null;
@@ -58,8 +58,8 @@ export class Player {
             frame = iframe;
             const options = iframe
               ? {
-                  frameId: iframe.frameId
-                }
+                frameId: iframe.frameId
+              }
               : {};
             // on envoie un message au bon content scrip
             await this.sendMessageToContent(userAction, options);
@@ -108,7 +108,7 @@ export class Player {
     return this.count;
   }
 
-   sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions): Promise<any> {
+  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions): Promise<any> {
     return new Promise((resolve, reject) => {
 
       if (userAction.type === 'resize') {
@@ -141,16 +141,16 @@ export class Player {
   }
 
   compareImage(action: Action): Promise<any> {
-    return new Promise ((resolve, reject) => {
-      chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, {format: "png"} , imgData => {
-        
+    return new Promise((resolve, reject) => {
+      chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
+
         const capture = this.convertDataURIToBinary(imgData);
 
-        let png = new PNG({ filterType: 4 }).parse(capture, function (error, data) {
-          console.log(error, data);
-        });
-        
-        
+        let pngImgData = new PNG({ filterType: 4 }).parse(capture, (error, data) => {});
+
+
+
+
         resemble(action.data)
           .compareTo(imgData)
           .onComplete(data => {
@@ -161,7 +161,7 @@ export class Player {
     });
   }
 
-  convertDataURIToBinary = dataURI => 
-  Uint8Array.from(window.atob(dataURI.replace(/^data[^,]+,/,'')), v => v.charCodeAt(0));
+  convertDataURIToBinary = dataURI =>
+    Uint8Array.from(atob(dataURI.replace(/^data[^,]+,/, '')), v => v.charCodeAt(0));
 
 }
