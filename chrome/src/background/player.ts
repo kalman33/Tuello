@@ -5,6 +5,7 @@ import { getFrameIdFromSrc } from './uiRecorderHandler';
 import resemble from 'resemblejs';
 import { UserAction } from '../models/UserAction';
 import { PNG } from 'pngjs/browser';
+import { pixelmatch } from 'pixelmatch';
 
 export class Player {
   yieldActions: Generator<Action>;
@@ -146,8 +147,24 @@ export class Player {
 
         const capture = this.convertDataURIToBinary(imgData);
 
-        let pngImgData = new PNG({ filterType: 4 }).parse(capture, (error, data) => {});
+        let pngImgData = new PNG({ filterType: 4 }).parse(capture, (error, data) => { });
 
+        const { threshold = 0.99, createDiffImage = false, tolerance = 0.1, includeAA = false } = options;
+
+        const diffImage = createDiffImage ? new Uint8Array(pngImgData.width * pngImgData.height) : null;
+
+        // pixelmatch returns the number of mismatched pixels
+        const mismatchedPixels = pixelmatch(
+          this.convertDataURIToBinary(action.data),
+          pngImgData,
+          diffImage, // output
+          pngImgData.width,
+          pngImgData.height,
+          { threshold: tolerance, includeAA } // options
+        );
+
+        const match = 1 - mismatchedPixels / (pngImgData.width * pngImgData.height);
+        const matchPercentage = (match * 100).toFixed(2)
 
 
 

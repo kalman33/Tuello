@@ -1,5 +1,4 @@
 export class CompareResult {
-  isSameDimensions: boolean;
   misMatchPercentage: number;
   getImageDataUrl: () => string;
 
