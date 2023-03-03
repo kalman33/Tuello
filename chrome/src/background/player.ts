@@ -2,10 +2,12 @@ import { Action } from '../../../src/app/spy-http/models/Action';
 import { ComparisonResult } from '../models/ComparisonResult';
 import { IFrame } from '../models/IFrame';
 import { getFrameIdFromSrc } from './uiRecorderHandler';
-import resemble from 'resemblejs';
+//import resemble from 'resemblejs';
 import { UserAction } from '../models/UserAction';
 import { PNG } from 'pngjs/browser';
-import { pixelmatch } from 'pixelmatch';
+import pixelmatch from "pixelmatch";
+import { Buffer } from 'buffer';
+
 
 export class Player {
   yieldActions: Generator<Action>;
@@ -144,36 +146,62 @@ export class Player {
   compareImage(action: Action): Promise<any> {
     return new Promise((resolve, reject) => {
       chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
+        // const capture = this.convertDataURIToBinary(imgData);
 
-        const capture = this.convertDataURIToBinary(imgData);
+        // let pngImgData = new PNG({ filterType: 4 }).parse(capture, (error, data) => { });
+        // let pngImgData1 = new PNG({ filterType: 4 }).parse(this.convertDataURIToBinary(action.data), (error, data) => { });
 
-        let pngImgData = new PNG({ filterType: 4 }).parse(capture, (error, data) => { });
+        let pngImgData = PNG.sync.read(Buffer.from(action.data.slice('data:image/png;base64,'.length), 'base64'));
+        let pngImgData1 = PNG.sync.read(Buffer.from(imgData.slice('data:image/png;base64,'.length), 'base64'));
 
-        const { threshold = 0.99, createDiffImage = false, tolerance = 0.1, includeAA = false } = options;
+        console.log('pngImgData', pngImgData);
+        console.log('pngImgData1', pngImgData1);
 
-        const diffImage = createDiffImage ? new Uint8Array(pngImgData.width * pngImgData.height) : null;
+
+        let diffImage = new PNG({
+          width: pngImgData.width,
+          height: pngImgData.height
+        });
 
         // pixelmatch returns the number of mismatched pixels
         const mismatchedPixels = pixelmatch(
-          this.convertDataURIToBinary(action.data),
-          pngImgData,
-          diffImage, // output
+          pngImgData.data,
+          pngImgData1.data,
+          diffImage.data, // output
           pngImgData.width,
           pngImgData.height,
-          { threshold: tolerance, includeAA } // options
+          {} // options
         );
 
         const match = 1 - mismatchedPixels / (pngImgData.width * pngImgData.height);
-        const matchPercentage = (match * 100).toFixed(2)
+        const misMatchPercentage = (100 - (match * 100)).toFixed(2)
 
+        diffImage.pack();
+        var chunks = [];
+        diffImage.on('data', (chunk) => {
+          chunks.push(chunk);
+          console.log('chunk:', chunk.length);
+        });
+        diffImage.on('end', () => {
+          var result = Buffer.concat(chunks);
+          const data = {
+            misMatchPercentage,
+            imageDataUrl: 'data:image/png;base64,' + result.toString('base64')
+          };
 
+          this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
+          resolve(true);
 
-        resemble(action.data)
-          .compareTo(imgData)
-          .onComplete(data => {
-            this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
-            resolve(true);
-          });
+        });
+
+        /** 
+                resemble(action.data)
+                  .compareTo(imgData)
+                  .onComplete(data => {
+                    this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
+                    resolve(true);
+                  });*/
+
       });
     });
   }

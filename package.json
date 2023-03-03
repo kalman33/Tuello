@@ -32,6 +32,7 @@
     "@types/component-emitter": "^1.2.11",
     "animate.css": "^4.1.1",
     "bootstrap": "^5.2.3",
+    "buffer": "^6.0.3",
     "file-saver": "^2.0.5",
     "html2canvas": "^1.4.1",
     "jsoneditor": "^9.9.2",
