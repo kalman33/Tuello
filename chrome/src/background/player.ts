@@ -2,7 +2,6 @@ import { Action } from '../../../src/app/spy-http/models/Action';
 import { ComparisonResult } from '../models/ComparisonResult';
 import { IFrame } from '../models/IFrame';
 import { getFrameIdFromSrc } from './uiRecorderHandler';
-//import resemble from 'resemblejs';
 import { UserAction } from '../models/UserAction';
 import { PNG } from 'pngjs/browser';
 import pixelmatch from "pixelmatch";
@@ -25,7 +24,7 @@ export class Player {
   }
 
   private startTimeout() {
-    if (this.initialActions && this.initialActions[this.count] && this.initialActions[this.count].delay) {
+    if (this.initialActions && this.initialActions[this.count] && this.initialActions[this.count].delay !== undefined && this.initialActions[this.count].delay !== null) {
       this.timeoutId = setTimeout(this.treatAction.bind(this), this.initialActions[this.count].delay);
     }
   }
@@ -146,18 +145,8 @@ export class Player {
   compareImage(action: Action): Promise<any> {
     return new Promise((resolve, reject) => {
       chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
-        // const capture = this.convertDataURIToBinary(imgData);
-
-        // let pngImgData = new PNG({ filterType: 4 }).parse(capture, (error, data) => { });
-        // let pngImgData1 = new PNG({ filterType: 4 }).parse(this.convertDataURIToBinary(action.data), (error, data) => { });
-
         let pngImgData = PNG.sync.read(Buffer.from(action.data.slice('data:image/png;base64,'.length), 'base64'));
         let pngImgData1 = PNG.sync.read(Buffer.from(imgData.slice('data:image/png;base64,'.length), 'base64'));
-
-        console.log('pngImgData', pngImgData);
-        console.log('pngImgData1', pngImgData1);
-
-
         let diffImage = new PNG({
           width: pngImgData.width,
           height: pngImgData.height
@@ -193,20 +182,7 @@ export class Player {
           resolve(true);
 
         });
-
-        /** 
-                resemble(action.data)
-                  .compareTo(imgData)
-                  .onComplete(data => {
-                    this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
-                    resolve(true);
-                  });*/
-
       });
     });
   }
-
-  convertDataURIToBinary = dataURI =>
-    Uint8Array.from(atob(dataURI.replace(/^data[^,]+,/, '')), v => v.charCodeAt(0));
-
 }

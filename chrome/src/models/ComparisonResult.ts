@@ -19,7 +19,7 @@ export class ComparisonResult {
   constructor(actionId: string, comparisonImage: string, actualImage: string, compareResult: any) {
     this.actionId = actionId;
     this.actualImage = actualImage;
-    this.compareResult = new CompareResult(compareResult.misMatchPercentage, compareResult);
+    this.compareResult = new CompareResult(compareResult.misMatchPercentage, compareResult.imageDataUrl);
     this.comparisonImage = comparisonImage;
   }
 }
