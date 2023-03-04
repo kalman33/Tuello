@@ -1,7 +1,9 @@
 import html2canvas from 'html2canvas';
 import { crop, getOffset } from './utils';
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
-import resemble from 'resemblejs';
+import { PNG } from 'pngjs/browser';
+import pixelmatch from "pixelmatch";
+import { Buffer } from 'buffer';
 
 /**
  * permet de recuperer l'image
@@ -24,7 +26,7 @@ export function searchImg(action: IUserAction): Promise<HTMLImageElement> {
         const imgFinded = values.find(val => val !== 'not founded');
         const imgs = Array.from(document.images).map(img => {
           const dataURL = crop(canvas, getOffset(img).left, getOffset(img).top, img.width, img.height);
-          return {img, dataURL};
+          return { img, dataURL };
         });
         const res = imgs.find(val => {
           return val.dataURL === imgFinded;
@@ -45,37 +47,62 @@ function searchInDom(canvas, action) {
 
 async function compareImages(img1, img2) {
   return new Promise((resolve, reject) => {
-    resemble(img1)
-      .compareTo(img2)
-      .ignoreColors()
-      .onComplete(data => {
-        if (data.rawMisMatchPercentage < 0.1) {
-          resolve(img2);
-        } else {
-          resolve('not founded');
-        }
+
+    let pngImg1 = PNG.sync.read(Buffer.from(img1.slice('data:image/png;base64,'.length), 'base64'));
+    let pngImg2 = PNG.sync.read(Buffer.from(img2.slice('data:image/png;base64,'.length), 'base64'));
+    let diffImage = new PNG({
+      width: pngImg1.width,
+      height: pngImg1.height
+    });
+
+    // pixelmatch returns the number of mismatched pixels
+    const mismatchedPixels = pixelmatch(
+      pngImg1.data,
+      pngImg2.data,
+      diffImage.data, // output
+      pngImg1.width,
+      pngImg1.height,
+      {} // options
+    );
+
+    const match = 1 - mismatchedPixels / (pngImg1.width * pngImg1.height);
+    const misMatchPercentage = 100 - (match * 100)
+
+    if (misMatchPercentage < 0.1) {
+      diffImage.pack();
+      var chunks = [];
+      diffImage.on('data', (chunk) => {
+        chunks.push(chunk);
+        console.log('chunk:', chunk.length);
       });
+      diffImage.on('end', () => {
+        var result = Buffer.concat(chunks);
+        resolve('data:image/png;base64,' + result.toString('base64'));
+      });
+    } else {
+      resolve('not founded');
+    }
   });
 }
 
 export function findImage(): HTMLElement {
-  const elts: NodeListOf<Element> = document.querySelectorAll( ":hover" );
+  const elts: NodeListOf<Element> = document.querySelectorAll(":hover");
   if (elts && elts.length > 0) {
     if (elts[elts.length - 1].nodeName.toLowerCase() === 'img') {
- 
+
       return (elts[elts.length - 1] as HTMLImageElement);
     } else {
       // on commence à rechercher une image en background
       var eltsArr = Array.from(elts);
       for (const element of eltsArr.reverse().slice(1)) {
         if ((element as HTMLElement).style.backgroundImage !== '') {
- 
+
           return (element as HTMLElement);
         }
       };
 
     }
-    
+
     return null;
   }
 } 

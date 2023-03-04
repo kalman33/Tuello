@@ -201,7 +201,7 @@ export function addScreenShot(tabId, isPopupVisible: boolean) {
         frameId: 0
       });
     }
-    chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, imgData => {
+    chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
       const now = Date.now();
       const delay = isNaN(now - last) ? 0 : now - last;
 
