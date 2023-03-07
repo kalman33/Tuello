@@ -60,6 +60,10 @@ function init() {
         head.insertAdjacentHTML(
           'beforeend',
           `<style>
+
+          white-texte {
+            color: white !important;
+          }
           .tuello-circle {
               pointer-events: none;
               width: 30px; height: 30px;

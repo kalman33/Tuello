@@ -46,7 +46,7 @@ export class LayoutComponent implements OnInit, OnDestroy, AfterViewInit {
     chrome.tabs.getCurrent(tab => {
       chrome.tabs.sendMessage(tab.id, 'toggle', {
         frameId: 0
-      });
+      }, ()=>{});
     });
   }
 
@@ -75,7 +75,7 @@ export class LayoutComponent implements OnInit, OnDestroy, AfterViewInit {
       chrome.tabs.getCurrent(tab => {
         chrome.tabs.sendMessage(tab.id, 'toggle', {
           frameId: 0
-        });
+        }, ()=>{});
       });
       e.source.checked = true;
       this.activate = true;

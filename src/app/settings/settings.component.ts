@@ -87,7 +87,7 @@ export class SettingsComponent implements OnInit {
       chrome.tabs.getCurrent(tab => {
         chrome.tabs.sendMessage(tab.id, 'toggle', {
           frameId: 0
-        });
+        }, ()=>{});
       });
       e.source.checked = false;
       this.desactivate = false;

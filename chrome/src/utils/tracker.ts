@@ -255,7 +255,7 @@ function displayTrack(track: Track) {
 
       let parentDiv;
       const trackElement = getElementFromXPath(track.element);
-      let trackElementBgColor;
+      let trackElementBgColor = new Map();
       if (track.parentPosition === 'fixed') {
           div.style.position = 'absolute';
           div.style.left = track.htmlCoordinates.width + 'px';
@@ -276,16 +276,30 @@ function displayTrack(track: Track) {
         const elt = track.parentPosition === 'fixed' ? parentDiv : div;
         // mouse over : on affiche un contour sur le lien ou le bouton
         elt.onmouseenter = (event) => {
-          trackElementBgColor = trackElement.style.backgroundColor;
+          trackElementBgColor.set(trackElement.id, {
+            transition: trackElement.style.transition,
+            background: trackElement.style.backgroundColor}
+            );
           trackElement.style.backgroundColor = 'rgba(209, 37, 102)';
+          trackElement.style.transition= 'background-color 500ms ease-in-out';
+          const elementList = trackElement.children;
+          for (var i = 0; i < elementList.length; i++) {
+            elementList[i].classList.add('white-texte');
+          }
         }
 
-        // mouse out : on supprime le canvas
+        // mouse out : on supprime le background color
         elt.onmouseout = (event) => {
-          if (trackElementBgColor) {
-            trackElement.style.backgroundColor = trackElementBgColor;
+          if (trackElementBgColor.has(trackElement.id)) {
+            trackElement.style.backgroundColor = trackElementBgColor.get(trackElement.id).background;
+            trackElement.style.transition = trackElementBgColor.get(trackElement.id).transition;
           } else {
             trackElement.style.removeProperty('background-color');
+            trackElement.style.removeProperty('transition');
+          }
+          const elementList = trackElement.children;
+          for (var i = 0; i < elementList.length; i++) {
+            elementList[i].classList.remove('white-texte');
           }
           
         }

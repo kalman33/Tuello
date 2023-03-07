@@ -199,7 +199,7 @@ export function addScreenShot(tabId, isPopupVisible: boolean) {
         action: 'HIDE'
       }, {
         frameId: 0
-      });
+      }, ()=>{});
     }
     chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
       const now = Date.now();
@@ -215,7 +215,7 @@ export function addScreenShot(tabId, isPopupVisible: boolean) {
           action: 'SHOW'
         }, {
           frameId: 0
-        });
+        }, ()=>{});
       }
       saveUiRecordToLocalStorage();
       resolve(true);
