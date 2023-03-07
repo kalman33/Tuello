@@ -224,13 +224,13 @@ function resizeListener() {
 function recordImage(withClick: boolean) {
 
   // if (elt && elt.length > 0 && elt[elt.length - 1].nodeName.toLowerCase() === 'img') {
-  const elt = findImage();
+  const elt = findImageHover();
   if (elt) {
     // const elt = document.querySelectorAll( ":hover" );
     document.getElementById('cover-spin').style.setProperty('display', 'block', 'important');
 
     // Record by img
-    recordImg(elt).then(base64Img => {
+    recordImg((elt as HTMLImageElement)).then(base64Img => {
       const action = new UserAction(null);
       action.type = 'recordByImg';
       action.value = base64Img;

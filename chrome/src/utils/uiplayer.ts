@@ -1,6 +1,6 @@
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 import { searchImg } from './imageRecorder';
-import { displayEffect, getParentByTagName } from './utils';
+import { displayEffect, getOffset, getParentByTagName } from './utils';
 
 function mouseEvent(event: string, x: number, y: number, key: number) {
   const ev = document.createEvent('MouseEvent');
@@ -78,10 +78,15 @@ export function run(action: IUserAction) {
       case 'recordByImg':
         searchImg(action)
           .then(img => {
-            displayEffect(img.width / 2 + img.x, img.height / 2 + img.y).then(() => {
-              img.click();
-              resolve(true);
-            });
+            if (img instanceof HTMLElement) {
+              const offset = getOffset(img);
+              displayEffect(img.offsetWidth / 2 + offset.left, img.offsetHeight / 2 + offset.top).then(() => {
+                img.click();
+                resolve(true);
+              });
+            } else {
+              resolve(false);
+            }
           })
           .catch(err => {
             chrome.runtime.sendMessage({

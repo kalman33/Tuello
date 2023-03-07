@@ -31,15 +31,16 @@ export function convertImgToImageDataviaCanvas(elt: HTMLElement) {
 export function crop(canvas,cropX,cropY,cropWidth,cropHeight){
     // create a temporary canvas sized to the cropped size
     var canvas1=document.createElement('canvas');
-    var ctx1=canvas1.getContext('2d');
+    var ctx=canvas1.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
     canvas1.width=cropWidth;
     canvas1.height=cropHeight;
     // use the extended from of drawImage to draw the
     // cropped area to the temp canvas
-    ctx1.drawImage(canvas,cropX,cropY,cropWidth,cropHeight,0,0,cropWidth,cropHeight);
-    var ret = JSON.parse(JSON.stringify(canvas.toDataURL()));
+    ctx.drawImage(canvas,cropX,cropY,cropWidth,cropHeight,0,0,cropWidth,cropHeight);
+    var ret = JSON.parse(JSON.stringify(canvas1.toDataURL()));
     // Removes an element from the document
-    ctx1.clearRect(0, 0, cropWidth, cropHeight);
+    ctx.clearRect(0, 0, cropWidth, cropHeight);
     // return the .toDataURL of the temp canvas
     return(ret);
   }
