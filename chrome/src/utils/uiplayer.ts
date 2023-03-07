@@ -22,7 +22,10 @@ function mouseEvent(event: string, x: number, y: number, key: number) {
     key,
     null
   );
-  el.dispatchEvent(ev);
+  if (el) {
+    el.dispatchEvent(ev);
+  }
+  
 }
 
 function mouseup(x: number, y: number, key: number) {

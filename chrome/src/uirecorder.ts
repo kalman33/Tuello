@@ -1,10 +1,10 @@
 /**
  * Listener des post message provenant de contentscript
  */
-import { UserAction } from './models/UserAction';
-import * as lightbox from './utils/lightbox';
 import { ImageType } from '../../src/app/spy-http/models/UserAction';
-import { findImage, recordImg } from './utils/imageRecorder';
+import { UserAction } from './models/UserAction';
+import { findImageHover, recordImg } from './utils/imageRecorder';
+import * as lightbox from './utils/lightbox';
 import { recordHttpUserActionListener } from './utils/recordUserActionListener';
 import { addcss } from './utils/utils';
 
