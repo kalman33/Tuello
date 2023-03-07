@@ -44,7 +44,7 @@ export class Player {
         value: { comparisonResults: this.comparisonResults }
       }, {
         frameId: 0
-      });
+      }, ()=> {});
     } else {
       if (action.value.actionType === 'SCREENSHOT') {
         if (!this.comparisonResults) {

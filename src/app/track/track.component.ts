@@ -59,7 +59,7 @@ export class TrackComponent implements OnInit, OnDestroy {
         chrome.runtime.sendMessage({
           action: 'TRACK_PLAY_STATE',
           value: true
-        });
+        }, ()=>{});
       }
       this.ref.detectChanges();
     });
@@ -97,7 +97,7 @@ export class TrackComponent implements OnInit, OnDestroy {
         chrome.runtime.sendMessage({
           action: 'TRACK_PLAY_STATE',
           value: this.trackPlayActivated
-        });
+        }, ()=>{});
       }
     });
   }
@@ -119,7 +119,7 @@ export class TrackComponent implements OnInit, OnDestroy {
       chrome.runtime.sendMessage({
         action: 'TRACK_PLAY_STATE',
         value: this.trackPlayActivated
-      });
+      }, ()=>{});
     }
   }
 

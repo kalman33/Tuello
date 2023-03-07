@@ -18,7 +18,7 @@ export function launchUIRecorderHandler() {
       chrome.runtime.sendMessage({
         action: 'LOAD_UI_RECORDERS',
         value: true
-      });
+      }, ()=> {});
 
       // On active le recorder http
       httpRecordUI(true);
@@ -33,7 +33,7 @@ export function launchUIRecorderHandler() {
       if (window.self === window.top) {
         chrome.runtime.sendMessage({
           action: 'RECORD_WINDOW_SIZE'
-        });
+        }, ()=> {});
       }
       // on crée un event de scroll si l'utilisateur n'est pas en haut de la page
       if ((window as any).scrollX !== 0 || (window as any).scrollY !== 0) {
@@ -128,7 +128,7 @@ function keyboardListener(e) {
     chrome.runtime.sendMessage({
       action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
       value: true
-    });
+    }, ()=> {});
     chrome.storage.local.get(['messages'], results => {
       let placeholder = 'Add comment';
       let submitButton = 'Submit';
@@ -169,7 +169,7 @@ function keyboardListener(e) {
             chrome.runtime.sendMessage({
               action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
               value: false
-            });
+            }, ()=> {});
           }
         );
       });

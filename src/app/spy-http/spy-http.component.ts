@@ -74,7 +74,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
         chrome.runtime.sendMessage({
           action: 'START_UI_RECORDER',
           value: true
-        });
+        }, ()=>{});
       } else {
         this.spyActif = false;
       }
@@ -115,13 +115,13 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.runtime.sendMessage({
       action: 'updateIcon',
       value: 'tuello-32x32.png'
-    });
+    }, ()=>{});
 
     // on previent background qui va prevenir contentscript qu'on a stopé le recording
     chrome.runtime.sendMessage({
       action: 'START_UI_RECORDER',
       value: false
-    });
+    }, ()=>{});
     if (this.recorderHistoryService.record) {
       this.actions = this.recorderHistoryService.record.actions;
       this.jsonContent = JSON.stringify(this.recorderHistoryService.record);
@@ -155,14 +155,14 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.runtime.sendMessage({
       action: 'updateIcon',
       value: 'tuello-play-32x32.png'
-    });
+    }, ()=>{});
 
     // Mock http
     chrome.runtime.sendMessage({
       action: 'MOCK_HTTP_USER_ACTION',
       value: true,
       data: this.recorderHistoryService.record.httpRecords
-    });
+    }, ()=>{});
 
     // on cache l'extension
     this.chromeExtentionUtilsService.hide();
@@ -189,7 +189,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.runtime.sendMessage({
       action: 'PLAY_USER_ACTIONS',
       value: this.actions
-    });
+    }, ()=>{});
   }
 
   public onChange(fileList: any): void {
@@ -280,7 +280,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.runtime.sendMessage({
       action: 'VIEW_CLICK_ACTION',
       value: this.actions[indexAction].userAction
-    });
+    }, ()=>{});
   }
 
   /**

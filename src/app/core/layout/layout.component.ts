@@ -71,7 +71,7 @@ export class LayoutComponent implements OnInit, OnDestroy, AfterViewInit {
       chrome.runtime.sendMessage({
         action: 'updateIcon',
         value: 'tuello-stop-32x32.png'
-      });
+      }, ()=> {});
       chrome.tabs.getCurrent(tab => {
         chrome.tabs.sendMessage(tab.id, 'toggle', {
           frameId: 0

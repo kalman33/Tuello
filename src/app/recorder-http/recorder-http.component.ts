@@ -140,7 +140,7 @@ export class RecorderHttpComponent implements OnInit {
     chrome.runtime.sendMessage({
       action: 'HTTP_MOCK_STATE',
       value: this.httpMockActivated
-    });
+    }, ()=>{});
   }
 
   /**
@@ -156,7 +156,7 @@ export class RecorderHttpComponent implements OnInit {
     chrome.runtime.sendMessage({
       action: 'HTTP_RECORD_STATE',
       value: this.httpRecordActivated
-    });
+    }, ()=>{});
   }
 
   /**
@@ -181,7 +181,7 @@ export class RecorderHttpComponent implements OnInit {
       this.recorderService.saveToLocalStorage(json);
       chrome.runtime.sendMessage({
         action: 'MMA_RECORDS_CHANGE'
-      });
+      }, ()=>{});
     } else {
       this.infoBar.open('Json invalide', '', {
         duration: 2000,

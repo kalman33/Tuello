@@ -29,7 +29,7 @@ chrome.storage.local.get(['disabled'], function (result) {
     chrome.runtime.sendMessage({
       action: 'updateIcon',
       value: 'tuello-stop-32x32.png'
-    });
+    }, ()=> {});
   }
 });
 
@@ -60,8 +60,11 @@ function init() {
         head.insertAdjacentHTML(
           'beforeend',
           `<style>
-
-          .white-texte {
+          .tuello-background-color {
+            background-color: rgb(209, 37, 102) !important;
+            transition: background-color 500ms ease-in-out !important;
+          }
+          .tuello-white-texte {
             color: white !important;
           }
           .tuello-circle {
@@ -309,7 +312,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         setTimeout(() => {
           chrome.runtime.sendMessage({
             action: 'HIDE_OK'
-          });
+          }, ()=> {});
         }, 1);
       }
       sendResponse();
@@ -417,13 +420,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         chrome.runtime.sendMessage({
           action: 'FINISH_PLAY_ACTIONS'
-        });
+        }, ()=> {});
 
         // disabled Mock http
         chrome.runtime.sendMessage({
           action: 'MOCK_HTTP_USER_ACTION',
           value: false
-        });
+        }, ()=> {});
 
         if (message.value && message.value.comparisonResults) {
           // settimeout permet à tuello de s'afficher et permettre d'ecouter ce message
@@ -431,7 +434,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             chrome.runtime.sendMessage({
               action: 'SHOW_COMPARISON_RESULTS',
               value: message.value.comparisonResults
-            });
+            }, ()=> {});
           }, 1);
         }
       }
@@ -512,7 +515,7 @@ window.addEventListener(
           // send message to popup
           chrome.runtime.sendMessage({
             action: 'VIEW_IMAGE_CLOSED'
-          });
+          }, ()=> {});
           break;
       }
     }

@@ -255,7 +255,6 @@ function displayTrack(track: Track) {
 
       let parentDiv;
       const trackElement = getElementFromXPath(track.element);
-      let trackElementBgColor = new Map();
       if (track.parentPosition === 'fixed') {
           div.style.position = 'absolute';
           div.style.left = track.htmlCoordinates.width + 'px';
@@ -274,36 +273,23 @@ function displayTrack(track: Track) {
 
       if (track.htmlCoordinates) {
         const elt = track.parentPosition === 'fixed' ? parentDiv : div;
+        const elementList = trackElement.children;
         // mouse over : on affiche un contour sur le lien ou le bouton
         elt.onmouseenter = (event) => {
-          trackElementBgColor.set(trackElement.id, {
-            transition: trackElement.style.transition,
-            background: trackElement.style.backgroundColor}
-            );
-          trackElement.style.backgroundColor = 'rgba(209, 37, 102)';
-          trackElement.style.transition= 'background-color 500ms ease-in-out';
-          trackElement.classList.add('white-texte');
-          const elementList = trackElement.children;
+          trackElement.classList.add('tuello-background-color');
+          trackElement.classList.add('tuello-white-texte');
           for (var i = 0; i < elementList.length; i++) {
-            elementList[i].classList.add('white-texte');
+            elementList[i].classList.add('tuello-white-texte');
           }
         }
 
         // mouse out : on supprime le background color
         elt.onmouseout = (event) => {
-          if (trackElementBgColor.has(trackElement.id)) {
-            trackElement.style.backgroundColor = trackElementBgColor.get(trackElement.id).background;
-            trackElement.style.transition = trackElementBgColor.get(trackElement.id).transition;
-          } else {
-            trackElement.style.removeProperty('background-color');
-            trackElement.style.removeProperty('transition');
-          }
-          trackElement.classList.remove('white-texte');
-          const elementList = trackElement.children;
+          trackElement.classList.remove('tuello-background-color');
+          trackElement.classList.remove('tuello-white-texte');
           for (var i = 0; i < elementList.length; i++) {
-            elementList[i].classList.remove('white-texte');
+            elementList[i].classList.remove('tuello-white-texte');
           }
-          
         }
       }
     }
@@ -319,7 +305,7 @@ function viewTracks(trackId: string) {
       chrome.runtime.sendMessage({
         action: 'TRACK_VIEW',
         value: trackId ? trackId : 0
-      })
+      }, () => {})
     })
 
 }

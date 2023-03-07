@@ -41,7 +41,7 @@ export class PlayerService {
     chrome.runtime.sendMessage({
       action: 'PLAY_USER_ACTION',
       value: action,
-    });
+    }, ()=>{});
   }
 
   public takeScreenshot(action: Action): Observable<any> {

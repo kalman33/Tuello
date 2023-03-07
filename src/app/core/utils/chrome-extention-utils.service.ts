@@ -12,7 +12,7 @@ export class ChromeExtentionUtilsService {
   public hide(): Promise<string> {
     chrome.runtime.sendMessage({
       action: 'HIDE'
-    });
+    }, ()=>{});
     return new Promise((resolve, reject) => {
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.runtime.onMessage.removeListener(message);
@@ -30,7 +30,7 @@ export class ChromeExtentionUtilsService {
   public toggle() {
     chrome.runtime.sendMessage({
       action: 'toggle'
-    });
+    }, ()=>{});
 
   }
 
@@ -40,7 +40,7 @@ export class ChromeExtentionUtilsService {
   public show() {
     chrome.runtime.sendMessage({
       action: 'SHOW'
-    });
+    }, ()=>{});
   }
 
   public openImageViewer(img: string) {
@@ -50,7 +50,7 @@ export class ChromeExtentionUtilsService {
       chrome.runtime.sendMessage({
         action: 'VIEW_IMAGE',
         value: img,
-      });
+      }, ()=>{});
     }
   }
 

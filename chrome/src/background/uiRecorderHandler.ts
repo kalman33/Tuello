@@ -331,7 +331,7 @@ function saveUiRecordToLocalStorage() {
   chrome.runtime.sendMessage({
     action: 'UI_RECORD_CHANGED',
     value: record
-  });
+  }, ()=> {});
 
 
 }
