@@ -27,26 +27,22 @@ export function convertImgToImageDataviaCanvas(elt: HTMLElement) {
   });
 }
 
-// crop canvas function
-export function crop(canvas, offsetX, offsetY, width, height) {
-  // create an in-memory canvas
-  // @ts-ignore
-  const buffer = new OffscreenCanvas(width, height);
 
-  const bCtx = buffer.getContext('2d');
-  // set its width/height to the required ones
-  buffer.width = width;
-  buffer.height = height;
-  // draw the main canvas on our buffer one
-  // drawImage(source, source_X, source_Y, source_Width, source_Height,
-  //  dest_X, dest_Y, dest_Width, dest_Height)
-  bCtx.drawImage(canvas, offsetX, offsetY, width, height, 0, 0, width, height);
-  const todataURL = canvas.convertToBlob = new FileReaderSync().readAsDataURL(canvas.convertToBlob);
-  const ret = JSON.parse(JSON.stringify(todataURL));
-  bCtx.clearRect(0, 0, canvas.width, canvas.height);
-  // Removes an element from the document
-  return ret;
-}
+export function crop(canvas,cropX,cropY,cropWidth,cropHeight){
+    // create a temporary canvas sized to the cropped size
+    var canvas1=document.createElement('canvas');
+    var ctx1=canvas1.getContext('2d');
+    canvas1.width=cropWidth;
+    canvas1.height=cropHeight;
+    // use the extended from of drawImage to draw the
+    // cropped area to the temp canvas
+    ctx1.drawImage(canvas,cropX,cropY,cropWidth,cropHeight,0,0,cropWidth,cropHeight);
+    var ret = JSON.parse(JSON.stringify(canvas.toDataURL()));
+    // Removes an element from the document
+    ctx1.clearRect(0, 0, cropWidth, cropHeight);
+    // return the .toDataURL of the temp canvas
+    return(ret);
+  }
 
 export function getOffset(el) {
   const rect = el.getBoundingClientRect();
