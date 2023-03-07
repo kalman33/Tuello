@@ -61,7 +61,7 @@ function init() {
           'beforeend',
           `<style>
 
-          white-texte {
+          .white-texte {
             color: white !important;
           }
           .tuello-circle {

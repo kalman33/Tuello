@@ -282,6 +282,7 @@ function displayTrack(track: Track) {
             );
           trackElement.style.backgroundColor = 'rgba(209, 37, 102)';
           trackElement.style.transition= 'background-color 500ms ease-in-out';
+          trackElement.classList.add('white-texte');
           const elementList = trackElement.children;
           for (var i = 0; i < elementList.length; i++) {
             elementList[i].classList.add('white-texte');
@@ -297,6 +298,7 @@ function displayTrack(track: Track) {
             trackElement.style.removeProperty('background-color');
             trackElement.style.removeProperty('transition');
           }
+          trackElement.classList.remove('white-texte');
           const elementList = trackElement.children;
           for (var i = 0; i < elementList.length; i++) {
             elementList[i].classList.remove('white-texte');
