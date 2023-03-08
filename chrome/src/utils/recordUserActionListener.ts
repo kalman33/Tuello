@@ -9,7 +9,7 @@ export function recordHttpUserActionListener(event: MessageEvent) {
       chrome.runtime.sendMessage({
         action: 'RECORD_HTTP',
         value: { key: event.data.url, reponse: event.data.response, retourHttp: event.data.status },
-      });
+      }, ()=> {});
     }
   }
 }

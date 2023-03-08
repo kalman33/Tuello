@@ -8,13 +8,11 @@ import { IFrame } from '../models/IFrame';
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 
 let lastAction: Action;
-let last = 0;
+let last;
 let record: Record;
 let pause = false;
 
-export function initRecord() {
-  last = Date.now();
-}
+
 
 export function setPause(val: boolean) {
   pause = val;
@@ -28,6 +26,7 @@ export function addRecordByImage(userAction: IUserAction, tabId: number, frameId
     const action = new Action(delay, ActionType.RECORD_BY_IMAGE, userAction);
     record.actions.push(action);
     last = now;
+    record.last = last;
     saveUiRecordToLocalStorage();
   } else {
     getSrcFromFrameId(tabId, frameId)
@@ -38,6 +37,7 @@ export function addRecordByImage(userAction: IUserAction, tabId: number, frameId
         const action = new Action(delay, ActionType.RECORD_BY_IMAGE, userAction);
         record.actions.push(action);
         last = now;
+        record.last = last;
         saveUiRecordToLocalStorage();
       });
   }
@@ -51,6 +51,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
 
     if (!record) {
       record = new Record();
+      record.actions = [];
       lastAction = null;
     }
 
@@ -114,6 +115,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
           break;
       }
       last = now;
+      record.last = last;
       saveUiRecordToLocalStorage();
     } else {
       getSrcFromFrameId(tabId, frameId)
@@ -179,6 +181,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
               break;
           }
           last = now;
+          record.last = last;
           saveUiRecordToLocalStorage();
         });
     }
@@ -196,9 +199,9 @@ export function addScreenShot(tabId, isPopupVisible: boolean) {
         action: 'HIDE'
       }, {
         frameId: 0
-      });
+      }, ()=>{});
     }
-    chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, imgData => {
+    chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
       const now = Date.now();
       const delay = isNaN(now - last) ? 0 : now - last;
 
@@ -212,7 +215,7 @@ export function addScreenShot(tabId, isPopupVisible: boolean) {
           action: 'SHOW'
         }, {
           frameId: 0
-        });
+        }, ()=>{});
       }
       saveUiRecordToLocalStorage();
       resolve(true);
@@ -264,7 +267,9 @@ export function loadRecordFromStorage() {
       record = new Record(data.windowSize);
       record.actions = data.actions;
       record.httpRecords = data.httpRecords;
-      lastAction = data.actions[data.actions.length - 1];
+      lastAction = data.actions && data.actions.length ? data.actions[data.actions.length - 1] : null;
+      last = data.last;
+    } else {
       last = Date.now();
     }
   });
@@ -326,7 +331,7 @@ function saveUiRecordToLocalStorage() {
   chrome.runtime.sendMessage({
     action: 'UI_RECORD_CHANGED',
     value: record
-  });
+  }, ()=> {});
 
 
 }

@@ -1,3 +1,4 @@
+import { HTML_TAGS } from "../constantes/htmlTags.constantes";
 import { addcss } from "./utils";
 
 let elementsFound = new Map<HTMLElement, string>();
@@ -22,33 +23,21 @@ function searchElements() {
   // recupération des elements
   chrome.storage.local.get(['tuelloElements'], results => {
     let elements = results['tuelloElements'];
-
-    elements.forEach(element => {
-      const nodes = findElement(element);
-      nodes.forEach((node: Node, index: number) => {
-        /**const canvas = document.createElement('canvas');
-        canvas.id = "tuelloSearchElement" + index;
-        //Position canvas
-        canvas.title = element;
-        canvas.style.position = 'absolute';
-        canvas.style.border= '2px solid #D12566';
-        canvas.style.left = Math.ceil((node as HTMLElement).getBoundingClientRect().left + window.scrollX) - 2 + 'px';
-        canvas.style.top = Math.ceil((node as HTMLElement).getBoundingClientRect().top + window.scrollY) - 2 + 'px';
-        canvas.width = (node as HTMLElement).getBoundingClientRect().width + 2;
-        canvas.height = (node as HTMLElement).getBoundingClientRect().height + 2;
-        canvas.style.zIndex = '999999999';
-        
-        document.body.appendChild(canvas); //Append canvas to body element*/
-        const htmlElt = (node as HTMLElement);
-        elementsFound.set(htmlElt, htmlElt.style.backgroundColor);
-        htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
-        if (!htmlElt.classList.contains('simptip-position-top')) {
-          htmlElt.classList.add('simptip-fade');
-          htmlElt.classList.add('simptip-position-top');
-          htmlElt.setAttribute('data-tooltip', element);
-        }
+    if (elements){
+      elements.forEach(element => {
+        const nodes = findElement(element);
+        nodes.forEach((node: Node, index: number) => {
+          const htmlElt = (node as HTMLElement);
+          elementsFound.set(htmlElt, htmlElt.style.backgroundColor);
+          htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
+          if (!htmlElt.classList.contains('simptip-position-top')) {
+            htmlElt.classList.add('simptip-fade');
+            htmlElt.classList.add('simptip-position-top');
+            htmlElt.setAttribute('data-tooltip', element);
+          }
+        });
       });
-    });
+    }
   });
 }
 
@@ -65,7 +54,7 @@ function removeSearchElements() {
 }
 
 export function findElement(element: string): Node[] {
-  if (element.includes('<')) {
+  if (element.includes('<') || HTML_TAGS.find(e => e === element))  {
     return Array.from(document.querySelectorAll(element.replace('<', '').replace('>', '')));
   } else {
     const elts = document.querySelectorAll('[' + element + ']');

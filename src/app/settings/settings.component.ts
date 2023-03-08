@@ -73,7 +73,7 @@ export class SettingsComponent implements OnInit {
     chrome.runtime.sendMessage({
       action: 'MOUSE_COORDINATES',
       value: mouseCoordinatesValue
-    });
+    }, ()=>{});
   }
 
   toggleDesactivate(e) {
@@ -83,11 +83,11 @@ export class SettingsComponent implements OnInit {
       chrome.runtime.sendMessage({
         action: 'updateIcon',
         value: 'tuello-stop-32x32.png'
-      });
+      }, ()=>{});
       chrome.tabs.getCurrent(tab => {
         chrome.tabs.sendMessage(tab.id, 'toggle', {
           frameId: 0
-        });
+        }, ()=>{});
       });
       e.source.checked = false;
       this.desactivate = false;
@@ -106,6 +106,6 @@ export class SettingsComponent implements OnInit {
     }
     chrome.runtime.sendMessage({
       action: 'UPDATE_MENU'
-    });
+    }, ()=>{});
   }
 }

@@ -46,7 +46,7 @@ export class SearchElementsComponent implements OnInit {
         chrome.runtime.sendMessage({
           action: 'SEARCH_ELEMENTS_ACTIVATED',
           value: true
-        });
+        }, ()=>{});
       }
       this.ref.detectChanges();
     });
@@ -72,7 +72,7 @@ export class SearchElementsComponent implements OnInit {
     chrome.runtime.sendMessage({
       action: 'SEARCH_ELEMENTS_ACTIVATED',
       value: this.searchElementsActivated
-    });
+    }, ()=>{});
   }
 
   addElement() {
@@ -85,7 +85,7 @@ export class SearchElementsComponent implements OnInit {
     chrome.runtime.sendMessage({
       action: 'SEARCH_ELEMENTS_ACTIVATED',
       value: this.searchElementsActivated
-    });
+    }, ()=>{});
     this.elements =  [...this.elements]
     
   }
@@ -102,7 +102,7 @@ export class SearchElementsComponent implements OnInit {
       chrome.runtime.sendMessage({
         action: 'SEARCH_ELEMENTS_ACTIVATED',
         value: this.searchElementsActivated
-      });
+      }, ()=>{});
     }
   }
   

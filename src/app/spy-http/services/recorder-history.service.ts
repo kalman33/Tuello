@@ -18,7 +18,7 @@ export class RecorderHistoryService {
     // on previent background pour effacer le record en cours
     chrome.runtime.sendMessage({
       action: 'RECORD_USER_ACTION_DELETE'
-    });
+    }, ()=>{});
 
   }
 
@@ -34,7 +34,6 @@ export class RecorderHistoryService {
     chrome.storage.local.get(['uiRecord'], results => {
       if (results['uiRecord']) {
         this.record = results['uiRecord'];
-
       }
     });
   }
@@ -51,12 +50,12 @@ export class RecorderHistoryService {
     chrome.runtime.sendMessage({
       action: 'updateIcon',
       value: 'tuello-rec-32x32.png',
-    });
+    }, ()=>{});
 
     // on previent background qui va prevenir contentscript qu'on a démarré le recording
     chrome.runtime.sendMessage({
-      action: 'RECORDER_UI',
+      action: 'START_UI_RECORDER',
       value: true,
-    });
+    }, ()=>{});
   }
 }

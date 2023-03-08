@@ -6,7 +6,6 @@ import {
   addScreenShot,
   addUserAction,
   deleteRecord,
-  initRecord,
   loadRecordFromStorage,
   setPause
 } from './background/uiRecorderHandler';
@@ -189,7 +188,8 @@ chrome.commands.onCommand.addListener(command => {
             chrome.tabs.sendMessage(tabs[0].id, {
               action: 'ACTIONS_PAUSED',
               value: pausedActionNumber
-            });
+            },
+            () => {});
           }
         );
       });
@@ -227,25 +227,31 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
       chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
       break;
-    case 'RECORDER_UI':
-      if (msg.value) {
-        // on charge les enregistrements du local storage
-        loadRecordFromStorage();
-      }
-      initRecord();
+    case 'LOAD_UI_RECORDERS':
+      // on charge les enregistrements du local storage
+      loadRecordFromStorage();
+      break;
+    case 'START_UI_RECORDER':
+        // on envoie un message au content scrip
       if (sender && sender.tab && sender.tab.id >= 0) {
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'RECORDER_UI',
-          value: msg.value
-        });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'START_UI_RECORDER',
+            value: msg.value
+          },
+          {
+            frameId: 0
+          },
+          () => {}
+        );
       } else {
         port.postMessage({
-          action: 'RECORDER_UI',
+          action: 'START_UI_RECORDER',
           value: msg.value
         });
       }
-      break;
-
+        break;
     case 'VIEW_IMAGE':
       // on envoie un message au content scrip
       if (sender && sender.tab && sender.tab.id >= 0) {
@@ -257,7 +263,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           },
           {
             frameId: 0
-          }
+          },
+          () => {}
         );
       } else {
         port.postMessage({
@@ -273,7 +280,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'MOUSE_COORDINATES',
           value: msg.value
-        });
+        },
+        () => {});
       } else {
         port.postMessage({
           action: 'MOUSE_COORDINATES',
@@ -293,7 +301,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           },
           {
             frameId: 0
-          }
+          },
+          () => {}
         );
       }
       break;
@@ -304,7 +313,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'HTTP_MOCK_STATE',
           value: msg.value
-        });
+        },
+        () => {});
       }
       break;
     case 'UPDATE_MENU':
@@ -342,7 +352,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'HTTP_RECORD_STATE',
           value: msg.value
-        });
+        },
+        () => {});
       }
       break;
     case 'MMA_RECORDS_CHANGE':
@@ -350,7 +361,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         // on envoie un message au content scrip
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'MMA_RECORDS_CHANGE'
-        });
+        },
+        () => {});
       }
       break;
     case 'TRACK_PLAY_STATE':
@@ -359,7 +371,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'TRACK_PLAY_STATE',
           value: msg.value
-        });
+        },
+        () => {});
       }
       break;
     case 'SEARCH_ELEMENTS_ACTIVATED':
@@ -368,7 +381,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           chrome.tabs.sendMessage(sender.tab.id, {
             action: 'SEARCH_ELEMENTS_ACTIVATED',
             value: msg.value
-          });
+          },
+          () => {});
         }
         break;
     case 'VIEW_CLICK_ACTION':
@@ -383,7 +397,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           },
           {
             frameId: action.frame && action.frame.frameId ? action.frame.frameId : 0
-          }
+          },
+          () => {}
         );
       }
       break;
@@ -397,7 +412,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           },
           {
             frameId: 0
-          }
+          },
+          () => {}
         );
       }
       break;
@@ -420,7 +436,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
             chrome.tabs.sendMessage(tabs[0].id, {
               action: 'ACTIONS_PAUSED',
               value: pausedActionNumber
-            });
+            },
+            () => {});
           }
         );
       });
@@ -448,7 +465,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                   type: 'scroll'
                 }
               },
-              options
+              options,
+              () => {}
             );
           }
         }
@@ -460,7 +478,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         // on envoie un message au content scrip
         chrome.tabs.sendMessage(sender.tab.id, 'toggle', {
           frameId: 0
-        });
+        },
+        () => {});
       }
       break;
 
@@ -488,7 +507,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                 action: 'MOCK_HTTP_USER_ACTION',
                 value: false
               },
-              options
+              options,
+              () => {}
             );
             chrome.tabs.sendMessage(
               sender.tab.id,
@@ -500,7 +520,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                   type: 'scroll'
                 }
               },
-              options
+              options,
+              () => {}
             );
           }
         }
@@ -518,13 +539,15 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           action: 'MOCK_HTTP_USER_ACTION',
           value: msg.value,
           data: msg.data
-        });
+        },
+        () => {});
       } else {
         port.postMessage({
           action: 'MOCK_HTTP_USER_ACTION',
           value: msg.value,
           data: msg.data
-        });
+        },
+        () => {});
       }
       break;
     case 'ACTIVATE':

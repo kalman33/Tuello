@@ -2,8 +2,11 @@ import { Action } from '../../../src/app/spy-http/models/Action';
 import { ComparisonResult } from '../models/ComparisonResult';
 import { IFrame } from '../models/IFrame';
 import { getFrameIdFromSrc } from './uiRecorderHandler';
-import resemble from 'resemblejs';
 import { UserAction } from '../models/UserAction';
+import { PNG } from 'pngjs/browser';
+import pixelmatch from "pixelmatch";
+import { Buffer } from 'buffer';
+
 
 export class Player {
   yieldActions: Generator<Action>;
@@ -21,13 +24,13 @@ export class Player {
   }
 
   private startTimeout() {
-    if (this.initialActions && this.initialActions[this.count] && this.initialActions[this.count].delay) {
+    if (this.initialActions && this.initialActions[this.count] && this.initialActions[this.count].delay !== undefined && this.initialActions[this.count].delay !== null) {
       this.timeoutId = setTimeout(this.treatAction.bind(this), this.initialActions[this.count].delay);
     }
   }
 
   async treatAction() {
-    
+
     const action = this.yieldActions.next();
     this.count++;
     const userAction = action.value ? action.value.userAction : null;
@@ -41,7 +44,7 @@ export class Player {
         value: { comparisonResults: this.comparisonResults }
       }, {
         frameId: 0
-      });
+      }, ()=> {});
     } else {
       if (action.value.actionType === 'SCREENSHOT') {
         if (!this.comparisonResults) {
@@ -57,8 +60,8 @@ export class Player {
             frame = iframe;
             const options = iframe
               ? {
-                  frameId: iframe.frameId
-                }
+                frameId: iframe.frameId
+              }
               : {};
             // on envoie un message au bon content scrip
             await this.sendMessageToContent(userAction, options);
@@ -107,7 +110,7 @@ export class Player {
     return this.count;
   }
 
-   sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions): Promise<any> {
+  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions): Promise<any> {
     return new Promise((resolve, reject) => {
 
       if (userAction.type === 'resize') {
@@ -140,14 +143,45 @@ export class Player {
   }
 
   compareImage(action: Action): Promise<any> {
-    return new Promise ((resolve, reject) => {
-      chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, imgData => {
-        resemble(action.data)
-          .compareTo(imgData)
-          .onComplete(data => {
-            this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
-            resolve(true);
-          });
+    return new Promise((resolve, reject) => {
+      chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
+        let pngImgData = PNG.sync.read(Buffer.from(action.data.slice('data:image/png;base64,'.length), 'base64'));
+        let pngImgData1 = PNG.sync.read(Buffer.from(imgData.slice('data:image/png;base64,'.length), 'base64'));
+        let diffImage = new PNG({
+          width: pngImgData.width,
+          height: pngImgData.height
+        });
+
+        // pixelmatch returns the number of mismatched pixels
+        const mismatchedPixels = pixelmatch(
+          pngImgData.data,
+          pngImgData1.data,
+          diffImage.data, // output
+          pngImgData.width,
+          pngImgData.height,
+          {} // options
+        );
+
+        const match = 1 - mismatchedPixels / (pngImgData.width * pngImgData.height);
+        const misMatchPercentage = (100 - (match * 100)).toFixed(2)
+
+        diffImage.pack();
+        var chunks = [];
+        diffImage.on('data', (chunk) => {
+          chunks.push(chunk);
+          console.log('chunk:', chunk.length);
+        });
+        diffImage.on('end', () => {
+          var result = Buffer.concat(chunks);
+          const data = {
+            misMatchPercentage,
+            imageDataUrl: 'data:image/png;base64,' + result.toString('base64')
+          };
+
+          this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
+          resolve(true);
+
+        });
       });
     });
   }

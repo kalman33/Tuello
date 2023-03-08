@@ -255,7 +255,6 @@ function displayTrack(track: Track) {
 
       let parentDiv;
       const trackElement = getElementFromXPath(track.element);
-      let trackElementBgColor;
       if (track.parentPosition === 'fixed') {
           div.style.position = 'absolute';
           div.style.left = track.htmlCoordinates.width + 'px';
@@ -274,20 +273,23 @@ function displayTrack(track: Track) {
 
       if (track.htmlCoordinates) {
         const elt = track.parentPosition === 'fixed' ? parentDiv : div;
+        const elementList = trackElement.children;
         // mouse over : on affiche un contour sur le lien ou le bouton
         elt.onmouseenter = (event) => {
-          trackElementBgColor = trackElement.style.backgroundColor;
-          trackElement.style.backgroundColor = 'rgba(209, 37, 102)';
+          trackElement.classList.add('tuello-background-color');
+          trackElement.classList.add('tuello-white-texte');
+          for (var i = 0; i < elementList.length; i++) {
+            elementList[i].classList.add('tuello-white-texte');
+          }
         }
 
-        // mouse out : on supprime le canvas
+        // mouse out : on supprime le background color
         elt.onmouseout = (event) => {
-          if (trackElementBgColor) {
-            trackElement.style.backgroundColor = trackElementBgColor;
-          } else {
-            trackElement.style.removeProperty('background-color');
+          trackElement.classList.remove('tuello-background-color');
+          trackElement.classList.remove('tuello-white-texte');
+          for (var i = 0; i < elementList.length; i++) {
+            elementList[i].classList.remove('tuello-white-texte');
           }
-          
         }
       }
     }
@@ -303,7 +305,7 @@ function viewTracks(trackId: string) {
       chrome.runtime.sendMessage({
         action: 'TRACK_VIEW',
         value: trackId ? trackId : 0
-      })
+      }, () => {})
     })
 
 }

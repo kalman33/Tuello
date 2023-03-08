@@ -6,6 +6,7 @@ export class Record {
   public actions: Action[];
   public windowSize: WindowSize;
   public httpRecords: HttpReturn[];
+  public last: number
 
   constructor(windowSize?: WindowSize) {
     if (windowSize) {

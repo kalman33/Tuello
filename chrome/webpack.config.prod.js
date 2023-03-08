@@ -12,7 +12,6 @@ module.exports = {
     contentscript: join(__dirname, 'src/contentscript.ts'),
     httpmock: join(__dirname, 'src/httpmock.ts'),
     httprecorder: join(__dirname, 'src/httprecorder.ts'),
-    uirecorder: join(__dirname, 'src/uirecorder.ts'),
     popup: join(__dirname, 'src/popup/popup.ts')
   },
   output: {
