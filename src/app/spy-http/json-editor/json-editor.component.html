@@ -1,0 +1,13 @@
+<h1 mat-dialog-title>{{ 'mmn.spy-http.json-editor.title' | translate }}</h1>
+<mat-dialog-content class="mat-typography">
+  <textarea id="story" name="story"
+            rows="33" cols="50"
+            [(ngModel)]="jsonAction"
+  >
+  </textarea>
+</mat-dialog-content>
+
+<div mat-dialog-actions align="end">
+  <button mat-flat-button (click)="cancel()">{{ 'mmn.spy-http.json-editor.cancel' | translate }}</button>
+  <button cdkFocusInitial mat-flat-button (click)="close()">{{ 'mmn.spy-http.json-editor.save' | translate }}</button>
+</div>

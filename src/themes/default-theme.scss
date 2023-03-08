@@ -1,0 +1,7 @@
+@import './palette';
+
+$mmn-primary: mat-palette($md-primary, 800, 300, 900);
+$mmn-accent: mat-palette($md-accent, 500);
+$mmn-warn: mat-palette($md-warn, 500);
+
+$mmn-theme: mat-light-theme($mmn-primary, $mmn-accent, $mmn-warn);

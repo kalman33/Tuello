@@ -1,0 +1,37 @@
+<div class="container" >
+  <div fxFlex="99">
+
+    <div fxLayout="row" fxLayoutAlign="start center" class="button-row" [ngClass]="routeAnimationsElements">
+      <mat-slide-toggle [checked]="searchElementsActivated" [(ngModel)]="searchElementsActivated" (change)="toggleSearchPlay($event)">{{ 'mmn.search.button.play' | translate }}</mat-slide-toggle>
+    </div>
+   
+    <div fxLayout="row" fxLayoutAlign="start center" >
+      <div fxFlex="40" class="data">
+        <mat-form-field>
+        <mat-label>{{ 'mmn.search.input' | translate }}</mat-label>
+        <input [(ngModel)]="searchData" matInput placeholder="">
+      </mat-form-field>
+      </div>
+      <div fxFlex="60" class="actions">
+        <button mat-icon-button color="primary" (click)="addElement()"
+           matTooltip="{{ 'mmn.search.input.add.tooltip' | translate }}"
+        >
+          <mat-icon>add_circle_outline</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <mat-list *ngIf="elements">
+      <cdk-virtual-scroll-viewport [itemSize]="20">
+        <mat-list-item *cdkVirtualFor="let element of elements; let i = index">
+          <mmn-element
+            [index]='i' 
+            [element]="element" 
+            class="animated lightSpeedIn"    
+            (delete)='deleteElement($event)'         
+          ></mmn-element>
+        </mat-list-item>
+      </cdk-virtual-scroll-viewport>
+    </mat-list>
+  </div>
+</div>

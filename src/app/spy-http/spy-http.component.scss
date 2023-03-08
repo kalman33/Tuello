@@ -1,0 +1,45 @@
+.-tab-icon {
+  margin-right: 8px;
+}
+
+.mat-tab-group {
+  margin-top: 15px;
+}
+
+mat-tab mat-icon {
+  margin-right: 10px;
+}
+
+mat-list {
+  height: auto;
+}
+
+mmn-action {
+  width: 100vh;
+}
+
+:host ::ng-deep cdk-virtual-scroll-viewport .cdk-virtual-scroll-content-wrapper {
+  width: 100%;
+}
+
+.selected {
+  font-weight: bolder;
+  background-color: linen;
+}
+
+.black-theme .selected {
+  font-weight: bolder;
+  background-color: #2b1f14;
+}
+
+
+.button-row {
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+.button-row button {
+  display: table-cell;
+  margin-right: 20px;
+  line-height: 30px;
+}

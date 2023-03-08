@@ -1,0 +1,23 @@
+<h1 mat-dialog-title>{{ 'mmn.recorder-http.export.title' | translate }}</h1>
+<div mat-dialog-content>
+  <div [ngClass]="routeAnimationsElements">
+    <button mat-flat-button color="primary" (click)="save()">
+      <mat-icon>save</mat-icon>
+      {{ 'mmn.recorder-http.export.button.save' | translate }}
+    </button>
+
+    <p>{{ 'mmn.recorder-http.export.save.information' | translate }}</p>
+  </div>
+  <mat-divider></mat-divider>
+  <div [ngClass]="routeAnimationsElements">
+    <button mat-flat-button color="primary" (click)="saveAsLib()">
+      <mat-icon>library_books</mat-icon>
+      {{ 'mmn.recorder-http.export.button.saveAsLib' | translate }}
+    </button>
+
+    <p>{{ 'mmn.recorder-http.export.saveAsLib.information' | translate }}</p>
+  </div>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-flat-button mat-dialog-close>{{ 'mmn.recorder-http.export.button.close' | translate }}</button>
+</div>

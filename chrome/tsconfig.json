@@ -1,0 +1,13 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    
+    "target": "es5",
+    "module": "es2015",
+    "sourceMap": false,
+    "types": ["@types/chrome"],
+    "typeRoots": ["../node_modules/@types"],
+    "moduleResolution": "node",
+    "lib": ["webworker", "es2017", "dom", "ES2021.String"]
+  }
+}

@@ -1,0 +1,233 @@
+@import './src/themes/palette';
+@import '~@angular/material/theming';
+@import './src/themes/black-theme';
+
+
+
+.navbar {
+  z-index: 2;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.mat-toolbar {
+  background: linear-gradient(-45deg, mat-color($md-primary, 200), mat-color($md-primary, 400), mat-color($md-primary, 600), mat-color($md-primary, 800)) !important;
+  // background-size: 400% 400% !important;
+  // animation: gradient 15s ease infinite !important;
+}
+
+.black-theme .mat-toolbar {
+  background: linear-gradient(-45deg, mat-color($mmn-black-primary, 200), mat-color($mmn-black-primary, 400), mat-color($mmn-black-primary, 600), mat-color($mmn-black-primary, 800)) !important;
+}
+
+.navbar-brand {
+  text-decoration: none;
+  color: white;
+  padding: 10px 10px 0 10px;
+}
+
+.navbar-container {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.navbar-is-mobile .navbar {
+  position: fixed;
+  /* Make sure the toolbar will stay on top of the content as it scrolls past. */
+  z-index: 2;
+}
+
+.navbar-sidenav-container {
+  /* When the sidenav is not fixed, stretch the sidenav container to fill the available space. This
+           causes `<mat-sidenav-content>` to act as our scrolling element for desktop layouts. */
+  flex: 1;
+}
+
+.navbar-is-mobile .navbar-sidenav-container {
+  /* When the sidenav is fixed, don't constrain the height of the sidenav container. This allows the
+           `<body>` to be our scrolling element for mobile layouts. */
+  flex: 1 0 auto;
+}
+
+/*Set sidenav width*/
+
+mat-sidenav {
+  min-width: 190px !important;
+  border-right: 1px solid #eee;
+  box-shadow: 6px 0 6px rgba(0, 0, 0, .1);
+  /* background-color:rgb(63, 81, 181); */
+}
+
+.navbar-sidenav-container mat-sidenav mat-nav-list {
+  padding-top: 0px;
+}
+
+/* Set height of wrapper to stop content from moving up & down */
+
+.progress-bar-container {
+  height: 5px;
+}
+
+a.mat-list-item.active {
+  background: rgba(0, 0, 0, .04);
+}
+
+.mat-list-item:hover {
+  background: rgba(0, 0, 0, .04) !important;
+}
+
+.mat-list-item {
+  // background-color: white !important;
+}
+
+a.mat-list-item:hover p {
+  font-weight: bold !important;
+  color: #FFB61E;
+}
+
+a.mat-list-item:hover .mat-list-text {
+  padding-left: 15px !important;
+}
+
+a.mat-list-item .mat-list-text {
+  //padding-left: 14px !important;
+}
+
+a.mat-list-item:hover mat-icon {
+  // padding-left: 10px !important;
+  transform: scale(1.2);
+  box-shadow: 10px 0 20px rgba(0, 0, 0, 0.19), 6px 0 6px rgba(0, 0, 0, 0.23);
+  transform: rotate(90deg);
+}
+
+a.mat-list-item mat-icon {
+  border-radius: 50%;
+  padding: 5px;
+  margin: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.3s ease;
+}
+
+
+#push-bottom {
+  position: absolute;
+  bottom: 10px;
+  padding: 0 16px;
+}
+
+#push-bottom span {
+  padding-left: 16px;
+}
+
+.v-align-middle {
+  vertical-align: middle;
+}
+
+/* toogle size : reduction de sa taille*/
+.darkMode .mat-slide-toggle-bar {
+  height: 14px;
+  width: 36px;
+  border-radius: 40px;
+}
+
+.darkMode .mat-slide-toggle-thumb {
+  height: 20px;
+  width: 20px;
+}
+
+/*THIS IS WHAT'S HOLDING ME UP, >:( */
+.darkMode.mat-checked .mat-slide-toggle-thumb-container {
+  transform: translate3d(16px, 0, 0) !important;
+}
+
+
+.darkMode span {
+  font-size: 13px;
+}
+
+.darkMode .mat-slide-toggle-thumb-container {
+  width: 20px;
+  height: 20px;
+  /*not 5X (looked a little off)*/
+  top: -3px;
+  /*add left prop*/
+  /*left: 80px*/
+}
+
+
+
+/** MENU BURGER */
+.nav-icon {
+  width: 25px;
+}
+
+.nav-icon:after,
+.nav-icon:before,
+.nav-icon div {
+  background-color: #fff;
+  border-radius: 3px;
+  content: '';
+  display: block;
+  height: 2px;
+  margin: 5px 0;
+  transition: all .2s ease-in-out;
+}
+
+
+.nav-icon.open:before {
+  transform: translateY(7px) rotate(135deg);
+}
+
+.nav-icon.open:after {
+  transform: translateY(-7px) rotate(-135deg);
+}
+
+.nav-icon.open div {
+  transform: scale(0);
+}
+
+.navbar-title {
+  flex: 1 1 auto;
+}
+
+.navbar-spacer {
+  
+  font-size: 24px;
+  font-weight: bolder;
+  font-family: system-ui;
+  letter-spacing: 0.3em;
+  overflow: hidden; /* Ensures the content is not revealed until the animation */
+  border-right: .15em solid orange; /* The typwriter cursor */
+  white-space: nowrap; /* Keeps the content on a single line */
+  margin: 0 auto; /* Gives that scrolling effect as the typing happens */
+  animation: 
+    typing 3.5s steps(40, end),
+    blink-caret .75s step-end infinite;
+}
+
+/* The typing effect */
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+/* The typewriter cursor effect */
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: orange; }
+}

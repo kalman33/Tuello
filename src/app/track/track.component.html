@@ -1,0 +1,48 @@
+<div class="container" >
+  <div fxFlex="99%">
+
+    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+      <button mat-flat-button color="primary" (click)="save()" >
+         <mat-icon>save</mat-icon>
+         {{ 'mmn.track.button.saveAs' | translate }}
+       </button>
+         
+     <button mat-flat-button color="primary" (click)="effacerEnregistrements()">
+       <mat-icon>delete_outline</mat-icon>
+       {{ 'mmn.track.button.delete' | translate }}
+     </button>
+   </div>
+   <div class="button-row" fxLayout="row" fxLayoutAlign="start center" >
+       <mat-slide-toggle  [checked]="trackPlayActivated" [(ngModel)]="trackPlayActivated" (change)="toggleTrackPlay($event)">{{ 'mmn.track.button.play' | translate }}</mat-slide-toggle>
+   </div>
+
+   <!-- window.performance.getEntriesByType("resource") -->
+   <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
+   
+    <mat-form-field class="track-width">
+      <mat-label>{{ 'mmn.track.input' | translate }}</mat-label>
+      <input [(ngModel)]="trackData" (focusout)="focusOut()" matInput placeholder="Ex. jquery">
+    </mat-form-field>
+
+    <mat-form-field class="track-width">
+      <mat-label>{{ 'mmn.track.input.data.display' | translate }}</mat-label>
+      <input [(ngModel)]="trackDataDisplay" matInput placeholder="Ex. name">
+    </mat-form-field>
+  </div>
+  <mat-list *ngIf="tracks">
+    <cdk-virtual-scroll-viewport [itemSize]="20">
+      <mat-list-item 
+          [ngClass]='isSelectedClass(track)' 
+          *cdkVirtualFor="let track of tracks; let i = index">
+        <mmn-track-detail 
+          [index]='i' 
+          [track]="track" 
+          [dataDisplay]="_trackDataDisplay"
+          class="animated lightSpeedIn"             
+        ></mmn-track-detail>
+      </mat-list-item>
+    </cdk-virtual-scroll-viewport>
+  </mat-list>
+
+  </div>
+</div>

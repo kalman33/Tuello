@@ -1,0 +1,33 @@
+table {
+  width: 100%;
+  background-color: #fafafa;
+}
+
+.mat-header-cell {
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mat-cell {
+  text-align: center;
+  justify-content:center;
+}
+
+td{
+  padding: 20px;
+}
+
+th {
+  padding: 5px;
+}
+
+img {
+  width: 40px;
+  height: 40px;
+}
+
+.mat-spinner {
+  position: relative;
+  margin-left: 50%;
+  margin-right: 50%;
+}
