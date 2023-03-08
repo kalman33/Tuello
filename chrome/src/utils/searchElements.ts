@@ -1,3 +1,4 @@
+import { HTML_TAGS } from "../constantes/htmlTags.constantes";
 import { addcss } from "./utils";
 
 let elementsFound = new Map<HTMLElement, string>();
@@ -53,7 +54,7 @@ function removeSearchElements() {
 }
 
 export function findElement(element: string): Node[] {
-  if (element.includes('<')) {
+  if (element.includes('<') || HTML_TAGS.find(e => e === element))  {
     return Array.from(document.querySelectorAll(element.replace('<', '').replace('>', '')));
   } else {
     const elts = document.querySelectorAll('[' + element + ']');
