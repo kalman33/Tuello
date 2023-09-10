@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
+import { SearchElement } from './models/SearchElement';
 
 @Component({
   selector: 'mmn-search-elements',
@@ -14,8 +15,9 @@ export class SearchElementsComponent implements OnInit {
   
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
   searchElementsActivated: boolean;
-  elements: string[];
+  elements: SearchElement[];
   _searchData: string;
+  _searchAttributeDisplay: string;
 
   constructor(
     private translate: TranslateService,
@@ -34,6 +36,15 @@ export class SearchElementsComponent implements OnInit {
     this._searchData = value;
   }
 
+  get searchAttributeDisplay(): string {
+    return this._searchAttributeDisplay;
+  }
+
+  set searchAttributeDisplay(value: string) {
+    this._searchAttributeDisplay = value;
+    chrome.storage.local.set({ searchAttributeDisplay: value });
+  }
+
   ngOnInit() {
 
     // recupération des elements
@@ -49,6 +60,11 @@ export class SearchElementsComponent implements OnInit {
         }, ()=>{});
       }
       this.ref.detectChanges();
+    });
+
+    // récupération du search attribute to display
+    chrome.storage.local.get(['searchAttributeDisplay'], results => {
+      this.searchAttributeDisplay = results['searchAttributeDisplay'];
     });
    
   }
@@ -77,9 +93,15 @@ export class SearchElementsComponent implements OnInit {
 
   addElement() {
     if (this.elements) {
-      this.elements.push(this.searchData);
+      this.elements.push({
+        name: this.searchData,
+        displayAttribute: this.searchAttributeDisplay
+      });
     } else {
-      this.elements = [this.searchData]
+      this.elements = [{
+        name: this.searchData,
+        displayAttribute: this.searchAttributeDisplay
+      }];
     }
     chrome.storage.local.set({ tuelloElements: this.elements });
     chrome.runtime.sendMessage({

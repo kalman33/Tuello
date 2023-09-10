@@ -1,5 +1,6 @@
 import { HTML_TAGS } from "../constantes/htmlTags.constantes";
-import { addcss } from "./utils";
+import { SearchElement } from "../models/SearchElement";
+// import { addcss } from "./utils";
 
 let elementsFound = new Map<HTMLElement, string>();
 let resizeObserver; 
@@ -10,15 +11,21 @@ export function activateSearchElements() {
   searchElements();
 
   // on active le listener pour le click souris
-  document.addEventListener('click', searchElements);
-
+  // document.addEventListener('click', searchElements);
+  window.addEventListener("resize", searchElements);
 }
 
 export function desactivateSearchElements() {
   removeSearchElements();
-  document.removeEventListener('click', searchElements);
-  resizeObserver.disconnect();
-  // mutationObserver.disconnect();
+  // document.removeEventListener('click', searchElements);
+  window.removeEventListener('resize', searchElements);
+  
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+ /* if (mutationObserver) {
+    mutationObserver.disconnect();
+  }*/
 }
 
 function searchElements() {
@@ -29,7 +36,7 @@ function searchElements() {
     let elements = results['tuelloElements'];
     if (elements) {
       elements.forEach(element => {
-        const nodes = findElement(element);
+        const nodes = findElement(element.name);
         nodes.forEach((node: Node, index: number) => {
           const htmlElt = (node as HTMLElement);
           //elementsFound.set(htmlElt, htmlElt.style.backgroundColor);
@@ -82,8 +89,9 @@ export function findByText(rootElement, text): Node[] {
   return nodes;
 }
 
-function observeElement(searchElement: string, htmlElt: HTMLElement, index: number) {
+function observeElement(searchElement: SearchElement, htmlElt: HTMLElement, index: number) {
   resizeObserver = new ResizeObserver((entries, observer) => {
+    console.log(' INITIAL RESIZE', entries);
     entries.map((entry) => {
         console.log('RESIZE', entry.target);
         let canvas = document.getElementById(`tuelloSearchElement${index}`);
@@ -104,15 +112,15 @@ function observeElement(searchElement: string, htmlElt: HTMLElement, index: numb
     }
     //callback();
   });
-  mutationObserver.observe(htmlElt, mutationOptions);*/
-
+  mutationObserver.observe(htmlElt, mutationOptions);
+*/
 }
 
-function createCanvas(searchElement: string, htmlElt: Element, index: number) {
+function createCanvas(searchElement: SearchElement, htmlElt: Element, index: number) {
   const canvas = document.createElement('canvas');
   canvas.id = "tuelloSearchElement" + index;
   //Position canvas
-  canvas.title = searchElement;
+  canvas.title = searchElement.name + " : " + (htmlElt.getAttribute(searchElement.displayAttribute) || "none");
   canvas.style.position = 'absolute';
   canvas.style.border = '2px dashed #D12566';
   canvas.style.left = Math.ceil(htmlElt.getBoundingClientRect().left + window.scrollX) - 2 + 'px';
@@ -126,5 +134,15 @@ function createCanvas(searchElement: string, htmlElt: Element, index: number) {
     htmlElt.setAttribute('data-tooltip', searchElement);
   }*/
   document.body.appendChild(canvas); //Append canvas to body element
+  canvas.addEventListener('click', copyToClipBoard);
  
+}
+
+/**
+ * Copie le titre de l'élement clické dans le presse-papiers
+ * @param text 
+ */
+function copyToClipBoard(event) {
+  var targetElement = event.target || event.srcElement;
+  window.navigator['clipboard'].writeText(targetElement.title);
 }

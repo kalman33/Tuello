@@ -89,6 +89,7 @@
   "mmn.search.button.play": "Activer",
   "mmn.search.button.add": "Ajout un élement",
   "mmn.search.input": "Element à rechercher",
+  "mmn.search.input.attribute.display": "attribut de l'élement à afficher",
   "mmn.search.elements.required": "Renseigner au moins un élement à rechercher",
   "mmn.search.input.add.tooltip": "Renseigner une balise HTML(Ex: <h1>), attributs HTML (ex: aria-labelledby) ou du texte"
 }

@@ -5,20 +5,21 @@
       <mat-slide-toggle [checked]="searchElementsActivated" [(ngModel)]="searchElementsActivated" (change)="toggleSearchPlay($event)">{{ 'mmn.search.button.play' | translate }}</mat-slide-toggle>
     </div>
    
-    <div fxLayout="row" fxLayoutAlign="start center" >
-      <div fxFlex="40" class="data">
-        <mat-form-field>
+    <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
+   
+      <mat-form-field class="search-width">
         <mat-label>{{ 'mmn.search.input' | translate }}</mat-label>
-        <input [(ngModel)]="searchData" matInput placeholder="">
+        <input [(ngModel)]="searchData" matInput placeholder="Ex. <h1>">
       </mat-form-field>
-      </div>
-      <div fxFlex="60" class="actions">
-        <button mat-icon-button color="primary" (click)="addElement()"
+      <mat-form-field class="search-width">
+        <mat-label>{{ 'mmn.search.input.attribute.display' | translate }}</mat-label>
+        <input [(ngModel)]="searchAttributeDisplay" matInput placeholder="Ex. name">
+      </mat-form-field>
+      <button mat-icon-button color="primary" (click)="addElement()"
            matTooltip="{{ 'mmn.search.input.add.tooltip' | translate }}"
         >
           <mat-icon>add_circle_outline</mat-icon>
         </button>
-      </div>
     </div>
 
     <mat-list *ngIf="elements">

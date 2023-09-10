@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { SearchElement } from '../models/SearchElement';
 
 @Component({
   selector: 'mmn-element',
@@ -7,7 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
   styleUrls: ['./element.component.scss']
 })
 export class ElementComponent implements OnInit {
-  @Input() element: string;
+  @Input() element: SearchElement;
   @Input() index: number;
   @Output() delete: EventEmitter<number> = new EventEmitter<number>();
 
