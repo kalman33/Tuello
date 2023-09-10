@@ -1,6 +1,7 @@
 import html2canvas from 'html2canvas';
 import { ICoordinates } from '../models/UserAction';
 
+
 /**
  * permet de supprimer les doublons dans le flux json
  */
@@ -305,6 +306,3 @@ export function addcss(cssUrl: string) {
     head.appendChild(link);
   }
 }
-
-
-

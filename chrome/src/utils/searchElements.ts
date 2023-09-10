@@ -2,9 +2,11 @@ import { HTML_TAGS } from "../constantes/htmlTags.constantes";
 import { addcss } from "./utils";
 
 let elementsFound = new Map<HTMLElement, string>();
+let resizeObserver; 
+// let mutationObserver;
 
 export function activateSearchElements() {
-  addcss(chrome.runtime.getURL('simptip.min.css'));
+  //addcss(chrome.runtime.getURL('simptip.min.css'));
   searchElements();
 
   // on active le listener pour le click souris
@@ -15,6 +17,8 @@ export function activateSearchElements() {
 export function desactivateSearchElements() {
   removeSearchElements();
   document.removeEventListener('click', searchElements);
+  resizeObserver.disconnect();
+  // mutationObserver.disconnect();
 }
 
 function searchElements() {
@@ -23,18 +27,15 @@ function searchElements() {
   // recupération des elements
   chrome.storage.local.get(['tuelloElements'], results => {
     let elements = results['tuelloElements'];
-    if (elements){
+    if (elements) {
       elements.forEach(element => {
         const nodes = findElement(element);
         nodes.forEach((node: Node, index: number) => {
           const htmlElt = (node as HTMLElement);
-          elementsFound.set(htmlElt, htmlElt.style.backgroundColor);
-          htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
-          if (!htmlElt.classList.contains('simptip-position-top')) {
-            htmlElt.classList.add('simptip-fade');
-            htmlElt.classList.add('simptip-position-top');
-            htmlElt.setAttribute('data-tooltip', element);
-          }
+          //elementsFound.set(htmlElt, htmlElt.style.backgroundColor);
+          //htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
+          createCanvas(element, htmlElt, index);
+          observeElement(element, htmlElt, index);
         });
       });
     }
@@ -42,19 +43,14 @@ function searchElements() {
 }
 
 function removeSearchElements() {
-  // const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
-  elementsFound.forEach((value, key) => {
-    //element.style.backgroundColor
-    key.style.backgroundColor = value;
-    key.classList.remove('simptip-fade');
-    key.classList.remove('simptip-position-top');
-    key.removeAttribute('data-tooltip');
-
+  const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
+  elements.forEach((element) => {
+    element.remove();
   });
 }
 
 export function findElement(element: string): Node[] {
-  if (element.includes('<') || HTML_TAGS.find(e => e === element))  {
+  if (element.includes('<') || HTML_TAGS.find(e => e === element)) {
     return Array.from(document.querySelectorAll(element.replace('<', '').replace('>', '')));
   } else {
     const elts = document.querySelectorAll('[' + element + ']');
@@ -86,3 +82,49 @@ export function findByText(rootElement, text): Node[] {
   return nodes;
 }
 
+function observeElement(searchElement: string, htmlElt: HTMLElement, index: number) {
+  resizeObserver = new ResizeObserver((entries, observer) => {
+    entries.map((entry) => {
+        console.log('RESIZE', entry.target);
+        let canvas = document.getElementById(`tuelloSearchElement${index}`);
+        if (canvas) {
+          canvas.remove();
+        }
+        createCanvas(searchElement, entry.target, index);
+    });
+  });
+  
+  resizeObserver.observe(htmlElt);
+  
+  /*var mutationOptions = { attributes: true, childList: true, subtree: true };
+
+  mutationObserver = new MutationObserver((mutationsList, observer) => {
+    for(let mutation of mutationsList){
+      console.log("MUTATION", mutation.target);
+    }
+    //callback();
+  });
+  mutationObserver.observe(htmlElt, mutationOptions);*/
+
+}
+
+function createCanvas(searchElement: string, htmlElt: Element, index: number) {
+  const canvas = document.createElement('canvas');
+  canvas.id = "tuelloSearchElement" + index;
+  //Position canvas
+  canvas.title = searchElement;
+  canvas.style.position = 'absolute';
+  canvas.style.border = '2px dashed #D12566';
+  canvas.style.left = Math.ceil(htmlElt.getBoundingClientRect().left + window.scrollX) - 2 + 'px';
+  canvas.style.top = Math.ceil(htmlElt.getBoundingClientRect().top + window.scrollY) - 2 + 'px';
+  canvas.width = htmlElt.getBoundingClientRect().width + 2;
+  canvas.height = htmlElt.getBoundingClientRect().height + 2;
+  canvas.style.zIndex = (htmlElt as HTMLElement).style.zIndex;
+  /*if (!htmlElt.classList.contains('simptip-position-top')) {
+    htmlElt.classList.add('simptip-fade');
+    htmlElt.classList.add('simptip-position-top');
+    htmlElt.setAttribute('data-tooltip', searchElement);
+  }*/
+  document.body.appendChild(canvas); //Append canvas to body element
+ 
+}
