@@ -1,6 +1,6 @@
 try {
     importScripts('background.js');
 } catch(e) {
-    console.error('background error', e);
+    console.error('Tuello : background error', e);
 }
 

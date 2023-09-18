@@ -1,15 +1,15 @@
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgModule } from '@angular/core';
 import { CoreModule } from '../core/core.module';
-import { ScrollingModule } from '@angular/cdk/scrolling';
-import { DragDropModule } from '@angular/cdk/drag-drop';
-import {FormsModule} from '@angular/forms';
-import { TrackComponent } from './track.component';
+
+import { FormsModule } from '@angular/forms';
 import { TrackDetailComponent } from './detail/track-detail.component';
+import { SelectTrackDirective } from './selec.track.directive';
 import { TrackRoutingModule } from './track-routing.module';
+import { TrackComponent } from './track.component';
 
 @NgModule({
-  declarations: [TrackComponent, TrackDetailComponent],
-  imports: [CommonModule, CoreModule, FormsModule, TrackRoutingModule, ScrollingModule, DragDropModule]
+  declarations: [TrackComponent, TrackDetailComponent, SelectTrackDirective],
+  imports: [CommonModule, CoreModule, FormsModule, TrackRoutingModule]
 })
 export class TrackModule {}

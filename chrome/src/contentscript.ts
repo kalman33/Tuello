@@ -5,7 +5,7 @@ import * as lightboxImg from './utils/imageviewer';
 import * as jsonViewer from './utils/jsonViewer';
 import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
 import { recordHttpListener } from './utils/recordHttpListener';
-import { activateSearchElements, desactivateSearchElements } from './utils/searchElements';
+import { activateSearchElements, desactivateSearchElements, removeAllSearchElements } from './utils/searchElements';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
 import { displayEffect } from './utils/utils';
@@ -266,7 +266,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse();
     } else {
       // on regarde si le mock et le record sont activés et on active la popup le cas échéant
-      chrome.storage.local.get(['httpRecord', 'httpMock', 'mmaRecords', 'deepMockLevel'], results => {
+      chrome.storage.local.get(['httpRecord', 'httpMock', 'mmaRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
         if (results.httpMock) {
           window.postMessage(
             {
@@ -278,6 +278,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             '*'
           );
         }
+
         if (results.httpRecord) {
           window.postMessage(
             {

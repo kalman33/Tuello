@@ -29,19 +29,18 @@
       <input [(ngModel)]="trackDataDisplay" matInput placeholder="Ex. name">
     </mat-form-field>
   </div>
-  <mat-list *ngIf="tracks">
-    <cdk-virtual-scroll-viewport [itemSize]="20">
-      <mat-list-item 
+  <mat-list *ngIf="tracks" [selectTrack] = 'selectedTrackId' >
+      <mat-list-item
           [ngClass]='isSelectedClass(track)' 
-          *cdkVirtualFor="let track of tracks; let i = index">
+          *ngFor="let track of tracks; let i = index">
         <mmn-track-detail 
+          [id]="'list-' + track.id"
           [index]='i' 
           [track]="track" 
           [dataDisplay]="_trackDataDisplay"
           class="animated lightSpeedIn"             
         ></mmn-track-detail>
       </mat-list-item>
-    </cdk-virtual-scroll-viewport>
   </mat-list>
 
   </div>

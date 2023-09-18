@@ -1,12 +1,12 @@
-import {Injectable} from '@angular/core';
-import {Action} from '../models/Action';
-import {from, Observable, of} from 'rxjs';
-import {concatMap, delay} from 'rxjs/operators';
-import {IUserAction} from '../models/UserAction';
-import {ComparisonResult} from '../models/ComparisonResult';
-import { PNG } from 'pngjs/browser';
-import pixelmatch from "pixelmatch";
+import { Injectable } from '@angular/core';
 import { Buffer } from 'buffer';
+import pixelmatch from "pixelmatch";
+import { PNG } from 'pngjs/browser';
+import { from, Observable, of } from 'rxjs';
+import { concatMap, delay } from 'rxjs/operators';
+import { Action } from '../models/Action';
+import { ComparisonResult } from '../models/ComparisonResult';
+import { IUserAction } from '../models/UserAction';
 
 @Injectable({
   providedIn: 'root',

@@ -106,6 +106,7 @@ let recorderHttp = {
         response: err
       })
       .finally(() => {
+        const obj = JSON.parse(JSON.stringify(data));
         window.postMessage(
           data
           ,

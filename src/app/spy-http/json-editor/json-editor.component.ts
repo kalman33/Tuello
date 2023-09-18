@@ -1,8 +1,6 @@
-import {AfterViewInit, Component, Inject, Input, OnInit} from '@angular/core';
-import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
+import { Component, Inject, OnInit } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
-import {Action} from '../models/Action';
 
 @Component({
   selector: 'mmn-json-editor',

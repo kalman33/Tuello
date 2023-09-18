@@ -1,13 +1,13 @@
-import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
-import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { saveAs } from 'file-saver';
+import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
+import { formatDate } from '../core/utils/date-utils';
 import { Track } from './models/Track';
 import { TrackType } from './models/TrackType';
-import { formatDate } from '../core/utils/date-utils';
 
 @Component({
   selector: 'mmn-track',
@@ -34,7 +34,7 @@ export class TrackComponent implements OnInit, OnDestroy {
     private ref: ChangeDetectorRef,
     private infoBar: MatSnackBar,
     private route: ActivatedRoute
-  ) {}
+  ) { }
 
   get trackData(): string {
     return this._trackData;
@@ -69,7 +69,7 @@ export class TrackComponent implements OnInit, OnDestroy {
         chrome.runtime.sendMessage({
           action: 'TRACK_PLAY_STATE',
           value: true
-        }, ()=>{});
+        }, () => { });
       }
       this.ref.detectChanges();
     });
@@ -103,6 +103,7 @@ export class TrackComponent implements OnInit, OnDestroy {
     });
   }
 
+
   /**
    * Efface les enregistrements stockés dans le localstorage
    */
@@ -115,7 +116,7 @@ export class TrackComponent implements OnInit, OnDestroy {
         chrome.runtime.sendMessage({
           action: 'TRACK_PLAY_STATE',
           value: this.trackPlayActivated
-        }, ()=>{});
+        }, () => { });
       }
     });
   }
@@ -133,11 +134,11 @@ export class TrackComponent implements OnInit, OnDestroy {
     } else if (!this.trackPlayActivated) {
       // this.trackPlayActivated = true;
       // chrome.storage.local.set({ trackPlay: this.trackPlayActivated }); 
-    } 
+    }
     chrome.runtime.sendMessage({
       action: 'TRACK_PLAY_STATE',
       value: this.trackPlayActivated
-    }, ()=>{});
+    }, () => { });
   }
 
   /**
@@ -155,12 +156,12 @@ export class TrackComponent implements OnInit, OnDestroy {
       this.trackPlayActivated = false;
     } else {
       chrome.storage.local.set({ trackPlay: this.trackPlayActivated });
-      
+
     }
     chrome.runtime.sendMessage({
       action: 'TRACK_PLAY_STATE',
       value: this.trackPlayActivated
-    }, ()=>{});
+    }, () => { });
   }
 
   save() {
@@ -170,16 +171,16 @@ export class TrackComponent implements OnInit, OnDestroy {
   }
 
   isSelectedClass(track: Track) {
-    let selected = false;   
+    let selected = false;
     if (this.selectedTrackId && track.hrefLocation === this.currentHrefLocation && this.trackPlayActivated) {
       if (this.selectedTrackId.includes('tuelloTrackClick')) {
         selected = this.selectedTrackId == track.id;
       } else {
-        selected = (track.type === TrackType.PAGE) ? true : false ;
+        selected = (track.type === TrackType.PAGE) ? true : false;
       }
     }
-    
-   
+
+
     return { selected };
   }
 

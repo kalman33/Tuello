@@ -1,6 +1,6 @@
-import {Injectable} from '@angular/core';
-import {Action} from '../models/Action';
-import {Record} from '../models/Record';
+import { Injectable } from '@angular/core';
+import { Action } from '../models/Action';
+import { Record } from '../models/Record';
 
 @Injectable({ providedIn: 'root' })
 export class RecorderHistoryService {

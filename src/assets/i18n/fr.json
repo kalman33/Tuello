@@ -6,6 +6,8 @@
   "mmn.layout.settings": "Paramètres",
 
   "mmn.jsoneditor.language": "fr-FR",
+  "mmn.jsoneditor.menu.clearResponse": "Effacer la réponse",
+  "mmn.jsoneditor.menu.clearResponse.title": "Permet d'effacer la réponse HTTP",
   "mmn.settings.title": "Paramètres",
   "mmn.settings.general.language.en": "Anglais",
   "mmn.settings.general.language.fr": "Français",

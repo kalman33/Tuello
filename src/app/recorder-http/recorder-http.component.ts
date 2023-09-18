@@ -20,7 +20,7 @@ export class RecorderHttpComponent implements OnInit {
     private translate: TranslateService,
     private ref: ChangeDetectorRef,
     private snackBar: MatSnackBar,
-  ) {}
+  ) { }
 
   @ViewChild('fileInput') fileInput: ElementRef;
 
@@ -65,10 +65,15 @@ export class RecorderHttpComponent implements OnInit {
    * initialisation du jsoneditor
    */
   private initJsonEditor() {
+
+    //const clearResponse = this.translate.instant('mmn.jsoneditor.menu.clearResponse');
+    //const clearResponseTitle = this.translate.instant('mmn.jsoneditor.menu.clearResponse.title');
+
     // options du jsoneditor
     this.options = {
-      
+
       mode: 'tree',
+      enableSort: false,
       enableTransform: false,
       language: this.translate.instant('mmn.jsoneditor.language') || 'en',
       onValidationError: errors => {
@@ -104,6 +109,44 @@ export class RecorderHttpComponent implements OnInit {
           return this.jsonEditorTree.get()[path[0]].key;
         }
       },
+      onCreateMenu: (items, node) => {
+        const path = node.path
+
+        // log the current items and node for inspection
+        console.log('items:', items, 'node:', node);
+        
+        if (path && node && node.path[1] === 'reponse') {
+          items.push({
+            text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'), 
+            title: this.translate.instant('mmn.jsoneditor.menu.clearResponse.title'), 
+            className: 'example-class', 
+            click: () => {
+              const json = this.jsonEditorTree.get();
+              if (json && Array.isArray(json) ) {
+              
+                if (json[node.path[0]][node.path[1]]) {
+                  if (Array.isArray(json[node.path[0]][node.path[1]])) {
+                    json[node.path[0]][node.path[1]] = [];
+                  } else {
+                    json[node.path[0]][node.path[1]] = {};
+                  }
+                  this.jsonEditorTree.update(json);
+                  this.updateData();
+                }
+              }
+            }
+          })
+        }
+        items = items.filter(function (item) {
+          // on supprime separator, type et Extract
+          return item.type !== 'separator' && item.text !== 'Type' && item.text !== 'Extract'
+        })
+  
+        // finally we need to return the items array. If we don't, the menu
+        // will be empty.
+        return items
+
+      }
     };
 
     // init du jsoneditor
@@ -133,13 +176,13 @@ export class RecorderHttpComponent implements OnInit {
     if (this.httpRecordActivated) {
       this.httpRecordActivated = false;
       chrome.storage.local.set({ httpRecord: false });
-     
+
     }
     chrome.storage.local.set({ httpMock: this.httpMockActivated });
     chrome.runtime.sendMessage({
       action: 'HTTP_MOCK_STATE',
       value: this.httpMockActivated
-    }, ()=>{});
+    }, () => { });
   }
 
   /**
@@ -149,13 +192,13 @@ export class RecorderHttpComponent implements OnInit {
     if (this.httpMockActivated) {
       this.httpMockActivated = false;
       chrome.storage.local.set({ httpMock: false });
-      
+
     }
     chrome.storage.local.set({ httpRecord: this.httpRecordActivated });
     chrome.runtime.sendMessage({
       action: 'HTTP_RECORD_STATE',
       value: this.httpRecordActivated
-    }, ()=>{});
+    }, () => { });
   }
 
   /**
@@ -180,7 +223,7 @@ export class RecorderHttpComponent implements OnInit {
       this.recorderService.saveToLocalStorage(json);
       chrome.runtime.sendMessage({
         action: 'MMA_RECORDS_CHANGE'
-      }, ()=>{});
+      }, () => { });
     } else {
       this.infoBar.open('Json invalide', '', {
         duration: 2000,

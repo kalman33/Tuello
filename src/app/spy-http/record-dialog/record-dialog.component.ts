@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { MatDialogRef } from '@angular/material/dialog';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 
 @Component({

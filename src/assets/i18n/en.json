@@ -6,6 +6,8 @@
   "mmn.layout.settings": "Settings",
   
   "mmn.jsoneditor.language": "en",
+  "mmn.jsoneditor.menu.clearResponse": "Clear response",
+  "mmn.jsoneditor.menu.clearResponse.title": "Allow to clear response",
   "mmn.settings.title": "Settings",
   "mmn.settings.general.language.en": "English",
   "mmn.settings.general.language.fr": "French",

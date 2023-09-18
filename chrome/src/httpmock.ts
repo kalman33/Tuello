@@ -27,13 +27,13 @@ let mockHttp = {
     const modifyResponse = () => {
       if ((window as any).mmaRecords) {
         // this.responseURL
-        const records = (window as any).mmaRecords.filter(({ key, reponse, retourHttp }) => compareWithMockLevel(originalURL, key));
+        const records = (window as any).mmaRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(originalURL, key));
         if (records && records.length > 0) {
-          records.forEach(({ key, reponse, retourHttp }) => {
+          records.forEach(({ key, reponse, httpCode }) => {
             this.responseText = JSON.stringify(reponse);
             // Object.defineProperty(this,'responseText', JSON.stringify(reponse));
             this.response = reponse;
-            this.status = retourHttp;
+            this.status = httpCode;
           });
         }
       }
@@ -94,11 +94,11 @@ let mockHttp = {
       let txt = undefined;
       let status = undefined;
       if ((window as any).mmaRecords) {
-        const records = (window as any).mmaRecords.filter(({ key, reponse, retourHttp }) => compareWithMockLevel(args[0], key));
+        const records = (window as any).mmaRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(args[0], key));
         if (records && records.length > 0) {
-          records.forEach(({ key, reponse, retourHttp }) => {
+          records.forEach(({ key, reponse, httpCode }) => {
             txt = JSON.stringify(reponse);
-            status = retourHttp;
+            status = httpCode;
           });
         }
       }

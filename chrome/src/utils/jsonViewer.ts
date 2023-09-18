@@ -121,6 +121,7 @@ function initJsonEditor(json: string) {
       mode: 'view',
       enableTransform: false,
       language: language || 'en',
+      enableSort: false
 
     };
 

@@ -12,13 +12,13 @@ export const JSON_SCHEMA = {
         type: ['object', 'array', 'string', 'number', 'null'],
         nullable: true
       },
-      retourHttp: {
+      httpCode: {
         type: 'number',
       },
       erreur: {
         type: ['object']
       },
     },
-    required: ['key', 'retourHttp'],
+    required: ['key', 'httpCode'],
   },
 };

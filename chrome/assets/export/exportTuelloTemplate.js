@@ -25,16 +25,16 @@ let compareWithMockLevel = (url1, url2) => {
             if (window.mmaRecords) {
                 // this.responseURL
                 var records = window.mmaRecords.filter(function (_a) {
-                    var key = _a.key, reponse = _a.reponse, retourHttp = _a.retourHttp;
+                    var key = _a.key, reponse = _a.reponse, httpCode = _a.httpCode;
                     return compareWithMockLevel(originalURL, key);
                 });
                 if (records && records.length > 0) {
                     records.forEach(function (_a) {
-                        var key = _a.key, reponse = _a.reponse, retourHttp = _a.retourHttp;
+                        var key = _a.key, reponse = _a.reponse, httpCode = _a.httpCode;
                         _this.responseText = JSON.stringify(reponse);
                         // Object.defineProperty(this,'responseText', JSON.stringify(reponse));
                         _this.response = reponse;
-                        _this.status = retourHttp;
+                        _this.status = httpCode;
                     });
                 }
             }
@@ -114,14 +114,14 @@ let compareWithMockLevel = (url1, url2) => {
             var status = undefined;
             if (window.mmaRecords) {
                 var records = window.mmaRecords.filter(function (_a) {
-                    var key = _a.key, reponse = _a.reponse, retourHttp = _a.retourHttp;
+                    var key = _a.key, reponse = _a.reponse, httpCode = _a.httpCode;
                     return compareWithMockLevel(args[0], key);
                 });
                 if (records && records.length > 0) {
                     records.forEach(function (_a) {
-                        var key = _a.key, reponse = _a.reponse, retourHttp = _a.retourHttp;
+                        var key = _a.key, reponse = _a.reponse, httpCode = _a.httpCode;
                         txt = JSON.stringify(reponse);
-                        status = retourHttp;
+                        status = httpCode;
                     });
                 }
             }

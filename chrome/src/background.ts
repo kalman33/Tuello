@@ -18,7 +18,7 @@ let player = null;
 
 
 self.addEventListener('activate', event => {
-  console.log('Service worker Tuello is activated');
+  console.log('Tuello : Service worker Tuello is activated');
   (self as any).process = {
     versions: {
       node: "test"

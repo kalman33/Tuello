@@ -64,93 +64,96 @@ export function displayTracks() {
 
 function getTuelloTracks() {
   return new Promise((resolve, reject) => {
-      chrome.storage.local.get(['tuelloTracks'], results => {
-        if (!chrome.runtime.lastError) {
-          tuelloTracks = results['tuelloTracks'] || [];
-          resolve(true);
-        } else {
-          reject(false)
-        }
-      });
+    chrome.storage.local.get(['tuelloTracks'], results => {
+      if (!chrome.runtime.lastError) {
+        tuelloTracks = results['tuelloTracks'] || [];
+        resolve(true);
+      } else {
+        reject(false)
+      }
+    });
   });
 }
 
 
 function recordListener(list) {
 
-  // récupération du tracking data
-  chrome?.storage?.local?.get(['tuelloTrackData'], results => {
-    const trackData = results['tuelloTrackData'];
+  if (chrome && chrome.storage && chrome.storage.local) {
+    // récupération du tracking data
+    chrome.storage.local.get(['tuelloTrackData'], results => {
+      const trackData = results['tuelloTrackData'];
 
-    list.getEntries().filter(entry => {
-      return entry.name.includes(trackData);
-    }).forEach(entry => {
-      // on track
-      const track = new Track();
-      track.x = lastUserAction?.x;
-      track.y = lastUserAction?.y;
+      list.getEntries().filter(entry => {
+        return entry.name.includes(trackData);
+      }).forEach(entry => {
+        // on track
+        const track = new Track();
+        track.x = lastUserAction?.x;
+        track.y = lastUserAction?.y;
 
-      track.hrefLocation = window.location.href;
+        track.hrefLocation = window.location.href;
 
-      const url = new URL(entry.name)
+        const url = new URL(entry.name)
 
-      if (url.search) {
-        track.url = url.href.replace(url.search, "");
-        track.querystring = decodeURI(url.search.substring(1))
-          .split('&')
-          .reduce((result, current) => {
-            const [key, value] = current.split('=');
+        if (url.search) {
+          track.url = url.href.replace(url.search, "");
+          track.querystring = decodeURI(url.search.substring(1))
+            .split('&')
+            .reduce((result, current) => {
+              const [key, value] = current.split('=');
 
-            result[key] = value;
+              result[key] = value;
 
-            return result
-          }, {})
-      } else {
-        track.url = url.href;
-      }
+              return result
+            }, {})
+        } else {
+          track.url = url.href;
+        }
 
-      if (window.location.href === lastUserAction?.hrefLocation) {
-        // on est sur le meme href : c'est un track click
-        track.type = TrackType.CLICK;
-        track.element = getXPath(lastUserAction.element);
-        track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-        track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
+        if (window.location.href === lastUserAction?.hrefLocation) {
+          // on est sur le meme href : c'est un track click
+          track.type = TrackType.CLICK;
+          track.element = getXPath(lastUserAction.element);
+          track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+          track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
 
-      } else {
-        // c'est un track page page
-        track.type = TrackType.PAGE;
-        track.parentPosition = 'fixed';
-        track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-      }
-      track.htmlCoordinates = lastUserAction?.htmlCoordinates;
+        } else {
+          // c'est un track page page
+          track.type = TrackType.PAGE;
+          track.parentPosition = 'fixed';
+          track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+        }
+        track.htmlCoordinates = lastUserAction?.htmlCoordinates;
 
-      appendTrack(track);
+        appendTrack(track);
+      });
     });
-  });
+  }
+
 }
 
 function clickListener(e) {
-    lastUserAction = new UserAction(e);
+  lastUserAction = new UserAction(e);
 
-    let target = e.target || e.srcElement;
-    while (target) {
-      if (target instanceof HTMLAnchorElement || target instanceof HTMLButtonElement) {
-        break;
-      }
-      target = target.parentNode;
+  let target = e.target || e.srcElement;
+  while (target) {
+    if (target instanceof HTMLAnchorElement || target instanceof HTMLButtonElement) {
+      break;
     }
-    if (target && (!target.id || !target.id.includes('tuello'))) {
-      const rect = target.getBoundingClientRect();
-      lastUserAction.htmlCoordinates = {
-        top: rect.top + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-        height: rect.height
-      }
-      lastUserAction.element = target;
+    target = target.parentNode;
+  }
+  if (target && (!target.id || !target.id.includes('tuello'))) {
+    const rect = target.getBoundingClientRect();
+    lastUserAction.htmlCoordinates = {
+      top: rect.top + window.scrollY,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+      height: rect.height
     }
+    lastUserAction.element = target;
+  }
 
-    displayTracks();
+  displayTracks();
 }
 
 function appendTrack(track: Track) {

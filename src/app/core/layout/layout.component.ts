@@ -13,7 +13,7 @@ import { ChromeExtentionUtilsService } from '../utils/chrome-extention-utils.ser
   encapsulation: ViewEncapsulation.None,
   animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation]
 })
-export class LayoutComponent implements OnInit, OnDestroy, AfterViewInit {
+export class LayoutComponent implements AfterViewInit {
   isOpen = false;
   activate = true;
   displayTitle = false;
@@ -28,10 +28,6 @@ export class LayoutComponent implements OnInit, OnDestroy, AfterViewInit {
     public chromeExtentionUtilsService: ChromeExtentionUtilsService,
     private router: Router
   ) {}
-
-  ngOnInit(): void {}
-
-  ngOnDestroy(): void {}
 
   ngAfterViewInit(): void {
     this.stateFadeAnimation = 'active';

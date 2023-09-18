@@ -2,35 +2,78 @@ import { HTML_TAGS } from "../constantes/htmlTags.constantes";
 import { SearchElement } from "../models/SearchElement";
 // import { addcss } from "./utils";
 
-let elementsFound = new Map<HTMLElement, string>();
-let resizeObserver; 
-// let mutationObserver;
+let elementsFound = new Map<string, Element>();
+let resizeObserver;
+let mutationObserver;
 
 export function activateSearchElements() {
+
+  removeSearchElements();
+
   //addcss(chrome.runtime.getURL('simptip.min.css'));
   searchElements();
 
   // on active le listener pour le click souris
   // document.addEventListener('click', searchElements);
-  window.addEventListener("resize", searchElements);
+  window.addEventListener("resize", resize);
+
+  var mutationOptions = {
+    attributes: false,
+    characterData: false,
+    childList: true,
+    subtree: true,
+    attributeOldValue: false,
+    characterDataOldValue: false
+  };
+  let addedNode = false;
+
+  mutationObserver = new MutationObserver((mutationsList, observer) => {
+
+    mutationsList.forEach(mutation => {
+      if (mutation.addedNodes) {
+        mutation.addedNodes.forEach(node => {
+          const htmlElt = (node as HTMLElement);
+          if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
+            addedNode = true;
+          }
+        });
+      }
+    });
+    if (addedNode) {
+      removeSearchElements();
+      searchElements();
+      addedNode = false;
+    }
+  });
+  if (document.body instanceof Node) {
+    mutationObserver.observe(document.body, mutationOptions);
+  }
+
+}
+
+function resize() {
+  //on supprime en premier tous les anciens canvas
+  removeAllSearchElements();
+  searchElements();
 }
 
 export function desactivateSearchElements() {
-  removeSearchElements();
+  elementsFound = new Map<string, Element>();
+
+  removeAllSearchElements();
   // document.removeEventListener('click', searchElements);
-  window.removeEventListener('resize', searchElements);
-  
+  window.removeEventListener('resize', resize);
+
   if (resizeObserver) {
     resizeObserver.disconnect();
   }
- /* if (mutationObserver) {
+  if (mutationObserver) {
     mutationObserver.disconnect();
-  }*/
+  }
 }
 
 function searchElements() {
-  //on supprime en premier tous les anciens canvas
-  removeSearchElements();
+  
   // recupération des elements
   chrome.storage.local.get(['tuelloElements'], results => {
     let elements = results['tuelloElements'];
@@ -39,10 +82,13 @@ function searchElements() {
         const nodes = findElement(element.name);
         nodes.forEach((node: Node, index: number) => {
           const htmlElt = (node as HTMLElement);
-          //elementsFound.set(htmlElt, htmlElt.style.backgroundColor);
-          //htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
-          createCanvas(element, htmlElt, index);
-          observeElement(element, htmlElt, index);
+          // on verifie si le canvas de cet élement n'a pas déjà eté rajouté
+          if (!isElementAlreadyExist(htmlElt)) {
+            //htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
+            createCanvas(element, htmlElt, index);
+            observeElement(element, htmlElt, index);
+          }
+
         });
       });
     }
@@ -52,8 +98,28 @@ function searchElements() {
 function removeSearchElements() {
   const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
   elements.forEach((element) => {
+    const htmlElt = elementsFound.get(element.id);
+    if (!htmlElt || !isVisible(htmlElt)) {
+      element.remove();
+    }
+  });
+}
+
+function isElementAlreadyExist(htmlElt: HTMLElement) {
+  return [...elementsFound].find(([key, value]) => value.isEqualNode(htmlElt))
+}
+
+
+export function removeAllSearchElements() {
+  const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
+  elements.forEach((element) => {
     element.remove();
   });
+}
+
+function isVisible(element: Element) {
+  const elt = element as HTMLElement;
+  return !!(elt && (elt.offsetWidth || elt.offsetHeight || elt.getClientRects().length));
 }
 
 export function findElement(element: string): Node[] {
@@ -91,34 +157,25 @@ export function findByText(rootElement, text): Node[] {
 
 function observeElement(searchElement: SearchElement, htmlElt: HTMLElement, index: number) {
   resizeObserver = new ResizeObserver((entries, observer) => {
-    console.log(' INITIAL RESIZE', entries);
     entries.map((entry) => {
-        console.log('RESIZE', entry.target);
-        let canvas = document.getElementById(`tuelloSearchElement${index}`);
-        if (canvas) {
-          canvas.remove();
-        }
-        createCanvas(searchElement, entry.target, index);
+      let canvas = document.getElementById(`tuelloSearchElement${index}`);
+      if (canvas) {
+        canvas.remove();
+      }
+      createCanvas(searchElement, entry.target, index);
     });
   });
-  
-  resizeObserver.observe(htmlElt);
-  
-  /*var mutationOptions = { attributes: true, childList: true, subtree: true };
 
-  mutationObserver = new MutationObserver((mutationsList, observer) => {
-    for(let mutation of mutationsList){
-      console.log("MUTATION", mutation.target);
-    }
-    //callback();
-  });
-  mutationObserver.observe(htmlElt, mutationOptions);
-*/
+  resizeObserver.observe(htmlElt);
+
+
+
 }
 
 function createCanvas(searchElement: SearchElement, htmlElt: Element, index: number) {
   const canvas = document.createElement('canvas');
-  canvas.id = "tuelloSearchElement" + index;
+  canvas.id = "tuelloSearchElement" + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+  elementsFound.set(canvas.id, htmlElt);
   //Position canvas
   canvas.title = searchElement.name + " : " + (htmlElt.getAttribute(searchElement.displayAttribute) || "none");
   canvas.style.position = 'absolute';
@@ -134,8 +191,8 @@ function createCanvas(searchElement: SearchElement, htmlElt: Element, index: num
     htmlElt.setAttribute('data-tooltip', searchElement);
   }*/
   document.body.appendChild(canvas); //Append canvas to body element
-  canvas.addEventListener('click', copyToClipBoard);
- 
+  canvas.addEventListener('click', copyToClipBoard, true);
+
 }
 
 /**
@@ -144,5 +201,17 @@ function createCanvas(searchElement: SearchElement, htmlElt: Element, index: num
  */
 function copyToClipBoard(event) {
   var targetElement = event.target || event.srcElement;
-  window.navigator['clipboard'].writeText(targetElement.title);
+  // window.navigator['clipboard'].writeText(targetElement.title);
+  const el = document.createElement('textarea');
+  if (el && targetElement?.title) {
+    el.value = targetElement.title;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+  }
+  if (targetElement.id) {
+    (elementsFound.get(targetElement.id) as HTMLElement).click();
+  }
+ 
 }
