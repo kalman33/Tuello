@@ -27,6 +27,7 @@ let recorderHttp = {
                 {
                   type: 'RECORD_HTTP',
                   url: originalURL,
+                  delay: 0,
                   response: reponse,
                   status: this.status,
                   method: xhrMethod,
@@ -86,6 +87,7 @@ let recorderHttp = {
       {
         type: 'RECORD_HTTP',
         url: args[0],
+        delay: 0,
         status: response.status,
         method: args[1] ? args[1].method : "GET",
         body: args[1]? args[1].body : undefined,

@@ -222,6 +222,13 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       chrome.action.setIcon({ path: `/assets/logos/${msg.value}` });
 
       break;
+    case "DEACTIVATE":
+      // on envoie un message au content scrip
+      chrome.tabs.sendMessage(sender.tab.id, {
+        action: 'DEACTIVATE'
+      },
+        () => { });
+     break;
     case 'FINISH_PLAY_ACTIONS':
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page
       chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);

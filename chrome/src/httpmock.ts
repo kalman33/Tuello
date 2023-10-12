@@ -17,6 +17,11 @@ let compareWithMockLevel = (url1: string, url2: string): boolean => {
   }
 };
 
+const sleep = (ms: number) => {
+  const stop = new Date().getTime() + ms;
+  while (new Date().getTime() < stop){}
+}
+
 
 let mockHttp = {
   originalXHR: window.XMLHttpRequest,
@@ -24,12 +29,15 @@ let mockHttp = {
     // URL avant redirect
     let originalURL; 
 
-    const modifyResponse = () => {
+    const modifyResponse = (isOnLoad: boolean = false) => {
       if ((window as any).mmaRecords) {
         // this.responseURL
         const records = (window as any).mmaRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(originalURL, key));
         if (records && records.length > 0) {
-          records.forEach(({ key, reponse, httpCode }) => {
+          records.forEach(({ key, reponse, httpCode, delay }) => {
+            if (delay && isOnLoad) {
+              sleep(delay);
+            }
             this.responseText = JSON.stringify(reponse);
             // Object.defineProperty(this,'responseText', JSON.stringify(reponse));
             this.response = reponse;
@@ -38,6 +46,8 @@ let mockHttp = {
         }
       }
     };
+
+   
 
     const xhr = new mockHttp.originalXHR();
     // tslint:disable-next-line:forin
@@ -54,7 +64,7 @@ let mockHttp = {
       } else if (attr === 'onload') {
         xhr.onload = (...args) => {
           if (this.readyState === 4) {
-            modifyResponse();
+            modifyResponse(true);
           }
           this.onload && this.onload.apply(this, args);
         };
@@ -96,7 +106,10 @@ let mockHttp = {
       if ((window as any).mmaRecords) {
         const records = (window as any).mmaRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(args[0], key));
         if (records && records.length > 0) {
-          records.forEach(({ key, reponse, httpCode }) => {
+          records.forEach(({ key, reponse, httpCode, delay }) => {
+            if (delay) {
+              sleep(delay);
+            }
             txt = JSON.stringify(reponse);
             status = httpCode;
           });

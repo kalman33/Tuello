@@ -73,6 +73,10 @@ export class LayoutComponent implements AfterViewInit {
           frameId: 0
         }, ()=>{});
       });
+      // on previent background
+      chrome.runtime.sendMessage({
+        action: 'DEACTIVATE',
+      }, ()=> {});
       e.source.checked = true;
       this.activate = true;
     } else {

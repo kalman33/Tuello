@@ -8,9 +8,9 @@ export function recordHttpListener(event: MessageEvent) {
           items.mmaRecords = [];
         }
         if (event.data.error) {
-          items.mmaRecords.unshift({ key: event.data.url, reponse: event.data.error, httpCode: event.data.status });
+          items.mmaRecords.unshift({ key: event.data.url, reponse: event.data.error, httpCode: event.data.status, delay: event.data.delay });
         } else {
-          items.mmaRecords.unshift({ key: event.data.url, reponse: event.data.response, httpCode: event.data.status });
+          items.mmaRecords.unshift({ key: event.data.url, reponse: event.data.response, httpCode: event.data.status, delay: event.data.delay });
         }
 
         chrome.storage.local.set({ mmaRecords: removeDuplicateEntries(items.mmaRecords) }, () => {

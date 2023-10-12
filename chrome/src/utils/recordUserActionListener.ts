@@ -3,12 +3,12 @@ export function recordHttpUserActionListener(event: MessageEvent) {
     if (event.data.error) {
       chrome.runtime.sendMessage({
         action: 'RECORD_HTTP',
-        value: { key: event.data.url, reponse: event.data.error, httpCode: event.data.status },
+        value: { key: event.data.url, reponse: event.data.error, httpCode: event.data.status, delay: event.data.delay },
       }, ()=> {});
     } else {
       chrome.runtime.sendMessage({
         action: 'RECORD_HTTP',
-        value: { key: event.data.url, reponse: event.data.response, httpCode: event.data.status },
+        value: { key: event.data.url, reponse: event.data.response, httpCode: event.data.status, delay: event.data.delay },
       }, ()=> {});
     }
   }

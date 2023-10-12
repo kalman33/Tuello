@@ -294,6 +294,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
   }
   switch (message.action) {
+    case 'DEACTIVATE':
+      desactivateSearchElements();
+      break;
     case 'ACTIVATE':
       init().then(() => {
         if (window.self === window.top) {
