@@ -648,3 +648,15 @@ div.jsoneditor div.jsoneditor-anchor .picker_wrapper.popup.popup_bottom {
     margin: 0px 23px 0px 0px !important;
     height: 29px;
 }
+
+table.server-error-http-response * {
+	color: red !important;
+  }
+  
+  table.client-error-http-response * {
+	color: #e29c45 !important;
+  }
+  
+  table.no-error-http-response * {
+	color: grey;
+  }

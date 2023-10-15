@@ -109,21 +109,30 @@ export class RecorderHttpComponent implements OnInit {
           return this.jsonEditorTree.get()[path[0]].key;
         }
       },
+      onClassName: ({ path, field, value }) => {
+        if (value && value.httpCode && value.httpCode.toString().startsWith('5')) {
+          return "server-error-http-response";
+        }
+        if (value && value.httpCode && value.httpCode.toString().startsWith('4')) {
+          return "client-error-http-response";
+        }
+        return "no-error-http-response";
+      },
       onCreateMenu: (items, node) => {
         const path = node.path
 
         // log the current items and node for inspection
         console.log('items:', items, 'node:', node);
-        
+
         if (path && node && node.path[1] === 'reponse') {
           items.push({
-            text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'), 
-            title: this.translate.instant('mmn.jsoneditor.menu.clearResponse.title'), 
-            className: 'example-class', 
+            text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'),
+            title: this.translate.instant('mmn.jsoneditor.menu.clearResponse.title'),
+            className: 'example-class',
             click: () => {
               const json = this.jsonEditorTree.get();
-              if (json && Array.isArray(json) ) {
-              
+              if (json && Array.isArray(json)) {
+
                 if (json[node.path[0]][node.path[1]]) {
                   if (Array.isArray(json[node.path[0]][node.path[1]])) {
                     json[node.path[0]][node.path[1]] = [];
@@ -141,7 +150,7 @@ export class RecorderHttpComponent implements OnInit {
           // on supprime separator, type et Extract
           return item.type !== 'separator' && item.text !== 'Type' && item.text !== 'Extract'
         })
-  
+
         // finally we need to return the items array. If we don't, the menu
         // will be empty.
         return items
