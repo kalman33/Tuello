@@ -96,57 +96,99 @@ window.fetch = async (...args) => {
  */
 
 function recordListener(list) {
-  
+
 
   if (chrome && chrome.storage && chrome.storage.local) {
     // récupération du tracking data
     chrome.storage.local.get(['tuelloTrackData'], results => {
-      const trackData = results['tuelloTrackData'];
+      let trackData = results['tuelloTrackData'];
+      trackData = trackData.substring(5, trackData.length);
+      if (trackData && trackData.includes('body.')) {
+        httpElements.forEach((value, key) => {
+            if (value.includes(trackData)) {
+              // on track
+              const track = new Track();
+              track.x = lastUserAction?.x;
+              track.y = lastUserAction?.y;
 
-      list.getEntries().filter(entry => {
-        return entry.name.includes(trackData);
-      }).forEach(entry => {
-        // on track
-        const track = new Track();
-        track.x = lastUserAction?.x;
-        track.y = lastUserAction?.y;
+              track.hrefLocation = window.location.href;
 
-        track.hrefLocation = window.location.href;
+              const url = new URL(value)
+              // initiatorType: "xmlhttprequest"
+              if (url.search) {
+                track.url = url.href.replace(url.search, "");
+                track.querystring = key;
+              } else {
+                track.url = url.href;
+              }
 
-        const url = new URL(entry.name)
-        // initiatorType: "xmlhttprequest"
-        if (url.search) {
-          track.url = url.href.replace(url.search, "");
-          track.querystring = decodeURI(url.search.substring(1))
-            .split('&')
-            .reduce((result, current) => {
-              const [key, value] = current.split('=');
+              if (window.location.href === lastUserAction?.hrefLocation) {
+                // on est sur le meme href : c'est un track click
+                track.type = TrackType.CLICK;
+                track.element = getXPath(lastUserAction.element);
+                track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+                track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
 
-              result[key] = value;
+              } else {
+                // c'est un track page page
+                track.type = TrackType.PAGE;
+                track.parentPosition = 'fixed';
+                track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+              }
+              track.htmlCoordinates = lastUserAction?.htmlCoordinates;
 
-              return result
-            }, {})
-        } else {
-          track.url = url.href;
-        }
+              appendTrack(track);
+            }
+          });
+      } else {
+        list.getEntries().filter(entry => {
+          return entry.name.includes(trackData);
+        }).forEach(entry => {
+          // on track
+          const track = new Track();
+          track.x = lastUserAction?.x;
+          track.y = lastUserAction?.y;
 
-        if (window.location.href === lastUserAction?.hrefLocation) {
-          // on est sur le meme href : c'est un track click
-          track.type = TrackType.CLICK;
-          track.element = getXPath(lastUserAction.element);
-          track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-          track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
+          track.hrefLocation = window.location.href;
 
-        } else {
-          // c'est un track page page
-          track.type = TrackType.PAGE;
-          track.parentPosition = 'fixed';
-          track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-        }
-        track.htmlCoordinates = lastUserAction?.htmlCoordinates;
+          const url = new URL(entry.name)
+          // initiatorType: "xmlhttprequest"
+          if (url.search) {
+            track.url = url.href.replace(url.search, "");
+            track.querystring = decodeURI(url.search.substring(1))
+              .split('&')
+              .reduce((result, current) => {
+                const [key, value] = current.split('=');
 
-        appendTrack(track);
-      });
+                result[key] = value;
+
+                return result
+              }, {})
+          } else {
+            track.url = url.href;
+          }
+
+          if (window.location.href === lastUserAction?.hrefLocation) {
+            // on est sur le meme href : c'est un track click
+            track.type = TrackType.CLICK;
+            track.element = getXPath(lastUserAction.element);
+            track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+            track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
+
+          } else {
+            // c'est un track page page
+            track.type = TrackType.PAGE;
+            track.parentPosition = 'fixed';
+            track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+          }
+          track.htmlCoordinates = lastUserAction?.htmlCoordinates;
+
+          appendTrack(track);
+        });
+      }
+
+
+
     });
   }
 
@@ -345,7 +387,7 @@ export function removeTracks() {
 
 
 let recorderHttp = {
-  
+
   originalXHR: window.XMLHttpRequest,
   recordXHR() {
 
@@ -356,7 +398,7 @@ let recorderHttp = {
     const xhr = new recorderHttp.originalXHR();
     // tslint:disable-next-line:forin
     for (const attr in xhr) {
-      
+
       if (attr === 'onreadystatechange') {
         xhr.onreadystatechange = (...args) => {
           if (this.readyState === 4) {
@@ -369,26 +411,27 @@ let recorderHttp = {
                 reponse = this.response;
                 console.log('Tuello : Problème de parsing de la reponse', e);
               }
-              httpElements.set(originalURL, body);
+              const url = originalURL.split('?')[0]
+              httpElements.set(url, body);
             }
           }
           // tslint:disable-next-line:no-unused-expression
           this.onreadystatechange && this.onreadystatechange.apply(this, args);
         };
         continue;
-      } 
+      }
 
       if (typeof xhr[attr] === 'function') {
         if (attr === 'open') {
           const open = xhr[attr].bind(xhr);
-          this[attr] =  function(method, url) {
+          this[attr] = function (method, url) {
             xhrMethod = method;
             originalURL = url;
             open.call(this, method, url);
           }
         } else if (attr === 'send') {
           const send = xhr[attr].bind(xhr);
-          this[attr] =  function(data) {
+          this[attr] = function (data) {
             xhrBody = data;
             send.call(this, data);
           }
@@ -414,10 +457,10 @@ let recorderHttp = {
   },
   originalFetch: window.fetch.bind(window),
   recordFetch: async (...args) => {
-    
+
     const response = await recorderHttp.originalFetch(...args);
 
-    httpElements.set(args[0], args[1]? args[1].body : undefined,);
+    httpElements.set(args[0], args[1] ? args[1].body : undefined,);
     /* the original response can be resolved unmodified: */
     return response;
   }
