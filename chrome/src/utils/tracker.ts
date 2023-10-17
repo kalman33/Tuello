@@ -7,6 +7,8 @@ let lastUserAction: UserAction;
 let performanceObserver;
 
 let tuelloTracks;
+let body;
+let httpElements = new Map<string, any>();
 
 
 export function activateRecordTracks() {
@@ -22,6 +24,10 @@ export function activateRecordTracks() {
     document.removeEventListener('click', clickListener);
     document.addEventListener('click', clickListener);
   }
+
+  httpElements = new Map<string, any>();
+  (window as any).XMLHttpRequest = recorderHttp.recordXHR;
+  window.fetch = recorderHttp.recordFetch;
 }
 
 export function desactivateRecordTracks() {
@@ -32,6 +38,10 @@ export function desactivateRecordTracks() {
   }
   document.removeEventListener('click', clickListener);
   removeTracks();
+
+  httpElements = new Map<string, any>();
+  (window as any).XMLHttpRequest = recorderHttp.originalXHR;
+  window.fetch = recorderHttp.originalFetch;
 }
 
 export function displayTracks() {
@@ -74,9 +84,19 @@ function getTuelloTracks() {
     });
   });
 }
+/**
+ const { fetch: originalFetch } = window;
+window.fetch = async (...args) => {
+  let [resource, config] = args;
 
+  let response = await originalFetch(resource, config);
+  
+  return response;
+};
+ */
 
 function recordListener(list) {
+  
 
   if (chrome && chrome.storage && chrome.storage.local) {
     // récupération du tracking data
@@ -94,7 +114,7 @@ function recordListener(list) {
         track.hrefLocation = window.location.href;
 
         const url = new URL(entry.name)
-
+        // initiatorType: "xmlhttprequest"
         if (url.search) {
           track.url = url.href.replace(url.search, "");
           track.querystring = decodeURI(url.search.substring(1))
@@ -321,4 +341,84 @@ export function removeTracks() {
   tracks.forEach(function (track) {
     track.remove();
   });
+}
+
+
+let recorderHttp = {
+  
+  originalXHR: window.XMLHttpRequest,
+  recordXHR() {
+
+    let xhrBody;
+    let xhrMethod;
+    // URL avant redirect
+    let originalURL;
+    const xhr = new recorderHttp.originalXHR();
+    // tslint:disable-next-line:forin
+    for (const attr in xhr) {
+      
+      if (attr === 'onreadystatechange') {
+        xhr.onreadystatechange = (...args) => {
+          if (this.readyState === 4) {
+            if (!this.responseURL.includes('tuello')) {
+              let reponse = '';
+              try {
+                reponse = JSON.parse(this.response);
+              } catch (e) {
+                // error
+                reponse = this.response;
+                console.log('Tuello : Problème de parsing de la reponse', e);
+              }
+              httpElements.set(originalURL, body);
+            }
+          }
+          // tslint:disable-next-line:no-unused-expression
+          this.onreadystatechange && this.onreadystatechange.apply(this, args);
+        };
+        continue;
+      } 
+
+      if (typeof xhr[attr] === 'function') {
+        if (attr === 'open') {
+          const open = xhr[attr].bind(xhr);
+          this[attr] =  function(method, url) {
+            xhrMethod = method;
+            originalURL = url;
+            open.call(this, method, url);
+          }
+        } else if (attr === 'send') {
+          const send = xhr[attr].bind(xhr);
+          this[attr] =  function(data) {
+            xhrBody = data;
+            send.call(this, data);
+          }
+        } else {
+          this[attr] = xhr[attr].bind(xhr);
+        }
+      } else {
+        if (attr === 'responseText' || attr === 'response') {
+          Object.defineProperty(this, attr, {
+            get: () => (this[`_${attr}`] === undefined ? xhr[attr] : this[`_${attr}`]),
+            set: val => (this[`_${attr}`] = val),
+            enumerable: true,
+          });
+        } else {
+          Object.defineProperty(this, attr, {
+            get: () => xhr[attr],
+            set: val => (xhr[attr] = val),
+            enumerable: true,
+          });
+        }
+      }
+    }
+  },
+  originalFetch: window.fetch.bind(window),
+  recordFetch: async (...args) => {
+    
+    const response = await recorderHttp.originalFetch(...args);
+
+    httpElements.set(args[0], args[1]? args[1].body : undefined,);
+    /* the original response can be resolved unmodified: */
+    return response;
+  }
 }
