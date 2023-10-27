@@ -53,6 +53,13 @@ export class TrackComponent implements OnInit, OnDestroy {
   set trackDataDisplayType(value: string) {
     this._trackDataDisplayType = value;
     chrome.storage.local.set({ tuelloTrackDataDisplayType: value });
+    if (this.trackDataDisplayType === 'body') {
+      chrome.storage.local.set({ httpRecord: true });
+      chrome.runtime.sendMessage({
+        action: 'HTTP_RECORD_STATE',
+        value: true
+      }, () => { });
+    }
   }
 
   get trackDataDisplay(): string {
@@ -99,9 +106,16 @@ export class TrackComponent implements OnInit, OnDestroy {
       this.trackDataDisplay = results['tuelloTrackDataDisplay'];
     });
 
-    / récupération du tracking data display type
+    // récupération du tracking data display type
     chrome.storage.local.get(['tuelloTrackDataDisplayType'], results => {
       this.trackDataDisplayType = results['tuelloTrackDataDisplayType'];
+      if (this.trackDataDisplayType === 'body') {
+        chrome.storage.local.set({ httpRecord: true });
+        chrome.runtime.sendMessage({
+          action: 'HTTP_RECORD_STATE',
+          value: true
+        }, () => { });
+      }
     });
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

@@ -1,4 +1,3 @@
-import { IFrame } from './IFrame';
 import { TrackType } from './TrackType';
 import { ICoordinates } from './UserAction';
 
@@ -13,6 +12,7 @@ export class Track {
   url: string;
   hrefLocation: string;
   querystring: any;
+  body?: any;
   htmlCoordinates: ICoordinates;
   element: string;
   parentPosition: string;

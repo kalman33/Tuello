@@ -12,4 +12,5 @@ export class Track {
   url: string;
   hrefLocation: string;
   querystring: any;
+  body?: any;
 }

@@ -7,7 +7,6 @@ let lastUserAction: UserAction;
 let performanceObserver;
 
 let tuelloTracks;
-let body;
 let httpElements = new Map<string, any>();
 
 
@@ -24,10 +23,6 @@ export function activateRecordTracks() {
     document.removeEventListener('click', clickListener);
     document.addEventListener('click', clickListener);
   }
-
-  httpElements = new Map<string, any>();
-  (window as any).XMLHttpRequest = recorderHttp.recordXHR;
-  window.fetch = recorderHttp.recordFetch;
 }
 
 export function desactivateRecordTracks() {
@@ -96,52 +91,12 @@ window.fetch = async (...args) => {
  */
 
 function recordListener(list) {
-
-
   if (chrome && chrome.storage && chrome.storage.local) {
     // récupération du tracking data
     chrome.storage.local.get(['tuelloTrackData', 'tuelloTrackDataDisplayType'], results => {
       let trackData = results['tuelloTrackData'];
-      trackData = trackData.substring(5, trackData.length);
-      if (trackData && trackData.includes('body.')) {
-        httpElements.forEach((value, key) => {
-            if (value.includes(trackData)) {
-              // on track
-              const track = new Track();
-              track.x = lastUserAction?.x;
-              track.y = lastUserAction?.y;
-
-              track.hrefLocation = window.location.href;
-
-              const url = new URL(value)
-              // initiatorType: "xmlhttprequest"
-              if (url.search) {
-                track.url = url.href.replace(url.search, "");
-                track.querystring = key;
-              } else {
-                track.url = url.href;
-              }
-
-              if (window.location.href === lastUserAction?.hrefLocation) {
-                // on est sur le meme href : c'est un track click
-                track.type = TrackType.CLICK;
-                track.element = getXPath(lastUserAction.element);
-                track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-                track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
-
-              } else {
-                // c'est un track page page
-                track.type = TrackType.PAGE;
-                track.parentPosition = 'fixed';
-                track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-              }
-              track.htmlCoordinates = lastUserAction?.htmlCoordinates;
-
-              appendTrack(track);
-            }
-          });
-      } else {
-        list.getEntries().filter(entry => {
+      const tuelloTrackDataDisplayType = results['tuelloTrackDataDisplayType'];
+       list.getEntries().filter(entry => {
           return entry.name.includes(trackData);
         }).forEach(entry => {
           // on track
@@ -155,6 +110,10 @@ function recordListener(list) {
           // initiatorType: "xmlhttprequest"
           if (url.search) {
             track.url = url.href.replace(url.search, "");
+            if (tuelloTrackDataDisplayType === 'body') {
+              const htmlElement = findHTMLElements(track.url);
+              track.body = htmlElement ? htmlElement : htmlElement.body;
+            }
             track.querystring = decodeURI(url.search.substring(1))
               .split('&')
               .reduce((result, current) => {
@@ -185,13 +144,7 @@ function recordListener(list) {
 
           appendTrack(track);
         });
-      }
-
-
-
     });
-  }
-
 }
 
 function clickListener(e) {
@@ -378,90 +331,28 @@ function viewTracks(trackId: string) {
 
 }
 
+function findHTMLElements(url: string): any {
+    chrome.storage.local.get(['mmaRecords'], results => {
+      if (!chrome.runtime.lastError) {
+        const htmlElements = results['mmaRecords'] || [];
+        const record = htmlElements.find(({ key, reponse, httpCode }) => compareWithMockLevel(url, key));
+        if (record) {
+          return record;
+        } else {
+          return null;
+        }
+       
+      } else {
+        return null;
+      }
+  });
+
+  });
+}
+
 export function removeTracks() {
   const tracks = document.querySelectorAll('div[id^="tuelloTrack"]');
   tracks.forEach(function (track) {
     track.remove();
   });
-}
-
-
-let recorderHttp = {
-
-  originalXHR: window.XMLHttpRequest,
-  recordXHR() {
-
-    let xhrBody;
-    let xhrMethod;
-    // URL avant redirect
-    let originalURL;
-    const xhr = new recorderHttp.originalXHR();
-    // tslint:disable-next-line:forin
-    for (const attr in xhr) {
-
-      if (attr === 'onreadystatechange') {
-        xhr.onreadystatechange = (...args) => {
-          if (this.readyState === 4) {
-            if (!this.responseURL.includes('tuello')) {
-              let reponse = '';
-              try {
-                reponse = JSON.parse(this.response);
-              } catch (e) {
-                // error
-                reponse = this.response;
-                console.log('Tuello : Problème de parsing de la reponse', e);
-              }
-              const url = originalURL.split('?')[0]
-              httpElements.set(url, body);
-            }
-          }
-          // tslint:disable-next-line:no-unused-expression
-          this.onreadystatechange && this.onreadystatechange.apply(this, args);
-        };
-        continue;
-      }
-
-      if (typeof xhr[attr] === 'function') {
-        if (attr === 'open') {
-          const open = xhr[attr].bind(xhr);
-          this[attr] = function (method, url) {
-            xhrMethod = method;
-            originalURL = url;
-            open.call(this, method, url);
-          }
-        } else if (attr === 'send') {
-          const send = xhr[attr].bind(xhr);
-          this[attr] = function (data) {
-            xhrBody = data;
-            send.call(this, data);
-          }
-        } else {
-          this[attr] = xhr[attr].bind(xhr);
-        }
-      } else {
-        if (attr === 'responseText' || attr === 'response') {
-          Object.defineProperty(this, attr, {
-            get: () => (this[`_${attr}`] === undefined ? xhr[attr] : this[`_${attr}`]),
-            set: val => (this[`_${attr}`] = val),
-            enumerable: true,
-          });
-        } else {
-          Object.defineProperty(this, attr, {
-            get: () => xhr[attr],
-            set: val => (xhr[attr] = val),
-            enumerable: true,
-          });
-        }
-      }
-    }
-  },
-  originalFetch: window.fetch.bind(window),
-  recordFetch: async (...args) => {
-
-    const response = await recorderHttp.originalFetch(...args);
-
-    httpElements.set(args[0], args[1] ? args[1].body : undefined,);
-    /* the original response can be resolved unmodified: */
-    return response;
-  }
 }
