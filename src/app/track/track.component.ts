@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
@@ -22,6 +22,7 @@ export class TrackComponent implements OnInit, OnDestroy {
   tracks;
   _trackData: string;
   _trackDataDisplay: string;
+  _trackDataDisplayType: string;
   currentHrefLocation: string;
   selectedTrackId: string;
   sub;
@@ -43,6 +44,15 @@ export class TrackComponent implements OnInit, OnDestroy {
   set trackData(value: string) {
     this._trackData = value;
     chrome.storage.local.set({ tuelloTrackData: value });
+  }
+
+  get trackDataDisplayType(): string {
+    return this._trackDataDisplayType;
+  }
+
+  set trackDataDisplayType(value: string) {
+    this._trackDataDisplayType = value;
+    chrome.storage.local.set({ tuelloTrackDataDisplayType: value });
   }
 
   get trackDataDisplay(): string {
@@ -87,6 +97,11 @@ export class TrackComponent implements OnInit, OnDestroy {
     // récupération du tracking data display
     chrome.storage.local.get(['tuelloTrackDataDisplay'], results => {
       this.trackDataDisplay = results['tuelloTrackDataDisplay'];
+    });
+
+    / récupération du tracking data display type
+    chrome.storage.local.get(['tuelloTrackDataDisplayType'], results => {
+      this.trackDataDisplayType = results['tuelloTrackDataDisplayType'];
     });
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

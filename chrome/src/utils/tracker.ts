@@ -100,7 +100,7 @@ function recordListener(list) {
 
   if (chrome && chrome.storage && chrome.storage.local) {
     // récupération du tracking data
-    chrome.storage.local.get(['tuelloTrackData'], results => {
+    chrome.storage.local.get(['tuelloTrackData', 'tuelloTrackDataDisplayType'], results => {
       let trackData = results['tuelloTrackData'];
       trackData = trackData.substring(5, trackData.length);
       if (trackData && trackData.includes('body.')) {

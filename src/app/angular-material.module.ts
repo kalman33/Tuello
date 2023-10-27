@@ -6,6 +6,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import {MatRadioModule} from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -39,6 +40,7 @@ import {MatGridListModule} from '@angular/material/grid-list';
     MatSlideToggleModule,
     MatMenuModule,
     MatIconModule,
+    MatRadioModule,
     MatSelectModule,
     MatTooltipModule,
     MatTabsModule,
@@ -59,6 +61,7 @@ import {MatGridListModule} from '@angular/material/grid-list';
     MatDialogModule,
     MatToolbarModule,
     MatListModule,
+    MatRadioModule,
     MatSlideToggleModule,
     MatMenuModule,
     MatIconModule,
