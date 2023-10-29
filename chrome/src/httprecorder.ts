@@ -26,7 +26,7 @@ let recorderHttp = {
               window.postMessage(
                 {
                   type: 'RECORD_HTTP',
-                  url: originalURL,
+                  url: this.responseURL,
                   delay: 0,
                   response: reponse,
                   status: this.status,

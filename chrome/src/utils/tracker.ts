@@ -33,13 +33,9 @@ export function desactivateRecordTracks() {
   }
   document.removeEventListener('click', clickListener);
   removeTracks();
-
-  httpElements = new Map<string, any>();
-  (window as any).XMLHttpRequest = recorderHttp.originalXHR;
-  window.fetch = recorderHttp.originalFetch;
 }
 
-export function displayTracks() {
+function displayTracks() {
 
   removeTracks();
 
@@ -107,13 +103,10 @@ function recordListener(list) {
           track.hrefLocation = window.location.href;
 
           const url = new URL(entry.name)
+          
           // initiatorType: "xmlhttprequest"
           if (url.search) {
             track.url = url.href.replace(url.search, "");
-            if (tuelloTrackDataDisplayType === 'body') {
-              const htmlElement = findHTMLElements(track.url);
-              track.body = htmlElement ? htmlElement : htmlElement.body;
-            }
             track.querystring = decodeURI(url.search.substring(1))
               .split('&')
               .reduce((result, current) => {
@@ -125,6 +118,11 @@ function recordListener(list) {
               }, {})
           } else {
             track.url = url.href;
+          }
+
+          if (tuelloTrackDataDisplayType === 'body') {
+            const htmlElement = findHTMLElements(track.url);
+            track.body = htmlElement ? htmlElement : htmlElement.body;
           }
 
           if (window.location.href === lastUserAction?.hrefLocation) {
@@ -145,6 +143,7 @@ function recordListener(list) {
           appendTrack(track);
         });
     });
+}
 }
 
 function clickListener(e) {
@@ -335,7 +334,7 @@ function findHTMLElements(url: string): any {
     chrome.storage.local.get(['mmaRecords'], results => {
       if (!chrome.runtime.lastError) {
         const htmlElements = results['mmaRecords'] || [];
-        const record = htmlElements.find(({ key, reponse, httpCode }) => compareWithMockLevel(url, key));
+        const record = htmlElements.find(({ key, reponse, httpCode }) => compareUrl(url, key));
         if (record) {
           return record;
         } else {
@@ -347,8 +346,8 @@ function findHTMLElements(url: string): any {
       }
   });
 
-  });
-}
+  }
+
 
 export function removeTracks() {
   const tracks = document.querySelectorAll('div[id^="tuelloTrack"]');
@@ -356,3 +355,8 @@ export function removeTracks() {
     track.remove();
   });
 }
+
+function compareUrl(url1: string, url2: string): boolean {
+    return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
+}
+

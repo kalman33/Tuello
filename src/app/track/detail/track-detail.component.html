@@ -8,12 +8,7 @@
     </ng-container>
   </div>
   <div fxFlex class="data">
-    <ng-container *ngIf="dataDisplay && track?.querystring && track?.querystring['' + dataDisplay]; else noFilter">
-      {{dataDisplay}}: {{track?.querystring['' + dataDisplay]}}
-    </ng-container>
-    <ng-template #noFilter>
-      {{track?.url.length > 50 ? (track?.url | slice:0:50) + ' ...': track?.url }}
-    </ng-template >
+    {{getDisplayData()}}
   </div>
   <div fxFlex="8%" class="actions">
     <button mat-icon-button

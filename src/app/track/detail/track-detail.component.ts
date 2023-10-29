@@ -11,7 +11,8 @@ import { Track } from '../models/Track';
 export class TrackDetailComponent implements OnInit {
   @Input() track: Track;
   @Input() index: number;
-  @Input() dataDisplay: String;
+  @Input() dataDisplay: string;
+  @Input() dataDisplayType: string;
 
   constructor(public dialog: MatDialog) {}
 
@@ -36,4 +37,33 @@ export class TrackDetailComponent implements OnInit {
     return rest;
   }
 
+  
+  findInJson(data: any, keyString: string) {
+    let keyArray = keyString.split('.'); 
+    let result = data;
+    
+    for (const key of keyArray) {
+      result = result[key]
+    }
+    return result;
+  }
+
+  /**
+   * Permet d'afficher les données que l'on veut tracer
+   */
+  getDisplayData(): string {
+    let data = this.track?.url.length > 50 ? this.track?.url?.slice(0, 50) + ' ...' : this.track?.url;
+    if (this.dataDisplay) {
+      if(this.dataDisplayType === 'body') {
+        if (this.track?.body && this.track?.querystring['' + this.dataDisplay]) {
+          data = `${this.dataDisplay} : ${this.findInJson(this.track.body, this.dataDisplay)}`;
+        } 
+      } else {
+        if (this.track?.querystring && this.track?.querystring['' + this.dataDisplay]) {
+          data = `${this.dataDisplay} : ${this.track?.querystring['' + this.dataDisplay]}`;
+        } 
+      }
+    } 
+    return data;
+  }
 }
