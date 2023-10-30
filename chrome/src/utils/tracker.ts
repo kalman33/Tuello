@@ -122,7 +122,7 @@ function recordListener(list) {
 
           if (tuelloTrackDataDisplayType === 'body') {
             const htmlElement = findHTMLElements(track.url);
-            track.body = htmlElement ? htmlElement : htmlElement.body;
+            track.body = htmlElement ? htmlElement.body : null;
           }
 
           if (window.location.href === lastUserAction?.hrefLocation) {

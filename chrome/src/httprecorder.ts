@@ -1,5 +1,5 @@
 let recorderHttp = {
-  
+
   originalXHR: window.XMLHttpRequest,
   recordXHR() {
 
@@ -8,9 +8,10 @@ let recorderHttp = {
     // URL avant redirect
     let originalURL;
     const xhr = new recorderHttp.originalXHR();
+
     // tslint:disable-next-line:forin
     for (const attr in xhr) {
-      
+
       if (attr === 'onreadystatechange') {
         xhr.onreadystatechange = (...args) => {
           if (this.readyState === 4) {
@@ -42,20 +43,23 @@ let recorderHttp = {
           this.onreadystatechange && this.onreadystatechange.apply(this, args);
         };
         continue;
-      } 
+      }
 
       if (typeof xhr[attr] === 'function') {
         if (attr === 'open') {
           const open = xhr[attr].bind(xhr);
-          this[attr] =  function(method, url) {
+          this[attr] = function (method, url) {
             xhrMethod = method;
             originalURL = url;
             open.call(this, method, url);
           }
         } else if (attr === 'send') {
           const send = xhr[attr].bind(xhr);
-          this[attr] =  function(data) {
-            xhrBody = data;
+          this[attr] = function (data) {
+            
+            xhrBody = getBodyFromData(data);
+            console.log('TUELLO DATA', xhrBody);
+
             send.call(this, data);
           }
         } else {
@@ -80,20 +84,20 @@ let recorderHttp = {
   },
   originalFetch: window.fetch.bind(window),
   recordFetch: async (...args) => {
-    
+
     const response = await recorderHttp.originalFetch(...args);
     let data: any;
     data =
-      {
-        type: 'RECORD_HTTP',
-        url: args[0],
-        delay: 0,
-        status: response.status,
-        method: args[1] ? args[1].method : "GET",
-        body: args[1]? args[1].body : undefined,
-        hrefLocation: window.location.href
-      };
-    
+    {
+      type: 'RECORD_HTTP',
+      url: args[0],
+      delay: 0,
+      status: response.status,
+      method: args[1] ? args[1].method : "GET",
+      body: args[1] ? args[1].body : undefined,
+      hrefLocation: window.location.href
+    };
+
     /* work with the cloned response in a separate promise
        chain -- could use the same chain with `await`. */
     response
@@ -115,8 +119,8 @@ let recorderHttp = {
           '*',
         );
       });
-    
-      
+
+
     /* the original response can be resolved unmodified: */
     return response;
   }
@@ -130,7 +134,7 @@ let recorderHttp = {
 window.addEventListener(
   'message',
   // tslint:disable-next-line:only-arrow-functions
-  function(event) {
+  function (event) {
     if (event?.data?.type && event?.data?.type === 'RECORD_HTTP_ACTIVATED') {
       if (event.data.value) {
         (window as any).XMLHttpRequest = recorderHttp.recordXHR;
@@ -152,3 +156,41 @@ window.postMessage(
   '*',
 );
 
+function getBodyFromData(data: any) {
+  let result = {};
+  if (data) {
+    if (data instanceof Blob) { 
+
+    }
+    else if (data instanceof ArrayBuffer) {
+      try {
+        result = JSON.parse(new TextDecoder().decode(data as ArrayBuffer));
+      } catch (e) {
+        result = {};
+      }
+    }
+    else if (data instanceof DataView) { console.log('TUELLO DATA DataView'); }
+    else if (data instanceof FormData) {
+      let object = {};
+      data.forEach((value, key) => object[key] = value);
+      result = JSON.stringify(object);
+    }
+    else if (data instanceof URLSearchParams) {
+      let object = {};
+      data.forEach(function (value, key) {
+        object[key] = value;
+      });
+      result = JSON.stringify(object);
+    }
+    else if (typeof data === 'string') {
+      let object = {};
+      new URLSearchParams(data).forEach(function (value, key) {
+        object[key] = value;
+      });
+      result = JSON.stringify(object);
+    } else {
+      result = data;
+    }
+  }
+  return result;
+}
