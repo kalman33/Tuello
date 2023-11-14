@@ -29,22 +29,22 @@ export function convertImgToImageDataviaCanvas(elt: HTMLElement) {
 }
 
 
-export function crop(canvas,cropX,cropY,cropWidth,cropHeight){
-    // create a temporary canvas sized to the cropped size
-    var canvas1=document.createElement('canvas');
-    var ctx=canvas1.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    canvas1.width=cropWidth;
-    canvas1.height=cropHeight;
-    // use the extended from of drawImage to draw the
-    // cropped area to the temp canvas
-    ctx.drawImage(canvas,cropX,cropY,cropWidth,cropHeight,0,0,cropWidth,cropHeight);
-    var ret = JSON.parse(JSON.stringify(canvas1.toDataURL()));
-    // Removes an element from the document
-    ctx.clearRect(0, 0, cropWidth, cropHeight);
-    // return the .toDataURL of the temp canvas
-    return(ret);
-  }
+export function crop(canvas, cropX, cropY, cropWidth, cropHeight) {
+  // create a temporary canvas sized to the cropped size
+  var canvas1 = document.createElement('canvas');
+  var ctx = canvas1.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  canvas1.width = cropWidth;
+  canvas1.height = cropHeight;
+  // use the extended from of drawImage to draw the
+  // cropped area to the temp canvas
+  ctx.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+  var ret = JSON.parse(JSON.stringify(canvas1.toDataURL()));
+  // Removes an element from the document
+  ctx.clearRect(0, 0, cropWidth, cropHeight);
+  // return the .toDataURL of the temp canvas
+  return (ret);
+}
 
 export function getOffset(el) {
   const rect = el.getBoundingClientRect();
@@ -211,7 +211,7 @@ export function getCSSPath(el) {
 /** Permet de savoir si le click est dans l'élement */
 export function clickInside(coord: ICoordinates, x: number, y: number): boolean {
 
-  return coord.top <= y  && y <= (coord.top + coord.height) && coord.left <= x && x <= (coord.left + coord.width)
+  return coord.top <= y && y <= (coord.top + coord.height) && coord.left <= x && x <= (coord.left + coord.width)
 }
 
 
@@ -234,44 +234,44 @@ export function getXPath(element) {
 
   // Do action until we reach html element
   do {
-      // Get element tag name 
-      const tagName = currentElement.tagName.toLowerCase();
-      // Get parent element
-      const parentElement = currentElement.parentElement;
+    // Get element tag name 
+    const tagName = currentElement.tagName.toLowerCase();
+    // Get parent element
+    const parentElement = currentElement.parentElement;
 
-      // Count children
-      if (parentElement.childElementCount > 1) {
-          // Get children of parent element
-          const parentsChildren = [...parentElement.children];
-          // Count current tag 
-          let tag = [];
-          parentsChildren.filter(elt=>!elt.id || !elt.id.includes('tuello')).forEach(child => {
-              if (child.tagName.toLowerCase() === tagName) tag.push(child) // Append to tag
-          })
+    // Count children
+    if (parentElement.childElementCount > 1) {
+      // Get children of parent element
+      const parentsChildren = [...parentElement.children];
+      // Count current tag 
+      let tag = [];
+      parentsChildren.filter(elt => !elt.id || !elt.id.includes('tuello')).forEach(child => {
+        if (child.tagName.toLowerCase() === tagName) tag.push(child) // Append to tag
+      })
 
-          // Is only of type
-          if (tag.length === 1) {
-              // Append tag to selector
-              selector = `/${tagName}${selector}`;
-          } else {
-              // Get position of current element in tag
-              const position = tag.indexOf(currentElement) + 1;
-              // Append tag to selector
-              selector = `/${tagName}[${position}]${selector}`;
-          }
-
+      // Is only of type
+      if (tag.length === 1) {
+        // Append tag to selector
+        selector = `/${tagName}${selector}`;
       } else {
-          //* Current element has no siblings
-          // Append tag to selector
-          selector = `/${tagName}${selector}`;
+        // Get position of current element in tag
+        const position = tag.indexOf(currentElement) + 1;
+        // Append tag to selector
+        selector = `/${tagName}[${position}]${selector}`;
       }
 
-      // Set parent element to current element
-      currentElement = parentElement;
-      // Is root  
-      foundRoot = parentElement.tagName.toLowerCase() === 'html';
-      // Finish selector if found root element
-      if(foundRoot) selector = `/html${selector}`;
+    } else {
+      //* Current element has no siblings
+      // Append tag to selector
+      selector = `/${tagName}${selector}`;
+    }
+
+    // Set parent element to current element
+    currentElement = parentElement;
+    // Is root  
+    foundRoot = parentElement.tagName.toLowerCase() === 'html';
+    // Finish selector if found root element
+    if (foundRoot) selector = `/html${selector}`;
   }
   while (foundRoot === false);
 
@@ -280,15 +280,14 @@ export function getXPath(element) {
 }
 
 export function getElementFromXPath(xpath: string): HTMLElement {
- return (document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as HTMLElement); 
+  return (document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as HTMLElement);
 }
 
 /** Permet de savoir si un element est positionné dans un elément fixé */
 export function isFixedPosition(node) {
   while (node && node.nodeName.toLowerCase() !== 'body') {
-      if (window.getComputedStyle(node).getPropertyValue('position').toLowerCase() === 'fixed')
-          { return true; }
-      node = node.parentNode;
+    if (window.getComputedStyle(node).getPropertyValue('position').toLowerCase() === 'fixed') { return true; }
+    node = node.parentNode;
   }
   return false; // if got this far
 }
@@ -304,6 +303,18 @@ export function addcss(cssUrl: string) {
     link.href = cssUrl;
     link.media = 'all';
     head.appendChild(link);
+  }
+}
+
+export function isJSON(text) {
+  if (typeof text !== "string") {
+    return false;
+  }
+  try {
+    JSON.parse(text);
+    return true;
+  } catch (error) {
+    return false;
   }
 }
 

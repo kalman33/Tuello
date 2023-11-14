@@ -1,23 +1,8 @@
-executeStringFunction: (stringFunction, args, funcName = '') => {
-  try {
-    stringFunction = (new Function('...args', stringFunction))(args)
-  } catch (e) {
-    console.error(`[Ajax Modifier] ExecuteFunctionError: Please check the ${funcName} function.\n`, e)
-  }
-  return stringFunction;
-}
+import { isJSON } from "./utils/utils";
 
 let recorderHttp = {
 
   originalXHR: window.XMLHttpRequest,
-  executeStringFunction: (stringFunction, args, funcName = '') => {
-    try {
-      stringFunction = (new Function('...args', stringFunction))(args)
-    } catch (e) {
-      console.error(`[Ajax Modifier] ExecuteFunctionError: Please check the ${funcName} function.\n`, e)
-    }
-    return stringFunction;
-  },
   recordXHR() {
 
     let xhrBody;
@@ -60,18 +45,6 @@ let recorderHttp = {
           this.onreadystatechange && this.onreadystatechange.apply(this, args);
         };
         continue;
-      } else if (attr === 'send') {
-        this.send = (...args) => {
-
-          xhrBody = getBodyFromData(args);
-
-          //let decoder = new TextDecoder("utf-8");
-          // decoder.decode(args[0]);
-          //atob
-          xhr.send && xhr.send.apply(xhr, args)
-        }
-        continue
-
       }
 
       if (typeof xhr[attr] === 'function') {
@@ -81,6 +54,15 @@ let recorderHttp = {
             xhrMethod = method;
             originalURL = url;
             open.call(this, method, url);
+          }
+        } else if (attr === 'send') {
+          const send = xhr[attr].bind(xhr);
+          this[attr] = function (data) {
+
+            xhrBody = getBodyFromData(data);
+            console.log('TUELLO DATA', xhrBody);
+
+            send.call(this, data);
           }
         } else {
           this[attr] = xhr[attr].bind(xhr);
@@ -176,28 +158,21 @@ window.postMessage(
   '*',
 );
 
-function getBodyFromData(data: any) {
 
+
+function getBodyFromData(data: any) {
   let result = {};
   try {
+
     if (data) {
-      data = data instanceof Array ? data[0] : data; 
-      
-      if (data instanceof Blob) {
+      if (data.buffer instanceof ArrayBuffer) {
+
+        result = JSON.parse(new TextDecoder().decode((data.buffer) as ArrayBuffer));
 
       }
-      else if (data instanceof ArrayBuffer) {
-
-        result = JSON.parse(new TextDecoder().decode(data as ArrayBuffer));
-        if (result['body']) {
-          result = JSON.parse(atob(result['body']));
-        }
-
-      }
-      else if (data instanceof DataView) {
-
-      }
+      else if (data instanceof DataView) { console.log('TUELLO DATA DataView'); }
       else if (data instanceof FormData) {
+        //ok
         let object = {};
         data.forEach((value, key) => object[key] = value);
         result = JSON.stringify(object);
@@ -210,8 +185,12 @@ function getBodyFromData(data: any) {
         result = JSON.stringify(object);
       }
       else if (typeof data === 'string') {
-        
-        result = JSON.parse(data);
+        //ok
+        if (isJSON(data)) {
+          result = data;
+        } else {
+          result = JSON.parse(data);
+        }
       } else {
         result = data;
       }
@@ -221,5 +200,3 @@ function getBodyFromData(data: any) {
   }
   return result;
 }
-
-
