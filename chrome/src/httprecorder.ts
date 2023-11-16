@@ -158,8 +158,6 @@ window.postMessage(
   '*',
 );
 
-
-
 function getBodyFromData(data: any) {
   let result = {};
   try {
@@ -168,11 +166,10 @@ function getBodyFromData(data: any) {
       if (data.buffer instanceof ArrayBuffer) {
 
         result = JSON.parse(new TextDecoder().decode((data.buffer) as ArrayBuffer));
+        result = JSON.parse(atob(decodeURIComponent(result['body'])))
 
       }
-      else if (data instanceof DataView) { console.log('TUELLO DATA DataView'); }
       else if (data instanceof FormData) {
-        //ok
         let object = {};
         data.forEach((value, key) => object[key] = value);
         result = JSON.stringify(object);
