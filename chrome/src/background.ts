@@ -27,8 +27,25 @@ self.addEventListener('activate', event => {
 });
 
 
-init();
 
+
+chrome.runtime.onInstalled.addListener(() => {
+  init();
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'sel') {
+    chrome.tabs.sendMessage(
+      tab.id,
+      'JSON_VIEWER',
+      {
+        frameId: 0
+      },
+      () => {
+      });
+  }
+ 
+});
 
 /** 
 chrome.runtime.onInstalled.addListener(() => {
@@ -71,8 +88,6 @@ function test(tab)  {
 function init() {
   chrome.storage.local.get(['messages'], results => {
     chrome.contextMenus.removeAll(function () {
-
-
       if (results.messages) {
         const msgs = results.messages.default;
         chrome.contextMenus.create({
@@ -80,16 +95,6 @@ function init() {
           title: msgs['mmn.spy-http.tabs.shortcuts.jsonviewer'],
           contexts: ['all'],
         }, () => chrome.runtime.lastError); // ignore errors about an existing id
-        chrome.contextMenus.onClicked.addListener((info, tab) => {
-          chrome.tabs.sendMessage(
-            tab.id,
-            'JSON_VIEWER',
-            {
-              frameId: 0
-            },
-            () => {
-            });
-        });
         
         chrome.contextMenus.create({
           id: 'id0',
@@ -122,16 +127,7 @@ function init() {
           title: 'JSON VIEWER',
           contexts: ['all'],
         }, () => chrome.runtime.lastError); // ignore errors about an existing id
-        chrome.contextMenus.onClicked.addListener((info, tab) => {
-          chrome.tabs.sendMessage(
-            tab.id,
-            'JSON_VIEWER',
-            {
-              frameId: 0
-            },
-            () => {
-            });
-        });
+      
         chrome.contextMenus.create({
           id: 'id0',
           title: "Screenshot : ALT + MAJ + S",
@@ -157,9 +153,6 @@ function init() {
           title: "Add comment :  ALT + MAJ + C",
           contexts: ["all"],
         });
-
-
-
       }
     });
   });
