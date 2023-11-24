@@ -281,5 +281,7 @@ export class RecorderHttpComponent implements OnInit {
 
   selectFile() {
     this.fileInput.nativeElement.click();
+    this.fileInput.nativeElement.value = ''; // permet de permettre le onchange si on reselectionne le meme fichier
   }
+
 }

@@ -7,11 +7,11 @@
           {{ 'mmn.recorder-http.button.saveAs' | translate }}
         </button>
 
-      <button mat-flat-button color="primary" (click)="selectFile()">
+      <button mat-flat-button color="primary" (click)="selectFile()" >
         <mat-icon>save_alt</mat-icon>
         {{ 'mmn.recorder-http.button.import' | translate }}
       </button>
-      <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json">
+      <input style="display: none" id="inputImport" #fileInput type="file" (change)="onChange($event)" accept=".json">
       <button mat-flat-button color="primary" (click)="effacerEnregistrements()">
         <mat-icon>delete_outline</mat-icon>
         {{ 'mmn.recorder-http.button.delete' | translate }}
