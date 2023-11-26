@@ -13,7 +13,7 @@ import { displayEffect } from './utils/utils';
 let show = false;
 let clickedElement: string;
 
-document.addEventListener("mousedown", function(event){
+document.addEventListener("mousedown", function (event) {
   clickedElement = event.target['innerHTML'];
 }, true);
 
@@ -29,7 +29,7 @@ chrome.storage.local.get(['disabled'], function (result) {
     chrome.runtime.sendMessage({
       action: 'updateIcon',
       value: 'tuello-stop-32x32.png'
-    }, ()=> {});
+    }, () => { });
   }
 });
 
@@ -135,7 +135,7 @@ function init() {
 
       // Gestion du UIRecorder
       launchUIRecorderHandler();
-      
+
 
       // ajout du spinner
       const spinner = document.createElement('div');
@@ -195,7 +195,7 @@ function init() {
       chrome.storage.local.get(['trackPlay'], results => {
         if (results.trackPlay) {
           activateRecordTracks();
-          
+
         }
       });
 
@@ -210,15 +210,28 @@ function init() {
 
 // gestion de l'activation et la désactivation du devtools et du record ui
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message=== 'JSON_VIEWER'){
+  if (message === 'JSON_VIEWER') {
+    const selectedText = window.getSelection().toString();
+    let data;
+    if (clickedElement.length >= 50) {
+      data = clickedElement;
+    } else if (selectedText && selectedText.length >= 50) {
+      data = selectedText;
+    }
     try {
-      const json = JSON.parse(clickedElement);
+      const json = JSON.parse(data);
       jsonViewer.open(json);
-  } catch (e) {
-     // error
-     console.log('Tuello : La donnée n est pas du json', e);
-  }
-    
+    } catch (e) {
+      try {
+        const json = JSON.parse(selectedText.replace(/\n/g, '').replaceAll(' ', ''));
+        jsonViewer.open(json);
+      } catch (e) {
+        // error
+        console.log('Tuello : La donnée n est pas du json', e);
+      }
+    }
+    sendResponse();
+
   }
   if (message === 'toggle') {
     if (document.getElementById('iframeTuello')) {
@@ -319,7 +332,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         setTimeout(() => {
           chrome.runtime.sendMessage({
             action: 'HIDE_OK'
-          }, ()=> {});
+          }, () => { });
         }, 1);
       }
       sendResponse();
@@ -337,9 +350,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'START_UI_RECORDER':
-      
+
       launchUIRecorderHandler();
-     break;
+      break;
     case 'MOUSE_COORDINATES':
       if (message.value) {
         addMouseCoordinates();
@@ -404,15 +417,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       sendResponse();
       break;
-      case 'SEARCH_ELEMENTS_ACTIVATED':
-        if (message.value) {
-          activateSearchElements();
-        } else {
-          desactivateSearchElements();
-        }
-        sendResponse();
-        break;
-      
+    case 'SEARCH_ELEMENTS_ACTIVATED':
+      if (message.value) {
+        activateSearchElements();
+      } else {
+        desactivateSearchElements();
+      }
+      sendResponse();
+      break;
+
     case 'ACTIONS_RESULTS':
       if (window.self === window.top) {
         // SHOW
@@ -423,17 +436,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.runtime.sendMessage({
           action: 'updateIcon',
           value: 'tuello-32x32.png'
-        }, ()=> {});
+        }, () => { });
 
         chrome.runtime.sendMessage({
           action: 'FINISH_PLAY_ACTIONS'
-        }, ()=> {});
+        }, () => { });
 
         // disabled Mock http
         chrome.runtime.sendMessage({
           action: 'MOCK_HTTP_USER_ACTION',
           value: false
-        }, ()=> {});
+        }, () => { });
 
         if (message.value && message.value.comparisonResults) {
           // settimeout permet à tuello de s'afficher et permettre d'ecouter ce message
@@ -441,7 +454,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             chrome.runtime.sendMessage({
               action: 'SHOW_COMPARISON_RESULTS',
               value: message.value.comparisonResults
-            }, ()=> {});
+            }, () => { });
           }, 1);
         }
       }
@@ -522,7 +535,7 @@ window.addEventListener(
           // send message to popup
           chrome.runtime.sendMessage({
             action: 'VIEW_IMAGE_CLOSED'
-          }, ()=> {});
+          }, () => { });
           break;
       }
     }
