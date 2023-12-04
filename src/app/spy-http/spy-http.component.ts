@@ -90,7 +90,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       const dialogRef = this.dialog.open(RecordDialogComponent);
 
       dialogRef.afterClosed().subscribe(result => {
-        console.log(`Dialog result: ${result}`);
+        // console.log(`Dialog result: ${result}`);
         if (result !== 'add') {
           this.actions = [];
           this.jsonContent = '';

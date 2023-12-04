@@ -17,13 +17,14 @@ let recorderHttp = {
       if (attr === 'onreadystatechange') {
         xhr.onreadystatechange = (...args) => {
           if (this.readyState === 4) {
-            if (!this.responseURL.includes('tuello')) {
+            if (!this.responseURL.includes('tuello') && !this.responseURL.includes('sockjs')) {
               let reponse = '';
               try {
                 reponse = JSON.parse(this.response);
+                
               } catch (e) {
-                // error
                 reponse = this.response;
+                // error
                 console.log('Tuello : Problème de parsing de la reponse', e);
               }
               window.postMessage(
@@ -60,7 +61,7 @@ let recorderHttp = {
           this[attr] = function (data) {
 
             xhrBody = getBodyFromData(data);
-            console.log('TUELLO DATA', xhrBody);
+            //console.log('TUELLO DATA', xhrBody);
 
             send.call(this, data);
           }
@@ -116,7 +117,7 @@ let recorderHttp = {
       .finally(() => {
         const obj = JSON.parse(JSON.stringify(data));
         window.postMessage(
-          data
+          obj
           ,
           '*',
         );

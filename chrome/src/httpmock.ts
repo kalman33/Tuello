@@ -1,6 +1,10 @@
+import { removeURLPort } from "./utils/utils";
+
 let deepMockLevel = 0;
 
 let compareWithMockLevel = (url1: string, url2: string): boolean => {
+  url1 = removeURLPort(url1);
+  url2 = removeURLPort(url2);
   if (deepMockLevel === 0) {
     return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
   } else {

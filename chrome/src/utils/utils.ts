@@ -318,4 +318,15 @@ export function isJSON(text) {
   }
 }
 
+export function removeURLPort(url: string) {
+  let ret = '';
+  try {
+    let parseURL = new URL(url);
+    parseURL.port = '';
+    ret = parseURL.toString();
+  } catch(e) {
+    ret = url;
+  }
+  return ret;
+}
 
