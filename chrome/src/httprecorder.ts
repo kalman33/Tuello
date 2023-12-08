@@ -60,7 +60,7 @@ let recorderHttp = {
           const send = xhr[attr].bind(xhr);
           this[attr] = function (data) {
 
-            xhrBody = getBodyFromData(data);
+            // xhrBody = getBodyFromData(data);
             //console.log('TUELLO DATA', xhrBody);
 
             send.call(this, data);
@@ -159,42 +159,3 @@ window.postMessage(
   '*',
 );
 
-function getBodyFromData(data: any) {
-  let result = {};
-  try {
-
-    if (data) {
-      if (data.buffer instanceof ArrayBuffer) {
-
-        result = JSON.parse(new TextDecoder().decode((data.buffer) as ArrayBuffer));
-        result = JSON.parse(atob(decodeURIComponent(result['body'])))
-
-      }
-      else if (data instanceof FormData) {
-        let object = {};
-        data.forEach((value, key) => object[key] = value);
-        result = JSON.stringify(object);
-      }
-      else if (data instanceof URLSearchParams) {
-        let object = {};
-        data.forEach(function (value, key) {
-          object[key] = value;
-        });
-        result = JSON.stringify(object);
-      }
-      else if (typeof data === 'string') {
-        //ok
-        if (isJSON(data)) {
-          result = data;
-        } else {
-          result = JSON.parse(data);
-        }
-      } else {
-        result = data;
-      }
-    }
-  } catch (e) {
-    result = {};
-  }
-  return result;
-}

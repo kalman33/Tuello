@@ -12,6 +12,8 @@ export function removeDuplicateEntries(data: any): any {
     if (!temp.includes(item.key)) {
       temp.push(item.key);
       return true;
+    } else {
+      return false;
     }
   });
 }
@@ -185,7 +187,7 @@ export function isVisible(e: string) {
  */
 export function getCSSPath(el) {
   if (!(el instanceof Element))
-    return;
+    return null;
   var path = [];
   while (el.nodeType === Node.ELEMENT_NODE) {
     var selector = el.nodeName.toLowerCase();
@@ -328,5 +330,50 @@ export function removeURLPort(url: string) {
     ret = url;
   }
   return ret;
+}
+
+/**
+ * permet de parser le body envoyé dans une requete
+ * @param data 
+ * @returns 
+ */
+export function getBodyFromData(data: any) {
+  let result = {};
+  try {
+
+    if (data) {
+      if (data instanceof ArrayBuffer) {
+
+        result = JSON.parse(new TextDecoder().decode((data) as ArrayBuffer));
+        //result = JSON.parse(atob(decodeURIComponent(result['body'])))
+
+      }
+      else if (data instanceof FormData) {
+        let object = {};
+        data.forEach((value, key) => object[key] = value);
+        result = JSON.stringify(object);
+      }
+      else if (data instanceof URLSearchParams) {
+        let object = {};
+        data.forEach(function (value, key) {
+          object[key] = value;
+        });
+        result = JSON.stringify(object);
+      }
+      else if (typeof data === 'string') {
+        //ok
+        if (isJSON(data)) {
+          result = data;
+        } else {
+          result = JSON.parse(data);
+        }
+      } else {
+        result = data;
+      }
+    }
+  } catch (e) {
+    result = {};
+  }
+  return result;
 }
 

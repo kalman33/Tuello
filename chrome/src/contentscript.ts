@@ -8,7 +8,7 @@ import { recordHttpListener } from './utils/recordHttpListener';
 import { activateSearchElements, desactivateSearchElements, removeAllSearchElements } from './utils/searchElements';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
-import { displayEffect } from './utils/utils';
+import { displayEffect, isJSON } from './utils/utils';
 
 let show = false;
 let clickedElement: string;
@@ -543,4 +543,44 @@ window.addEventListener(
   false
 );
 
+
+function getBodyFromData(data: any) {
+  let result = {};
+  try {
+
+    if (data) {
+      if (data instanceof ArrayBuffer) {
+
+        result = JSON.parse(new TextDecoder().decode((data) as ArrayBuffer));
+        //result = JSON.parse(atob(decodeURIComponent(result['body'])))
+
+      }
+      else if (data instanceof FormData) {
+        let object = {};
+        data.forEach((value, key) => object[key] = value);
+        result = JSON.stringify(object);
+      }
+      else if (data instanceof URLSearchParams) {
+        let object = {};
+        data.forEach(function (value, key) {
+          object[key] = value;
+        });
+        result = JSON.stringify(object);
+      }
+      else if (typeof data === 'string') {
+        //ok
+        if (isJSON(data)) {
+          result = data;
+        } else {
+          result = JSON.parse(data);
+        }
+      } else {
+        result = data;
+      }
+    }
+  } catch (e) {
+    result = {};
+  }
+  return result;
+}
 

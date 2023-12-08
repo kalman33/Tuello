@@ -1,7 +1,7 @@
 import { Track } from '../models/Track';
 import { TrackType } from '../models/TrackType';
 import { UserAction } from '../models/UserAction';
-import { clickInside, getElementFromXPath, getXPath, isFixedPosition, isVisible } from './utils';
+import { clickInside, getElementFromXPath, getXPath, isFixedPosition, isVisible, removeURLPort } from './utils';
 
 let lastUserAction: UserAction;
 let performanceObserver;
@@ -23,6 +23,8 @@ export function activateRecordTracks() {
     document.removeEventListener('click', clickListener);
     document.addEventListener('click', clickListener);
   }
+
+  
 }
 
 export function desactivateRecordTracks() {
@@ -121,7 +123,7 @@ function recordListener(list) {
           }
 
           if (tuelloTrackDataDisplayType === 'body') {
-            const htmlElement = findHTMLElements(track.url);
+            const htmlElement = findTrackedElements(track.url);
             track.body = htmlElement ? htmlElement.body : null;
           }
 
@@ -330,10 +332,10 @@ function viewTracks(trackId: string) {
 
 }
 
-function findHTMLElements(url: string): any {
-    chrome.storage.local.get(['mmaRecords'], results => {
+function findTrackedElements(url: string): any {
+    chrome.storage.local.get(['tuelloTracks'], results => {
       if (!chrome.runtime.lastError) {
-        const htmlElements = results['mmaRecords'] || [];
+        const htmlElements = results['tuelloTracks'] || [];
         const record = htmlElements.find(({ key, reponse, httpCode }) => compareUrl(url, key));
         if (record) {
           return record;
@@ -357,6 +359,8 @@ export function removeTracks() {
 }
 
 function compareUrl(url1: string, url2: string): boolean {
+  url1 = removeURLPort(url1);
+  url2 = removeURLPort(url2);
     return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
 }
 

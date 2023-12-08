@@ -8,6 +8,7 @@ import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { formatDate } from '../core/utils/date-utils';
 import { Track } from './models/Track';
 import { TrackType } from './models/TrackType';
+import { isJSON } from 'chrome/src/utils/utils';
 
 @Component({
   selector: 'mmn-track',
@@ -187,6 +188,7 @@ export class TrackComponent implements OnInit, OnDestroy {
       chrome.storage.local.set({ trackPlay: this.trackPlayActivated });
 
     }
+
     chrome.runtime.sendMessage({
       action: 'TRACK_PLAY_STATE',
       value: this.trackPlayActivated
@@ -216,4 +218,6 @@ export class TrackComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.sub.unsubscribe();
   }
+
+
 }

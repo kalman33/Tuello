@@ -11,7 +11,8 @@
     "webNavigation",
     "tabs",
     "contextMenus",
-    "activeTab"
+    "activeTab",
+    "webRequest"
   ],
   "host_permissions": [
     "http://*/",

@@ -12,6 +12,7 @@ import {
 import Port = chrome.runtime.Port;
 import { Player } from './background/player';
 import { UserAction } from './models/UserAction';
+import { getBodyFromData } from './utils/utils';
 
 let port;
 let player = null;
@@ -367,12 +368,28 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       break;
     case 'TRACK_PLAY_STATE':
       if (sender && sender.tab && sender.tab.id >= 0) {
+
+        if (msg.value) {
+          chrome.webRequest.onBeforeRequest.addListener(
+            (details) => {
+              if (details.method === 'POST') {
+                
+                  console.log('TUELLO----------PILA:', getBodyFromData(details.requestBody?.raw[0]?.bytes));
+              }
+            },
+            {urls: ["<all_urls>"]},
+            ["requestBody"]
+          );
+        }
+       
         // on envoie un message au content scrip
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'TRACK_PLAY_STATE',
           value: msg.value
         },
         () => {});
+
+
       }
       break;
     case 'SEARCH_ELEMENTS_ACTIVATED':
@@ -643,5 +660,6 @@ function onCompletedPlayer(details) {
     }
   }
 }
+
 
 
