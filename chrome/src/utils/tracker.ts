@@ -123,8 +123,8 @@ function recordListener(list) {
           }
 
           if (tuelloTrackDataDisplayType === 'body') {
-            const htmlElement = findTrackedElements(track.url);
-            track.body = htmlElement ? htmlElement.body : null;
+            console.log('TUELLO FINDBODYELEMENT',  findBodyElement(track.url));
+            track.body = findBodyElement(track.url);
           }
 
           if (window.location.href === lastUserAction?.hrefLocation) {
@@ -332,13 +332,13 @@ function viewTracks(trackId: string) {
 
 }
 
-function findTrackedElements(url: string): any {
-    chrome.storage.local.get(['tuelloTracks'], results => {
+function findBodyElement(url: string): any {
+    chrome.storage.local.get(['tuelloTracksBody'], results => {
       if (!chrome.runtime.lastError) {
-        const htmlElements = results['tuelloTracks'] || [];
-        const record = htmlElements.find(({ key, reponse, httpCode }) => compareUrl(url, key));
+        const bodies = results['tuelloTracksBody'] || [];
+        const record = bodies.find(({ key, body }) => compareUrl(url, key));
         if (record) {
-          return record;
+          return record.body;
         } else {
           return null;
         }

@@ -12,7 +12,7 @@ import {
 import Port = chrome.runtime.Port;
 import { Player } from './background/player';
 import { UserAction } from './models/UserAction';
-import { getBodyFromData } from './utils/utils';
+import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
 
 let port;
 let player = null;
@@ -373,13 +373,34 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           chrome.webRequest.onBeforeRequest.addListener(
             (details) => {
               if (details.method === 'POST') {
-                
-                  console.log('TUELLO----------PILA:', getBodyFromData(details.requestBody?.raw[0]?.bytes));
+                let requestBody;
+                try {
+                  console.log('TUELLO res', getBodyFromData(details.requestBody?.raw[0]?.bytes));
+                  requestBody = getBodyFromData(details.requestBody?.raw[0]?.bytes);
+                } catch (e) {
+
+                }
+                chrome.storage.local.get(['tuelloTracksBody'], items => {
+                  if (!chrome.runtime.lastError) {
+                    if (!items.tuelloTracksBody || !Array.isArray(items.tuelloTracksBody)) {
+                      items.tuelloTracksBody = [];
+                    }
+
+                    items.tuelloTracksBody.unshift({
+                      key: details.url,
+                      body: requestBody
+                    });
+                  }
+
+                  chrome.storage.local.set({ tuelloTracksBody: removeDuplicateEntries(items.tuelloTracksBody) });
+                });
               }
             },
             {urls: ["<all_urls>"]},
             ["requestBody"]
           );
+        } else {
+          chrome.storage.local.remove(['tuelloTracksBody']);
         }
        
         // on envoie un message au content scrip

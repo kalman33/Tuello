@@ -54,13 +54,6 @@ export class TrackComponent implements OnInit, OnDestroy {
   set trackDataDisplayType(value: string) {
     this._trackDataDisplayType = value;
     chrome.storage.local.set({ tuelloTrackDataDisplayType: value });
-    if (this.trackDataDisplayType === 'body') {
-      chrome.storage.local.set({ httpRecord: true });
-      chrome.runtime.sendMessage({
-        action: 'HTTP_RECORD_STATE',
-        value: true
-      }, () => { });
-    }
   }
 
   get trackDataDisplay(): string {
