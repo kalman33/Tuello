@@ -24,7 +24,7 @@ export function activateRecordTracks() {
     document.addEventListener('click', clickListener);
   }
 
-  
+
 }
 
 export function desactivateRecordTracks() {
@@ -94,58 +94,58 @@ function recordListener(list) {
     chrome.storage.local.get(['tuelloTrackData', 'tuelloTrackDataDisplayType'], results => {
       let trackData = results['tuelloTrackData'];
       const tuelloTrackDataDisplayType = results['tuelloTrackDataDisplayType'];
-       list.getEntries().filter(entry => {
-          return entry.name.includes(trackData);
-        }).forEach(entry => {
-          // on track
-          const track = new Track();
-          track.x = lastUserAction?.x;
-          track.y = lastUserAction?.y;
+      list.getEntries().filter(entry => {
+        return entry.name.includes(trackData);
+      }).forEach(entry => {
+        // on track
+        const track = new Track();
+        track.x = lastUserAction?.x;
+        track.y = lastUserAction?.y;
 
-          track.hrefLocation = window.location.href;
+        track.hrefLocation = window.location.href;
 
-          const url = new URL(entry.name)
-          
-          // initiatorType: "xmlhttprequest"
-          if (url.search) {
-            track.url = url.href.replace(url.search, "");
-            track.querystring = decodeURI(url.search.substring(1))
-              .split('&')
-              .reduce((result, current) => {
-                const [key, value] = current.split('=');
+        const url = new URL(entry.name)
 
-                result[key] = value;
+        // initiatorType: "xmlhttprequest"
+        if (url.search) {
+          track.url = url.href.replace(url.search, "");
+          track.querystring = decodeURI(url.search.substring(1))
+            .split('&')
+            .reduce((result, current) => {
+              const [key, value] = current.split('=');
 
-                return result
-              }, {})
-          } else {
-            track.url = url.href;
-          }
+              result[key] = value;
 
-          if (tuelloTrackDataDisplayType === 'body') {
-            console.log('TUELLO FINDBODYELEMENT',  findBodyElement(track.url));
-            track.body = findBodyElement(track.url);
-          }
+              return result
+            }, {})
+        } else {
+          track.url = url.href;
+        }
 
-          if (window.location.href === lastUserAction?.hrefLocation) {
-            // on est sur le meme href : c'est un track click
-            track.type = TrackType.CLICK;
-            track.element = getXPath(lastUserAction.element);
-            track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-            track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
+        if (tuelloTrackDataDisplayType === 'body') {
+          findBodyElement(track.url).then((body) => console.log('TUELLO FINDBODYELEMENT', body));
+          findBodyElement(track.url).then((body) => track.body = body);
+        }
 
-          } else {
-            // c'est un track page page
-            track.type = TrackType.PAGE;
-            track.parentPosition = 'fixed';
-            track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-          }
-          track.htmlCoordinates = lastUserAction?.htmlCoordinates;
+        if (window.location.href === lastUserAction?.hrefLocation) {
+          // on est sur le meme href : c'est un track click
+          track.type = TrackType.CLICK;
+          track.element = getXPath(lastUserAction.element);
+          track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+          track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
 
-          appendTrack(track);
-        });
+        } else {
+          // c'est un track page page
+          track.type = TrackType.PAGE;
+          track.parentPosition = 'fixed';
+          track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+        }
+        track.htmlCoordinates = lastUserAction?.htmlCoordinates;
+
+        appendTrack(track);
+      });
     });
-}
+  }
 }
 
 function clickListener(e) {
@@ -332,23 +332,24 @@ function viewTracks(trackId: string) {
 
 }
 
-function findBodyElement(url: string): any {
+function findBodyElement(url: string): Promise<any> {
+  return new Promise((resolve, reject) => {
     chrome.storage.local.get(['tuelloTracksBody'], results => {
       if (!chrome.runtime.lastError) {
         const bodies = results['tuelloTracksBody'] || [];
         const record = bodies.find(({ key, body }) => compareUrl(url, key));
         if (record) {
-          return record.body;
+          resolve(record.body);
         } else {
-          return null;
+          reject(null);
         }
-       
       } else {
-        return null;
+        reject(null);
       }
+    });
   });
 
-  }
+}
 
 
 export function removeTracks() {
@@ -361,6 +362,6 @@ export function removeTracks() {
 function compareUrl(url1: string, url2: string): boolean {
   url1 = removeURLPort(url1);
   url2 = removeURLPort(url2);
-    return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
+  return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
 }
 
