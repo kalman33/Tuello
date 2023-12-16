@@ -122,10 +122,9 @@ function recordListener(list) {
           track.url = url.href;
         }
 
-        if (tuelloTrackDataDisplayType === 'body') {
-          findBodyElement(track.url).then((body) => console.log('TUELLO FINDBODYELEMENT', body));
-          findBodyElement(track.url).then((body) => track.body = body);
-        }
+        //if (tuelloTrackDataDisplayType === 'body') {
+        findBodyElement(track.url).then((body) => track.body = body);
+        //}
 
         if (window.location.href === lastUserAction?.hrefLocation) {
           // on est sur le meme href : c'est un track click

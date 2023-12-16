@@ -39,13 +39,19 @@ export class TrackDetailComponent implements OnInit {
 
   
   findInJson(data: any, keyString: string) {
-    let keyArray = keyString.split('.'); 
     let result = data;
-    
-    for (const key of keyArray) {
-      result = result[key]
+    try{
+      let keyArray = keyString.split('.'); 
+      
+      for (const key of keyArray) {
+        result = result[key]
+      }
+      
+    } catch(e) {
+      
     }
     return result;
+    
   }
 
   /**
@@ -55,7 +61,7 @@ export class TrackDetailComponent implements OnInit {
     let data = this.track?.url.length > 50 ? this.track?.url?.slice(0, 50) + ' ...' : this.track?.url;
     if (this.dataDisplay) {
       if(this.dataDisplayType === 'body') {
-        if (this.track?.body && this.track?.querystring['' + this.dataDisplay]) {
+        if (this.track?.body) {
           data = `${this.dataDisplay} : ${this.findInJson(this.track.body, this.dataDisplay)}`;
         } 
       } else {

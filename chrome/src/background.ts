@@ -157,6 +157,39 @@ function init() {
       }
     });
   });
+
+  chrome.webRequest.onBeforeRequest.addListener(
+    (details) => {
+      if (details.method === 'POST') {
+        let requestBody;
+        try {
+          // console.log('TUELLO res', getBodyFromData(details.requestBody?.raw[0]?.bytes));
+          requestBody = getBodyFromData(details.requestBody?.raw[0]?.bytes);
+        } catch (e) {
+
+        }
+        chrome.storage.local.get(['tuelloTracksBody'], items => {
+          if (!chrome.runtime.lastError) {
+            if (!items.tuelloTracksBody || !Array.isArray(items.tuelloTracksBody)) {
+              items.tuelloTracksBody = [];
+            }
+
+            items.tuelloTracksBody.unshift({
+              key: details.url,
+              body: requestBody
+            });
+            if (items.tuelloTracksBody.length > 10) {
+              items.tuelloTracksBody.pop();
+            }
+          }
+
+          chrome.storage.local.set({ tuelloTracksBody: removeDuplicateEntries(items.tuelloTracksBody) });
+        });
+      }
+    },
+    {urls: ["<all_urls>"]},
+    ["requestBody"]
+  );
 }
 
 
@@ -369,6 +402,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'TRACK_PLAY_STATE':
       if (sender && sender.tab && sender.tab.id >= 0) {
 
+        /** 
         if (msg.value) {
           chrome.webRequest.onBeforeRequest.addListener(
             (details) => {
@@ -390,6 +424,9 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                       key: details.url,
                       body: requestBody
                     });
+                    if (items.tuelloTracksBody.length > 10) {
+                      items.tuelloTracksBody.pop();
+                    }
                   }
 
                   chrome.storage.local.set({ tuelloTracksBody: removeDuplicateEntries(items.tuelloTracksBody) });
@@ -402,6 +439,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         } else {
           chrome.storage.local.remove(['tuelloTracksBody']);
         }
+        */
        
         // on envoie un message au content scrip
         chrome.tabs.sendMessage(sender.tab.id, {
