@@ -1,7 +1,8 @@
-import {Component, Input, OnInit} from '@angular/core';
-import {MatDialog} from '@angular/material/dialog';
+import { Component, Input, OnInit } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { JsonViewerComponent } from '../../core/json-viewer/json-viewer.component';
 import { Track } from '../models/Track';
+import JsonFind from 'json-find';
 
 @Component({
   selector: 'mmn-track-detail',
@@ -14,9 +15,9 @@ export class TrackDetailComponent implements OnInit {
   @Input() dataDisplay: string;
   @Input() dataDisplayType: string;
 
-  constructor(public dialog: MatDialog) {}
+  constructor(public dialog: MatDialog) { }
 
-  ngOnInit() {}
+  ngOnInit() { }
 
   previewTrack() {
     const dialogRef = this.dialog.open(JsonViewerComponent, {
@@ -33,25 +34,21 @@ export class TrackDetailComponent implements OnInit {
    * @returns le flux json avec la clef supprimée
    */
   omit(obj, key) {
-    const {[key]:ignore, ...rest} = obj;
+    const { [key]: ignore, ...rest } = obj;
     return rest;
   }
 
-  
+
   findInJson(data: any, keyString: string) {
     let result = data;
-    try{
-      let keyArray = keyString.split('.'); 
-      
-      for (const key of keyArray) {
-        result = result[key]
-      }
-      
-    } catch(e) {
-      
+    try {
+      const doc = JsonFind(data);
+      result = doc.findValues(keyString);
+      result = result[keyString];
+    } catch (e) {
     }
     return result;
-    
+
   }
 
   /**
@@ -60,16 +57,16 @@ export class TrackDetailComponent implements OnInit {
   getDisplayData(): string {
     let data = this.track?.url.length > 50 ? this.track?.url?.slice(0, 50) + ' ...' : this.track?.url;
     if (this.dataDisplay) {
-      if(this.dataDisplayType === 'body') {
+      if (this.dataDisplayType === 'body') {
         if (this.track?.body) {
           data = `${this.dataDisplay} : ${this.findInJson(this.track.body, this.dataDisplay)}`;
-        } 
+        }
       } else {
         if (this.track?.querystring && this.track?.querystring['' + this.dataDisplay]) {
           data = `${this.dataDisplay} : ${this.track?.querystring['' + this.dataDisplay]}`;
-        } 
+        }
       }
-    } 
+    }
     return data;
   }
 }
