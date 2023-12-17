@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0.3] - 2023-12-18
+    Gestion tracking body 
+
 ## [1.0.0.2] - 2023-09-24
     affichage de la recherche d'élement via des canvas au lieu de background color
 
