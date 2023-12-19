@@ -1,7 +1,7 @@
 import { Track } from '../models/Track';
 import { TrackType } from '../models/TrackType';
 import { UserAction } from '../models/UserAction';
-import { clickInside, getElementFromXPath, getXPath, isFixedPosition, isVisible, removeURLPort } from './utils';
+import { clickInside, getElementFromXPath, getXPath, isFixedPosition, isVisible, removeURLPort, removeURLPortAndQueryString } from './utils';
 
 let lastUserAction: UserAction;
 let performanceObserver;
@@ -123,7 +123,7 @@ function recordListener(list) {
         }
 
         //if (tuelloTrackDataDisplayType === 'body') {
-        findBodyElement(track.url).then((body) => track.body = body);
+        findBodyElement(track.url).then((body) => track.body = body).catch(e => {})
         //}
 
         if (window.location.href === lastUserAction?.hrefLocation) {
@@ -359,8 +359,8 @@ export function removeTracks() {
 }
 
 function compareUrl(url1: string, url2: string): boolean {
-  url1 = removeURLPort(url1);
-  url2 = removeURLPort(url2);
+  url1 = removeURLPortAndQueryString(url1);
+  url2 = removeURLPortAndQueryString(url2);
   return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
 }
 

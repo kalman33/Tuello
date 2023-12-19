@@ -332,6 +332,19 @@ export function removeURLPort(url: string) {
   return ret;
 }
 
+export function removeURLPortAndQueryString(url: string) {
+  let ret = '';
+  try {
+    let parseURL = new URL(url);
+    parseURL.port = '';
+    parseURL.search = '';
+    ret = parseURL.toString();
+  } catch(e) {
+    ret = url;
+  }
+  return ret;
+}
+
 /**
  * permet de parser le body envoyé dans une requete
  * @param data 
