@@ -161,8 +161,8 @@ export function getParentByTagName(node: HTMLElement, tagname: string) {
   parent = node.parentNode;
   tagname = tagname.toUpperCase();
 
-  while (parent.tagName !== "HTML") {
-    if (parent.tagName.toLowerCase() === tagname.toLowerCase()) {
+  while (parent?.tagName !== "HTML") {
+    if (parent?.tagName.toLowerCase() === tagname.toLowerCase()) {
       return parent;
     }
     parent = parent.parentNode;
@@ -232,17 +232,26 @@ export function getXPath(element) {
   // Loop handler
   let foundRoot;
   // Element handler
+
+console.log('TUELLO ELEMENT', element);
+
   let currentElement = element;
+  let tagName;
+  let parentElement;
 
   // Do action until we reach html element
   do {
     // Get element tag name 
-    const tagName = currentElement.tagName.toLowerCase();
+    tagName = currentElement?.tagName?.toLowerCase();
     // Get parent element
-    const parentElement = currentElement.parentElement;
+    parentElement = currentElement?.parentElement;
+
+    console.log('TUELLO tagName', tagName);
+    console.log('TUELLO parentElement', parentElement);
+
 
     // Count children
-    if (parentElement.childElementCount > 1) {
+    if (parentElement?.childElementCount > 1) {
       // Get children of parent element
       const parentsChildren = [...parentElement.children];
       // Count current tag 
@@ -271,12 +280,12 @@ export function getXPath(element) {
     // Set parent element to current element
     currentElement = parentElement;
     // Is root  
-    foundRoot = parentElement.tagName.toLowerCase() === 'html';
+    foundRoot = parentElement?.tagName?.toLowerCase() === 'html';
     // Finish selector if found root element
     if (foundRoot) selector = `/html${selector}`;
   }
-  while (foundRoot === false);
-
+  while (foundRoot === false && tagName && parentElement);
+  console.log('TUELLO selector', selector);
   // Return selector
   return selector;
 }

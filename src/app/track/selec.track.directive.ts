@@ -10,7 +10,7 @@ export class SelectTrackDirective implements AfterViewInit {
 
     ngAfterViewInit(): void {
         if (this.selectedTrack) {
-            document.getElementById('list-' + this.selectedTrack).scrollIntoView({
+            document.getElementById('list-' + this.selectedTrack)?.scrollIntoView({
                 behavior: "smooth",
                 block: "center"
             });

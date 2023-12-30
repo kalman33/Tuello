@@ -7,12 +7,24 @@ let lastUserAction: UserAction;
 let performanceObserver;
 
 let tuelloTracks;
-let httpElements = new Map<string, any>();
 
+let bodyObserver;
+let resizeObserver;
+let timer;
+const debounceTimer = 1000;
+
+const mutationOptions = {
+  attributes: true,
+  characterData: true,
+  childList: true,
+  subtree: true,
+  attributeOldValue: false,
+  characterDataOldValue: false
+};
 
 export function activateRecordTracks() {
 
-  displayTracks();
+  displayTracks(null, null);
 
   // on observe les événements de mesure des performances de type resource
   if (!performanceObserver) {
@@ -22,6 +34,20 @@ export function activateRecordTracks() {
     // on active le listener pour le click souris
     document.removeEventListener('click', clickListener);
     document.addEventListener('click', clickListener);
+
+    if (bodyObserver) {
+      console.log("TUELLO DISCONNECT")
+      bodyObserver.disconnect();
+    }
+    bodyObserver = new MutationObserver(displayTracks);
+    bodyObserver.observe(document.body, mutationOptions);
+
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
+    resizeObserver = new ResizeObserver(displayTracks);
+    resizeObserver.observe(document.body);
+
   }
 
 
@@ -35,38 +61,62 @@ export function desactivateRecordTracks() {
   }
   document.removeEventListener('click', clickListener);
   removeTracks();
+  bodyObserver.disconnect();
+  resizeObserver.disconnect();
 }
 
-function displayTracks() {
+async function displayTracks(mutationsList, observer) {
+  console.log("DISPLAY TRACKS", mutationsList);
+  // if (mutationsList)
 
-  removeTracks();
+  // mutationsList.forEach(mutation => {
+  //   if (mutation.addedNodes) {
+  //     mutation.addedNodes.forEach(node => {
+  //       const htmlElt = (node as HTMLElement);
+  //       if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
+  //         addedNode = true;
+  //       }
+  //     });
+  //   }
+  // });
+  // if (addedNode) {
 
-  getTuelloTracks().then(() => {
-    const tracks = tuelloTracks.filter(item => {
-      // on ne garde que les tracks de cette page
-      if (item.hrefLocation === window.location.href) {
-        if (item.type === TrackType.CLICK) {
-          return isVisible(item.element);
+  if (timer) {
+    console.log("DISPLAY TRACKS CLEAR");
+    clearTimeout(timer);
+  }
+  timer = setTimeout(() => {
+    console.log("DISPLAY TRACKS ACTION");
+    removeTracks();
+    getTuelloTracks().then(() => {
+      const tracks = tuelloTracks.filter(item => {
+        // on ne garde que les tracks de cette page
+        if (item.hrefLocation === window.location.href) {
+          if (item.type === TrackType.CLICK) {
+            return isVisible(item.element);
+          } else {
+            return true;
+          }
         } else {
-          return true;
+          return false;
         }
-      } else {
-        return false;
-      }
-    });
-
-
-    if (tracks && tracks.length > 0) {
-      tracks.forEach(track => {
-        displayTrack(track);
       });
-    }
-  }).catch(() => {
-  });
+
+
+      if (tracks && tracks.length > 0) {
+        tracks.forEach(track => {
+          displayTrack(track);
+        });
+      }
+    }).catch(() => {
+    });
+  }, debounceTimer);
+
+
 }
 
-function getTuelloTracks() {
-  return new Promise((resolve, reject) => {
+async function getTuelloTracks() {
+  await new Promise((resolve, reject) => {
     chrome.storage.local.get(['tuelloTracks'], results => {
       if (!chrome.runtime.lastError) {
         tuelloTracks = results['tuelloTracks'] || [];
@@ -123,7 +173,7 @@ function recordListener(list) {
         }
 
         //if (tuelloTrackDataDisplayType === 'body') {
-        findBodyElement(track.url).then((body) => track.body = body).catch(e => {})
+        findBodyElement(track.url).then((body) => track.body = body).catch(e => { })
         //}
 
         if (window.location.href === lastUserAction?.hrefLocation) {
@@ -168,7 +218,7 @@ function clickListener(e) {
     lastUserAction.element = target;
   }
 
-  displayTracks();
+
 }
 
 function appendTrack(track: Track) {

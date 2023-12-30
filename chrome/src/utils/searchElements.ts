@@ -17,7 +17,7 @@ export function activateSearchElements() {
   // document.addEventListener('click', searchElements);
   window.addEventListener("resize", resize);
 
-  var mutationOptions = {
+  const mutationOptions = {
     attributes: false,
     characterData: false,
     childList: true,
