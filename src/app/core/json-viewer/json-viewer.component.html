@@ -1,6 +1,6 @@
 <h1 mat-dialog-title>DATA</h1>
 <div mat-dialog-content>
-  <pre>{{data | json}}</pre>
+  <ngx-json-viewer [json]="data"></ngx-json-viewer>
 </div>
 <div mat-dialog-actions align="end">
   <button mat-flat-button mat-dialog-close>{{ 'mmn.spy-http.json-viewer.close' | translate }}</button>

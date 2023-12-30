@@ -1,14 +1,13 @@
 import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { saveAs } from 'file-saver';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { formatDate } from '../core/utils/date-utils';
 import { Track } from './models/Track';
 import { TrackType } from './models/TrackType';
-import { isJSON } from 'chrome/src/utils/utils';
 
 @Component({
   selector: 'mmn-track',
@@ -35,7 +34,8 @@ export class TrackComponent implements OnInit, OnDestroy {
     public dialog: MatDialog,
     private ref: ChangeDetectorRef,
     private infoBar: MatSnackBar,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router:Router
   ) { }
 
   get trackData(): string {
@@ -66,6 +66,9 @@ export class TrackComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.router.routeReuseStrategy.shouldReuseRoute = () => false;
+    this.router.onSameUrlNavigation = 'reload';
+
     chrome.tabs.query({ active: true }, tabs => {
       this.currentHrefLocation = tabs[0].url;
     });

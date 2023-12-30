@@ -354,13 +354,16 @@ function displayTrack(track: Track) {
 
       if (track.htmlCoordinates) {
         const elt = track.parentPosition === 'fixed' ? parentDiv : div;
-        const elementList = trackElement.children;
+        const elementList = trackElement?.children;
+       
         // mouse over : on affiche un contour sur le lien ou le bouton
         elt.onmouseenter = (event) => {
           trackElement.classList.add('tuello-background-color');
           trackElement.classList.add('tuello-white-texte');
-          for (var i = 0; i < elementList.length; i++) {
-            elementList[i].classList.add('tuello-white-texte');
+          if (elementList) {
+            for (var i = 0; i < elementList.length; i++) {
+              elementList[i].classList.add('tuello-white-texte');
+            }
           }
         }
 

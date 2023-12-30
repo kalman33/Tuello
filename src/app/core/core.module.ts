@@ -7,10 +7,11 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { JsonViewerComponent } from './json-viewer/json-viewer.component';
+import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
 @NgModule({
     declarations: [LayoutComponent, JsonViewerComponent],
-    imports: [CommonModule, RouterModule, FormsModule, AngularMaterialModule, TranslateModule, FlexLayoutModule],
-    exports: [LayoutComponent, AngularMaterialModule, TranslateModule, FlexLayoutModule]
+    imports: [CommonModule, RouterModule, FormsModule, AngularMaterialModule, TranslateModule, FlexLayoutModule, NgxJsonViewerModule],
+    exports: [LayoutComponent, AngularMaterialModule, TranslateModule, FlexLayoutModule, NgxJsonViewerModule]
 })
 export class CoreModule {}
