@@ -163,7 +163,6 @@ function init() {
       if (details.method === 'POST') {
         let requestBody;
         try {
-          // console.log('TUELLO res', getBodyFromData(details.requestBody?.raw[0]?.bytes));
           requestBody = getBodyFromData(details.requestBody?.raw[0]?.bytes);
         } catch (e) {
 
@@ -409,7 +408,6 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
               if (details.method === 'POST') {
                 let requestBody;
                 try {
-                  console.log('TUELLO res', getBodyFromData(details.requestBody?.raw[0]?.bytes));
                   requestBody = getBodyFromData(details.requestBody?.raw[0]?.bytes);
                 } catch (e) {
 

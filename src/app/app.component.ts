@@ -60,7 +60,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
         case 'TRACK_VIEW':
           this.chromeExtentionUtilsService.show();
           this.ngZone.run(() => {
-            this.router.navigate(['/track'], { skipLocationChange: true, queryParams: { trackId: message.value } });
+            this.router.navigate(['/track'], { skipLocationChange: false, queryParams: { trackId: message.value } });
           });
           break;
       }

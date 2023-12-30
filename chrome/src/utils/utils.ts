@@ -212,8 +212,11 @@ export function getCSSPath(el) {
 
 /** Permet de savoir si le click est dans l'élement */
 export function clickInside(coord: ICoordinates, x: number, y: number): boolean {
-
-  return coord.top <= y && y <= (coord.top + coord.height) && coord.left <= x && x <= (coord.left + coord.width)
+  if (coord) {
+    return coord.top <= y && y <= (coord.top + coord.height) && coord.left <= x && x <= (coord.left + coord.width)
+  } else {
+    return false;
+  }
 }
 
 
@@ -233,8 +236,6 @@ export function getXPath(element) {
   let foundRoot;
   // Element handler
 
-console.log('TUELLO ELEMENT', element);
-
   let currentElement = element;
   let tagName;
   let parentElement;
@@ -245,10 +246,6 @@ console.log('TUELLO ELEMENT', element);
     tagName = currentElement?.tagName?.toLowerCase();
     // Get parent element
     parentElement = currentElement?.parentElement;
-
-    console.log('TUELLO tagName', tagName);
-    console.log('TUELLO parentElement', parentElement);
-
 
     // Count children
     if (parentElement?.childElementCount > 1) {
@@ -285,7 +282,6 @@ console.log('TUELLO ELEMENT', element);
     if (foundRoot) selector = `/html${selector}`;
   }
   while (foundRoot === false && tagName && parentElement);
-  console.log('TUELLO selector', selector);
   // Return selector
   return selector;
 }
