@@ -83,7 +83,7 @@
   "mmn.track.button.play": "Activer",
   "mmn.track.input": "Données à tracker",
   "mmn.track.input.required": "Renseigner le champs Données à tracker",
-  "mmn.track.input.data.display": "Element de la queryString à afficher",
+  "mmn.track.input.data.display": "Element à afficher",
 
   "mmn.record.placeholder": "Ajouter un commentaire",
   "mmn.record.button.submit": "Soumettre",

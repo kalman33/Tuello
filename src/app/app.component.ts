@@ -5,6 +5,7 @@ import { RecorderHistoryService } from './spy-http/services/recorder-history.ser
 import { PlayerService } from './spy-http/services/player.service';
 import { Event, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { TrackService } from './track/services/track.service';
 
 @Component({
   selector: 'mmn-root',
@@ -23,7 +24,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     private recorderHistoryService: RecorderHistoryService,
     private playerService: PlayerService,
     private router: Router,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private trackService: TrackService
   ) {
     chrome.storage.local.get(['darkMode'], results => {
       if (results['darkMode']) {
@@ -59,8 +61,9 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
           break;
         case 'TRACK_VIEW':
           this.chromeExtentionUtilsService.show();
+          this.trackService.currentHrefLocation = message.value.currentHrefLocation
           this.ngZone.run(() => {
-            this.router.navigate(['/track'], { skipLocationChange: false, queryParams: { trackId: message.value } });
+            this.router.navigate(['/track'], { skipLocationChange: false, queryParams: { trackId: message.value?.trackId } });
           });
           break;
       }

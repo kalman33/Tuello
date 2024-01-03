@@ -8,6 +8,7 @@ import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { formatDate } from '../core/utils/date-utils';
 import { Track } from './models/Track';
 import { TrackType } from './models/TrackType';
+import { TrackService } from './services/track.service';
 
 @Component({
   selector: 'mmn-track',
@@ -23,7 +24,6 @@ export class TrackComponent implements OnInit, OnDestroy {
   _trackData: string;
   _trackDataDisplay: string;
   _trackDataDisplayType: string;
-  currentHrefLocation: string;
   selectedTrackId: string;
   sub;
 
@@ -35,7 +35,8 @@ export class TrackComponent implements OnInit, OnDestroy {
     private ref: ChangeDetectorRef,
     private infoBar: MatSnackBar,
     private route: ActivatedRoute,
-    private router:Router
+    private router:Router,
+    private trackService: TrackService
   ) { }
 
   get trackData(): string {
@@ -68,10 +69,6 @@ export class TrackComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.router.routeReuseStrategy.shouldReuseRoute = () => false;
     this.router.onSameUrlNavigation = 'reload';
-
-    chrome.tabs.query({ active: true }, tabs => {
-      this.currentHrefLocation = tabs[0].url;
-    });
 
     this.sub = this.route.queryParams.subscribe(params => {
       this.selectedTrackId = params['trackId'];
@@ -192,7 +189,7 @@ export class TrackComponent implements OnInit, OnDestroy {
 
   isSelectedClass(track: Track) {
     let selected = false;
-    if (this.selectedTrackId && track.hrefLocation === this.currentHrefLocation && this.trackPlayActivated) {
+    if (this.selectedTrackId && track.hrefLocation === this.trackService.currentHrefLocation && this.trackPlayActivated) {
       if (this.selectedTrackId.includes('tuelloTrackClick')) {
         selected = this.selectedTrackId == track.id;
       } else {

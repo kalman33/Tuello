@@ -388,7 +388,10 @@ function viewTracks(trackId: string) {
     response => {
       chrome.runtime.sendMessage({
         action: 'TRACK_VIEW',
-        value: trackId ? trackId : 0
+        value: {
+          trackId: trackId ? trackId : 0, 
+          currentHrefLocation: window.location.href
+        }
       }, () => { })
     })
 

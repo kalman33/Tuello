@@ -25,7 +25,7 @@ export class ThemeService {
         this.overlay.getContainerElement().classList.remove('default-theme');
         this.overlay.getContainerElement().classList.add('black-theme');
       } else {
-        this.overlay.getContainerElement().classList.add('default-theme');
+        this.overlay.getContainerElement().classList.add('black-theme');
       }
       if (document.body.classList.contains('black-theme')) {
         document.body.classList.remove('black-theme');

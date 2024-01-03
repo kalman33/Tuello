@@ -10,8 +10,6 @@ export class SelectTrackDirective implements AfterViewInit {
 
     ngAfterViewInit(): void {
         if (this.selectedTrack) {
-            console.log("TUELLO", this.selectedTrack);
-            console.log("TUELLO1",  document.getElementById('list-' + this.selectedTrack));
             setTimeout(() => {
                 document.getElementById('list-' + this.selectedTrack)?.scrollIntoView({
                 behavior: "smooth",

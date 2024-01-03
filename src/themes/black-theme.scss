@@ -7,3 +7,21 @@ $mmn-black-theme: mat-dark-theme(
   $mmn-black-accent,
   $mmn-black-warn
 );
+
+/* ngx-json-viewer */
+body.black-theme .ngx-json-viewer .segment .segment-main .segment-key {
+  color: white !important;
+}
+
+body.black-theme  .ngx-json-viewer .segment-type-boolean > .segment-main > .segment-value {
+  color: lightskyblue !important;
+}
+
+body.black-theme .ngx-json-viewer  .segment-type-string > .segment-main > .segment-value {
+  color: lightgreen !important;
+}
+
+body.black-theme .ngx-json-viewer  .segment-type-number > .segment-main > .segment-value {
+  color:  lightcoral !important;
+}
+

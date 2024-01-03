@@ -85,7 +85,7 @@
   "mmn.track.button.play": "Activate",
   "mmn.track.input": "Data to track",
   "mmn.track.input.required": "Data to track is required",
-  "mmn.track.input.data.display": "Data of queryString to display",
+  "mmn.track.input.data.display": "Data to display",
    
   "mmn.record.placeholder": "Add comment",
   "mmn.record.button.submit": "Submit",
