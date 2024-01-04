@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0.5] - 2024-01-05
+    Corrections search elements
+
 ## [1.0.0.4] - 2023-12-30
     Correction gestion du tracking
 
