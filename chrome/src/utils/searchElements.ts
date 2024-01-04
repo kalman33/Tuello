@@ -8,10 +8,11 @@ let mutationObserver;
 
 export function activateSearchElements() {
 
-  removeSearchElements();
+  removeAllSearchElements();
 
   //addcss(chrome.runtime.getURL('simptip.min.css'));
   searchElements();
+
 
   // on active le listener pour le click souris
   // document.addEventListener('click', searchElements);
@@ -26,27 +27,39 @@ export function activateSearchElements() {
     characterDataOldValue: false
   };
   let addedNode = false;
+  let removedNode = false;
+  if (!mutationObserver) {
+    mutationObserver = new MutationObserver((mutationsList, observer) => {
 
-  mutationObserver = new MutationObserver((mutationsList, observer) => {
-
-    mutationsList.forEach(mutation => {
-      if (mutation.addedNodes) {
-        mutation.addedNodes.forEach(node => {
-          const htmlElt = (node as HTMLElement);
-          if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
-            addedNode = true;
-          }
-        });
+      mutationsList.forEach(mutation => {
+        if (mutation.addedNodes) {
+          mutation.addedNodes.forEach(node => {
+            const htmlElt = (node as HTMLElement);
+            if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
+              addedNode = true;
+            }
+          });
+        }
+        if (mutation.removedNodes) {
+          mutation.removedNodes.forEach(node => {
+            const htmlElt = (node as HTMLElement);
+            if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
+              removedNode = true;
+            }
+          });
+        }
+      });
+      if (addedNode || removedNode) {
+        removeAllSearchElements();
+        searchElements();
+        addedNode = false;
+        removedNode = false;
       }
     });
-    if (addedNode) {
-      removeSearchElements();
-      searchElements();
-      addedNode = false;
+
+    if (document.body instanceof Node) {
+      mutationObserver.observe(document.body, mutationOptions);
     }
-  });
-  if (document.body instanceof Node) {
-    mutationObserver.observe(document.body, mutationOptions);
   }
 
 }
@@ -73,7 +86,7 @@ export function desactivateSearchElements() {
 }
 
 function searchElements() {
-  
+
   // recupération des elements
   chrome.storage.local.get(['tuelloElements'], results => {
     let elements = results['tuelloElements'];
@@ -111,6 +124,8 @@ function isElementAlreadyExist(htmlElt: HTMLElement) {
 
 
 export function removeAllSearchElements() {
+  elementsFound = new Map<string, Element>();
+
   const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
   elements.forEach((element) => {
     element.remove();
@@ -156,19 +171,20 @@ export function findByText(rootElement, text): Node[] {
 }
 
 function observeElement(searchElement: SearchElement, htmlElt: HTMLElement, index: number) {
-  resizeObserver = new ResizeObserver((entries, observer) => {
-    entries.map((entry) => {
-      let canvas = document.getElementById(`tuelloSearchElement${index}`);
-      if (canvas) {
-        canvas.remove();
-      }
-      createCanvas(searchElement, entry.target, index);
+  if (!resizeObserver) {
+    resizeObserver = new ResizeObserver((entries, observer) => {
+      entries.map((entry) => {
+        let canvas = document.getElementById(`tuelloSearchElement${index}`);
+        if (canvas) {
+          canvas.remove();
+        }
+        createCanvas(searchElement, entry.target, index);
+      });
     });
-  });
 
-  resizeObserver.observe(htmlElt);
+    resizeObserver.observe(htmlElt);
 
-
+  }
 
 }
 
@@ -213,5 +229,5 @@ function copyToClipBoard(event) {
   if (targetElement.id) {
     (elementsFound.get(targetElement.id) as HTMLElement).click();
   }
- 
+
 }

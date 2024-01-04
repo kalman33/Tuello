@@ -418,6 +418,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse();
       break;
     case 'SEARCH_ELEMENTS_ACTIVATED':
+      console.log('TUELLO', window.location.href);
       if (message.value) {
         activateSearchElements();
       } else {
