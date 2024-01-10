@@ -1,71 +1,96 @@
 <div class="container">
-  <div fxLayout="row">
-    <div><h1>{{ 'mmn.settings.title' | translate }}</h1></div>
+  <div fxFlex="99">
+    <mat-tab-group>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">settings_applications</mat-icon>
+          {{ 'mmn.settings.title' | translate }}
+        </ng-template>
+        <div fxLayout="row" fxLayout.sm="column" fxLayout.xs="column">
+          <div [ngClass]="routeAnimationsElements">
+            <h2>{{ 'mmn.settings.general.title' | translate }}</h2>
+            <div class="icon-form-field">
+              <mat-icon color="accent">not_interested</mat-icon>
+              <mat-placeholder>{{ 'mmn.settings.general.desactivate.title' | translate }} </mat-placeholder>
+              <mat-slide-toggle [checked]="desactivate" class="darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
+            </div>
+            <div class="icon-form-field">
+              <mat-icon color="accent">language</mat-icon>
+              <mat-form-field>
+                <mat-select
+                  [placeholder]="'mmn.settings.general.placeholder' | translate"
+                  [(value)]="selectedLanguage"
+                  (selectionChange)="onLanguageSelect($event)"
+                  name="language"
+                >
+                  <mat-option *ngFor="let l of languages" [value]="l.value">
+                    {{ 'mmn.settings.general.language.' + l.label | translate }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div class="icon-form-field">
+              <mat-icon color="accent">gamepad</mat-icon>
+              <mat-placeholder>{{ 'mmn.settings.general.mouse.title' | translate }} </mat-placeholder>
+              <mat-slide-toggle
+                [checked]="mouseCoordinates"
+                [(ngModel)]="mouseCoordinates"
+                class="darkMode"
+                (change)="toggleMouseCoordinatesOption(mouseCoordinates)"
+              >
+              </mat-slide-toggle>
+            </div>
+            <h2>{{ 'mmn.settings.deeprecord.title' | translate }}</h2>
+            <div class="icon-form-field">
+              <mat-icon color="accent">brush</mat-icon>
+              <mat-placeholder>
+                <span [ngClass]="{ bold: deepMockLevel === 0 }">http://my-server</span>
+                <span [ngClass]="{ bold: deepMockLevel <= 1 }">/api</span>
+                <span [ngClass]="{ bold: deepMockLevel <= 2 }">/2.2</span>
+                <span [ngClass]="{ bold: deepMockLevel <= 3 }">/users</span>
+              </mat-placeholder>
+              <mat-slider [(ngModel)]="deepMockLevel" (input)="updateDeepMockLevel($event)" thumbLabel tickInterval="50" min="0" max="3">
+              </mat-slider>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">palette</mat-icon>
+          {{ 'mmn.settings.themes.title' | translate }}
+        </ng-template>
+        <div class="icon-form-field">
+          <mat-icon color="accent">brush</mat-icon>
+          <mat-placeholder>{{ 'mmn.settings.themes.mode' | translate }} </mat-placeholder>
+          <mat-slide-toggle [checked]="darkMode" [(ngModel)]="darkMode" class="darkMode" (change)="toggleTheme(darkMode)">
+          </mat-slide-toggle>
+        </div>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">tune</mat-icon>
+          {{ 'mmn.settings.customize.title' | translate }}
+        </ng-template>
+      </mat-tab>
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">import_export</mat-icon>
+          {{ 'mmn.settings.setup.title' | translate }}
+        </ng-template>
+        <div class="button-row" [ngClass]="routeAnimationsElements">
+          <button mat-flat-button color="accent" (click)="save()" style="color: white;">
+            <mat-icon>save</mat-icon>
+            {{ 'mmn.settings.setup.button.saveAs' | translate }}
+          </button>
+          <button mat-flat-button color="accent" style="color: white;" (click)="selectFile()">
+            <mat-icon>save_alt</mat-icon>
+            {{ 'mmn.settings.setup.button.import' | translate }}
+          </button>
+          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json">
+          
+        </div>
+      </mat-tab>
+    </mat-tab-group>
   </div>
-  <br>
-  <ng-container>
-    <div fxLayout="row" fxLayout.sm="column" fxLayout.xs="column">
-      <div [ngClass]="routeAnimationsElements">
-        <h2>{{ 'mmn.settings.general.title' | translate }}</h2>
-        <div class="icon-form-field">
-          <mat-icon color="accent">not_interested</mat-icon>
-          <mat-placeholder>{{ 'mmn.settings.general.desactivate.title' | translate }}
-          </mat-placeholder>
-          <mat-slide-toggle [checked]="desactivate" class="darkMode" (change)="toggleDesactivate($event)">
-          </mat-slide-toggle>
-        </div>
-        <div class="icon-form-field">
-          <mat-icon color="accent">language</mat-icon>
-          <mat-form-field>
-            <mat-select [placeholder]="'mmn.settings.general.placeholder' | translate"
-                        [(value)]="selectedLanguage"
-                        (selectionChange)="onLanguageSelect($event)"
-                        name="language">
-              <mat-option *ngFor="let l of languages" [value]="l.value">
-                {{ 'mmn.settings.general.language.' + l.label | translate }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div class="icon-form-field">
-          <mat-icon color="accent">gamepad</mat-icon>
-          <mat-placeholder>{{ 'mmn.settings.general.mouse.title' | translate }}
-          </mat-placeholder>
-          <mat-slide-toggle [checked]="mouseCoordinates" [(ngModel)]="mouseCoordinates" class="darkMode" (change)="toggleMouseCoordinatesOption(mouseCoordinates)">
-          </mat-slide-toggle>
-        </div>
-      </div>
-      <div [ngClass]="routeAnimationsElements">
-        <h2>{{ 'mmn.settings.themes.title' | translate }}</h2>
-        <div class="icon-form-field">
-          <mat-icon color="accent">brush</mat-icon>
-          <mat-placeholder>{{ 'mmn.settings.themes.mode' | translate }}
-          </mat-placeholder>
-            <mat-slide-toggle [checked]="darkMode" [(ngModel)]="darkMode" class="darkMode" (change)="toggleTheme(darkMode)">
-            </mat-slide-toggle>
-        </div>
-      </div>
-      <div [ngClass]="routeAnimationsElements">
-        <h2>{{ 'mmn.settings.deeprecord.title' | translate }}</h2>
-        <div class="icon-form-field">
-          <mat-icon color="accent">brush</mat-icon>
-          <mat-placeholder>
-            <span [ngClass]="{'bold': deepMockLevel === 0}">http://my-server</span>
-            <span [ngClass]="{'bold': deepMockLevel <= 1 }">/api</span>
-            <span [ngClass]="{'bold': deepMockLevel <= 2 }">/2.2</span>
-            <span [ngClass]="{'bold': deepMockLevel <= 3 }">/users</span>
-          </mat-placeholder>
-          <mat-slider
-            [(ngModel)]="deepMockLevel"
-            (input)="updateDeepMockLevel($event)"
-            thumbLabel
-            tickInterval="50"
-            min="0"
-            max="3">
-          </mat-slider>
-        </div>
-      </div>
-    </div>
-
-  </ng-container>
 </div>

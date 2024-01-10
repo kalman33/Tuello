@@ -1,9 +1,13 @@
-import { Component, ElementRef, OnInit, Renderer2 } from '@angular/core';
-import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
+import { ChangeDetectorRef, Component, ElementRef, NgZone, OnInit, Renderer2, ViewChild } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
-import { ThemeService } from '../theme/theme.service';
-import * as frMessages from '../../assets/i18n/fr.json';
+import { saveAs } from 'file-saver';
 import * as enMessages from '../../assets/i18n/en.json';
+import * as frMessages from '../../assets/i18n/fr.json';
+import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
+import { formatDate } from '../core/utils/date-utils';
+import { ThemeService } from '../theme/theme.service';
+import { Router } from '@angular/router';
 
 
 @Component({
@@ -23,13 +27,21 @@ export class SettingsComponent implements OnInit {
     { value: 'fr', label: 'fr' }
   ];
 
+  @ViewChild('fileInput') fileInput: ElementRef;
+  jsonContent: string;
+
   selectedLanguage;
 
   constructor(
     private themeService: ThemeService,
     private renderer: Renderer2,
     private elementRef: ElementRef,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private changeDetectorRef: ChangeDetectorRef,
+    private snackBar: MatSnackBar,
+    private translateService: TranslateService,
+    private router: Router,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit() {
@@ -108,4 +120,39 @@ export class SettingsComponent implements OnInit {
       action: 'UPDATE_MENU'
     }, ()=>{});
   }
+
+  save() {
+      const value = formatDate(new Date());
+      const txtBlob = new Blob([JSON.stringify("")], { type: 'text/plain;charset=utf-8' });
+      saveAs(txtBlob, `tuello-global.${value}.json`);
+    }
+
+  public onChange(fileList: any): void {
+    const file = fileList.target.files[0];
+    const fileReader: FileReader = new FileReader();
+    fileReader.onloadend = x => {
+      this.jsonContent = fileReader.result as string;
+      this.snackBar.open(
+        this.translate.instant('mmn.spy-http.import.message'),
+        this.translate.instant('mmn.spy-http.import.success.action'),
+        { duration: 2000 }
+      );
+    };
+    fileReader.onerror = event => {
+      this.snackBar.open(
+        this.translate.instant('mmn.spy-http.import.message'),
+        this.translate.instant('mmn.spy-http.import.error.action'),
+        { duration: 2000 }
+      );
+      fileReader.abort();
+    };
+    fileReader.readAsText(file);
+  }
+
+  selectFile() {
+    this.fileInput.nativeElement.value = '';
+    this.fileInput.nativeElement.click();
+  }
+
+
 }
