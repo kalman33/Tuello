@@ -14,6 +14,17 @@ h2 {
   text-transform: uppercase;
 }
 
+.button-row {
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+.button-row button {
+  display: table-cell;
+  margin-right: 20px;
+  line-height: 30px;
+}
+
 .group {
   margin: 0 0 40px 0;
 }

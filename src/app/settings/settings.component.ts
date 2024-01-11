@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, ElementRef, NgZone, OnInit, Renderer2, ViewChild } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarVerticalPosition } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { saveAs } from 'file-saver';
 import * as enMessages from '../../assets/i18n/en.json';
@@ -8,6 +8,8 @@ import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
 import { Router } from '@angular/router';
+import { ChromeExtentionUtilsService } from '../core/utils/chrome-extention-utils.service';
+import { ConfigurationService } from '../core/configuration/configuration.service';
 
 
 @Component({
@@ -17,7 +19,6 @@ import { Router } from '@angular/router';
 })
 export class SettingsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
-
   darkMode: boolean;
   deepMockLevel = 0;
   mouseCoordinates: boolean;
@@ -28,7 +29,7 @@ export class SettingsComponent implements OnInit {
   ];
 
   @ViewChild('fileInput') fileInput: ElementRef;
-  jsonContent: string;
+  jsonContent;
 
   selectedLanguage;
 
@@ -41,10 +42,14 @@ export class SettingsComponent implements OnInit {
     private snackBar: MatSnackBar,
     private translateService: TranslateService,
     private router: Router,
-    private ngZone: NgZone
-  ) {}
+    private configurationService: ConfigurationService
+  ) { }
 
   ngOnInit() {
+    this.init();
+  }
+
+  init() {
     chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates'], results => {
       if (results['language']) {
         this.selectedLanguage = results['language'];
@@ -65,7 +70,9 @@ export class SettingsComponent implements OnInit {
         this.deepMockLevel = results['deepMockLevel'];
       }
     });
+
   }
+
 
   /**
    * Permet de basculer de thème
@@ -85,7 +92,7 @@ export class SettingsComponent implements OnInit {
     chrome.runtime.sendMessage({
       action: 'MOUSE_COORDINATES',
       value: mouseCoordinatesValue
-    }, ()=>{});
+    }, () => { });
   }
 
   toggleDesactivate(e) {
@@ -95,11 +102,11 @@ export class SettingsComponent implements OnInit {
       chrome.runtime.sendMessage({
         action: 'updateIcon',
         value: 'tuello-stop-32x32.png'
-      }, ()=>{});
+      }, () => { });
       chrome.tabs.getCurrent(tab => {
         chrome.tabs.sendMessage(tab.id, 'toggle', {
           frameId: 0
-        }, ()=>{});
+        }, () => { });
       });
       e.source.checked = false;
       this.desactivate = false;
@@ -118,31 +125,42 @@ export class SettingsComponent implements OnInit {
     }
     chrome.runtime.sendMessage({
       action: 'UPDATE_MENU'
-    }, ()=>{});
+    }, () => { });
   }
 
-  save() {
-      const value = formatDate(new Date());
-      const txtBlob = new Blob([JSON.stringify("")], { type: 'text/plain;charset=utf-8' });
-      saveAs(txtBlob, `tuello-global.${value}.json`);
-    }
+  async save() {
+    const all = await chrome.storage.local.get();
+    const value = formatDate(new Date());
+    const txtBlob = new Blob([JSON.stringify(all)], { type: 'text/plain;charset=utf-8' });
+    saveAs(txtBlob, `tuello-global.${value}.json`);
+
+  }
 
   public onChange(fileList: any): void {
     const file = fileList.target.files[0];
     const fileReader: FileReader = new FileReader();
     fileReader.onloadend = x => {
-      this.jsonContent = fileReader.result as string;
-      this.snackBar.open(
-        this.translate.instant('mmn.spy-http.import.message'),
-        this.translate.instant('mmn.spy-http.import.success.action'),
-        { duration: 2000 }
-      );
+      try {
+        this.jsonContent = JSON.parse(fileReader.result as string);
+        chrome.storage.local.set(this.jsonContent, () => {
+          
+          this.init();
+          this.configurationService.init();
+        });
+      } catch (e) {
+        this.snackBar.open(
+          this.translate.instant('mmn.settings.import.message'),
+          this.translate.instant('mmn.settings.import.error.action'),
+          { duration: 1000, verticalPosition: 'bottom' }
+        );
+      }
+
     };
     fileReader.onerror = event => {
       this.snackBar.open(
-        this.translate.instant('mmn.spy-http.import.message'),
-        this.translate.instant('mmn.spy-http.import.error.action'),
-        { duration: 2000 }
+        this.translate.instant('mmn.settings.import.message'),
+        this.translate.instant('mmn.settings.import.error.action'),
+        { duration: 1000, verticalPosition: 'bottom' }
       );
       fileReader.abort();
     };

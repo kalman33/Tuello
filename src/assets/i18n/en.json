@@ -22,6 +22,9 @@
   "mmn.settings.setup.title": "Setup",
   "mmn.settings.setup.button.saveAs": "Save",
   "mmn.settings.setup.button.import": "Import",
+  "mmn.settings.import.message": "Loading file",
+  "mmn.settings.import.error.action": "Error",
+  "mmn.settings.import.success.action": "Success",
 
   "mmn.recorder-http.button.import": "Import",
   "mmn.recorder-http.button.saveAs": "Save",

@@ -4,11 +4,10 @@
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">settings_applications</mat-icon>
-          {{ 'mmn.settings.title' | translate }}
+          {{ 'mmn.settings.general.title' | translate }}
         </ng-template>
         <div fxLayout="row" fxLayout.sm="column" fxLayout.xs="column">
           <div [ngClass]="routeAnimationsElements">
-            <h2>{{ 'mmn.settings.general.title' | translate }}</h2>
             <div class="icon-form-field">
               <mat-icon color="accent">not_interested</mat-icon>
               <mat-placeholder>{{ 'mmn.settings.general.desactivate.title' | translate }} </mat-placeholder>
@@ -57,8 +56,8 @@
       </mat-tab>
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">palette</mat-icon>
-          {{ 'mmn.settings.themes.title' | translate }}
+          <mat-icon class="tab-icon">tune</mat-icon>
+          {{ 'mmn.settings.customize.title' | translate }}
         </ng-template>
         <div class="icon-form-field">
           <mat-icon color="accent">brush</mat-icon>
@@ -66,12 +65,6 @@
           <mat-slide-toggle [checked]="darkMode" [(ngModel)]="darkMode" class="darkMode" (change)="toggleTheme(darkMode)">
           </mat-slide-toggle>
         </div>
-      </mat-tab>
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">tune</mat-icon>
-          {{ 'mmn.settings.customize.title' | translate }}
-        </ng-template>
       </mat-tab>
       <mat-tab>
         <ng-template mat-tab-label>
