@@ -4,16 +4,18 @@ import { CommonModule } from '@angular/common';
 import { SettingsRoutingModule } from './settings-routing.module';
 import { SettingsComponent } from './settings.component';
 import {CoreModule} from '../core/core.module';
-import {FormsModule} from '@angular/forms';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import { SettingsMenuComponent } from './menus/settings-menu.component';
 
 
 @NgModule({
-  declarations: [SettingsComponent],
+  declarations: [SettingsComponent, SettingsMenuComponent],
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     CoreModule,
-    SettingsRoutingModule
+    SettingsRoutingModule,
   ]
 })
 export class SettingsModule { }

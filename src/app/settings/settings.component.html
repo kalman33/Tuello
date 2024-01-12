@@ -61,10 +61,33 @@
         </ng-template>
         <div class="icon-form-field">
           <mat-icon color="accent">brush</mat-icon>
-          <mat-placeholder>{{ 'mmn.settings.themes.mode' | translate }} </mat-placeholder>
+          <mat-placeholder>{{ 'mmn.settings.customize.mode' | translate }} </mat-placeholder>
           <mat-slide-toggle [checked]="darkMode" [(ngModel)]="darkMode" class="darkMode" (change)="toggleTheme(darkMode)">
           </mat-slide-toggle>
         </div>
+        <form [formGroup]="menuForm">
+          <div class="icon-form-field">
+            <h2>{{ 'mmn.settings.customize.menu.title' | translate }}</h2>
+          </div>
+          <div class="icon-form-field">
+            <div fxLayout="row">
+              <div fxFlex="8%" fxLayoutAlign="center center" class="label actionType">
+                <mat-icon>camera</mat-icon>
+              </div>
+              <div fxFlex="75%" fxLayoutAlign="start center">
+                <mat-form-field>
+                  <mat-label>{{ 'mmn.layout.mockAndRecord' | translate }}</mat-label>
+                  <input matInput type="text" formControlName="menu1"/>
+                </mat-form-field>
+              </div>
+              <div fxFlex="8%" fxLayoutAlign="center center">
+                <button mat-icon-button color="primary">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
       </mat-tab>
       <mat-tab>
         <ng-template mat-tab-label>
@@ -72,16 +95,15 @@
           {{ 'mmn.settings.setup.title' | translate }}
         </ng-template>
         <div class="button-row" [ngClass]="routeAnimationsElements">
-          <button mat-flat-button color="accent" (click)="save()" style="color: white;">
+          <button mat-flat-button color="accent" (click)="save()" style="color: white">
             <mat-icon>save</mat-icon>
             {{ 'mmn.settings.setup.button.saveAs' | translate }}
           </button>
-          <button mat-flat-button color="accent" style="color: white;" (click)="selectFile()">
+          <button mat-flat-button color="accent" style="color: white" (click)="selectFile()">
             <mat-icon>save_alt</mat-icon>
             {{ 'mmn.settings.setup.button.import' | translate }}
           </button>
-          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json">
-          
+          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
         </div>
       </mat-tab>
     </mat-tab-group>
