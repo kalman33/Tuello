@@ -2,7 +2,7 @@
 
   <!-- Top navbar -->
   <mat-toolbar class="navbar" color="primary" [@fadeInAnimation]="stateFadeAnimation" (@fadeInAnimation.done)="animationDone($event)">
-    <div style="cursor: pointer"  class="nav-icon" [ngClass]="{'open' : isOpen}" (click)="openSideNav(); isOpen = !isOpen">
+    <div style="cursor: pointer"  class="nav-icon" [ngClass]="{'open' : isOpen}" (click)="snav.toggle(); isOpen = !isOpen; openSideNav();">
       <div></div>
     </div>
     <a class="navbar-brand" [routerLink]="['/']" [skipLocationChange]="true">
@@ -69,7 +69,7 @@
           </div>
           <div>
             <mat-icon class="v-align-middle">info_outline</mat-icon>
-            <span class="v-align-middle">Version 1.0.4</span>
+            <span class="v-align-middle">Version 1.0.6</span>
           </div>
         </div>
       </mat-nav-list>

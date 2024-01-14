@@ -103,7 +103,9 @@ export class LayoutComponent implements AfterViewInit, OnInit {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }
-      this.sidenav.toggle();
+      //this.sidenav.toggle();
+      //this.isOpen = !this.isOpen;
     });
+    
   }
 }

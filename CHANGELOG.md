@@ -1,7 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-
+## [1.0.0.5] - 2024-01-05
+    ajout params dans le settings
 ## [1.0.0.5] - 2024-01-05
     Corrections search elements
 

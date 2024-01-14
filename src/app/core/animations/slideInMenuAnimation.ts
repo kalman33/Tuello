@@ -7,7 +7,7 @@ export const slideInMenuAnimation =
     transition('inactive => active', [  // before 2.1: transition('void => *', [
       query('a ', style({transform: 'translateX(-100%)'})),
       query('a',
-        stagger('300ms', [
+        stagger('100ms', [
           animate('200ms', style({transform: 'translateX(0)'}))
         ]))
     ])
