@@ -2,7 +2,7 @@
 
   <!-- Top navbar -->
   <mat-toolbar class="navbar" color="primary" [@fadeInAnimation]="stateFadeAnimation" (@fadeInAnimation.done)="animationDone($event)">
-    <div style="cursor: pointer"  class="nav-icon" [ngClass]="{'open' : isOpen}" (click)="snav.toggle(); isOpen = !isOpen">
+    <div style="cursor: pointer"  class="nav-icon" [ngClass]="{'open' : isOpen}" (click)="openSideNav(); isOpen = !isOpen">
       <div></div>
     </div>
     <a class="navbar-brand" [routerLink]="['/']" [skipLocationChange]="true">
@@ -34,25 +34,25 @@
           <mat-icon color="accent" mat-list-icon>
             camera
           </mat-icon>
-          <p mat-line> {{ 'mmn.layout.mockAndRecord' | translate }}</p>
+          <p mat-line> {{ this.menuLabels[0] ?  this.menuLabels[0] : ('mmn.layout.mockAndRecord' | translate) }}</p>
         </a>
         <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/spy']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>
             queue_play_next
           </mat-icon>
-          <p mat-line>{{ 'mmn.layout.spyAndReplay' | translate }} </p>
+          <p mat-line>{{ this.menuLabels[1] ?  this.menuLabels[1] : ('mmn.layout.spyAndReplay' | translate) }} </p>
         </a>
         <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/track']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>
             search
           </mat-icon>
-          <p mat-line>{{ 'mmn.layout.trackResources' | translate }}</p>
+          <p mat-line>{{ this.menuLabels[2] ?  this.menuLabels[2] : ('mmn.layout.trackResources' | translate) }}</p>
         </a>
         <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/search']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>
             remove_red_eye
           </mat-icon>
-          <p mat-line> {{ 'mmn.layout.searchElements' | translate }} </p>
+          <p mat-line> {{ this.menuLabels[3] ?  this.menuLabels[3] : ('mmn.layout.searchElements' | translate) }} </p>
         </a>
 
         <a mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">

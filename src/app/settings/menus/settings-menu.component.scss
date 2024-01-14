@@ -23,6 +23,10 @@ mat-icon {
   text-overflow: ellipsis;
 }
 
+mat-form-field {
+  width: 100%;
+}
+
 ::ng-deep .mat-tooltip {
   font-size: 10px;
 }

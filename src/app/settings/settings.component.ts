@@ -9,7 +9,6 @@ import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
 import { Router } from '@angular/router';
 import { ConfigurationService } from '../core/configuration/configuration.service';
-import { FormControl, FormGroup } from '@angular/forms';
 
 
 @Component({
@@ -32,7 +31,6 @@ export class SettingsComponent implements OnInit {
   jsonContent;
 
   selectedLanguage;
-  menuForm: FormGroup;
 
   constructor(
       private themeService: ThemeService,
@@ -48,16 +46,10 @@ export class SettingsComponent implements OnInit {
 
   ngOnInit() {
     this.init();
-    this.menuForm = new FormGroup({
-      menu1: new FormControl(''),
-      menu2: new FormControl(''),
-      menu3: new FormControl(''),
-      menu4: new FormControl('')
-    });
   }
 
   init() {
-    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'settings'], results => {
+    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates'], results => {
       if (results['language']) {
         this.selectedLanguage = results['language'];
       }
@@ -73,9 +65,7 @@ export class SettingsComponent implements OnInit {
       if (results['mouseCoordinates']) {
         this.mouseCoordinates = results['mouseCoordinates'];
       }
-      if (results['settings']) {
-        this.menuForm.
-      }
+     
       if (results['deepMockLevel']) {
         this.deepMockLevel = results['deepMockLevel'];
       }

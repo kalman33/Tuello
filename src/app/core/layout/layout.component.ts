@@ -1,10 +1,11 @@
 import { MediaMatcher } from '@angular/cdk/layout';
-import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { fadeInAnimation } from '../animations/fadeInAnimation';
 import { routeAnimations } from '../animations/route.animations';
 import { slideInMenuAnimation } from '../animations/slideInMenuAnimation';
 import { ChromeExtentionUtilsService } from '../utils/chrome-extention-utils.service';
+import { MatSidenav } from '@angular/material/sidenav';
 
 @Component({
   selector: 'mmn-layout',
@@ -13,14 +14,18 @@ import { ChromeExtentionUtilsService } from '../utils/chrome-extention-utils.ser
   encapsulation: ViewEncapsulation.None,
   animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation]
 })
-export class LayoutComponent implements AfterViewInit {
+export class LayoutComponent implements AfterViewInit, OnInit {
   isOpen = false;
   activate = true;
   displayTitle = false;
   title: string;
 
+  menuLabels: string[] = [];
+
   stateFadeAnimation = 'inactive';
   statesSlideInMenuAnimation = 'inactive';
+
+  @ViewChild('snav') sidenav: MatSidenav;
 
   constructor(
     private changeDetectorRef: ChangeDetectorRef,
@@ -28,6 +33,14 @@ export class LayoutComponent implements AfterViewInit {
     public chromeExtentionUtilsService: ChromeExtentionUtilsService,
     private router: Router
   ) {}
+
+  ngOnInit(): void {
+    chrome.storage.local.get(['settings'], results => {
+      if (results['settings']) {
+        this.menuLabels = results['settings'];
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     this.stateFadeAnimation = 'active';
@@ -83,5 +96,14 @@ export class LayoutComponent implements AfterViewInit {
       e.source.checked = !this.activate;
       this.activate = !this.activate;
     }
+  }
+  
+  openSideNav() {
+    chrome.storage.local.get(['settings'], results => {
+      if (results['settings']) {
+        this.menuLabels = results['settings'];
+      }
+      this.sidenav.toggle();
+    });
   }
 }
