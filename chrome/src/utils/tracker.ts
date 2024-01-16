@@ -1,5 +1,6 @@
 import { Track } from '../models/Track';
 import { TrackType } from '../models/TrackType';
+import JsonFind from 'json-find';
 import { UserAction } from '../models/UserAction';
 import { clickInside, getElementFromXPath, getXPath, isFixedPosition, isVisible, removeURLPort, removeURLPortAndQueryString } from './utils';
 
@@ -303,6 +304,7 @@ function displayTrack(track: Track) {
         viewTracks(track.id);
         e.stopPropagation();
       }
+      getDisplayData(track).then(data => trackDiv.title = data);
       document.body.appendChild(trackDiv);
     }
 
@@ -375,9 +377,45 @@ function displayTrack(track: Track) {
             elementList[i].classList.remove('tuello-white-texte');
           }
         }
+
+        getDisplayData(track).then(data => elt.title = data);
       }
     }
   }
+}
+
+/**
+   * Permet d'afficher les données que l'on veut tracer
+   */
+async function getDisplayData(track: Track) {
+  const results = await chrome.storage.local.get(['tuelloTrackDataDisplay', 'tuelloTrackDataDisplayType']);
+  const dataDisplayType = results.tuelloTrackDataDisplayType;
+  const dataDisplay = results.tuelloTrackDataDisplay;
+  let data = track.url.length > 50 ? track.url?.slice(0, 50) + ' ...' : track.url;
+  if (dataDisplay) {
+    if (dataDisplayType === 'body') {
+      if (track.body) {
+        data = `${dataDisplay} : ${findInJson(track.body, dataDisplay)}`;
+      }
+    } else {
+      if (track.querystring && track.querystring['' + dataDisplay]) {
+        data = `${dataDisplay} : ${track.querystring['' + dataDisplay]}`;
+      }
+    }
+  }
+  return data;
+}
+
+function findInJson(data: any, keyString: string) {
+  let result = data;
+  try {
+    const doc = JsonFind(data);
+    result = doc.findValues(keyString);
+    result = result[keyString];
+  } catch (e) {
+  }
+  return result;
+
 }
 
 
