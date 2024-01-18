@@ -1,10 +1,10 @@
 <h2 mat-dialog-title>{{ 'mmn.layout.rate.title' | translate }}</h2>
 <div fxLayout="column">
-  <button class="icon-button" mat-button href="https://github.com/kalman33/Tuello" target="_blank" (click)="openLink($event)">
-    <img src="/assets/img/github-mark.png" class="icon"/>
+  <a class="icon-button" mat-button href="https://github.com/kalman33/Tuello" target="_blank" (click)="openLink($event)">
+    <img src="/assets/img/github-mark.png" class="icon" />
     <span>{{ 'mmn.layout.rate.github' | translate }}</span>
-  </button>
-  <button
+  </a>
+  <a
     class="icon-button"
     mat-button
     href="https://chromewebstore.google.com/detail/tuello/keggceicipngaimacccgmcfbbnmnldoc"
@@ -13,16 +13,14 @@
   >
     <img src="/assets/img/chrome.svg" class="icon" />
     <span>{{ 'mmn.layout.rate.chrome' | translate }}</span>
-</button>
+</a>
 </div>
 <h2 mat-dialog-title>{{ 'mmn.layout.support.title' | translate }}</h2>
 
 <span>{{ 'mmn.layout.support' | translate }}</span>
-<form action="https://www.paypal.com/donate" method="post" target="_blank">
+<form action="https://www.paypal.com/donate" method="post" target="_top">
   <input type="hidden" name="hosted_button_id" value="UZ5W457PXJW26" />
   <input
-    mat-button
-    (click)="openLink($event)"
     type="image"
     src="https://www.paypalobjects.com/fr_FR/FR/i/btn/btn_donate_SM.gif"
     border="0"
