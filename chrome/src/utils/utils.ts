@@ -1,4 +1,3 @@
-import html2canvas from 'html2canvas';
 import { ICoordinates } from '../models/UserAction';
 
 
@@ -17,19 +16,6 @@ export function removeDuplicateEntries(data: any): any {
     }
   });
 }
-
-
-
-export function convertImgToImageDataviaCanvas(elt: HTMLElement) {
-  return new Promise((resolve, reject) => {
-    html2canvas(elt, {
-      scale: 1
-    }).then((canvas: HTMLCanvasElement) => {
-      resolve(canvas.toDataURL());
-    });
-  });
-}
-
 
 export function crop(canvas, cropX, cropY, cropWidth, cropHeight) {
   // create a temporary canvas sized to the cropped size

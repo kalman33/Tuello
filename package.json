@@ -38,7 +38,7 @@
     "file-saver": "^2.0.5",
     "html2canvas": "^1.4.1",
     "json-find": "^2.0.8",
-    "jsoneditor": "^9.10.2",
+    "jsoneditor": "^10.0.0",
     "ngx-json-viewer": "^3.2.1",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
