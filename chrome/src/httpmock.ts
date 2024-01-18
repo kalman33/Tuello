@@ -1,4 +1,3 @@
-import { removeURLPort } from "./utils/utils";
 
 let deepMockLevel = 0;
 
@@ -185,6 +184,18 @@ window.addEventListener(
   },
   false,
 );
+
+function removeURLPort(url: string) {
+  let ret = '';
+  try {
+    let parseURL = new URL(url);
+    parseURL.port = '';
+    ret = parseURL.toString();
+  } catch(e) {
+    ret = url;
+  }
+  return ret;
+}
 
 // indique au contenscript qu'il s'est chargé
 window.postMessage(

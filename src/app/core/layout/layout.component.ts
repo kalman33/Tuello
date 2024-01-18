@@ -6,6 +6,8 @@ import { routeAnimations } from '../animations/route.animations';
 import { slideInMenuAnimation } from '../animations/slideInMenuAnimation';
 import { ChromeExtentionUtilsService } from '../utils/chrome-extention-utils.service';
 import { MatSidenav } from '@angular/material/sidenav';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { RateSupportComponent } from './rate-support/rate-support.component';
 
 @Component({
   selector: 'mmn-layout',
@@ -31,7 +33,8 @@ export class LayoutComponent implements AfterViewInit, OnInit {
     private changeDetectorRef: ChangeDetectorRef,
     private media: MediaMatcher,
     public chromeExtentionUtilsService: ChromeExtentionUtilsService,
-    private router: Router
+    private router: Router,
+    private rateSupportSheet: MatBottomSheet
   ) {}
 
   ngOnInit(): void {
@@ -106,6 +109,9 @@ export class LayoutComponent implements AfterViewInit, OnInit {
       //this.sidenav.toggle();
       //this.isOpen = !this.isOpen;
     });
-    
+  }
+
+  openRateSupport() {
+    this.rateSupportSheet.open(RateSupportComponent);
   }
 }

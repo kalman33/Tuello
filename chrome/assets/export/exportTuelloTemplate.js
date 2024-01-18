@@ -1,4 +1,18 @@
+ function removeURLPort(url) {
+    let ret = '';
+    try {
+      let parseURL = new URL(url);
+      parseURL.port = '';
+      ret = parseURL.toString();
+    } catch(e) {
+      ret = url;
+    }
+    return ret;
+  }
+
 let compareWithMockLevel = (url1, url2) => {
+    url1 = removeURLPort(url1);
+    url2 = removeURLPort(url2);
     if (deepMockLevel === 0) {
       return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
     } else {
@@ -14,157 +28,150 @@ let compareWithMockLevel = (url1, url2) => {
       return new RegExp('^' + cmp2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(cmp1);
     }
   };
-
-  var mockHttp = {
+  
+  const sleep = (ms) => {
+    const stop = new Date().getTime() + ms;
+    while (new Date().getTime() < stop){}
+  }
+  
+  
+  let mockHttp = {
     originalXHR: window.XMLHttpRequest,
-    mockXHR: function () {
-        var _this = this;
-        // URL avant redirect
-        var originalURL;
-        var modifyResponse = function () {
-            if (window.mmaRecords) {
-                // this.responseURL
-                var records = window.mmaRecords.filter(function (_a) {
-                    var key = _a.key, reponse = _a.reponse, httpCode = _a.httpCode;
-                    return compareWithMockLevel(originalURL, key);
-                });
-                if (records && records.length > 0) {
-                    records.forEach(function (_a) {
-                        var key = _a.key, reponse = _a.reponse, httpCode = _a.httpCode;
-                        _this.responseText = JSON.stringify(reponse);
-                        // Object.defineProperty(this,'responseText', JSON.stringify(reponse));
-                        _this.response = reponse;
-                        _this.status = httpCode;
-                    });
-                }
-            }
-        };
-        var xhr = new mockHttp.originalXHR();
-        var _loop_1 = function (attr) {
-            if (attr === 'onreadystatechange') {
-                xhr.onreadystatechange = function () {
-                    var args = [];
-                    for (var _i = 0; _i < arguments.length; _i++) {
-                        args[_i] = arguments[_i];
-                    }
-                    if (_this.readyState === 4) {
-                        modifyResponse();
-                    }
-                    // tslint:disable-next-line:no-unused-expression
-                    _this.onreadystatechange && _this.onreadystatechange.apply(_this, args);
-                };
-                return "continue";
-            }
-            else if (attr === 'onload') {
-                xhr.onload = function () {
-                    var args = [];
-                    for (var _i = 0; _i < arguments.length; _i++) {
-                        args[_i] = arguments[_i];
-                    }
-                    if (_this.readyState === 4) {
-                        modifyResponse();
-                    }
-                    _this.onload && _this.onload.apply(_this, args);
-                };
-                return "continue";
-            }
-            if (typeof xhr[attr] === 'function') {
-                if (attr === 'open') {
-                    var open_1 = xhr[attr].bind(xhr);
-                    this_1[attr] = function (method, url) {
-                        originalURL = url;
-                        open_1.call(this, method, url);
-                    };
-                }
-                else {
-                    this_1[attr] = xhr[attr].bind(xhr);
-                }
-            }
-            else {
-                if (attr === 'responseText' || attr === 'response' || attr === 'status') {
-                    Object.defineProperty(this_1, attr, {
-                        get: function () { return (_this["_".concat(attr)] === undefined ? xhr[attr] : _this["_".concat(attr)]); },
-                        set: function (val) { return (_this["_".concat(attr)] = val); },
-                        enumerable: true,
-                    });
-                }
-                else {
-                    Object.defineProperty(this_1, attr, {
-                        get: function () { return xhr[attr]; },
-                        set: function (val) { return (xhr[attr] = val); },
-                        enumerable: true,
-                    });
-                }
-            }
-        };
-        var this_1 = this;
-        // tslint:disable-next-line:forin
-        for (var attr in xhr) {
-            _loop_1(attr);
+    mockXHR() {
+      // URL avant redirect
+      let originalURL; 
+  
+      const modifyResponse = (isOnLoad = false) => {
+        if (window.mmaRecords) {
+          // this.responseURL
+          const records = window.mmaRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(originalURL, key));
+          if (records && records.length > 0) {
+            records.forEach(({ key, reponse, httpCode, delay }) => {
+              if (delay && isOnLoad) {
+                sleep(delay);
+              }
+              this.responseText = JSON.stringify(reponse);
+              // Object.defineProperty(this,'responseText', JSON.stringify(reponse));
+              this.response = reponse;
+              this.status = httpCode;
+            });
+          }
         }
+      };
+  
+     
+  
+      const xhr = new mockHttp.originalXHR();
+      // tslint:disable-next-line:forin
+      for (const attr in xhr) {
+        if (attr === 'onreadystatechange') {
+          xhr.onreadystatechange = (...args) => {
+            if (this.readyState === 4) {
+              modifyResponse();
+            }
+            // tslint:disable-next-line:no-unused-expression
+            this.onreadystatechange && this.onreadystatechange.apply(this, args);
+          };
+          continue;
+        } else if (attr === 'onload') {
+          xhr.onload = (...args) => {
+            if (this.readyState === 4) {
+              modifyResponse(true);
+            }
+            this.onload && this.onload.apply(this, args);
+          };
+          continue;
+        }
+        if (typeof xhr[attr] === 'function') {
+          if (attr === 'open') {
+            const open = xhr[attr].bind(xhr);
+            this[attr] =  function(method, url) {
+              originalURL = url;
+              open.call(this, method, url);
+            }
+          } else {
+            this[attr] = xhr[attr].bind(xhr);
+          }
+        } else {
+          if (attr === 'responseText' || attr === 'response' || attr === 'status') {
+            Object.defineProperty(this, attr, {
+              get: () => (this[`_${attr}`] === undefined ? xhr[attr] : this[`_${attr}`]),
+              set: val => (this[`_${attr}`] = val),
+              enumerable: true,
+            });
+          } else {
+            Object.defineProperty(this, attr, {
+              get: () => xhr[attr],
+              set: val => (xhr[attr] = val),
+              enumerable: true,
+            });
+          }
+        }
+      }
     },
+  
     originalFetch: window.fetch.bind(window),
-    mockFetch: function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
+    mockFetch: function(...args) {
+      return mockHttp.originalFetch(...args).then((response) => {
+        let txt = undefined;
+        let status = undefined;
+        if (window.mmaRecords) {
+          const records = window.mmaRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(args[0], key));
+          if (records && records.length > 0) {
+            records.forEach(({ key, reponse, httpCode, delay }) => {
+              if (delay) {
+                sleep(delay);
+              }
+              txt = JSON.stringify(reponse);
+              status = httpCode;
+            });
+          }
         }
-        return mockHttp.originalFetch.apply(mockHttp, args).then(function (response) {
-            var txt = undefined;
-            var status = undefined;
-            if (window.mmaRecords) {
-                var records = window.mmaRecords.filter(function (_a) {
-                    var key = _a.key, reponse = _a.reponse, httpCode = _a.httpCode;
-                    return compareWithMockLevel(args[0], key);
-                });
-                if (records && records.length > 0) {
-                    records.forEach(function (_a) {
-                        var key = _a.key, reponse = _a.reponse, httpCode = _a.httpCode;
-                        txt = JSON.stringify(reponse);
-                        status = httpCode;
-                    });
-                }
+  
+        if (txt !== undefined) {
+          const stream = new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode(txt));
+              controller.close();
             }
-            if (txt !== undefined) {
-                var stream = new ReadableStream({
-                    start: function (controller) {
-                        controller.enqueue(new TextEncoder().encode(txt));
-                        controller.close();
-                    }
-                });
-                var newResponse = new Response(stream, {
-                    headers: response.headers,
-                    status: status,
-                    statusText: status,
-                });
-                var proxy = new Proxy(newResponse, {
-                    get: function (target, name) {
-                        switch (name) {
-                            case 'ok':
-                            case 'redirected':
-                            case 'type':
-                            case 'url':
-                            case 'useFinalURL':
-                            case 'body':
-                            case 'bodyUsed':
-                                return response[name];
-                        }
-                        return target[name];
-                    }
-                });
-                for (var key in proxy) {
-                    if (typeof proxy[key] === 'function') {
-                        proxy[key] = proxy[key].bind(newResponse);
-                    }
-                }
-                return proxy;
+          });
+  
+          const newResponse = new Response(stream, {
+            headers: response.headers,
+            status: status,
+            statusText: status,
+          });
+          const proxy = new Proxy(newResponse, {
+            get: function(target, name){
+              switch(name) {
+                case 'ok':
+                case 'redirected':
+                case 'type':
+                case 'url':
+                case 'useFinalURL':
+                case 'body':
+                case 'bodyUsed':
+                  return response[name];
+              }
+              return target[name];
             }
-            else {
-                return response;
+          });
+  
+          for (let key in proxy) {
+            if (typeof proxy[key] === 'function') {
+              proxy[key] = proxy[key].bind(newResponse);
             }
-        });
+          }
+  
+          return proxy;
+        } else {
+          return response;
+        }
+      });
     },
-};
+  
+  };
+  
 
 const deepMockLevel = '###IMPORT_DEEPMOCKLEVEL###';
 window.XMLHttpRequest = mockHttp.mockXHR;

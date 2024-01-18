@@ -1,10 +1,10 @@
 import { AfterViewInit, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
-import { ThemeService } from './theme/theme.service';
-import { ChromeExtentionUtilsService } from './core/utils/chrome-extention-utils.service';
-import { RecorderHistoryService } from './spy-http/services/recorder-history.service';
-import { PlayerService } from './spy-http/services/player.service';
 import { Event, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { ChromeExtentionUtilsService } from './core/utils/chrome-extention-utils.service';
+import { PlayerService } from './spy-http/services/player.service';
+import { RecorderHistoryService } from './spy-http/services/recorder-history.service';
+import { ThemeService } from './theme/theme.service';
 import { TrackService } from './track/services/track.service';
 
 @Component({

@@ -44,7 +44,7 @@ export function configurationInit(config: ConfigurationService) {
     // Module Applicatif
     RecorderHttpModule,
 
-    OverlayModule,
+    OverlayModule
   ],
   providers: [{
     provide: APP_INITIALIZER,

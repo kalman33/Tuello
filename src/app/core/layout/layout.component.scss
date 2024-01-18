@@ -64,6 +64,21 @@
   flex: 1 0 auto;
 }
 
+button.mat-raised-button mat-icon {
+  width: 24px;
+  height:24px
+}
+
+button.mat-raised-button .mat-button-wrapper {
+  padding-left: 0px !important;
+}
+
+button.mat-raised-button {
+  padding-left: 0px;
+  height: 24px;
+  line-height: 0px !important;
+}
+
 /*Set sidenav width*/
 
 mat-sidenav {

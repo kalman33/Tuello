@@ -4,6 +4,11 @@
   "mmn.layout.trackResources": "Traquer des ressources",
   "mmn.layout.searchElements": "Rechercher des élements",
   "mmn.layout.settings": "Paramètres",
+  "mmn.layout.rate": "Notez et soutenez-nous",
+  "mmn.layout.rate.title": "Rate and feedback",
+  "mmn.layout.rate.chrome": "Rate on Chrome WebStore",
+  "mmn.layout.support.title": "Support us",
+  "mmn.layout.support": "Tuello is entièrement gratuit. Vous pouvez remercier l'auteur en lui faisant un petit don",
 
   "mmn.jsoneditor.language": "fr-FR",
   "mmn.jsoneditor.menu.clearResponse": "Effacer la réponse",
