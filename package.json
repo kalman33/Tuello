@@ -8,8 +8,10 @@
     "build:prod": "npm run clean && ng build && npm run _build:tuello:chrome:prod",
     "_build:tuello:chrome": "webpack --config ./chrome/webpack.config.js",
     "_build:tuello:chrome:prod": "webpack --config ./chrome/webpack.config.prod.js",
-    "build:stats": "ng build --stats-json",
-    "analyze": "webpack-bundle-analyzer dist/tuello/stats.json",
+    "build:stats:angular": "ng build --stats-json",
+    "build:stats:chrome": "webpack --config ./chrome/webpack.config.prod.js --profile --json > ./dist/tuello/stats-chrome.json",
+    "analyze:angular": "webpack-bundle-analyzer dist/tuello/stats.json",
+    "analyze:chrome": "webpack-bundle-analyzer dist/tuello/stats-chrome.json",
     "clean": "rimraf dist tmp",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
