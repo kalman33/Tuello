@@ -18,15 +18,15 @@
 <h2 mat-dialog-title>{{ 'mmn.layout.support.title' | translate }}</h2>
 
 <span>{{ 'mmn.layout.support' | translate }}</span>
-<form action="https://www.paypal.com/donate" method="post" target="_top">
+<form id="paypal" action="https://www.paypal.com/donate" (ngSubmit)="faireUnDon()" method="post" target="_blank">
   <input type="hidden" name="hosted_button_id" value="UZ5W457PXJW26" />
   <input
     type="image"
     src="https://www.paypalobjects.com/fr_FR/FR/i/btn/btn_donate_SM.gif"
-    border="0"
+    style="border: 0"
     name="submit"
     title="PayPal - The safer, easier way to pay online!"
     alt="Bouton Faites un don avec PayPal"
   />
-  <img alt="" border="0" src="https://www.paypal.com/fr_FR/i/scr/pixel.gif" width="1" height="1" />
+  <img alt="" style="border: 0" src="https://www.paypal.com/fr_FR/i/scr/pixel.gif" width="1" height="1" />
 </form>

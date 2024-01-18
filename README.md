@@ -14,3 +14,7 @@ Among other things, it allows you to
 
 <img src="./img/Tuello.gif"  width=300px >
 
+Tuello is fully free. You can thank the author by making a small donation  
+[!["Donate with PayPal"](img/donate-button.png)](https://www.paypal.com/donate/?hosted_button_id=5RX4KGSTJPJDA)
+
+

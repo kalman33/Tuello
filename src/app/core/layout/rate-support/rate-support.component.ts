@@ -23,4 +23,9 @@ export class RateSupportComponent implements OnInit {
   openLink(event: MouseEvent): void {
     this.bottomSheetRef.dismiss();
   }
+
+  faireUnDon() {
+    this.bottomSheetRef.dismiss();
+    document.forms["paypal"].submit();
+  }
 }
