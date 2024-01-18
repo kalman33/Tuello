@@ -79,6 +79,10 @@ button.mat-raised-button {
   line-height: 0px !important;
 }
 
+button.mat-raised-button:hover span {
+  color: #FFB61E;
+}
+
 /*Set sidenav width*/
 
 mat-sidenav {
