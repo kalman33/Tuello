@@ -1,4 +1,4 @@
-import JSONEditor from 'jsoneditor';
+import { BigJsonViewerDom } from 'big-json-viewer';
 import { addcss } from './utils';
 // Json Editor
 let jsonEditorTree: any;
@@ -37,7 +37,7 @@ export function open(json: string) {
     //CLOSE BUTTON
     const buttonElt = document.createElement('button');
     buttonElt.style.position = 'absolute';
-    buttonElt.style.right = '1%'; 
+    buttonElt.style.right = '1%';
     buttonElt.style.top = '1%';
     buttonElt.style.height = '32px';
     buttonElt.style.margin = '20px';
@@ -58,9 +58,10 @@ export function open(json: string) {
     divElt.style.overflowY = 'scroll';
     divElt.style.border = '1px solid #OOO';
     divElt.style.padding = '20px';
-    divElt.style.marginTop = '32px';
+    divElt.style.marginTop = '10px';
+    divElt.style.backgroundColor = 'white';
     divElt.setAttribute('id', 'jsonEditorTree');
-  
+
     container.appendChild(divElt);
 
     //Json editor
@@ -106,40 +107,21 @@ function initContainer() {
    */
 function initJsonEditor(json: string) {
 
-  chrome.storage.local.get(['messages'], results => {
-    let language;
-
-    if (results.messages) {
-      const msgs = results.messages.default;
-      language = msgs['mmn.jsoneditor.language'] || 'en';
-    }
-
-
-    // options du jsoneditor
-    opts = {
-
-      mode: 'view',
-      enableTransform: false,
-      language: language || 'en',
-      enableSort: false
-
-    };
-
-    // init du jsoneditor
-    jsonEditorTree = new JSONEditor(document.getElementById('jsonEditorTree'), opts);
-
-    try {
-      jsonEditorTree.setText(JSON.stringify(json));
-      jsonEditorTree.expandAll();
-      addcss(chrome.runtime.getURL('jsoneditor-default.css'));
-      addcss(chrome.runtime.getURL('jsoneditor.css'));
-      document.getElementById('jsonViewerLightbox').style.display = 'flex';
-      window.setTimeout(() => document.getElementById('jsonViewerLightbox').style.opacity = '1', 0);
-    } catch (e) {
-      jsonEditorTree.setText('{}');
-      document.getElementById('jsonViewerLightbox').remove();
-    }
+  BigJsonViewerDom.fromData(JSON.stringify(json)).then(viewer => {
+    const node = viewer.getRootElement();
+    document.getElementById('jsonEditorTree').appendChild(node);
+    node.openAll();
   });
+
+  try {
+
+    addcss(chrome.runtime.getURL('default.css'));
+    document.getElementById('jsonViewerLightbox').style.display = 'flex';
+    window.setTimeout(() => document.getElementById('jsonViewerLightbox').style.opacity = '1', 0);
+  } catch (e) {
+    //jsonEditorTree.setText('{}');
+    document.getElementById('jsonViewerLightbox').remove();
+  }
 
 
 }

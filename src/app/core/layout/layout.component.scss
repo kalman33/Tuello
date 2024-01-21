@@ -250,3 +250,7 @@ a.mat-list-item mat-icon {
   from, to { border-color: transparent }
   50% { border-color: orange; }
 }
+
+button#rate:active {
+  box-shadow: 0 0 0 0;
+}

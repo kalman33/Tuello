@@ -5,9 +5,10 @@
   "mmn.layout.searchElements": "Rechercher des élements",
   "mmn.layout.settings": "Paramètres",
   "mmn.layout.rate": "Notez et soutenez-nous",
-  "mmn.layout.rate.title": "Rate and feedback",
-  "mmn.layout.rate.chrome": "Rate on Chrome WebStore",
-  "mmn.layout.support.title": "Support us",
+  "mmn.layout.rate.title": "Évaluation et commentaires",
+  "mmn.layout.rate.github": "Star on github",
+  "mmn.layout.rate.chrome": "Evaluer sur Chrome Web Store",
+  "mmn.layout.support.title": "Soutenez-nous",
   "mmn.layout.support": "Tuello is entièrement gratuit. Vous pouvez remercier l'auteur en lui faisant un petit don",
 
   "mmn.jsoneditor.language": "fr-FR",

@@ -1,6 +1,6 @@
 {
   "name": "tuello",
-  "version": "1.0.0.6",
+  "version": "1.0.0.7",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -33,6 +33,7 @@
     "@ngx-translate/http-loader": "^7.0.0",
     "@types/component-emitter": "^1.2.11",
     "animate.css": "^4.1.1",
+    "big-json-viewer": "^0.1.7",
     "bootstrap": "^5.2.3",
     "buffer": "^6.0.3",
     "file-saver": "^2.0.5",

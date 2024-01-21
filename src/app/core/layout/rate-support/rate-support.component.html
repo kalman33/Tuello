@@ -22,7 +22,7 @@
   <input type="hidden" name="hosted_button_id" value="UZ5W457PXJW26" />
   <input
     type="image"
-    src="https://www.paypalobjects.com/fr_FR/FR/i/btn/btn_donate_SM.gif"
+    [src]="this.translate.instant('mmn.jsoneditor.language') === 'en' ? 'https://www.paypal.com/en_US/i/btn/btn_donate_SM.gif' : 'https://www.paypalobjects.com/fr_FR/FR/i/btn/btn_donate_SM.gif'"
     style="border: 0"
     name="submit"
     title="PayPal - The safer, easier way to pay online!"

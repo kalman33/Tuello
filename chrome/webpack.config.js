@@ -48,7 +48,7 @@ module.exports = {
             to: '.',
           }
           ,
-          {  from: './chrome/assets/jsoneditor-default.css',
+          {  from: './chrome/assets/default.css',
             to: '.',
           },
           {  from: './node_modules/simptip/simptip.min.css',
