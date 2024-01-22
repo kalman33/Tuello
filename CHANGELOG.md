@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.0.0.8] - 2024-01-22
+    Corrections mineures
 ## [1.0.0.7] - 2024-01-21
     ajout "rate and support"‚
     diminution taille contentscript

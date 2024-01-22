@@ -17,7 +17,7 @@ let recorderHttp = {
       if (attr === 'onreadystatechange') {
         xhr.onreadystatechange = (...args) => {
           if (this.readyState === 4) {
-            if (!this.responseURL.includes('tuello') && !this.responseURL.includes('sockjs')) {
+            if (this.responseURL && !this.responseURL.includes('tuello') && !this.responseURL.includes('sockjs')) {
               let reponse = '';
               try {
                 reponse = JSON.parse(this.response);

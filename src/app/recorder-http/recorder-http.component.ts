@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import JSONEditor from 'jsoneditor';
@@ -11,6 +11,7 @@ import { ExportComponent } from './export/export.component';
   selector: 'mmn-recorder-http',
   templateUrl: './recorder-http.component.html',
   styleUrls: ['./recorder-http.component.scss'],
+  encapsulation: ViewEncapsulation.None
 })
 export class RecorderHttpComponent implements OnInit {
   constructor(
