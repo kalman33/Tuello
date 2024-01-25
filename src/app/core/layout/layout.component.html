@@ -5,9 +5,9 @@
     <div style="cursor: pointer"  class="nav-icon" [ngClass]="{'open' : isOpen}" (click)="snav.toggle(); isOpen = !isOpen; openSideNav();">
       <div></div>
     </div>
-    <a class="navbar-brand" [routerLink]="['/']" [skipLocationChange]="true">
+    <div class="navbar-brand" >
       <img src="assets/img/tuello-128x128.png" width="40px" height="40px">
-    </a>
+    </div>
     <div class="navbar-title">
       <span class="navbar-spacer">{{title}}</span>
     </div>
@@ -75,7 +75,7 @@
           </div>
           <div>
             <mat-icon class="v-align-middle">info_outline</mat-icon>
-            <span class="v-align-middle">Version 1.0.8</span>
+            <span class="v-align-middle">Version 1.0.9</span>
           </div>
         </div>
       </mat-nav-list>

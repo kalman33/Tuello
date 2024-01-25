@@ -1,14 +1,13 @@
-import { ChangeDetectorRef, Component, ElementRef, NgZone, OnInit, Renderer2, ViewChild } from '@angular/core';
-import { MatSnackBar, MatSnackBarVerticalPosition } from '@angular/material/snack-bar';
+import { Component, ElementRef, NgZone, OnInit, ViewChild } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { saveAs } from 'file-saver';
 import * as enMessages from '../../assets/i18n/en.json';
 import * as frMessages from '../../assets/i18n/fr.json';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
+import { ConfigurationService } from '../core/configuration/configuration.service';
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
-import { Router } from '@angular/router';
-import { ConfigurationService } from '../core/configuration/configuration.service';
 
 
 @Component({
@@ -33,15 +32,11 @@ export class SettingsComponent implements OnInit {
   selectedLanguage;
 
   constructor(
-      private themeService: ThemeService,
-    private renderer: Renderer2,
-    private elementRef: ElementRef,
+    private themeService: ThemeService,
     private translate: TranslateService,
-    private changeDetectorRef: ChangeDetectorRef,
     private snackBar: MatSnackBar,
-    private translateService: TranslateService,
-    private router: Router,
-    private configurationService: ConfigurationService
+    private configurationService: ConfigurationService,
+    private zone: NgZone
   ) { }
 
   ngOnInit() {
@@ -65,7 +60,7 @@ export class SettingsComponent implements OnInit {
       if (results['mouseCoordinates']) {
         this.mouseCoordinates = results['mouseCoordinates'];
       }
-     
+
       if (results['deepMockLevel']) {
         this.deepMockLevel = results['deepMockLevel'];
       }
@@ -141,11 +136,19 @@ export class SettingsComponent implements OnInit {
     const fileReader: FileReader = new FileReader();
     fileReader.onloadend = x => {
       try {
+
         this.jsonContent = JSON.parse(fileReader.result as string);
         chrome.storage.local.set(this.jsonContent, () => {
-          
+
           this.init();
           this.configurationService.init();
+          this.zone.run(() => {
+            this.snackBar.open(
+              this.translate.instant('mmn.spy-http.import.message'),
+              this.translate.instant('mmn.spy-http.import.success.action'),
+              { duration: 2000 }
+            );
+          });
         });
       } catch (e) {
         this.snackBar.open(

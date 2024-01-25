@@ -97,7 +97,7 @@ async function displayTracks(mutationsList, observer) {
       clearTimeout(timer);
     }
     timer = setTimeout(() => {
-      
+
       removeTracks();
       getTuelloTracks().then(() => {
         const tracks = tuelloTracks.filter(item => {
@@ -357,7 +357,7 @@ function displayTrack(track: Track) {
       if (track.htmlCoordinates) {
         const elt = track.parentPosition === 'fixed' ? parentDiv : div;
         const elementList = trackElement?.children;
-       
+
         // mouse over : on affiche un contour sur le lien ou le bouton
         elt.onmouseenter = (event) => {
           trackElement.classList.add('tuello-background-color');
@@ -395,7 +395,7 @@ async function getDisplayData(track: Track) {
   if (dataDisplay) {
     if (dataDisplayType === 'body') {
       if (track.body) {
-        data = `${dataDisplay} : ${findInJson(track.body, dataDisplay)}`;
+        data = findInJson(track.body, dataDisplay);
       }
     } else {
       if (track.querystring && track.querystring['' + dataDisplay]) {
@@ -407,12 +407,20 @@ async function getDisplayData(track: Track) {
 }
 
 function findInJson(data: any, keyString: string) {
-  let result = data;
+  let result = '';
+  const doc = JsonFind(data);
   try {
-    const doc = JsonFind(data);
-    result = doc.findValues(keyString);
-    result = result[keyString];
+    if (keyString.includes(',') || keyString.includes(';')) {
+      keyString.split(/,|;/).forEach(elt => {
+        result += result ? '\u000d' : '';
+        result += elt + ' : ' + doc.findValues(elt)[elt];
+      });
+    } else {
+      result = doc.findValues(keyString);
+      result = `${keyString} : ${result[keyString]}`;
+    }
   } catch (e) {
+    result = data;
   }
   return result;
 
@@ -427,7 +435,7 @@ function viewTracks(trackId: string) {
       chrome.runtime.sendMessage({
         action: 'TRACK_VIEW',
         value: {
-          trackId: trackId ? trackId : 0, 
+          trackId: trackId ? trackId : 0,
           currentHrefLocation: window.location.href
         }
       }, () => { })
