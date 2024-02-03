@@ -8,31 +8,31 @@ import { Subject } from 'rxjs';
   providedIn: 'root',
 })
 export class RecorderHttpService {
-  private mmaRecordsSubject = new Subject();
+  private tuelloRecordsSubject = new Subject();
 
   constructor() {}
 
   public getJsonRecords() {
-    chrome.storage.local.get(['mmaRecords'], results => {
-      return results['mmaRecords'];
+    chrome.storage.local.get(['tuelloRecords'], results => {
+      return results['tuelloRecords'];
     });
   }
 
   saveToLocalStorage(records) {
-    chrome.storage.local.set({ mmaRecords: records });
+    chrome.storage.local.set({ tuelloRecords: records });
   }
 
   reset() {
-    chrome.storage.local.remove(['mmaRecords']);
+    chrome.storage.local.remove(['tuelloRecords']);
   }
 
 
-  getMmaRecords(){
-    return this.mmaRecordsSubject.asObservable();
+  getTuelloRecords(){
+    return this.tuelloRecordsSubject.asObservable();
   }
 
-  setMmaRecords(mmaRecords: any) {
-    this.mmaRecordsSubject.next(mmaRecords);
+  setTuelloRecords(tuelloRecords: any) {
+    this.tuelloRecordsSubject.next(tuelloRecords);
   }
 
 

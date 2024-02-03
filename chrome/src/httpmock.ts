@@ -33,9 +33,9 @@ let mockHttp = {
     let originalURL; 
 
     const modifyResponse = (isOnLoad: boolean = false) => {
-      if ((window as any).mmaRecords) {
+      if ((window as any).tuelloRecords) {
         // this.responseURL
-        const records = (window as any).mmaRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(originalURL, key));
+        const records = (window as any).tuelloRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(originalURL, key));
         if (records && records.length > 0) {
           records.forEach(({ key, reponse, httpCode, delay }) => {
             if (delay && isOnLoad) {
@@ -106,8 +106,8 @@ let mockHttp = {
     return mockHttp.originalFetch(...args).then((response) => {
       let txt = undefined;
       let status = undefined;
-      if ((window as any).mmaRecords) {
-        const records = (window as any).mmaRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(args[0], key));
+      if ((window as any).tuelloRecords) {
+        const records = (window as any).tuelloRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(args[0], key));
         if (records && records.length > 0) {
           records.forEach(({ key, reponse, httpCode, delay }) => {
             if (delay) {
@@ -175,7 +175,7 @@ window.addEventListener(
         deepMockLevel = event.data.deepMockLevel || 0;
         (window as any).XMLHttpRequest = mockHttp.mockXHR;
         window.fetch = mockHttp.mockFetch;
-        (window as any).mmaRecords = event.data.mmaRecords;
+        (window as any).tuelloRecords = event.data.tuelloRecords;
       } else {
         window.XMLHttpRequest = mockHttp.originalXHR;
         window.fetch = mockHttp.originalFetch;

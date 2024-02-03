@@ -279,13 +279,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse();
     } else {
       // on regarde si le mock et le record sont activés et on active la popup le cas échéant
-      chrome.storage.local.get(['httpRecord', 'httpMock', 'mmaRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
+      chrome.storage.local.get(['httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
         if (results.httpMock) {
           window.postMessage(
             {
               type: 'MOCK_HTTP_ACTIVATED',
               value: true,
-              mmaRecords: results.mmaRecords,
+              tuelloRecords: results.tuelloRecords,
               deepMockLevel: results.deepMockLevel || 0
             },
             '*'
@@ -379,12 +379,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'HTTP_MOCK_STATE':
-      chrome.storage.local.get(['mmaRecords', 'deepMockLevel'], results => {
+      chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], results => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
             value: message.value,
-            mmaRecords: results.mmaRecords,
+            tuelloRecords: results.tuelloRecords,
             deepMockLevel: results.deepMockLevel || 0
           },
           '*'
@@ -393,13 +393,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       break;
     case 'MMA_RECORDS_CHANGE':
-      chrome.storage.local.get(['httpMock', 'deepMockLevel', 'mmaRecords'], results => {
+      chrome.storage.local.get(['httpMock', 'deepMockLevel', 'tuelloRecords'], results => {
         if (results.httpMock) {
           window.postMessage(
             {
               type: 'MOCK_HTTP_ACTIVATED',
               value: true,
-              mmaRecords: results.mmaRecords,
+              tuelloRecords: results.tuelloRecords,
               deepMockLevel: results.deepMockLevel || 0
             },
             '*'
@@ -478,7 +478,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           {
             type: 'MOCK_HTTP_ACTIVATED',
             value: message.value,
-            mmaRecords: message.data,
+            tuelloRecords: message.data,
             deepMockLevel: results.deepMockLevel || 0
           },
           '*'
@@ -516,13 +516,13 @@ window.addEventListener(
 
         case 'RECORD_MOCK_READY':
           // init : on regarde si le mode mock est activé pour prévenir httpmock
-          chrome.storage.local.get(['httpMock', 'mmaRecords', 'deepMockLevel'], results => {
+          chrome.storage.local.get(['httpMock', 'tuelloRecords', 'deepMockLevel'], results => {
             if (results.httpMock) {
               window.postMessage(
                 {
                   type: 'MOCK_HTTP_ACTIVATED',
                   value: true,
-                  mmaRecords: results.mmaRecords,
+                  tuelloRecords: results.tuelloRecords,
                   deepMockLevel: results.deepMockLevel || 0
                 },
                 '*'

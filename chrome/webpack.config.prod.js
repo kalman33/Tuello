@@ -12,7 +12,8 @@ module.exports = {
     contentscript: join(__dirname, 'src/contentscript.ts'),
     httpmock: join(__dirname, 'src/httpmock.ts'),
     httprecorder: join(__dirname, 'src/httprecorder.ts'),
-    popup: join(__dirname, 'src/popup/popup.ts')
+    popup: join(__dirname, 'src/popup/popup.ts'),
+    exportTuelloTemplate: join(__dirname, 'assets/export/exportTuelloTemplate.ts')
   },
   output: {
     path: join(__dirname, '../dist/tuello/')
@@ -50,9 +51,6 @@ module.exports = {
         },
         {  from: './node_modules/simptip/simptip.min.css',
           to: '.',
-        },
-        {  from: './chrome/assets/export/exportTuelloTemplate.js',
-            to: '.',
         },
         {
           from: './chrome/manifest.json',

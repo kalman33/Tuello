@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.0.0.10] - 2024-02-03
+    Correction export bibliotheque
 ## [1.0.0.9] - 2024-01-25
     Ajout fonctionnalités mineures
 ## [1.0.0.8] - 2024-01-22

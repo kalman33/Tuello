@@ -145,7 +145,7 @@ export class SettingsComponent implements OnInit {
           this.zone.run(() => {
             this.snackBar.open(
               this.translate.instant('mmn.spy-http.import.message'),
-              this.translate.instant('mmn.spy-http.import.success.action'),
+              this.translate.instant('mmn.recorder-http.export.saveAsLib.information.success.action'),
               { duration: 2000 }
             );
           });

@@ -45,6 +45,9 @@
   "mmn.recorder-http.export.save.information": "Save in json format. This file can then be re-imported into Tuello.",
   "mmn.recorder-http.export.button.save": "Save",
   "mmn.recorder-http.export.saveAsLib.information": "Allows you to create a library that will allow, by injecting it into your application, to transform it into demo mode.",
+  "mmn.recorder-http.export.saveAsLib.information.detail": "Copy the js and json files to the root of your project and import the js file into your page:",
+  "mmn.recorder-http.export.saveAsLib.information.message": "Export js and json files",
+  "mmn.recorder-http.export.saveAsLib.information.success.action": "Success",
   "mmn.recorder-http.export.button.saveAsLib": "Save as library",
   "mmn.recorder-http.export.button.close": "Close",
 

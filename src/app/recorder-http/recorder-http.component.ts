@@ -44,8 +44,8 @@ export class RecorderHttpComponent implements OnInit {
     });
 
     // recupération des enregistrements
-    chrome.storage.local.get(['mmaRecords'], results => {
-      this.records = results['mmaRecords'];
+    chrome.storage.local.get(['tuelloRecords'], results => {
+      this.records = results['tuelloRecords'];
       // paramétrage du jsoneditor
       this.initJsonEditor();
     });
@@ -53,9 +53,9 @@ export class RecorderHttpComponent implements OnInit {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.refresh) {
         // recupération des enregistrements
-        chrome.storage.local.get(['mmaRecords'], results => {
-          this.records = results['mmaRecords'];
-          this.jsonEditorTree.setText(JSON.stringify(results['mmaRecords']));
+        chrome.storage.local.get(['tuelloRecords'], results => {
+          this.records = results['tuelloRecords'];
+          this.jsonEditorTree.setText(JSON.stringify(results['tuelloRecords']));
         });
       }
       sendResponse();
