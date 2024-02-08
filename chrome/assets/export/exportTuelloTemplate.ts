@@ -1,13 +1,7 @@
 ({
   tuello: function () {
     let deepMockLevel = '###IMPORT_DEEPMOCKLEVEL###';
-    let tuelloFile = './###IMPORT_TUELLO_FILE###';
-
-    fetch(tuelloFile)
-      .then((response) => response.json())
-      .then((json) => {
-        (window as any).tuelloRecords = json;
-      });
+    (window as any).tuelloRecords='###IMPORT_DATA###';
 
     let compareWithMockLevel = (url1, url2) => {
       url1 = removeURLPortAndProtocol(url1);
