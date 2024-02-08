@@ -1,23 +1,34 @@
 
 let deepMockLevel = 0;
 
-let compareWithMockLevel = (url1: string, url2: string): boolean => {
-  url1 = removeURLPort(url1);
-  url2 = removeURLPort(url2);
-  if (deepMockLevel === 0) {
-    return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
-  } else {
-    let cmp1: string;
-    let cmp2: string;
-    for (const inc of [2, 1, 0]) {
-      cmp1 = url1.replace(url1.split('/', deepMockLevel + inc).join('/'), '');
-      cmp2 = url2.replace(url2.split('/', deepMockLevel + inc).join('/'), '');
-      if (cmp1) {
-        break;
-      }
+let compareWithMockLevel = (url1, url2) => {
+  url1 = removeURLPortAndProtocol(url1);
+  url2 = removeURLPortAndProtocol(url2);
+  let inc = deepMockLevel;
+  // @ts-ignore
+  while (inc > 0) {
+    // @ts-ignore
+    url1 = url1.replace(url1.split('/', inc).join('/'), '');
+    // @ts-ignore
+    url2 = url2.replace(url2.split('/', inc).join('/'), '');
+    if (url1 && url2) {
+      break;
     }
-    return new RegExp('^' + cmp2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(cmp1);
+    // @ts-ignore
+    inc--;
   }
+  url1 = url1.substring(0, 1) === '/' ? url1.substring(1) : url1;
+  url2 = url2.substring(0, 1) === '/' ? url2.substring(1) : url2;
+  const lg1 = url1.split('/').length;
+  const lg2 = url2.split('/').length;
+  if (lg1 > lg2) {
+    url1 = url1.replace(url1.split('/', (lg1-lg2)).join('/'), '');
+  } else if (lg2 > lg1) {
+    url2 = url2.replace(url2.split('/', (lg2-lg1)).join('/'), '');
+  }
+  url1 = url1.substring(0, 1) === '/' ? url1.substring(1) : url1;
+  url2 = url2.substring(0, 1) === '/' ? url2.substring(1) : url2;
+  return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
 };
 
 const sleep = (ms: number) => {
@@ -185,13 +196,14 @@ window.addEventListener(
   false,
 );
 
-function removeURLPort(url: string) {
+function removeURLPortAndProtocol(url: string) {
   let ret = '';
   try {
     let parseURL = new URL(url);
     parseURL.port = '';
     ret = parseURL.toString();
-  } catch(e) {
+    ret = ret.replace(/^https?:\/\//, '')
+  } catch (e) {
     ret = url;
   }
   return ret;
