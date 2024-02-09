@@ -29,9 +29,18 @@ export class ExportComponent implements OnInit {
 
   save() {
     const value = formatDate(new Date());
-    const txtBlob = new Blob([this.data], { type: 'text/plain;charset=utf-8' });
-    saveAs(txtBlob, `tuello-http-${value}.json`);
-    this.dialogRef.close();
+    chrome.storage.local.get(['tuelloHTTPHeaders'], results => {
+      const jsonData = {
+        httpMocks: this.data,
+        httpHeaders: results['tuelloHTTPHeaders']
+      }
+      
+      const txtBlob = new Blob([(jsonData as any)], { type: 'text/plain;charset=utf-8' });
+      saveAs(txtBlob, `tuello-http-${value}.json`);
+      this.dialogRef.close();
+    });
+    
+    
   }
 
   saveAsLib() {

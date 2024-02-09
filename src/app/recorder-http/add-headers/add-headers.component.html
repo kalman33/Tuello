@@ -17,8 +17,8 @@
       </button>
   </div>
 
-  <mat-list *ngIf="elements">
-    <cdk-virtual-scroll-viewport [itemSize]="20">
+  <mat-list>
+    <cdk-virtual-scroll-viewport [itemSize]="5">
       <mat-list-item *cdkVirtualFor="let element of elements; let i = index">
         <mmn-header
           [index]='i' 

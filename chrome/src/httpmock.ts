@@ -187,6 +187,7 @@ window.addEventListener(
         (window as any).XMLHttpRequest = mockHttp.mockXHR;
         window.fetch = mockHttp.mockFetch;
         (window as any).tuelloRecords = event.data.tuelloRecords;
+        (window as any).tuelloHTTPHeaders = event.data.tuelloHTTPHeaders;
       } else {
         window.XMLHttpRequest = mockHttp.originalXHR;
         window.fetch = mockHttp.originalFetch;

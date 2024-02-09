@@ -6,6 +6,7 @@ import { RecorderHttpService } from './services/recorder-http.service';
 import { TranslateService } from '@ngx-translate/core';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
+import { AddHeadersComponent } from './add-headers/add-headers.component';
 
 @Component({
   selector: 'mmn-recorder-http',
@@ -251,7 +252,7 @@ export class RecorderHttpComponent implements OnInit {
   public onChange(fileList: any): void {
     const file = fileList.target.files[0];
     const fileReader: FileReader = new FileReader();
-    let jsonResult = '';
+    let jsonResult;
     fileReader.onloadend = x => {
       jsonResult = fileReader.result as string;
       this.snackBar.open(
@@ -265,7 +266,9 @@ export class RecorderHttpComponent implements OnInit {
         } catch (e) {
           jsonResult = JSON.parse(jsonResult);
         }
-        this.jsonEditorTree.setText(jsonResult);
+        this.jsonEditorTree.setText(jsonResult.httpMocks);
+        chrome.storage.local.set({ tuelloHTTPHeaders: jsonResult.httpHeaders });
+
         this.updateData();
       }
     };
@@ -286,7 +289,7 @@ export class RecorderHttpComponent implements OnInit {
   }
 
   addHeaders() {
-    
+    this.dialog.open(AddHeadersComponent);
   }
 
 }

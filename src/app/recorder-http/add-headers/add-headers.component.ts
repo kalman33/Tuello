@@ -15,9 +15,9 @@ export class AddHeadersComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
   elements: HeaderElement[];
-  _headerName: string;
-  _headerValue: string;
-
+  headerName: string;
+  headerValue: string;
+  
   constructor(
     private translate: TranslateService,
     public dialogRef: MatDialogRef<AddHeadersComponent>,
@@ -25,44 +25,33 @@ export class AddHeadersComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-
+    // recupération des elements
+    chrome.storage.local.get(['tuelloHTTPHeaders'], results => {
+      this.elements = results['tuelloHTTPHeaders'];
+    });
     
   }
 
-  get headerName(): string {
-    return this._headerName;
-  }
-
-  set headerName(value: string) {
-    this._headerName = value;
-  }
-
-  get headerValue(): string {
-    return this._headerValue;
-  }
-
-  set headerValue(value: string) {
-    this._headerValue = value;
-    //chrome.storage.local.set({ searchAttributeDisplay: value });
-  }
 
   addElement() {
-    if (this.elements) {
-      this.elements.push({
-        name: this.headerName,
-        value: this.headerValue
-      });
-    } else {
-      this.elements = [{
-        name: this.headerName,
-        value: this.headerValue
-      }];
+    if (this.headerName) {
+      if (this.elements && !this.elements.find((header) => header.name === this.headerName)) {
+        this.elements.push({
+          name: this.headerName,
+          value: this.headerValue
+        });
+      } else {
+        this.elements = [{
+          name: this.headerName,
+          value: this.headerValue
+        }];
+      }
     }
-    // chrome.storage.local.set({ tuelloElements: this.elements });
-    // chrome.runtime.sendMessage({
-    //   action: 'SEARCH_ELEMENTS_ACTIVATED',
-    //   value: this.searchElementsActivated
-    // }, ()=>{});
+    
+    chrome.storage.local.set({ tuelloHTTPHeaders: this.elements });
+    chrome.runtime.sendMessage({
+      action: 'MMA_RECORDS_CHANGE'
+    }, () => { });
     this.elements =  [...this.elements]
     
   }
@@ -75,11 +64,10 @@ export class AddHeadersComponent implements OnInit {
       this.elements.splice(index, 1);
       this.elements = [...this.elements];
       // on sauvegarde 
-      // chrome.storage.local.set({ tuelloElements: this.elements });
-      // chrome.runtime.sendMessage({
-      //   action: 'SEARCH_ELEMENTS_ACTIVATED',
-      //   value: this.searchElementsActivated
-      // }, ()=>{});
+      chrome.storage.local.set({ tuelloHTTPHeaders: this.elements });
+      chrome.runtime.sendMessage({
+        action: 'MMA_RECORDS_CHANGE'
+      }, () => { });
     }
   }
 
