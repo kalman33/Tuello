@@ -37,6 +37,8 @@
   "mmn.recorder-http.button.delete": "Effacer",
   "mmn.recorder-http.button.copy": "Copier",
   "mmn.recorder-http.button.copyToClipboard": "Copier dans le presse papier",
+  "mmn.recorder-http.button.addHeaders.tooltip": "Ajouter des headers HTTP",
+  "mmn.recorder-http.button.addHeaders": "Headers",
   "mmn.recorder-http.button.mock": "Activer les mocks",
   "mmn.recorder-http.button.record": "Activer le mode enregistrement",
   "mmn.recorder-http.import.title": "Importer un flux Json",

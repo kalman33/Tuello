@@ -36,6 +36,8 @@
   "mmn.recorder-http.button.delete": "Delete",
   "mmn.recorder-http.button.copy": "Copy",
   "mmn.recorder-http.button.copyToClipboard": "Copy to clipboard",
+  "mmn.recorder-http.button.addHeaders.tooltip": "Add headers",
+  "mmn.recorder-http.button.addHeaders": "Headers",
   "mmn.recorder-http.button.mock": "Activating the mocks",
   "mmn.recorder-http.button.record": "Activating the recording mode",
   "mmn.recorder-http.import.message": "Loading file",
