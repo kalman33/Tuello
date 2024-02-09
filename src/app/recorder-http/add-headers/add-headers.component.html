@@ -1,0 +1,35 @@
+<h1 mat-dialog-title>{{ 'mmn.recorder-http.addHeaders.title' | translate }}</h1>
+<div mat-dialog-content>
+  <div [ngClass]="routeAnimationsElements" fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
+   
+    <mat-form-field class="header-width">
+      <mat-label>{{ 'mmn.recorder-http.addHeaders.input.data' | translate }}</mat-label>
+      <input [(ngModel)]="headerName" matInput placeholder="Ex. TEST">
+    </mat-form-field>
+    <mat-form-field class="header-width">
+      <mat-label>{{ 'mmn.recorder-http.addHeaders.input.value' | translate }}</mat-label>
+      <input [(ngModel)]="headerValue" matInput placeholder="Ex. name">
+    </mat-form-field>
+    <button mat-icon-button color="primary" (click)="addElement()"
+         matTooltip="{{ 'mmn.recorder-http.addHeaders.add.tooltip' | translate }}"
+      >
+        <mat-icon>add_circle_outline</mat-icon>
+      </button>
+  </div>
+
+  <mat-list *ngIf="elements">
+    <cdk-virtual-scroll-viewport [itemSize]="20">
+      <mat-list-item *cdkVirtualFor="let element of elements; let i = index">
+        <mmn-header
+          [index]='i' 
+          [element]="element" 
+          class="animated lightSpeedIn"    
+          (delete)='deleteElement($event)'         
+        ></mmn-header>
+      </mat-list-item>
+    </cdk-virtual-scroll-viewport>
+  </mat-list>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-flat-button mat-dialog-close>{{ 'mmn.recorder-http.export.button.close' | translate }}</button>
+</div>
