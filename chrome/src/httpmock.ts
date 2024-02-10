@@ -83,7 +83,16 @@ let mockHttp = {
           this.onload && this.onload.apply(this, args);
         };
         continue;
-      }
+       } /**else if (attr === 'send') {
+        xhr.send = (...args) => {
+
+          Object.keys((window as any).tuelloHTTPHeaders).forEach((key) => {
+          //this.setRequestHeader(key, (window as any).tuelloHTTPHeaders[key]);
+          });
+          this.send && this.send.apply(this, args);
+        };
+        continue;
+      }*/
       if (typeof xhr[attr] === 'function') {
         if (attr === 'open') {
           const open = xhr[attr].bind(xhr);

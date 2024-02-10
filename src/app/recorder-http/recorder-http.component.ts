@@ -261,13 +261,17 @@ export class RecorderHttpComponent implements OnInit {
         { duration: 2000 },
       );
       if (jsonResult) {
+        let txtMocks;
+        let jsonData;
         try {
-          JSON.stringify(jsonResult);
+          jsonData = JSON.parse(jsonResult);
+          
         } catch (e) {
-          jsonResult = JSON.parse(jsonResult);
+          jsonData = jsonResult
         }
-        this.jsonEditorTree.setText(jsonResult.httpMocks);
-        chrome.storage.local.set({ tuelloHTTPHeaders: jsonResult.httpHeaders });
+        txtMocks = JSON.stringify(jsonData.httpMocks);
+        this.jsonEditorTree.setText(txtMocks);
+        chrome.storage.local.set({ tuelloHTTPHeaders: jsonData.httpHeaders });
 
         this.updateData();
       }
