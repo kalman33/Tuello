@@ -41,6 +41,7 @@
       "resources": [
         "comment.css",
         "default.css",
+        "tags.css",
         "simptip.min.css",
         "httpmock.js",
         "httprecorder.js",
