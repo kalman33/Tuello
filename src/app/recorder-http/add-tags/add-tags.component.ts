@@ -3,24 +3,24 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { TranslateService } from '@ngx-translate/core';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
-import { HeaderElement } from '../models/HeaderElement';
+import { TagElement } from '../models/TagElement';
 
 @Component({
-  selector: 'mmn-add-headers',
-  templateUrl: './add-headers.component.html',
-  styleUrls: ['./add-headers.component.scss'],
+  selector: 'mmn-add-tags',
+  templateUrl: './add-tags.component.html',
+  styleUrls: ['./add-tags.component.scss'],
   animations: [fadeInAnimation]
 })
-export class AddHeadersComponent implements OnInit {
+export class AddTagsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
-  elements: HeaderElement[];
+  elements: TagElement[];
   headerName: string;
   headerValue: string;
   
   constructor(
     private translate: TranslateService,
-    public dialogRef: MatDialogRef<AddHeadersComponent>,
+    public dialogRef: MatDialogRef<AddTagsComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 

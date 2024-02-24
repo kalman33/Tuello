@@ -6,7 +6,7 @@ import { RecorderHttpService } from './services/recorder-http.service';
 import { TranslateService } from '@ngx-translate/core';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
-import { AddHeadersComponent } from './add-headers/add-headers.component';
+import { AddTagsComponent } from './add-tags/add-tags.component';
 
 @Component({
   selector: 'mmn-recorder-http',
@@ -292,8 +292,8 @@ export class RecorderHttpComponent implements OnInit {
     this.fileInput.nativeElement.value = ''; // permet de permettre le onchange si on reselectionne le meme fichier
   }
 
-  addHeaders() {
-    this.dialog.open(AddHeadersComponent);
+  addTags() {
+    this.dialog.open(AddTagsComponent);
   }
 
 }

@@ -31,11 +31,11 @@
         <mat-slide-toggle  [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>
         <mat-slide-toggle  [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
         <button mat-button
-            (click)="addHeaders()"
-            [matTooltip]="'mmn.recorder-http.button.addHeaders.tooltip' | translate"
-            [attr.aria-label]="'mmn.recorder-http.button.addHeaders.tooltip' | translate">
-          <mat-icon>padding</mat-icon>
-          {{ 'mmn.recorder-http.button.addHeaders' | translate }}
+            (click)="addTags()"
+            [matTooltip]="'mmn.recorder-http.button.tags.tooltip' | translate"
+            [attr.aria-label]="'mmn.recorder-http.button.tags.tooltip' | translate">
+          <mat-icon>favorite</mat-icon>
+          {{ 'mmn.recorder-http.button.tags' | translate }}
         </button>
       </div>
 

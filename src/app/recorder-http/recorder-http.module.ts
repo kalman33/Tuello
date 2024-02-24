@@ -5,11 +5,11 @@ import { FormsModule } from '@angular/forms';
 import {RecorderHttpRoutingModule} from './recorder-http-routing.module';
 import {CoreModule} from '../core/core.module';
 import { ExportComponent } from './export/export.component';
-import { AddHeadersComponent } from './add-headers/add-headers.component';
-import { HeaderComponent } from './add-headers/header/header.component';
 import { ScrollingModule } from '@angular/cdk/scrolling';
+import { AddTagsComponent } from './add-tags/add-tags.component';
+import { TagComponent } from './add-tags/tag/tag.component';
 
-const COMPONENTS = [RecorderHttpComponent, ExportComponent, AddHeadersComponent, HeaderComponent];
+const COMPONENTS = [RecorderHttpComponent, ExportComponent, AddTagsComponent, TagComponent];
 
 const DIRECTIVES = [];
 

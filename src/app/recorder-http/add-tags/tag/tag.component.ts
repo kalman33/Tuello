@@ -1,14 +1,14 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { HeaderElement } from '../../models/HeaderElement';
+import { TagElement } from '../../models/TagElement';
 
 @Component({
-  selector: 'mmn-header',
-  templateUrl: './header.component.html',
-  styleUrls: ['./header.component.scss']
+  selector: 'mmn-tag',
+  templateUrl: './tag.component.html',
+  styleUrls: ['./tag.component.scss']
 })
-export class HeaderComponent implements OnInit {
-  @Input() element: HeaderElement;
+export class TagComponent implements OnInit {
+  @Input() element: TagElement;
   @Input() index: number;
   @Output() delete: EventEmitter<number> = new EventEmitter<number>();
 

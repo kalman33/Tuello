@@ -1,35 +1,16 @@
-import { BigJsonViewerDom } from 'big-json-viewer';
-import { addcss } from './utils';
 import { Tag } from '../models/Tag';
+import { addcss } from './utils';
 
 /**
  * ajoute le panel tag dans la page
  */
 export function addTagPanel(tags: Tag[]) {
-  return new Promise((resolve, reject) => {
-
-    resolveEx = resolve;
-    rejectEx = reject;
 
     addcss(chrome.runtime.getURL('tags.css'));
 
-    <div class="tuello-tag">
-        <div class="tuello-front">
-        	<div class="tuello-content">
-           	 	<p>test: qsdklqsdql</p>
-           		 <p>test: qsdkqsdqsdqsdqs qsd qsd lqsdql</p>
-           		 <p>test: qsdklqsdql</p>
-           		 <p>test: qsdkqsdqsdqsdqs qsd qsd lqsdql</p>
-           		 <p>test: qsdklqsdql</p>
-           		 <p>test: qsdkqsdqsdqsdqs qsd qsd lqsdql</p>
-           		 <p>test: qsdklqsdql</p>
-           		 <p>test: qsdkqsdqsdqsdqs qsd qsd lqsdql</p>
-        	</div>
-        </div>
-    </div>
-
     //TAG
     const tagDiv = document.createElement('div');
+    tagDiv.id = "tuelloTags"
     tagDiv.className = "tuello-tag";
 
     // FRONT
@@ -42,17 +23,21 @@ export function addTagPanel(tags: Tag[]) {
     contentDiv.className = "tuello-content";
     
     // DATAs
+    let content;
     for (const tag of tags) {
-
+      content = document.createElement('div');
+      content.innerHTML = `${tag.display}:  ${tag.value}`;
+      contentDiv.appendChild(content);
     }
-
     frontDiv.appendChild(contentDiv);
     tagDiv.appendChild(frontDiv);
     document.body.appendChild(tagDiv);
 
-  });
 }
 
 export function deleteTagPanel() {
-  
+  const elements = document.querySelectorAll('#tuelloTags');
+  elements.forEach((element) => {
+      element.remove();
+  });
 }
