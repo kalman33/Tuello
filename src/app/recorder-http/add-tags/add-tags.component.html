@@ -15,7 +15,7 @@
       </mat-form-field>
       <mat-form-field>
         <mat-label>{{ 'mmn.recorder-http.addTags.input.jsonKey' | translate }}</mat-label>
-        <input [(ngModel)]="jsonKey" matInput placeholder="Ex. data1.data2[0]" />
+        <input [(ngModel)]="jsonKey" matInput placeholder="Ex. key1" />
       </mat-form-field>
       <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
         <mat-form-field fxFlex="80%" class="tag-width">
@@ -35,10 +35,10 @@
       </div>
 
       <mat-accordion multi>
-        <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of elements; let i = index">
+        <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of tagsService.elements; let i = index">
           <mat-expansion-panel-header>
             <mat-panel-title>
-              {{ element.display }}
+                <input (change)="onChange()" [(ngModel)]="element.display" matInput />
             </mat-panel-title>
           </mat-expansion-panel-header>
 

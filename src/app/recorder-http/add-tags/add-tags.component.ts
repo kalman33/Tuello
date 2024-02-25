@@ -1,10 +1,10 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
 import { TagElement } from '../models/TagElement';
-import { Router } from '@angular/router';
+import { TagsService } from '../services/tags.service';
 
 @Component({
   selector: 'mmn-add-tags',
@@ -15,64 +15,43 @@ import { Router } from '@angular/router';
 export class AddTagsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
-  elements: TagElement[];
   httpKey: string;
   jsonKey: string;
   display: string
 
   constructor(
     private translate: TranslateService,
-    private router: Router
+    private router: Router,
+    public tagsService: TagsService
 
   ) { }
 
   ngOnInit() {
-    // recupération des elements
-    chrome.storage.local.get(['tuelloHTTPTags'], results => {
-      this.elements = results['tuelloHTTPTags'];
-    });
+    this.tagsService.loadTags();
 
   }
 
 
   addElement() {
     if (this.httpKey && this.jsonKey) {
-      if (this.elements && !this.elements.find((tag) => tag.httpKey === this.httpKey && tag.jsonKey === this.jsonKey)) {
-        this.elements.push({
-          httpKey: this.httpKey,
-          jsonKey: this.jsonKey,
-          display: this.display || '?'
-        });
-      } else {
-        this.elements = [{
-          httpKey: this.httpKey,
-          jsonKey: this.jsonKey,
-          display: this.display || '?'
-        }];
+      const element: TagElement = {
+        httpKey: this.httpKey,
+        jsonKey: this.jsonKey,
+        display: this.display || '?'
       }
+      this.tagsService.addTagElement(element);
     }
+  }
 
-    chrome.storage.local.set({ tuelloHTTPTags: this.elements });
-    chrome.runtime.sendMessage({
-      action: 'MMA_RECORDS_CHANGE'
-    }, () => { });
-    this.elements = [...this.elements]
-
+  public onChange(): void {
+    this.tagsService.updateData();
   }
 
   /**
    * Suppression d'un element
    */
   deleteElement(index: number) {
-    if (index >= 0) {
-      this.elements.splice(index, 1);
-      this.elements = [...this.elements];
-      // on sauvegarde 
-      chrome.storage.local.set({ tuelloHTTPTags: this.elements });
-      chrome.runtime.sendMessage({
-        action: 'MMA_RECORDS_CHANGE'
-      }, () => { });
-    }
+   this.tagsService.deleteElement(index);
   }
 
   back() {

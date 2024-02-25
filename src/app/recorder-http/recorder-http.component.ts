@@ -7,6 +7,8 @@ import JSONEditor from 'jsoneditor';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
 import { RecorderHttpService } from './services/recorder-http.service';
+import { TagsService } from './services/tags.service';
+import { TagElement } from './models/TagElement';
 
 @Component({
   selector: 'mmn-recorder-http',
@@ -22,7 +24,8 @@ export class RecorderHttpComponent implements OnInit {
     private translate: TranslateService,
     private ref: ChangeDetectorRef,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private tagsService: TagsService
   ) { }
 
   @ViewChild('fileInput') fileInput: ElementRef;
@@ -147,7 +150,27 @@ export class RecorderHttpComponent implements OnInit {
                 }
               }
             }
-          })
+          });
+          items.push({
+            text: this.translate.instant('mmn.jsoneditor.menu.addTag'),
+            title: this.translate.instant('mmn.jsoneditor.menu.addTag.title'),
+            className: 'example-class',
+            click: () => {
+              const json = this.jsonEditorTree.get();
+              if (json && Array.isArray(json)) {
+                const api = json[node.path[0]];
+                const jsonKey = path.pop();
+                if (api) {
+                  const element: TagElement = {
+                    httpKey: api.key,
+                    jsonKey: jsonKey,
+                    display: jsonKey
+                  }
+                  this.tagsService.addTagElement(element);
+                }
+              }
+            }
+          });
         }
         items = items.filter(function (item) {
           // on supprime separator, type et Extract

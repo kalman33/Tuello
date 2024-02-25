@@ -13,6 +13,8 @@
   "mmn.jsoneditor.language": "en",
   "mmn.jsoneditor.menu.clearResponse": "Clear response",
   "mmn.jsoneditor.menu.clearResponse.title": "Allow to clear response",
+  "mmn.jsoneditor.menu.addTag": "Add to tags",
+  "mmn.jsoneditor.menu.addTag.title": "Add a tag to the list",
   "mmn.settings.title": "Settings",
   "mmn.settings.general.language.en": "English",
   "mmn.settings.general.language.fr": "French",

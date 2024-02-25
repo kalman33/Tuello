@@ -14,6 +14,8 @@
   "mmn.jsoneditor.language": "fr-FR",
   "mmn.jsoneditor.menu.clearResponse": "Effacer la réponse",
   "mmn.jsoneditor.menu.clearResponse.title": "Permet d'effacer la réponse HTTP",
+  "mmn.jsoneditor.menu.addTag": "AJouter aux tags",
+  "mmn.jsoneditor.menu.addTag.title": "Ajouter un tag à la liste",
   "mmn.settings.title": "Paramètres",
   "mmn.settings.general.language.en": "Anglais",
   "mmn.settings.general.language.fr": "Français",
