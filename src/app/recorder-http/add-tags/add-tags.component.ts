@@ -4,6 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
 import { TagElement } from '../models/TagElement';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'mmn-add-tags',
@@ -15,45 +16,48 @@ export class AddTagsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
   elements: TagElement[];
-  headerName: string;
-  headerValue: string;
-  
+  httpKey: string;
+  jsonKey: string;
+  display: string
+
   constructor(
     private translate: TranslateService,
-    public dialogRef: MatDialogRef<AddTagsComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {}
+    private router: Router
+
+  ) { }
 
   ngOnInit() {
     // recupération des elements
-    chrome.storage.local.get(['tuelloHTTPHeaders'], results => {
-      this.elements = results['tuelloHTTPHeaders'];
+    chrome.storage.local.get(['tuelloHTTPTags'], results => {
+      this.elements = results['tuelloHTTPTags'];
     });
-    
+
   }
 
 
   addElement() {
-    if (this.headerName) {
-      if (this.elements && !this.elements.find((header) => header.name === this.headerName)) {
+    if (this.httpKey && this.jsonKey) {
+      if (this.elements && !this.elements.find((tag) => tag.httpKey === this.httpKey && tag.jsonKey === this.jsonKey)) {
         this.elements.push({
-          name: this.headerName,
-          value: this.headerValue
+          httpKey: this.httpKey,
+          jsonKey: this.jsonKey,
+          display: this.display || '?'
         });
       } else {
         this.elements = [{
-          name: this.headerName,
-          value: this.headerValue
+          httpKey: this.httpKey,
+          jsonKey: this.jsonKey,
+          display: this.display || '?'
         }];
       }
     }
-    
-    chrome.storage.local.set({ tuelloHTTPHeaders: this.elements });
+
+    chrome.storage.local.set({ tuelloHTTPTags: this.elements });
     chrome.runtime.sendMessage({
       action: 'MMA_RECORDS_CHANGE'
     }, () => { });
-    this.elements =  [...this.elements]
-    
+    this.elements = [...this.elements]
+
   }
 
   /**
@@ -64,12 +68,15 @@ export class AddTagsComponent implements OnInit {
       this.elements.splice(index, 1);
       this.elements = [...this.elements];
       // on sauvegarde 
-      chrome.storage.local.set({ tuelloHTTPHeaders: this.elements });
+      chrome.storage.local.set({ tuelloHTTPTags: this.elements });
       chrome.runtime.sendMessage({
         action: 'MMA_RECORDS_CHANGE'
       }, () => { });
     }
   }
 
-  
+  back() {
+    this.router.navigateByUrl('/recorder', { skipLocationChange: true });
+  }
+
 }

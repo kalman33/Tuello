@@ -1,4 +1,5 @@
 export class TagElement {
-  name: string;
-  value: string;
+  httpKey: string;
+  display: string;
+  jsonKey: string;
 }

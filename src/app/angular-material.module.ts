@@ -5,6 +5,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatMenuModule } from '@angular/material/menu';
 import {MatRadioModule} from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
@@ -48,7 +49,9 @@ import {MatGridListModule} from '@angular/material/grid-list';
     MatButtonModule,
     DragDropModule,
     MatTableModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatExpansionModule
+    
   ],
   exports: [
     // material
@@ -74,7 +77,8 @@ import {MatGridListModule} from '@angular/material/grid-list';
     MatTableModule,
     MatSliderModule,
     MatProgressSpinnerModule,
-    MatGridListModule
+    MatGridListModule,
+    MatExpansionModule
   ],
 })
 export class AngularMaterialModule {}

@@ -1,12 +1,12 @@
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import JSONEditor from 'jsoneditor';
-import { RecorderHttpService } from './services/recorder-http.service';
+import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import JSONEditor from 'jsoneditor';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
-import { AddTagsComponent } from './add-tags/add-tags.component';
+import { RecorderHttpService } from './services/recorder-http.service';
 
 @Component({
   selector: 'mmn-recorder-http',
@@ -22,6 +22,7 @@ export class RecorderHttpComponent implements OnInit {
     private translate: TranslateService,
     private ref: ChangeDetectorRef,
     private snackBar: MatSnackBar,
+    private router: Router
   ) { }
 
   @ViewChild('fileInput') fileInput: ElementRef;
@@ -261,18 +262,12 @@ export class RecorderHttpComponent implements OnInit {
         { duration: 2000 },
       );
       if (jsonResult) {
-        let txtMocks;
-        let jsonData;
         try {
-          jsonData = JSON.parse(jsonResult);
-          
+          JSON.stringify(jsonResult);
         } catch (e) {
-          jsonData = jsonResult
+          jsonResult = JSON.parse(jsonResult);
         }
-        txtMocks = JSON.stringify(jsonData.httpMocks);
-        this.jsonEditorTree.setText(txtMocks);
-        chrome.storage.local.set({ tuelloHTTPHeaders: jsonData.httpHeaders });
-
+        this.jsonEditorTree.setText(jsonResult);
         this.updateData();
       }
     };
@@ -293,7 +288,7 @@ export class RecorderHttpComponent implements OnInit {
   }
 
   addTags() {
-    this.dialog.open(AddTagsComponent);
+    this.router.navigateByUrl('/recorder/tags', { skipLocationChange: true });
   }
 
 }

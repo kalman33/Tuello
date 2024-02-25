@@ -22,9 +22,9 @@ let compareWithMockLevel = (url1, url2) => {
   const lg1 = url1.split('/').length;
   const lg2 = url2.split('/').length;
   if (lg1 > lg2) {
-    url1 = url1.replace(url1.split('/', (lg1-lg2)).join('/'), '');
+    url1 = url1.replace(url1.split('/', (lg1 - lg2)).join('/'), '');
   } else if (lg2 > lg1) {
-    url2 = url2.replace(url2.split('/', (lg2-lg1)).join('/'), '');
+    url2 = url2.replace(url2.split('/', (lg2 - lg1)).join('/'), '');
   }
   url1 = url1.substring(0, 1) === '/' ? url1.substring(1) : url1;
   url2 = url2.substring(0, 1) === '/' ? url2.substring(1) : url2;
@@ -33,7 +33,7 @@ let compareWithMockLevel = (url1, url2) => {
 
 const sleep = (ms: number) => {
   const stop = new Date().getTime() + ms;
-  while (new Date().getTime() < stop){}
+  while (new Date().getTime() < stop) { }
 }
 
 
@@ -41,7 +41,7 @@ let mockHttp = {
   originalXHR: window.XMLHttpRequest,
   mockXHR() {
     // URL avant redirect
-    let originalURL; 
+    let originalURL;
 
     const modifyResponse = (isOnLoad: boolean = false) => {
       if ((window as any).tuelloRecords) {
@@ -61,7 +61,7 @@ let mockHttp = {
       }
     };
 
-   
+
 
     const xhr = new mockHttp.originalXHR();
     // tslint:disable-next-line:forin
@@ -83,20 +83,11 @@ let mockHttp = {
           this.onload && this.onload.apply(this, args);
         };
         continue;
-       } /**else if (attr === 'send') {
-        xhr.send = (...args) => {
-
-          Object.keys((window as any).tuelloHTTPHeaders).forEach((key) => {
-          //this.setRequestHeader(key, (window as any).tuelloHTTPHeaders[key]);
-          });
-          this.send && this.send.apply(this, args);
-        };
-        continue;
-      }*/
+      }
       if (typeof xhr[attr] === 'function') {
         if (attr === 'open') {
           const open = xhr[attr].bind(xhr);
-          this[attr] =  function(method, url) {
+          this[attr] = function (method, url) {
             originalURL = url;
             open.call(this, method, url);
           }
@@ -122,7 +113,7 @@ let mockHttp = {
   },
 
   originalFetch: window.fetch.bind(window),
-  mockFetch: function(...args) {
+  mockFetch: function (...args) {
     return mockHttp.originalFetch(...args).then((response) => {
       let txt = undefined;
       let status = undefined;
@@ -153,8 +144,8 @@ let mockHttp = {
           statusText: status,
         });
         const proxy = new Proxy(newResponse, {
-          get: function(target, name){
-            switch(name) {
+          get: function (target, name) {
+            switch (name) {
               case 'ok':
               case 'redirected':
               case 'type':
@@ -189,14 +180,13 @@ let mockHttp = {
 window.addEventListener(
   'message',
   // tslint:disable-next-line:only-arrow-functions
-  function(event) {
+  function (event) {
     if (event?.data?.type && event?.data?.type === 'MOCK_HTTP_ACTIVATED') {
       if (event.data.value) {
         deepMockLevel = event.data.deepMockLevel || 0;
         (window as any).XMLHttpRequest = mockHttp.mockXHR;
         window.fetch = mockHttp.mockFetch;
         (window as any).tuelloRecords = event.data.tuelloRecords;
-        (window as any).tuelloHTTPHeaders = event.data.tuelloHTTPHeaders;
       } else {
         window.XMLHttpRequest = mockHttp.originalXHR;
         window.fetch = mockHttp.originalFetch;

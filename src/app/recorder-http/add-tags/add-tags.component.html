@@ -1,35 +1,60 @@
-<h1 mat-dialog-title>{{ 'mmn.recorder-http.addHeaders.title' | translate }}</h1>
-<div mat-dialog-content>
-  <div [ngClass]="routeAnimationsElements" fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
-   
-    <mat-form-field class="header-width">
-      <mat-label>{{ 'mmn.recorder-http.addHeaders.input.data' | translate }}</mat-label>
-      <input [(ngModel)]="headerName" matInput placeholder="Ex. TEST">
-    </mat-form-field>
-    <mat-form-field class="header-width">
-      <mat-label>{{ 'mmn.recorder-http.addHeaders.input.value' | translate }}</mat-label>
-      <input [(ngModel)]="headerValue" matInput placeholder="Ex. name">
-    </mat-form-field>
-    <button mat-icon-button color="primary" (click)="addElement()"
-         matTooltip="{{ 'mmn.recorder-http.addHeaders.add.tooltip' | translate }}"
-      >
-        <mat-icon>add_circle_outline</mat-icon>
-      </button>
-  </div>
+<div class="container">
+  <div fxFlex="99%">
+    <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
+    
+    <h1 mat-dialog-title>{{ 'mmn.recorder-http.addTags.title' | translate }}</h1>
+    <button id='back' fxFlex fxLayoutAlign="end center" mat-icon-button [attr.aria-label]="'mmn.spy-http.results.button.return.aria-label' | translate" (click)="back()">
+      <mat-icon>keyboard_backspace</mat-icon>
+    </button>
+    </div>
+      
+    <div [ngClass]="routeAnimationsElements" fxLayout="column" fxLayout.sm="column" fxLayout.xs="column">
+      <mat-form-field>
+        <mat-label>{{ 'mmn.recorder-http.addTags.input.httpKey' | translate }}</mat-label>
+        <input [(ngModel)]="httpKey" matInput placeholder="Ex. https://my-server/api/*/users" />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>{{ 'mmn.recorder-http.addTags.input.jsonKey' | translate }}</mat-label>
+        <input [(ngModel)]="jsonKey" matInput placeholder="Ex. data1.data2[0]" />
+      </mat-form-field>
+      <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
+        <mat-form-field fxFlex="80%" class="tag-width">
+          <mat-label>{{ 'mmn.recorder-http.addTags.input.display' | translate }}</mat-label>
+          <input [(ngModel)]="display" matInput placeholder="Ex. User id" />
+        </mat-form-field>
+       <div  fxFlex fxLayoutAlign="end center">
+        <button
+          mat-icon-button
+          color="primary"
+          (click)="addElement()"
+          matTooltip="{{ 'mmn.recorder-http.addTags.add.tooltip' | translate }}"
+        >
+          <mat-icon>add_circle_outline</mat-icon>
+        </button>
+        </div>
+      </div>
 
-  <mat-list>
-    <cdk-virtual-scroll-viewport [itemSize]="5">
-      <mat-list-item *cdkVirtualFor="let element of elements; let i = index">
-        <mmn-header
-          [index]='i' 
-          [element]="element" 
-          class="animated lightSpeedIn"    
-          (delete)='deleteElement($event)'         
-        ></mmn-header>
-      </mat-list-item>
-    </cdk-virtual-scroll-viewport>
-  </mat-list>
-</div>
-<div mat-dialog-actions align="end">
-  <button mat-flat-button mat-dialog-close>{{ 'mmn.recorder-http.export.button.close' | translate }}</button>
+      <mat-accordion multi>
+        <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of elements; let i = index">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              {{ element.display }}
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div fxLayout="column">
+            <div class="data">{{ element.httpKey }}</div>
+            <div fxLayout="row">
+              <div fxFlex="80%" class="data">{{ element.jsonKey }}</div>
+              <div fxFlex="19%" fxLayoutAlign="end center" class="actions">
+                <button mat-icon-button color="primary" (click)="deleteElement(i)">
+                  <mat-icon>remove_circle_outline</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-expansion-panel>
+      </mat-accordion>
+    </div>
+  </div>
 </div>

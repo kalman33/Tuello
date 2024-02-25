@@ -32,10 +32,10 @@
         <mat-slide-toggle  [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
         <button mat-button
             (click)="addTags()"
-            [matTooltip]="'mmn.recorder-http.button.tags.tooltip' | translate"
-            [attr.aria-label]="'mmn.recorder-http.button.tags.tooltip' | translate">
+            [matTooltip]="'mmn.recorder-http.button.addTags.tooltip' | translate"
+            [attr.aria-label]="'mmn.recorder-http.button.addTags.tooltip' | translate">
           <mat-icon>favorite</mat-icon>
-          {{ 'mmn.recorder-http.button.tags' | translate }}
+          {{ 'mmn.recorder-http.button.addTags' | translate }}
         </button>
       </div>
 

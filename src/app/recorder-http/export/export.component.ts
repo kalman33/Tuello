@@ -29,18 +29,9 @@ export class ExportComponent implements OnInit {
 
   save() {
     const value = formatDate(new Date());
-    chrome.storage.local.get(['tuelloHTTPHeaders'], results => {
-      const jsonData = {
-        httpMocks: JSON.parse(this.data),
-        httpHeaders: results['tuelloHTTPHeaders']
-      }
-      const txtData = JSON.stringify(jsonData)
-      const txtBlob = new Blob([(txtData as any)], { type: 'text/plain;charset=utf-8' });
-      saveAs(txtBlob, `tuello-http-${value}.json`);
-      this.dialogRef.close();
-    });
-
-
+    const txtBlob = new Blob([this.data], { type: 'text/plain;charset=utf-8' });
+    saveAs(txtBlob, `tuello-http-${value}.json`);
+    this.dialogRef.close();
   }
 
   saveAsLib() {
@@ -51,19 +42,13 @@ export class ExportComponent implements OnInit {
         return response.text();
       })
       .then((txt) => {
-        chrome.storage.local.get(['deepMockLevel', 'tuelloHTTPHeaders'], (results) => {
+        chrome.storage.local.get(['deepMockLevel'], (results) => {
           // on enregistre les donnes en json
           //const value = formatDate(new Date());
           //const jsonFileName = `tuello-mocks-data-${value}.json`;
           //const txtBlobJson = new Blob([this.data], { type: 'text/plain;charset=utf-8' });
           //saveAs(txtBlobJson, jsonFileName);
-          const jsonData = {
-            httpMocks: JSON.parse(this.data),
-            httpHeaders: results['tuelloHTTPHeaders']
-          }
-          const txtData = JSON.stringify(jsonData)
-
-          let contentFile = txt.replace(/.###IMPORT_DATA###./, txtData);
+          let contentFile = txt.replace(/.###IMPORT_DATA###./, this.data);
           contentFile = contentFile.replace(/.###IMPORT_DEEPMOCKLEVEL###./, results['deepMockLevel'] || 0);
           this.libFileName = `tuello-mocks-library-${value}.js`;
           const txtBlob = new Blob([contentFile], { type: 'text/plain;charset=utf-8' });
