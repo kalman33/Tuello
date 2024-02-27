@@ -398,6 +398,15 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         () => {});
       }
       break;
+      case 'MMA_TAGS_CHANGE':
+        if (sender && sender.tab && sender.tab.id >= 0) {
+          // on envoie un message au content scrip
+          chrome.tabs.sendMessage(sender.tab.id, {
+            action: 'MMA_TAGS_CHANGE'
+          },
+          () => {});
+        }
+        break;
     case 'TRACK_PLAY_STATE':
       if (sender && sender.tab && sender.tab.id >= 0) {
 

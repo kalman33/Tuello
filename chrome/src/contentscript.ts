@@ -6,9 +6,10 @@ import * as jsonViewer from './utils/jsonViewer';
 import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
 import { recordHttpListener } from './utils/recordHttpListener';
 import { activateSearchElements, desactivateSearchElements, removeAllSearchElements } from './utils/searchElements';
+import { addTagsPanel, deleteTagsPanel } from './utils/tags';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
-import { displayEffect, isJSON } from './utils/utils';
+import { displayEffect } from './utils/utils';
 
 let show = false;
 let clickedElement: string;
@@ -199,6 +200,12 @@ function init() {
         }
       });
 
+      chrome.storage.local.get(['tuelloHTTPTags', 'httpMock', 'deepMockLevel'], results => {
+        if (results['httpMock'] && results['tuelloHTTPTags']) {
+          addTagsPanel(results['tuelloHTTPTags'], results['tuelloHTTPTags'], results.deepMockLevel || 0);
+        }
+      });
+
       chrome.storage.local.get(['searchElementsActivated'], results => {
         if (results['searchElementsActivated']) {
           activateSearchElements();
@@ -266,7 +273,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       );
       window.removeEventListener('message', recordHttpListener);
 
-      chrome.storage.local.get(['deepMockLevel'], results => {
+      chrome.storage.local.get(['deepMockLevel', 'tuelloHTTPTags'], results => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -275,11 +282,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           },
           '*'
         );
+  
+        deleteTagsPanel();
       });
       sendResponse();
     } else {
       // on regarde si le mock et le record sont activés et on active la popup le cas échéant
-      chrome.storage.local.get(['httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
+      chrome.storage.local.get(['httpRecord', 'tuelloHTTPTags', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
         if (results.httpMock) {
           window.postMessage(
             {
@@ -290,6 +299,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             },
             '*'
           );
+        }
+        if (results['httpMock'] && results['tuelloHTTPTags']) {
+          addTagsPanel(results['tuelloHTTPTags'], results['tuelloHTTPTags'], results.deepMockLevel || 0);
         }
 
         if (results.httpRecord) {
@@ -379,7 +391,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'HTTP_MOCK_STATE':
-      chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], results => {
+      chrome.storage.local.get(['tuelloRecords', 'deepMockLevel', 'tuelloHTTPTags'], results => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -389,11 +401,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           },
           '*'
         );
+        if (message.value && results['httpMock'] && results['tuelloHTTPTags']) {
+          addTagsPanel(results['tuelloHTTPTags'], results['tuelloHTTPTags'], results.deepMockLevel || 0);
+        } else {
+          deleteTagsPanel();
+        }
         sendResponse();
       });
       break;
     case 'MMA_RECORDS_CHANGE':
-      chrome.storage.local.get(['httpMock', 'deepMockLevel', 'tuelloRecords'], results => {
+      chrome.storage.local.get(['httpMock', 'tuelloHTTPTags', 'deepMockLevel', 'tuelloRecords'], results => {
         if (results.httpMock) {
           window.postMessage(
             {
@@ -405,9 +422,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             '*'
           );
         }
+        if (results['httpMock'] && results['tuelloHTTPTags']) {
+          addTagsPanel(results['tuelloHTTPTags'], results['tuelloHTTPTags'], results.deepMockLevel || 0);
+        } 
         sendResponse();
       });
       break;
+      case 'MMA_TAGS_CHANGE':
+        chrome.storage.local.get(['httpMock', 'tuelloHTTPTags'], results => {
+          if (results['httpMock'] && results['tuelloHTTPTags']) {
+            addTagsPanel(results['tuelloHTTPTags']);
+          }
+          sendResponse();
+        });
+        break;
     case 'TRACK_PLAY_STATE':
       if (message.value) {
         activateRecordTracks();
@@ -473,7 +501,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
       break;
     case 'MOCK_HTTP_USER_ACTION':
-      chrome.storage.local.get(['deepMockLevel'], results => {
+      chrome.storage.local.get(['deepMockLevel', 'tuelloHTTPTags'], results => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -483,6 +511,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           },
           '*'
         );
+        if (message.value && results['httpMock'] && results['tuelloHTTPTags']) {
+          addTagsPanel(results['tuelloHTTPTags'], message.data, results.deepMockLevel || 0);
+        } else {
+          deleteTagsPanel();
+        }
       });
       sendResponse();
       break;
@@ -516,7 +549,7 @@ window.addEventListener(
 
         case 'RECORD_MOCK_READY':
           // init : on regarde si le mode mock est activé pour prévenir httpmock
-          chrome.storage.local.get(['httpMock', 'tuelloRecords', 'deepMockLevel'], results => {
+          chrome.storage.local.get(['httpMock', 'tuelloHTTPTags', 'tuelloRecords', 'deepMockLevel'], results => {
             if (results.httpMock) {
               window.postMessage(
                 {
@@ -528,6 +561,9 @@ window.addEventListener(
                 '*'
               );
             }
+            if (results['httpMock'] && results['tuelloHTTPTags']) {
+              addTagsPanel(results['tuelloHTTPTags'], results['tuelloHTTPTags'], results.deepMockLevel || 0);
+            } 
           });
 
           break;

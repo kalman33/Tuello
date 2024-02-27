@@ -36,7 +36,7 @@ export class TagsService {
   updateData() {
     chrome.storage.local.set({ tuelloHTTPTags: this.elements });
     chrome.runtime.sendMessage({
-      action: 'MMA_RECORDS_CHANGE'
+      action: 'MMA_TAGS_CHANGE'
     }, () => { });
     this.elements = [...this.elements]
   }
