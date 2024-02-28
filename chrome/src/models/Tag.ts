@@ -1,5 +1,6 @@
 export interface Tag {
-  key: string;
-  display: string
-  value: string;
+  httpKey: string;
+  display: string;
+  jsonKey: string;
+  jsonKeyValue: string;
 }

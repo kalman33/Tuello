@@ -3,6 +3,26 @@ import { addcss } from './utils';
 import JsonFind from 'json-find';
 
 
+function findInJson(data: any, keyString: string) {
+  let result = '';
+  const doc = JsonFind(data);
+  try {
+    if (keyString.includes(',') || keyString.includes(';')) {
+      keyString.split(/,|;/).forEach(elt => {
+        result += result ? '\u000d' : '';
+        result += elt + ' : ' + doc.findValues(elt)[elt];
+      });
+    } else {
+      result = doc.findValues(keyString);
+      result = `${keyString} : ${result[keyString]}`;
+    }
+  } catch (e) {
+    result = data;
+  }
+  return result;
+
+}
+
 let compareWithMockLevel = (url1, url2, deepMockLevel) => {
   url1 = removeURLPortAndProtocol(url1);
   url2 = removeURLPortAndProtocol(url2);
@@ -36,42 +56,67 @@ let compareWithMockLevel = (url1, url2, deepMockLevel) => {
 /**
  * ajoute le panel tag dans la page
  */
-export function addTagsPanel(tags: Tag[], records: any, deepMockLevel: number) {
-
-    deepMockLevel = deepMockLevel;
-
-    addcss(chrome.runtime.getURL('tags.css'));
-
-    //TAG
-    const tagDiv = document.createElement('div');
-    tagDiv.id = "tuelloTags"
-    tagDiv.className = "tuello-tag";
-
-    // FRONT
-    const frontDiv = document.createElement('div');
-    frontDiv.className = "tuello-front";
-    tagDiv.appendChild(frontDiv);
-
-    // CONTENT
-    const contentDiv = document.createElement('div');
-    contentDiv.className = "tuello-content";
-    
-    // DATAs
-    let content;
-    for (const tag of tags) {
-      content = document.createElement('div');
-      content.innerHTML = `${tag.display}:  ${tag.value}`;
-      contentDiv.appendChild(content);
+export function addTagsPanel(tags: Tag[]) {
+  let display = false;
+  // recupération des enregistrements
+  chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], results => {
+    if (results['tuelloRecords']) {
+      for (const tag of tags) {
+        tag.jsonKeyValue = findTagInHttpCalls(tag, results['tuelloRecords'], results.deepMockLevel || 0);
+        if(tag.jsonKeyValue) {
+          display = true;
+        }
+      }
+      if (display) {
+        displayTags(tags);
+      }
     }
-    frontDiv.appendChild(contentDiv);
-    tagDiv.appendChild(frontDiv);
-    document.body.appendChild(tagDiv);
-
+  });
 }
 
 export function deleteTagsPanel() {
   const elements = document.querySelectorAll('#tuelloTags');
   elements.forEach((element) => {
-      element.remove();
+    element.remove();
   });
+}
+
+function findTagInHttpCalls(tag: Tag, records: any, deepMockLevel: number) {
+  let ret;
+  const filteredRecords = records.filter(({ key, reponse, httpCode }) => compareWithMockLevel(tag.httpKey, key, deepMockLevel));
+  if (records && records.length > 0) {
+    ret = (findInJson(records[0].response, tag.jsonKey));
+  }
+  return ret;
+}
+
+function displayTags(tags: Tag[]) {
+  addcss(chrome.runtime.getURL('tags.css'));
+
+  //TAG
+  const tagDiv = document.createElement('div');
+  tagDiv.id = "tuelloTags"
+  tagDiv.className = "tuello-tag";
+
+  // FRONT
+  const frontDiv = document.createElement('div');
+  frontDiv.className = "tuello-front";
+  tagDiv.appendChild(frontDiv);
+
+  // CONTENT
+  const contentDiv = document.createElement('div');
+  contentDiv.className = "tuello-content";
+
+  // DATAs
+  let content;
+  for (const tag of tags) {
+    if (tag.jsonKeyValue) {
+      content = document.createElement('div');
+      content.innerHTML = `${tag.display}:  ${tag.jsonKeyValue}`;
+      contentDiv.appendChild(content);
+    }
+  }
+  frontDiv.appendChild(contentDiv);
+  tagDiv.appendChild(frontDiv);
+  document.body.appendChild(tagDiv);
 }

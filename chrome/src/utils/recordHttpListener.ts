@@ -1,8 +1,9 @@
-import {removeDuplicateEntries} from './utils';
+import { addTagsPanel } from './tags';
+import { removeDuplicateEntries } from './utils';
 
 export function recordHttpListener(event: MessageEvent) {
   if (event?.data?.type === 'RECORD_HTTP') {
-    chrome.storage.local.get(['tuelloRecords'], items => {
+    chrome.storage.local.get(['tuelloRecords', 'tuelloHTTPTags'], items => {
       if (!chrome.runtime.lastError) {
         if (!items.tuelloRecords || !Array.isArray(items.tuelloRecords)) {
           items.tuelloRecords = [];
@@ -22,6 +23,11 @@ export function recordHttpListener(event: MessageEvent) {
             },
           );
         });
+
+
+        if (items['tuelloHTTPTags']) {
+          addTagsPanel(items['tuelloHTTPTags']);
+        }
       }
     });
   }
