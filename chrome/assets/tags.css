@@ -18,10 +18,10 @@
 
 .tuello-front .tuello-content {
     position: absolute; 
-    top: 0px; 
-    right: 50px;
-    color: black;
-    max-width: 200px;
+    top: 30px; 
+    right: 120px;
+    color: white;
+    max-width: 200px !important;
 
 }
 

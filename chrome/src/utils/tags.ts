@@ -23,6 +23,19 @@ function findInJson(data: any, keyString: string) {
 
 }
 
+function removeURLPortAndProtocol(url: string) {
+  let ret = '';
+  try {
+    let parseURL = new URL(url);
+    parseURL.port = '';
+    ret = parseURL.toString();
+    ret = ret.replace(/^https?:\/\//, '')
+  } catch (e) {
+    ret = url;
+  }
+  return ret;
+}
+
 let compareWithMockLevel = (url1, url2, deepMockLevel) => {
   url1 = removeURLPortAndProtocol(url1);
   url2 = removeURLPortAndProtocol(url2);
@@ -84,8 +97,8 @@ export function deleteTagsPanel() {
 function findTagInHttpCalls(tag: Tag, records: any, deepMockLevel: number) {
   let ret;
   const filteredRecords = records.filter(({ key, reponse, httpCode }) => compareWithMockLevel(tag.httpKey, key, deepMockLevel));
-  if (records && records.length > 0) {
-    ret = (findInJson(records[0].response, tag.jsonKey));
+  if (filteredRecords && filteredRecords.length > 0) {
+    ret = (findInJson(filteredRecords[0].reponse, tag.jsonKey));
   }
   return ret;
 }
