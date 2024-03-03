@@ -13,7 +13,7 @@ import { RateSupportComponent } from './rate-support/rate-support.component';
   selector: 'mmn-layout',
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
-  encapsulation: ViewEncapsulation.None,
+
   animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation]
 })
 export class LayoutComponent implements AfterViewInit, OnInit {

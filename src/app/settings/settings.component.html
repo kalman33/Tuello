@@ -51,7 +51,8 @@
                 <span [ngClass]="{ bold: deepMockLevel <= 3 }">/users</span>
               </div>
                 <!-- TODO: The 'tickInterval' property no longer exists -->
-              <mat-slider [(ngModel)]="deepMockLevel" thumbLabel min="0" max="3" #ngSlider><input matSliderThumb (input)="updateDeepMockLevel({source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value})" #ngSliderThumb="matSliderThumb" />
+              <mat-slider discrete="true"showTickMarks="true" min="0" max="3">
+                <input matSliderThumb (valueChange)="updateDeepMockLevel($event)"[(ngModel)]="deepMockLevel" #ngSlider>
               </mat-slider>
             </div>
           </div>
