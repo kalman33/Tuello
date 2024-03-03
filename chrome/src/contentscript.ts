@@ -287,7 +287,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse();
     } else {
       // on regarde si le mock et le record sont activés et on active la popup le cas échéant
-      chrome.storage.local.get(['httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
+      chrome.storage.local.get(['httpRecord', 'tuelloHTTPTags', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
         if (results.httpMock) {
           window.postMessage(
             {
@@ -307,7 +307,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             },
             '*'
           );
-          
+          if (results['httpRecord'] && results['tuelloHTTPTags']) {
+            addTagsPanel(results['tuelloHTTPTags']);
+          }
           window.addEventListener('message', recordHttpListener);
         }
         sendResponse();
@@ -378,8 +380,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         },
         '*'
       );
-      
+
       if (message.value) {
+        chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord'], results => {
+          if (results['httpRecord'] && results['tuelloHTTPTags']) {
+            addTagsPanel(results['tuelloHTTPTags']);
+          }
+        });
         window.addEventListener('message', recordHttpListener);
       } else {
         window.removeEventListener('message', recordHttpListener);
@@ -518,7 +525,7 @@ window.addEventListener(
       switch (event.data.type) {
         case 'RECORD_HTTP_READY':
           // init : on regarde si le mode enregistrement est activé pour prévenir httprecord
-          chrome.storage.local.get(['httpRecord'], results => {
+          chrome.storage.local.get(['httpRecord', 'tuelloHTTPTags'], results => {
             if (results.httpRecord) {
               window.postMessage(
                 {
@@ -527,7 +534,9 @@ window.addEventListener(
                 },
                 '*'
               );
-           
+              if (results['httpRecord'] && results['tuelloHTTPTags']) {
+                addTagsPanel(results['tuelloHTTPTags']);
+              }
               window.addEventListener('message', recordHttpListener);
             }
           });

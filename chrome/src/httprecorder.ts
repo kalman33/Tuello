@@ -17,7 +17,7 @@ let recorderHttp = {
       if (attr === 'onreadystatechange') {
         xhr.onreadystatechange = (...args) => {
           if (this.readyState === 4) {
-            if (this.responseURL && !this.responseURL.includes('tuello') && !this.responseURL.includes('sockjs')) {
+            if (this.responseURL && typeof this.responseUR === 'string' && !this.responseURL.includes('tuello') && !this.responseURL.includes('sockjs')) {
               let reponse = '';
               try {
                 reponse = JSON.parse(this.response);
@@ -90,39 +90,42 @@ let recorderHttp = {
 
     const response = await recorderHttp.originalFetch(...args);
     let data: any;
-    data =
-    {
-      type: 'RECORD_HTTP',
-      url: args[0],
-      delay: 0,
-      status: response.status,
-      method: args[1] ? args[1].method : "GET",
-      body: args[1] ? args[1].body : undefined,
-      hrefLocation: window.location.href
-    };
-
-    /* work with the cloned response in a separate promise
-       chain -- could use the same chain with `await`. */
-    response
-      .clone()
-      .json()
-      .then(body => data = {
-        ...data,
-        response: body
-      })
-      .catch(err => data = {
-        ...data,
-        response: err
-      })
-      .finally(() => {
-        const obj = JSON.parse(JSON.stringify(data));
-        window.postMessage(
-          obj
-          ,
-          '*',
-        );
-      });
-
+    if (args[0] && typeof args[0] === 'string') {
+      data =
+      {
+        type: 'RECORD_HTTP',
+        url: args[0],
+        delay: 0,
+        status: response.status,
+        method: args[1] ? args[1].method : "GET",
+        body: args[1] ? args[1].body : undefined,
+        hrefLocation: window.location.href
+      };
+  
+      /* work with the cloned response in a separate promise
+         chain -- could use the same chain with `await`. */
+      response
+        .clone()
+        .json()
+        .then(body => data = {
+          ...data,
+          response: body
+        })
+        .catch(err => data = {
+          ...data,
+          response: err
+        })
+        .finally(() => {
+          const obj = JSON.parse(JSON.stringify(data));
+          window.postMessage(
+            obj
+            ,
+            '*',
+          );
+        });
+  
+    }
+    
 
     /* the original response can be resolved unmodified: */
     return response;

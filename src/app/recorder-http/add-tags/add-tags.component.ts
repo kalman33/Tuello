@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
@@ -22,12 +22,16 @@ export class AddTagsComponent implements OnInit {
   constructor(
     private translate: TranslateService,
     private router: Router,
-    public tagsService: TagsService
+    public tagsService: TagsService,
+    private changeDetectorRef: ChangeDetectorRef
 
   ) { }
 
   ngOnInit() {
-    this.tagsService.loadTags();
+    chrome.storage.local.get(['tuelloHTTPTags'], results => {
+      this.tagsService.elements = results['tuelloHTTPTags'];
+      this.changeDetectorRef.detectChanges();
+    });
 
   }
 

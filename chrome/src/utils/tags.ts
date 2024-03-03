@@ -14,7 +14,7 @@ function findInJson(data: any, keyString: string) {
       });
     } else {
       result = doc.findValues(keyString);
-      result = `${keyString} : ${result[keyString]}`;
+      result = result[keyString];
     }
   } catch (e) {
     result = data;
@@ -37,6 +37,9 @@ function removeURLPortAndProtocol(url: string) {
 }
 
 let compareWithMockLevel = (url1, url2, deepMockLevel) => {
+  if (typeof url2 !== 'string' || typeof url2 !== 'string') {
+    return false;
+  }
   url1 = removeURLPortAndProtocol(url1);
   url2 = removeURLPortAndProtocol(url2);
   let inc = deepMockLevel;

@@ -19,10 +19,13 @@
 .tuello-front .tuello-content {
     position: absolute; 
     top: 30px; 
-    right: 120px;
-    color: white;
-    max-width: 200px !important;
+    right: 100px !important;
+    color: white !important;
+    max-width: 300px !important;
+}
 
+.tuello-front .tuello-content div{
+    padding-bottom: 20px;
 }
 
 .tuello-tag:not(.nohover):hover .tuello-front{

@@ -33,8 +33,7 @@
         </button>
         </div>
       </div>
-
-      <mat-accordion multi>
+      <mat-accordion multi *ngIf="tagsService.elements">
         <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of tagsService.elements; let i = index">
           <mat-expansion-panel-header>
             <mat-panel-title>
