@@ -20,18 +20,19 @@ let compareWithMockLevel = (url1, url2) => {
     // @ts-ignore
     inc--;
   }
-  url1 = url1.substring(0, 1) === '/' ? url1.substring(1) : url1;
-  url2 = url2.substring(0, 1) === '/' ? url2.substring(1) : url2;
+  url1 = url1.replace(/^\//, '');
+  url2 = url2.replace(/^\//, '');
+  
   const lg1 = url1.split('/').length;
   const lg2 = url2.split('/').length;
+  
   if (lg1 > lg2) {
-    url1 = url1.replace(url1.split('/', (lg1 - lg2)).join('/'), '');
+    url1 = url1.split('/').slice(0, lg2).join('/');
   } else if (lg2 > lg1) {
-    url2 = url2.replace(url2.split('/', (lg2 - lg1)).join('/'), '');
+    url2 = url2.split('/').slice(0, lg1).join('/');
   }
-  url1 = url1.substring(0, 1) === '/' ? url1.substring(1) : url1;
-  url2 = url2.substring(0, 1) === '/' ? url2.substring(1) : url2;
-  return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
+  
+  return new RegExp('^' + url2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*') + '$').test(url1);
 };
 
 const sleep = (ms: number) => {
