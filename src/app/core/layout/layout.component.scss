@@ -69,7 +69,6 @@ button.mat-mdc-raised-button mat-icon {
   height:24px
 }
 
-/* TODO(mdc-migration): The following rule targets internal classes of button that may no longer apply for the MDC version.*/
 button.mat-mdc-raised-button .mat-button-wrapper {
   padding-left: 0px !important;
 }
@@ -120,15 +119,10 @@ a.mat-mdc-list-item:hover p {
   color: #FFB61E;
 }
 
-/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version.*/
 a.mat-mdc-list-item:hover .mat-list-text {
   padding-left: 15px !important;
 }
 
-/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version.*/
-a.mat-mdc-list-item .mat-list-text {
-  //padding-left: 14px !important;
-}
 
 a.mat-mdc-list-item:hover mat-icon {
   // padding-left: 10px !important;
@@ -161,21 +155,18 @@ a.mat-mdc-list-item mat-icon {
 }
 
 /* toogle size : reduction de sa taille*/
-/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
 .darkMode .mat-slide-toggle-bar {
   height: 14px;
   width: 36px;
   border-radius: 40px;
 }
 
-/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
 .darkMode .mat-slide-toggle-thumb {
   height: 20px;
   width: 20px;
 }
 
 /*THIS IS WHAT'S HOLDING ME UP, >:( */
-/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
 .darkMode.mat-checked .mat-slide-toggle-thumb-container {
   transform: translate3d(16px, 0, 0) !important;
 }
@@ -185,7 +176,6 @@ a.mat-mdc-list-item mat-icon {
   font-size: 13px;
 }
 
-/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
 .darkMode .mat-slide-toggle-thumb-container {
   width: 20px;
   height: 20px;

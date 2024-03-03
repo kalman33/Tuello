@@ -3,7 +3,7 @@
     <mat-tab-group>
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">settings_applications</mat-icon>
+          <mat-icon class="tab-icon">manufacturing</mat-icon>
           {{ 'mmn.settings.general.title' | translate }}
         </ng-template>
         <div fxLayout="row" fxLayout.sm="column" fxLayout.xs="column">
@@ -77,7 +77,7 @@
           <mat-icon class="tab-icon">import_export</mat-icon>
           {{ 'mmn.settings.setup.title' | translate }}
         </ng-template>
-        <div class="button-row" [ngClass]="routeAnimationsElements">
+        <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
           <button mat-flat-button color="accent" (click)="save()" style="color: white">
             <mat-icon>save</mat-icon>
             {{ 'mmn.settings.setup.button.saveAs' | translate }}
