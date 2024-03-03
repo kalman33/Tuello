@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {MatDialog} from '@angular/material/dialog';
+import {MatLegacyDialog as MatDialog} from '@angular/material/legacy-dialog';
 import {Action} from '../models/Action';
 import {JsonEditorComponent} from '../json-editor/json-editor.component';
 import {ChromeExtentionUtilsService} from '../../core/utils/chrome-extention-utils.service';

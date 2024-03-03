@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
+import { MatLegacyDialog as MatDialog } from '@angular/material/legacy-dialog';
 import { JsonViewerComponent } from '../../core/json-viewer/json-viewer.component';
 import { Track } from '../models/Track';
 import JsonFind from 'json-find';

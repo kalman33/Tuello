@@ -1,10 +1,10 @@
 import { Component, Inject, NgZone, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_LEGACY_DIALOG_DATA as MAT_DIALOG_DATA, MatLegacyDialogRef as MatDialogRef } from '@angular/material/legacy-dialog';
 import { saveAs } from 'file-saver';
 import { formatDate } from 'src/app/core/utils/date-utils';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatLegacySnackBar as MatSnackBar } from '@angular/material/legacy-snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 
 @Component({
