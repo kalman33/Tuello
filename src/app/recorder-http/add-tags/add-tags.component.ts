@@ -30,7 +30,7 @@ export class AddTagsComponent implements OnInit {
   ngOnInit() {
     chrome.storage.local.get(['tuelloHTTPTags'], results => {
       this.tagsService.elements = results['tuelloHTTPTags'];
-      this.changeDetectorRef.detectChanges();
+      //this.changeDetectorRef.detectChanges();
     });
 
   }

@@ -1,13 +1,14 @@
 <div class="container">
   <div fxFlex="99%">
     <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
-    
-    <h1 mat-dialog-title>{{ 'mmn.recorder-http.addTags.title' | translate }}</h1>
-    <button id='back' fxFlex fxLayoutAlign="end center" mat-icon-button [attr.aria-label]="'mmn.spy-http.results.button.return.aria-label' | translate" (click)="back()">
-      <mat-icon>keyboard_backspace</mat-icon>
-    </button>
+      <h1 mat-dialog-title>{{ 'mmn.recorder-http.addTags.title' | translate }}</h1>
+      <div fxFlex fxLayoutAlign="end center">
+        <button id="back" mat-icon-button [attr.aria-label]="'mmn.spy-http.results.button.return.aria-label' | translate" (click)="back()">
+          <mat-icon>keyboard_backspace</mat-icon>
+        </button>
+      </div>
     </div>
-      
+
     <div [ngClass]="routeAnimationsElements" fxLayout="column" fxLayout.sm="column" fxLayout.xs="column">
       <mat-form-field>
         <mat-label>{{ 'mmn.recorder-http.addTags.input.httpKey' | translate }}</mat-label>
@@ -22,22 +23,22 @@
           <mat-label>{{ 'mmn.recorder-http.addTags.input.display' | translate }}</mat-label>
           <input [(ngModel)]="display" matInput placeholder="Ex. User id" />
         </mat-form-field>
-       <div  fxFlex fxLayoutAlign="end center">
-        <button
-          mat-icon-button
-          color="primary"
-          (click)="addElement()"
-          matTooltip="{{ 'mmn.recorder-http.addTags.add.tooltip' | translate }}"
-        >
-          <mat-icon>add_circle_outline</mat-icon>
-        </button>
+        <div fxFlex fxLayoutAlign="end center">
+          <button
+            mat-icon-button
+            color="primary"
+            (click)="addElement()"
+            matTooltip="{{ 'mmn.recorder-http.addTags.add.tooltip' | translate }}"
+          >
+            <mat-icon>add_circle_outline</mat-icon>
+          </button>
         </div>
       </div>
       <mat-accordion multi *ngIf="tagsService.elements">
         <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of tagsService.elements; let i = index">
           <mat-expansion-panel-header>
             <mat-panel-title>
-                <input (change)="onChange()" [(ngModel)]="element.display" matInput />
+              <input (change)="onChange()" [(ngModel)]="element.display" matInput />
             </mat-panel-title>
           </mat-expansion-panel-header>
 
