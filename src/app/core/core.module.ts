@@ -10,7 +10,7 @@ import { JsonViewerComponent } from './json-viewer/json-viewer.component';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { MatIconModule, MatIconRegistry } from '@angular/material/icon';
 import { RateSupportComponent } from './layout/rate-support/rate-support.component';
-import { MatLegacyButtonModule as MatButtonModule } from '@angular/material/legacy-button';
+import { MatButtonModule } from '@angular/material/button';
 import {
     MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';

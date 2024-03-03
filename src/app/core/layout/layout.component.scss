@@ -64,22 +64,23 @@
   flex: 1 0 auto;
 }
 
-button.mat-raised-button mat-icon {
+button.mat-mdc-raised-button mat-icon {
   width: 24px;
   height:24px
 }
 
-button.mat-raised-button .mat-button-wrapper {
+/* TODO(mdc-migration): The following rule targets internal classes of button that may no longer apply for the MDC version.*/
+button.mat-mdc-raised-button .mat-button-wrapper {
   padding-left: 0px !important;
 }
 
-button.mat-raised-button {
+button.mat-mdc-raised-button {
   padding-left: 0px;
   height: 24px;
   line-height: 0px !important;
 }
 
-button.mat-raised-button:hover span {
+button.mat-mdc-raised-button:hover span {
   color: #FFB61E;
 }
 
@@ -102,39 +103,41 @@ mat-sidenav {
   height: 5px;
 }
 
-a.mat-list-item.active {
+a.mat-mdc-list-item.active {
   background: rgba(0, 0, 0, .04);
 }
 
-.mat-list-item:hover {
+.mat-mdc-list-item:hover {
   background: rgba(0, 0, 0, .04) !important;
 }
 
-.mat-list-item {
+.mat-mdc-list-item {
   // background-color: white !important;
 }
 
-a.mat-list-item:hover p {
+a.mat-mdc-list-item:hover p {
   font-weight: bold !important;
   color: #FFB61E;
 }
 
-a.mat-list-item:hover .mat-list-text {
+/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version.*/
+a.mat-mdc-list-item:hover .mat-list-text {
   padding-left: 15px !important;
 }
 
-a.mat-list-item .mat-list-text {
+/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version.*/
+a.mat-mdc-list-item .mat-list-text {
   //padding-left: 14px !important;
 }
 
-a.mat-list-item:hover mat-icon {
+a.mat-mdc-list-item:hover mat-icon {
   // padding-left: 10px !important;
   transform: scale(1.2);
   box-shadow: 10px 0 20px rgba(0, 0, 0, 0.19), 6px 0 6px rgba(0, 0, 0, 0.23);
   transform: rotate(90deg);
 }
 
-a.mat-list-item mat-icon {
+a.mat-mdc-list-item mat-icon {
   border-radius: 50%;
   padding: 5px;
   margin: 3px;
@@ -158,18 +161,21 @@ a.mat-list-item mat-icon {
 }
 
 /* toogle size : reduction de sa taille*/
+/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
 .darkMode .mat-slide-toggle-bar {
   height: 14px;
   width: 36px;
   border-radius: 40px;
 }
 
+/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
 .darkMode .mat-slide-toggle-thumb {
   height: 20px;
   width: 20px;
 }
 
 /*THIS IS WHAT'S HOLDING ME UP, >:( */
+/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
 .darkMode.mat-checked .mat-slide-toggle-thumb-container {
   transform: translate3d(16px, 0, 0) !important;
 }
@@ -179,6 +185,7 @@ a.mat-list-item mat-icon {
   font-size: 13px;
 }
 
+/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
 .darkMode .mat-slide-toggle-thumb-container {
   width: 20px;
   height: 20px;
