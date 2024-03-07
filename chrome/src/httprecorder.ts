@@ -46,6 +46,12 @@ let recorderHttp = {
           this.onreadystatechange && this.onreadystatechange.apply(this, args);
         };
         continue;
+      } else if (attr === 'onload') {
+        xhr.onload = (...args) => {
+          
+          this.onload && this.onload.apply(this, args);
+        }
+        continue;
       }
 
       if (typeof xhr[attr] === 'function') {
@@ -69,17 +75,17 @@ let recorderHttp = {
           this[attr] = xhr[attr].bind(xhr);
         }
       } else {
-        if (attr === 'responseText' || attr === 'response') {
+        if (attr === 'responseText' || attr === 'response' || attr === 'status' || attr === 'statusText') {
           Object.defineProperty(this, attr, {
-            get: () => (this[`_${attr}`] === undefined ? xhr[attr] : this[`_${attr}`]),
-            set: val => (this[`_${attr}`] = val),
-            enumerable: true,
+            get: () => this[`_${attr}`] == undefined ? xhr[attr] : this[`_${attr}`],
+            set: (val) => this[`_${attr}`] = val,
+            enumerable: true
           });
         } else {
           Object.defineProperty(this, attr, {
             get: () => xhr[attr],
-            set: val => (xhr[attr] = val),
-            enumerable: true,
+            set: (val) => xhr[attr] = val,
+            enumerable: true
           });
         }
       }

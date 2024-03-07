@@ -99,7 +99,7 @@ let mockHttp = {
           this[attr] = xhr[attr].bind(xhr);
         }
       } else {
-        if (attr === 'responseText' || attr === 'response' || attr === 'status') {
+        if (attr === 'responseText' || attr === 'response' || attr === 'status' || attr === 'statusText') {
           Object.defineProperty(this, attr, {
             get: () => (this[`_${attr}`] === undefined ? xhr[attr] : this[`_${attr}`]),
             set: val => (this[`_${attr}`] = val),
