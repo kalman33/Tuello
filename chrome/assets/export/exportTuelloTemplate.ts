@@ -1,7 +1,20 @@
 ({
   tuello: function () {
     let deepMockLevel = '###IMPORT_DEEPMOCKLEVEL###';
-    (window as any).tuelloRecords='###IMPORT_DATA###';
+    (window as any).tuelloRecords = '###IMPORT_DATA###';
+
+    function removeURLPortAndProtocol(url: string) {
+      let ret = '';
+      try {
+        let parseURL = new URL(url);
+        parseURL.port = '';
+        ret = parseURL.toString();
+        ret = ret.replace(/^https?:\/\//, '')
+      } catch (e) {
+        ret = url;
+      }
+      return ret;
+    }
 
     let compareWithMockLevel = (url1, url2) => {
       if (typeof url2 !== 'string' || typeof url2 !== 'string') {
@@ -23,19 +36,19 @@
         inc--;
       }
       url1 = url1.replace(/^\//, '');
-  url2 = url2.replace(/^\//, '');
-  
-  const lg1 = url1.split('/').length;
-  const lg2 = url2.split('/').length;
-  
-  if (lg1 > lg2) {
-    url1 = url1.split('/').slice(0, lg2).join('/');
-  } else if (lg2 > lg1) {
-    url2 = url2.split('/').slice(0, lg1).join('/');
-  }
-  
-  return new RegExp('^' + url2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*') + '$').test(url1);
-};
+      url2 = url2.replace(/^\//, '');
+
+      const lg1 = url1.split('/').length;
+      const lg2 = url2.split('/').length;
+
+      if (lg1 > lg2) {
+        url1 = url1.split('/').slice(0, lg2).join('/');
+      } else if (lg2 > lg1) {
+        url2 = url2.split('/').slice(0, lg1).join('/');
+      }
+
+      return new RegExp('^' + url2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*') + '$').test(url1);
+    };
 
     const sleep = (ms: number) => {
       const stop = new Date().getTime() + ms;
@@ -44,79 +57,64 @@
 
 
     let mockHttp = {
-      originalXHR: window.XMLHttpRequest,
-      mockXHR() {
-        // URL avant redirect
-        let originalURL;
+      originalSendXHR: window.XMLHttpRequest.prototype.send,
+      originalOpenXHR: window.XMLHttpRequest.prototype.open,
 
-        const modifyResponse = (isOnLoad: boolean = false) => {
-          if ((window as any).tuelloRecords) {
-            // this.responseURL
-            const records = (window as any).tuelloRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(originalURL, key));
-            if (records && records.length > 0) {
-              records.forEach(({ key, reponse, httpCode, delay }) => {
-                if (delay && isOnLoad) {
-                  sleep(delay);
-                }
-                this.responseText = JSON.stringify(reponse);
-                // Object.defineProperty(this,'responseText', JSON.stringify(reponse));
-                this.response = reponse;
-                this.status = httpCode;
-              });
-            }
-          }
-        };
+      modifyResponse: (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
 
-
-
-        const xhr = new mockHttp.originalXHR();
-        // tslint:disable-next-line:forin
-        for (const attr in xhr) {
-          if (attr === 'onreadystatechange') {
-            xhr.onreadystatechange = (...args) => {
-              if (this.readyState === 4) {
-                modifyResponse();
+        if ((window as any).tuelloRecords) {
+          // this.responseURL
+          const records = (window as any).tuelloRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(xhr["originalURL"], key));
+          if (records && records.length > 0) {
+            records.forEach(({ key, reponse, httpCode, delay }) => {
+              if (delay && isOnLoad) {
+                sleep(delay);
               }
-              // tslint:disable-next-line:no-unused-expression
-              this.onreadystatechange && this.onreadystatechange.apply(this, args);
-            };
-            continue;
-          } else if (attr === 'onload') {
-            xhr.onload = (...args) => {
-              if (this.readyState === 4) {
-                modifyResponse(true);
-              }
-              this.onload && this.onload.apply(this, args);
-            };
-            continue;
-          }
-          if (typeof xhr[attr] === 'function') {
-            if (attr === 'open') {
-              const open = xhr[attr].bind(xhr);
-              this[attr] = function (method, url) {
-                originalURL = url;
-                open.call(this, method, url);
-              }
-            } else {
-              this[attr] = xhr[attr].bind(xhr);
-            }
-          } else {
-            if (attr === 'responseText' || attr === 'response' || attr === 'status' || attr === 'statusText') {
-              Object.defineProperty(this, attr, {
-                get: () => (this[`_${attr}`] === undefined ? xhr[attr] : this[`_${attr}`]),
-                set: val => (this[`_${attr}`] = val),
-                enumerable: true,
-              });
-            } else {
-              Object.defineProperty(this, attr, {
-                get: () => xhr[attr],
-                set: val => (xhr[attr] = val),
-                enumerable: true,
-              });
-            }
+              Object.defineProperty(xhr, 'response', { writable: true });
+              Object.defineProperty(xhr, 'responseText', { writable: true });
+              Object.defineProperty(xhr, 'status', { writable: true });
+              // @ts-expect-error
+              xhr.responseText = JSON.stringify(reponse);
+              // Object.defineProperty(this,'responseText', JSON.stringify(reponse));
+              // @ts-expect-error
+              xhr.response = reponse;
+              // @ts-expect-error
+              xhr.status = httpCode;
+
+            });
           }
         }
       },
+
+      sendXHR: function (this: XMLHttpRequest) {
+        const self = this;
+        const realOnReadyStateChange = self.onreadystatechange;
+
+        self.onreadystatechange = function () {
+          // Vérifie si la requête est terminée (readyState === 4)
+          if (self.readyState === 4) {
+            mockHttp.modifyResponse(false, self);
+          }
+
+          // Appelle la fonction de rappel d'origine avec la réponse modifiée
+          if (realOnReadyStateChange) {
+            realOnReadyStateChange.apply(this, arguments as any);
+          }
+        }
+        // Appel de la fonction send d'origine
+        return mockHttp.originalSendXHR.apply(this, arguments as any);
+
+      },
+
+
+      openXHR: function (method, url) {
+        // Stocker l'URL dans l'objet XMLHttpRequest
+        this["originalURL"] = url;
+
+        // Appel de la fonction open d'origine pour envoyer la requête
+        return mockHttp.originalOpenXHR.apply(this, arguments as any);
+      },
+
 
       originalFetch: window.fetch.bind(window),
       mockFetch: function (...args) {
@@ -180,19 +178,9 @@
 
     };
 
-    function removeURLPortAndProtocol(url: string) {
-      let ret = '';
-      try {
-        let parseURL = new URL(url);
-        parseURL.port = '';
-        ret = parseURL.toString();
-        ret = ret.replace(/^https?:\/\//, '')
-      } catch (e) {
-        ret = url;
-      }
-      return ret;
-    }
-    (window as any).XMLHttpRequest = mockHttp.mockXHR;
+
+    (window as any).XMLHttpRequest.prototype.open = mockHttp.openXHR;
+    (window as any).XMLHttpRequest.prototype.send = mockHttp.sendXHR;
     (window as any).fetch = mockHttp.mockFetch;
   }
 })['tuello']();

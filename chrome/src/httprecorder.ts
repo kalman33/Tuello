@@ -3,9 +3,6 @@ let recorderHttp = {
   originalSendXHR: window.XMLHttpRequest.prototype.send,
   originalOpenXHR: window.XMLHttpRequest.prototype.open,
 
-  xhrMethod: null as string | null,
-  xhrBody: null as string | null,
-
   sendXHR: function (this: XMLHttpRequest) {
     const self = this;
     const realOnReadyStateChange = self.onreadystatechange;
@@ -29,18 +26,12 @@ let recorderHttp = {
               url: self.responseURL,
               delay: 0,
               response: reponse,
-              status: this.status,
-              method: recorderHttp.xhrMethod || '',
-              body: recorderHttp.xhrBody, // non utilisé
+              status: self.status,
+              method: self['xhrMethod'] || '',
               hrefLocation: window.location.href
             },
             '*',
           );
-        }
-
-        // Appelle la fonction de rappel d'origine avec la réponse modifiée
-        if (realOnReadyStateChange) {
-          realOnReadyStateChange.apply(this, arguments as any);
         }
       }
       if (realOnReadyStateChange) {
@@ -56,12 +47,14 @@ let recorderHttp = {
 
   openXHR: function (method, url) {
 
-    // Ajout de la méthode et de l'URL à l'objet recorderHttp
-    recorderHttp.xhrMethod = method;
+    // Stocker l'URL dans l'objet XMLHttpRequest
+    this["xhrMethod"] = method;
 
     // Appel de la fonction open d'origine pour envoyer la requête
     return recorderHttp.originalOpenXHR.apply(this, arguments as any);
   },
+
+
   originalFetch: window.fetch.bind(window),
   recordFetch: async (...args: any[]) => {
 
