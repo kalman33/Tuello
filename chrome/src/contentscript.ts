@@ -6,7 +6,7 @@ import * as jsonViewer from './utils/jsonViewer';
 import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
 import { recordHttpListener } from './utils/recordHttpListener';
 import { activateSearchElements, desactivateSearchElements } from './utils/searchElements';
-import { addTagsPanel, deleteTagsPanel } from './utils/tags';
+import { addTagsPanel, deleteTagsPanel, initTagsHandler } from './utils/tags';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
 import { displayEffect } from './utils/utils';
@@ -200,17 +200,14 @@ function init() {
         }
       });
 
-      chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord'], results => {
-        if (results['httpRecord'] && results['tuelloHTTPTags']) {
-          addTagsPanel(results['tuelloHTTPTags']);
-        }
-      });
-
       chrome.storage.local.get(['searchElementsActivated'], results => {
         if (results['searchElementsActivated']) {
           activateSearchElements();
         }
       });
+
+      // Gestion des tags
+      initTagsHandler();
     }
   });
 }
@@ -287,7 +284,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse();
     } else {
       // on regarde si le mock et le record sont activés et on active la popup le cas échéant
-      chrome.storage.local.get(['httpRecord', 'tuelloHTTPTags', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
+      chrome.storage.local.get(['httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
         if (results.httpMock) {
           window.postMessage(
             {
@@ -307,9 +304,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             },
             '*'
           );
-          if (results['httpRecord'] && results['tuelloHTTPTags']) {
-            addTagsPanel(results['tuelloHTTPTags']);
-          }
           window.addEventListener('message', recordHttpListener);
         }
         sendResponse();
@@ -382,11 +376,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       );
 
       if (message.value) {
-        chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord'], results => {
-          if (results['httpRecord'] && results['tuelloHTTPTags']) {
-            addTagsPanel(results['tuelloHTTPTags']);
-          }
-        });
         window.addEventListener('message', recordHttpListener);
       } else {
         window.removeEventListener('message', recordHttpListener);
@@ -426,8 +415,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       break;
     case 'MMA_TAGS_CHANGE':
-      chrome.storage.local.get(['httpRecord', 'tuelloHTTPTags'], results => {
-        if (results['httpRecord'] && results['tuelloHTTPTags']) {
+      chrome.storage.local.get(['tuelloHTTPTags'], results => {
+        if (results['tuelloHTTPTags']) {
           addTagsPanel(results['tuelloHTTPTags']);
         }
         sendResponse();
@@ -525,7 +514,7 @@ window.addEventListener(
       switch (event.data.type) {
         case 'RECORD_HTTP_READY':
           // init : on regarde si le mode enregistrement est activé pour prévenir httprecord
-          chrome.storage.local.get(['httpRecord', 'tuelloHTTPTags'], results => {
+          chrome.storage.local.get(['httpRecord'], results => {
             if (results.httpRecord) {
               window.postMessage(
                 {
@@ -534,9 +523,7 @@ window.addEventListener(
                 },
                 '*'
               );
-              if (results['httpRecord'] && results['tuelloHTTPTags']) {
-                addTagsPanel(results['tuelloHTTPTags']);
-              }
+           
               window.addEventListener('message', recordHttpListener);
             }
           });

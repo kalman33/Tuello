@@ -38,14 +38,14 @@
         <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of tagsService.elements; let i = index">
           <mat-expansion-panel-header>
             <mat-panel-title>
-              <input (change)="onChange()" [(ngModel)]="element.display" matInput />
+              {{ 'mmn.recorder-http.addTags.input.display' | translate }} : <input (change)="onChange()" [(ngModel)]="element.display" matInput />
             </mat-panel-title>
           </mat-expansion-panel-header>
 
           <div fxLayout="column">
-            <div class="data">{{ element.httpKey }}</div>
+            <div class="data">{{ 'mmn.recorder-http.addTags.input.httpKey' | translate }} : {{ element.httpKey }}</div>
             <div fxLayout="row">
-              <div fxFlex="80%" class="data">{{ element.jsonKey }}</div>
+              <div fxFlex="80%" class="data">{{ 'mmn.recorder-http.addTags.input.jsonKey' | translate }}: {{ element.jsonKey }}</div>
               <div fxFlex="19%" fxLayoutAlign="end center" class="actions">
                 <button mat-icon-button color="primary" (click)="deleteElement(i)">
                   <mat-icon>delete</mat-icon>
