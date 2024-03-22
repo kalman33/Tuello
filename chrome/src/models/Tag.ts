@@ -3,4 +3,5 @@ export interface Tag {
   display: string;
   jsonKey: string;
   jsonKeyValue: string;
+  location: string;
 }

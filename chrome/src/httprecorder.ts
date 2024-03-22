@@ -1,3 +1,5 @@
+let httpCalls = new Map<string, any>();
+
 let recorderHttp = {
 
   originalSendXHR: window.XMLHttpRequest.prototype.send,
@@ -87,7 +89,14 @@ let recorderHttp = {
           response: err
         })
         .finally(() => {
-          const obj = JSON.parse(JSON.stringify(data));
+          let obj;
+          try {
+             obj = JSON.parse(JSON.stringify(data));
+
+          } catch (e) {
+            obj = data;
+          }
+          
           window.postMessage(
             obj
             ,
@@ -101,6 +110,75 @@ let recorderHttp = {
   }
 }
 
+let recorderHttpForTags = {
+  originalSendXHR: window.XMLHttpRequest.prototype.send,
+
+  sendXHR: function () {
+    const self = this;
+    const realOnReadyStateChange = self.onreadystatechange;
+
+    self.onreadystatechange = function () {
+      // Vérifie si la requête est terminée (readyState === 4)
+      if (self.readyState === 4) {
+
+        window.top.postMessage({
+          type: 'ADD_HTTP_CALL_FOR_TAGS',
+          url: self.responseURL,
+          response: self.responseText
+        }, '*');
+      }
+      if (realOnReadyStateChange) {
+        realOnReadyStateChange.apply(self, arguments);
+      }
+    };
+
+    // Appel de la fonction send d'origine
+    return recorderHttpForTags.originalSendXHR.apply(this, arguments);
+  },
+
+  originalFetch: window.fetch.bind(window),
+  recordFetch: async (...args: any[]) => {
+
+    //const response = await recorderHttp.originalFetch(...args);
+    const response = await recorderHttp.originalFetch.apply(null, args as Parameters<typeof fetch>);
+    let data: any;
+    if (args[0] && typeof args[0] === 'string') {
+      data =
+      {
+        url: args[0],
+      };
+
+      /* work with the cloned response in a separate promise
+         chain -- could use the same chain with `await`. */
+      response
+        .clone()
+        .json()
+        .then(body => data = {
+          ...data,
+          response: body
+        })
+        .catch(err => data = {
+          ...data,
+          response: err
+        })
+        .finally(() => {
+          data.type = 'ADD_HTTP_CALL_FOR_TAGS';
+          let obj;
+          try {
+            obj = JSON.parse(JSON.stringify(data));
+
+         } catch (e) {
+           obj = data;
+         }
+          window.top.postMessage(obj, '*');
+        });
+
+    }
+    /* the original response can be resolved unmodified: */
+    return response;
+  }
+};
+
 /**
  * Listener des post message provenant de contentscript
  */
@@ -108,7 +186,7 @@ window.addEventListener(
   'message',
   // tslint:disable-next-line:only-arrow-functions
   function (event) {
-    if (event?.data?.type && event?.data?.type === 'RECORD_HTTP_ACTIVATED') {
+    if (event?.data?.type === 'RECORD_HTTP_ACTIVATED') {
       if (event.data.value) {
         (window as any).XMLHttpRequest.prototype.open = recorderHttp.openXHR;
         (window as any).XMLHttpRequest.prototype.send = recorderHttp.sendXHR;
@@ -119,7 +197,12 @@ window.addEventListener(
         (window as any).XMLHttpRequest.prototype.send = recorderHttp.originalSendXHR;
         window.fetch = recorderHttp.originalFetch;
       }
+    } else if (event?.data?.type === 'RECORD_HTTP_CALL_FOR_TAGS') {
+      // on active l'intercepteur HTTP
+      (window as any).XMLHttpRequest.prototype.send = recorderHttpForTags.sendXHR;
+      window.fetch = recorderHttpForTags.recordFetch;
     } // else ignore messages seemingly not sent to yourself
+
   },
   false,
 );

@@ -4,28 +4,39 @@ import JsonFind from 'json-find';
 
 let httpCalls = new Map<string, any>();
 
-export function initTagsHandler() {
-  chrome.storage.local.get(['tuelloHTTPTags'], results => {
-    if (results['tuelloHTTPTags']) {
-      // on active l'intercepteur HTTP
-      (window as any).XMLHttpRequest.prototype.send = recorderHttpForTags.sendXHR;
-      window.fetch = recorderHttpForTags.recordFetch;
-    }
-    // on ecoute les postMessage si on est en fenetre mère
-    if (window.top === window) {
-      window.addEventListener(
-        'message',
-        event => {
-          if (event?.data?.type && event?.data?.type === 'ADD_HTTP_CALL_FOR_TAGS') {
-            httpCalls.set(event.data.url, event.data.response);
-            displayTags(results['tuelloHTTPTags']);
-          }
 
-        }
-      );
+export function initTagsHandler(tuelloHTTPTags) {
+  
+  window.postMessage(
+    {
+      type: 'RECORD_HTTP_CALL_FOR_TAGS',
+      value: true
+    },
+    '*'
+  );
+
+  window.addEventListener('beforeunload', function(event) {
+    httpCalls = new Map<string, any>();
+    for (const tag of tuelloHTTPTags) {
+      tag.jsonKeyValue = null;
     }
-  });
+});
+
+  // on ecoute les postMessage si on est en fenetre mère
+  if (window.top === window) {
+    window.addEventListener(
+      'message',
+      event => {
+        if (event?.data?.type === 'ADD_HTTP_CALL_FOR_TAGS') {
+          httpCalls.set(event.data.url, event.data.response);
+          addTagsPanel(tuelloHTTPTags);
+        }
+
+      }
+    );
+  }
 }
+
 
 
 function findInJson(data: any, keyString: string) {
@@ -50,7 +61,7 @@ function findInJson(data: any, keyString: string) {
 
 function getResponseByPartialUrl(map, partialKey) {
   for (let [key, value] of map.entries()) {
-    if (key.includes(partialKey)) {
+    if (key.includes(partialKey?.httpKey)) {
       return value;
     }
   }
@@ -62,9 +73,14 @@ function getResponseByPartialUrl(map, partialKey) {
  */
 export function addTagsPanel(tags: Tag[]) {
   let display = false;
-
   for (const tag of tags) {
-    tag.jsonKeyValue = findTagInHttpCalls(tag);
+    // le jsonKeyValue n'a pas été déjà calculée sur cette url
+    if (!tag.jsonKeyValue) {
+      tag.jsonKeyValue = findTagInHttpCalls(tag);
+      const tagLocation = new URL(document.location.href);
+      tagLocation.search = '';
+      tag.location = tagLocation.toString();
+    }
     if (tag.jsonKeyValue) {
       display = true;
     }
@@ -91,18 +107,8 @@ function findTagInHttpCalls(tag: Tag) {
 }
 
 function displayTags(tags: Tag[]) {
-  deleteTagsPanel();
-  addcss(chrome.runtime.getURL('tags.css'));
-
-  //TAG
-  const tagDiv = document.createElement('div');
-  tagDiv.id = "tuelloTags"
-  tagDiv.className = "tuello-tag";
-
-  // FRONT
-  const frontDiv = document.createElement('div');
-  frontDiv.className = "tuello-front";
-  tagDiv.appendChild(frontDiv);
+  let display = false;
+  
 
   // CONTENT
   const contentDiv = document.createElement('div');
@@ -115,80 +121,25 @@ function displayTags(tags: Tag[]) {
       content = document.createElement('div');
       content.innerHTML = `${tag.display}:  ${tag.jsonKeyValue}`;
       contentDiv.appendChild(content);
+      display = true;
     }
   }
-  frontDiv.appendChild(contentDiv);
-  tagDiv.appendChild(frontDiv);
-  document.body.appendChild(tagDiv);
+  if (display){
+    deleteTagsPanel();
+    addcss(chrome.runtime.getURL('tags.css'));
+
+    //TAG
+    const tagDiv = document.createElement('div');
+    tagDiv.id = "tuelloTags"
+    tagDiv.className = "tuello-tag";
+
+    // FRONT
+    const frontDiv = document.createElement('div');
+    frontDiv.className = "tuello-front";
+    tagDiv.appendChild(frontDiv);
+    frontDiv.appendChild(contentDiv);
+    tagDiv.appendChild(frontDiv);
+    document.body.appendChild(tagDiv);
+  }
 }
 
-let recorderHttpForTags = {
-  originalSendXHR: window.XMLHttpRequest.prototype.send,
-
-  sendXHR: function () {
-    const self = this;
-    const realOnReadyStateChange = self.onreadystatechange;
-
-    self.onreadystatechange = function () {
-      // Vérifie si la requête est terminée (readyState === 4)
-      if (self.readyState === 4) {
-        httpCalls.set(self.responseURL, self.responseText);
-        if (window.top === window) {
-          httpCalls.set(self.responseURL, self.responseText);
-        } else {
-          window.top.postMessage({
-            type: 'ADD_HTTP_CALL_FOR_TAGS',
-            url: self.responseURL,
-            response: self.responseText
-          }, '*');
-        }
-      }
-      if (realOnReadyStateChange) {
-        realOnReadyStateChange.apply(self, arguments);
-      }
-    };
-
-    // Appel de la fonction send d'origine
-    return recorderHttpForTags.originalSendXHR.apply(this, arguments);
-  },
-
-  originalFetch: window.fetch.bind(window),
-  recordFetch: async (...args: any[]) => {
-
-    //const response = await recorderHttp.originalFetch(...args);
-    const response = await recorderHttp.originalFetch.apply(null, args as Parameters<typeof fetch>);
-    let data: any;
-    if (args[0] && typeof args[0] === 'string') {
-      data =
-      {
-        url: args[0],
-      };
-
-      /* work with the cloned response in a separate promise
-         chain -- could use the same chain with `await`. */
-      response
-        .clone()
-        .json()
-        .then(body => data = {
-          ...data,
-          response: body
-        })
-        .catch(err => data = {
-          ...data,
-          response: err
-        })
-        .finally(() => {
-          if (window.top === window) {
-            httpCalls.set(data.url, data.response);
-          } else {
-            data.type = 'ADD_HTTP_CALL_FOR_TAGS';
-            const obj = JSON.parse(JSON.stringify(data));
-            window.top.postMessage(obj, '*');
-          }
-        });
-
-    }
-    /* the original response can be resolved unmodified: */
-    return response;
-  }
-};

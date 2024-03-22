@@ -1,4 +1,3 @@
-import { addTagsPanel } from './tags';
 import { removeDuplicateEntries } from './utils';
 
 export function recordHttpListener(event: MessageEvent) {

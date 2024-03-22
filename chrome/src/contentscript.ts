@@ -205,9 +205,6 @@ function init() {
           activateSearchElements();
         }
       });
-
-      // Gestion des tags
-      initTagsHandler();
     }
   });
 }
@@ -417,6 +414,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'MMA_TAGS_CHANGE':
       chrome.storage.local.get(['tuelloHTTPTags'], results => {
         if (results['tuelloHTTPTags']) {
+          // On initialise le gestionnaire des tags
+          initTagsHandler(results['tuelloHTTPTags']);
           addTagsPanel(results['tuelloHTTPTags']);
         }
         sendResponse();
@@ -514,7 +513,7 @@ window.addEventListener(
       switch (event.data.type) {
         case 'RECORD_HTTP_READY':
           // init : on regarde si le mode enregistrement est activé pour prévenir httprecord
-          chrome.storage.local.get(['httpRecord'], results => {
+          chrome.storage.local.get(['httpRecord', 'tuelloHTTPTags'], results => {
             if (results.httpRecord) {
               window.postMessage(
                 {
@@ -523,8 +522,12 @@ window.addEventListener(
                 },
                 '*'
               );
-           
+
               window.addEventListener('message', recordHttpListener);
+            }
+            if (results['tuelloHTTPTags']) {
+              // On initialise le gestionnaire des tags
+              initTagsHandler(results['tuelloHTTPTags']);
             }
           });
           break;
