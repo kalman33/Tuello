@@ -1,4 +1,5 @@
 let httpCalls = new Map<string, any>();
+let originalFetch = window.fetch.bind(window);
 
 let recorderHttp = {
 
@@ -57,14 +58,12 @@ let recorderHttp = {
   },
 
 
-  originalFetch: window.fetch.bind(window),
   recordFetch: async (...args: any[]) => {
 
     //const response = await recorderHttp.originalFetch(...args);
-    const response = await recorderHttp.originalFetch.apply(null, args as Parameters<typeof fetch>);
-    let data: any;
+    const response = await originalFetch.apply(window, args as Parameters<typeof fetch>);
     if (args[0] && typeof args[0] === 'string') {
-      data =
+      let dataForRecordHTTP: any = 
       {
         type: 'RECORD_HTTP',
         url: args[0],
@@ -74,35 +73,31 @@ let recorderHttp = {
         body: args[1] ? args[1].body : undefined,
         hrefLocation: window.location.href
       };
+      let dataForTags: any = { url: args[0], type: 'ADD_HTTP_CALL_FOR_TAGS' };
+      let data: any = {};
 
-      /* work with the cloned response in a separate promise
-         chain -- could use the same chain with `await`. */
-      response
-        .clone()
-        .json()
-        .then(body => data = {
-          ...data,
-          response: body
-        })
-        .catch(err => data = {
-          ...data,
-          response: err
-        })
-        .finally(() => {
-          let obj;
-          try {
-             obj = JSON.parse(JSON.stringify(data));
+      try {
+        // Essayer de lire le corps de la réponse en tant que JSON
+        const responseBody = await response.clone().json();
+        data.response = responseBody;
+      } catch (error) {
+        // En cas d'erreur, enregistrer l'erreur dans response
+        data.response = error
+      } finally {
+        // Envoyer le message contenant les données enregistrées
+        //const message = JSON.parse(JSON.stringify(data));
+        if (httpRecordActivated) {
+          const message = { ...data, ...dataForRecordHTTP };
+          window.top.postMessage(message, '*');
+        }
+        if (httpRecordForTagsActivated) {
+          const message = { ...data, ...dataForTags };
+          window.top.postMessage(message, '*');
+        }
 
-          } catch (e) {
-            obj = data;
-          }
-          
-          window.postMessage(
-            obj
-            ,
-            '*',
-          );
-        });
+
+        
+      }
 
     }
     /* the original response can be resolved unmodified: */
@@ -136,48 +131,44 @@ let recorderHttpForTags = {
     return recorderHttpForTags.originalSendXHR.apply(this, arguments);
   },
 
-  originalFetch: window.fetch.bind(window),
   recordFetch: async (...args: any[]) => {
 
     //const response = await recorderHttp.originalFetch(...args);
-    const response = await recorderHttpForTags.originalFetch.apply(null, args as Parameters<typeof fetch>);
-    let data: any;
+    const response = await originalFetch.apply(window, args as Parameters<typeof fetch>);
     if (args[0] && typeof args[0] === 'string') {
-      data =
-      {
-        url: args[0],
-      };
+      let data: any = { url: args[0] };
 
-      /* work with the cloned response in a separate promise
-         chain -- could use the same chain with `await`. */
-      response
-        .clone()
-        .json()
-        .then(body => data = {
-          ...data,
-          response: body
-        })
-        .catch(err => data = {
-          ...data,
-          response: err
-        })
-        .finally(() => {
-          data.type = 'ADD_HTTP_CALL_FOR_TAGS';
-          let obj;
-          try {
-            obj = JSON.parse(JSON.stringify(data));
-
-         } catch (e) {
-           obj = data;
-         }
-          window.top.postMessage(obj, '*');
-        });
+      try {
+        // Essayer de lire le corps de la réponse en tant que JSON
+        const responseBody = await response.clone().json();
+        data.response = responseBody;
+      } catch (error) {
+        // En cas d'erreur, enregistrer l'erreur dans response
+        data.response = error
+      } finally {
+        // Envoyer le message contenant les données enregistrées
+        const message = { ...data, type: 'ADD_HTTP_CALL_FOR_TAGS' };
+        window.top.postMessage(message, '*');
+      }
 
     }
     /* the original response can be resolved unmodified: */
     return response;
   }
 };
+
+function combineInterceptors(...interceptors) {
+  return async (...args) => {
+    let result = args;
+    for (const interceptor of interceptors) {
+      result = await interceptor(...result);
+    }
+    return result;
+  };
+}
+
+let httpRecordActivated = false;
+let httpRecordForTagsActivated = false;
 
 /**
  * Listener des post message provenant de contentscript
@@ -186,23 +177,29 @@ window.addEventListener(
   'message',
   // tslint:disable-next-line:only-arrow-functions
   function (event) {
-    if (event?.data?.type === 'RECORD_HTTP_ACTIVATED') {
-      if (event.data.value) {
-        (window as any).XMLHttpRequest.prototype.open = recorderHttp.openXHR;
-        (window as any).XMLHttpRequest.prototype.send = recorderHttp.sendXHR;
-
+    if (event?.data?.type === 'RECORD_HTTP_ACTIVATED' || event?.data?.type === 'RECORD_HTTP_CALL_FOR_TAGS') {
+      if (event?.data?.type === 'RECORD_HTTP_ACTIVATED') {
+        if (event.data.value) {
+          (window as any).XMLHttpRequest.prototype.open = recorderHttp.openXHR;
+          (window as any).XMLHttpRequest.prototype.send = recorderHttp.sendXHR;
+          httpRecordActivated = true;
+        } else {
+          (window as any).XMLHttpRequest.prototype.open = recorderHttp.originalOpenXHR;
+          (window as any).XMLHttpRequest.prototype.send = recorderHttp.originalSendXHR;
+          httpRecordActivated = false;
+        }
+      } else {
+        // on active l'intercepteur HTTP
+        (window as any).XMLHttpRequest.prototype.send = recorderHttpForTags.sendXHR;
+        httpRecordForTagsActivated = true;
+      } 
+      if (httpRecordActivated || httpRecordForTagsActivated) {
         window.fetch = recorderHttp.recordFetch;
       } else {
-        (window as any).XMLHttpRequest.prototype.open = recorderHttp.originalOpenXHR;
-        (window as any).XMLHttpRequest.prototype.send = recorderHttp.originalSendXHR;
-        window.fetch = recorderHttp.originalFetch;
+        window.fetch = originalFetch;
       }
-    } else if (event?.data?.type === 'RECORD_HTTP_CALL_FOR_TAGS') {
-      // on active l'intercepteur HTTP
-      (window as any).XMLHttpRequest.prototype.send = recorderHttpForTags.sendXHR;
-      window.fetch = recorderHttpForTags.recordFetch;
-    } // else ignore messages seemingly not sent to yourself
-
+      
+    }
   },
   false,
 );
