@@ -140,7 +140,7 @@ let recorderHttpForTags = {
   recordFetch: async (...args: any[]) => {
 
     //const response = await recorderHttp.originalFetch(...args);
-    const response = await recorderHttp.originalFetch.apply(null, args as Parameters<typeof fetch>);
+    const response = await recorderHttpForTags.originalFetch.apply(null, args as Parameters<typeof fetch>);
     let data: any;
     if (args[0] && typeof args[0] === 'string') {
       data =

@@ -15,7 +15,7 @@ export function initTagsHandler(tuelloHTTPTags) {
     '*'
   );
 
-  window.addEventListener('beforeunload', function(event) {
+  window.addEventListener('beforeunload', (event) => {
     httpCalls = new Map<string, any>();
     for (const tag of tuelloHTTPTags) {
       tag.jsonKeyValue = null;
