@@ -23,18 +23,27 @@ let recorderHttp = {
             // error
             console.log('Tuello : Problème de parsing de la reponse', e);
           }
-          window.postMessage(
-            {
-              type: 'RECORD_HTTP',
+          if (httpRecordActivated) {
+            window.postMessage(
+              {
+                type: 'RECORD_HTTP',
+                url: self.responseURL,
+                delay: 0,
+                response: reponse,
+                status: self.status,
+                method: self['xhrMethod'] || '',
+                hrefLocation: window.location.href
+              },
+              '*',
+            );
+          }
+          if (httpRecordForTagsActivated) {
+            window.top.postMessage({
+              type: 'ADD_HTTP_CALL_FOR_TAGS',
               url: self.responseURL,
-              delay: 0,
-              response: reponse,
-              status: self.status,
-              method: self['xhrMethod'] || '',
-              hrefLocation: window.location.href
-            },
-            '*',
-          );
+              response: reponse
+            }, '*');
+          }
         }
       }
       if (realOnReadyStateChange) {
@@ -59,11 +68,10 @@ let recorderHttp = {
 
 
   recordFetch: async (...args: any[]) => {
-
     //const response = await recorderHttp.originalFetch(...args);
-    const response = await originalFetch.apply(window, args as Parameters<typeof fetch>);
+    const response = await originalFetch.apply(null, args as Parameters<typeof fetch>);
     if (args[0] && typeof args[0] === 'string') {
-      let dataForRecordHTTP: any = 
+      let dataForRecordHTTP: any =
       {
         type: 'RECORD_HTTP',
         url: args[0],
@@ -75,7 +83,6 @@ let recorderHttp = {
       };
       let dataForTags: any = { url: args[0], type: 'ADD_HTTP_CALL_FOR_TAGS' };
       let data: any = {};
-
       try {
         // Essayer de lire le corps de la réponse en tant que JSON
         const responseBody = await response.clone().json();
@@ -84,87 +91,25 @@ let recorderHttp = {
         // En cas d'erreur, enregistrer l'erreur dans response
         data.response = error
       } finally {
+        
         // Envoyer le message contenant les données enregistrées
         //const message = JSON.parse(JSON.stringify(data));
         if (httpRecordActivated) {
-          const message = { ...data, ...dataForRecordHTTP };
+          let message = { ...data, ...dataForRecordHTTP };
+          message = JSON.parse(JSON.stringify(message));
           window.top.postMessage(message, '*');
         }
         if (httpRecordForTagsActivated) {
-          const message = { ...data, ...dataForTags };
+          let message = { ...data, ...dataForTags };
+          message = JSON.parse(JSON.stringify(message));
           window.top.postMessage(message, '*');
         }
-
-
-        
       }
 
     }
     /* the original response can be resolved unmodified: */
     return response;
   }
-}
-
-let recorderHttpForTags = {
-  originalSendXHR: window.XMLHttpRequest.prototype.send,
-
-  sendXHR: function () {
-    const self = this;
-    const realOnReadyStateChange = self.onreadystatechange;
-
-    self.onreadystatechange = function () {
-      // Vérifie si la requête est terminée (readyState === 4)
-      if (self.readyState === 4) {
-
-        window.top.postMessage({
-          type: 'ADD_HTTP_CALL_FOR_TAGS',
-          url: self.responseURL,
-          response: self.responseText
-        }, '*');
-      }
-      if (realOnReadyStateChange) {
-        realOnReadyStateChange.apply(self, arguments);
-      }
-    };
-
-    // Appel de la fonction send d'origine
-    return recorderHttpForTags.originalSendXHR.apply(this, arguments);
-  },
-
-  recordFetch: async (...args: any[]) => {
-
-    //const response = await recorderHttp.originalFetch(...args);
-    const response = await originalFetch.apply(window, args as Parameters<typeof fetch>);
-    if (args[0] && typeof args[0] === 'string') {
-      let data: any = { url: args[0] };
-
-      try {
-        // Essayer de lire le corps de la réponse en tant que JSON
-        const responseBody = await response.clone().json();
-        data.response = responseBody;
-      } catch (error) {
-        // En cas d'erreur, enregistrer l'erreur dans response
-        data.response = error
-      } finally {
-        // Envoyer le message contenant les données enregistrées
-        const message = { ...data, type: 'ADD_HTTP_CALL_FOR_TAGS' };
-        window.top.postMessage(message, '*');
-      }
-
-    }
-    /* the original response can be resolved unmodified: */
-    return response;
-  }
-};
-
-function combineInterceptors(...interceptors) {
-  return async (...args) => {
-    let result = args;
-    for (const interceptor of interceptors) {
-      result = await interceptor(...result);
-    }
-    return result;
-  };
 }
 
 let httpRecordActivated = false;
@@ -179,26 +124,19 @@ window.addEventListener(
   function (event) {
     if (event?.data?.type === 'RECORD_HTTP_ACTIVATED' || event?.data?.type === 'RECORD_HTTP_CALL_FOR_TAGS') {
       if (event?.data?.type === 'RECORD_HTTP_ACTIVATED') {
-        if (event.data.value) {
-          (window as any).XMLHttpRequest.prototype.open = recorderHttp.openXHR;
-          (window as any).XMLHttpRequest.prototype.send = recorderHttp.sendXHR;
-          httpRecordActivated = true;
-        } else {
-          (window as any).XMLHttpRequest.prototype.open = recorderHttp.originalOpenXHR;
-          (window as any).XMLHttpRequest.prototype.send = recorderHttp.originalSendXHR;
-          httpRecordActivated = false;
-        }
+        httpRecordActivated = event.data.value;
       } else {
-        // on active l'intercepteur HTTP
-        (window as any).XMLHttpRequest.prototype.send = recorderHttpForTags.sendXHR;
         httpRecordForTagsActivated = true;
-      } 
+      }
       if (httpRecordActivated || httpRecordForTagsActivated) {
         window.fetch = recorderHttp.recordFetch;
+        (window as any).XMLHttpRequest.prototype.open = recorderHttp.openXHR;
+        (window as any).XMLHttpRequest.prototype.send = recorderHttp.sendXHR;
       } else {
+        (window as any).XMLHttpRequest.prototype.open = recorderHttp.originalOpenXHR;
+        (window as any).XMLHttpRequest.prototype.send = recorderHttp.originalSendXHR;
         window.fetch = originalFetch;
       }
-      
     }
   },
   false,
