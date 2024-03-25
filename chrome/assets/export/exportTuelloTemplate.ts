@@ -64,9 +64,9 @@
 
         if ((window as any).tuelloRecords) {
           // this.responseURL
-          const records = (window as any).tuelloRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(xhr["originalURL"], key));
+          const records = (window as any).tuelloRecords.filter(({ key, response, httpCode }) => compareWithMockLevel(xhr["originalURL"], key));
           if (records && records.length > 0) {
-            records.forEach(({ key, reponse, httpCode, delay }) => {
+            records.forEach(({ key, response, httpCode, delay }) => {
               if (delay && isOnLoad) {
                 sleep(delay);
               }
@@ -74,10 +74,10 @@
               Object.defineProperty(xhr, 'responseText', { writable: true });
               Object.defineProperty(xhr, 'status', { writable: true });
               // @ts-expect-error
-              xhr.responseText = JSON.stringify(reponse);
-              // Object.defineProperty(this,'responseText', JSON.stringify(reponse));
+              xhr.responseText = JSON.stringify(response);
+              // Object.defineProperty(this,'responseText', JSON.stringify(response));
               // @ts-expect-error
-              xhr.response = reponse;
+              xhr.response = response;
               // @ts-expect-error
               xhr.status = httpCode;
 
@@ -122,13 +122,13 @@
           let txt = undefined;
           let status = undefined;
           if ((window as any).tuelloRecords) {
-            const records = (window as any).tuelloRecords.filter(({ key, reponse, httpCode }) => compareWithMockLevel(args[0], key));
+            const records = (window as any).tuelloRecords.filter(({ key, response, httpCode }) => compareWithMockLevel(args[0], key));
             if (records && records.length > 0) {
-              records.forEach(({ key, reponse, httpCode, delay }) => {
+              records.forEach(({ key, response, httpCode, delay }) => {
                 if (delay) {
                   sleep(delay);
                 }
-                txt = JSON.stringify(reponse);
+                txt = JSON.stringify(response);
                 status = httpCode;
               });
             }

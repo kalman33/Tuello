@@ -14,12 +14,12 @@ let recorderHttp = {
       // Vérifie si la requête est terminée (readyState === 4)
       if (self.readyState === 4) {
         if (self.responseURL && typeof self.responseURL === 'string' && !self.responseURL.includes('tuello') && !self.responseURL.includes('sockjs')) {
-          let reponse = '';
+          let response = '';
           try {
-            reponse = JSON.parse(self.responseText);
+            response = JSON.parse(self.responseText);
 
           } catch (e) {
-            reponse = self.responseText;
+            response = self.responseText;
             // error
             console.log('Tuello : Problème de parsing de la reponse', e);
           }
@@ -29,7 +29,7 @@ let recorderHttp = {
                 type: 'RECORD_HTTP',
                 url: self.responseURL,
                 delay: 0,
-                response: reponse,
+                response: response,
                 status: self.status,
                 method: self['xhrMethod'] || '',
                 hrefLocation: window.location.href
@@ -41,7 +41,7 @@ let recorderHttp = {
             window.top.postMessage({
               type: 'ADD_HTTP_CALL_FOR_TAGS',
               url: self.responseURL,
-              response: reponse
+              response: response
             }, '*');
           }
         }

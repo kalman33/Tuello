@@ -8,7 +8,7 @@ export const JSON_SCHEMA = {
         type: 'string',
         nullable: true
       },
-      reponse: {
+      response: {
         type: ['object', 'array', 'string', 'number', 'null'],
         nullable: true
       },

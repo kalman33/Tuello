@@ -1,5 +1,5 @@
 export interface HttpReturn {
   key: string;
-  reponse: any;
+  response: any;
   httpCode: any;
 }

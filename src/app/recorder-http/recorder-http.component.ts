@@ -130,7 +130,7 @@ export class RecorderHttpComponent implements OnInit {
         // log the current items and node for inspection
         // console.log('items:', items, 'node:', node);
 
-        if (path && node && node.path[1] === 'reponse') {
+        if (path && node && node.path[1] === 'response') {
           items.push({
             text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'),
             title: this.translate.instant('mmn.jsoneditor.menu.clearResponse.title'),
