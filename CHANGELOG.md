@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.0.0.13] - 2024-03-25
+    Correctifs record XMLHTTPRequest + Tags
 ## [1.0.0.12] - 2024-03-04
     Refonte record/mock XMLHTTPRequest
 ## [1.0.0.11] - 2024-03-04
