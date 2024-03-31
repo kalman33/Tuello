@@ -3,6 +3,7 @@ import { addcss } from './utils';
 import JsonFind from 'json-find';
 
 let httpCalls = new Map<string, any>();
+let rightState = true; 
 
 
 export function initTagsHandler(tuelloHTTPTags) {
@@ -131,11 +132,25 @@ function displayTags(tags: Tag[]) {
     //TAG
     const tagDiv = document.createElement('div');
     tagDiv.id = "tuelloTags"
-    tagDiv.className = "tuello-tag";
+    tagDiv.className = "tuello-tag right";
+    tagDiv.addEventListener('click', () => {
+      if (rightState) {
+        tagDiv.classList.remove('right');
+        tagDiv.classList.add('left');
+      } else {
+        tagDiv.classList.remove('left');
+        tagDiv.classList.add('right');
+      }
+      rightState = !rightState;
+      
+    });
 
     // FRONT
     const frontDiv = document.createElement('div');
     frontDiv.className = "tuello-front";
+   
+
+
     tagDiv.appendChild(frontDiv);
     frontDiv.appendChild(contentDiv);
     tagDiv.appendChild(frontDiv);

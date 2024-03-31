@@ -60,7 +60,7 @@ export class RecorderHttpComponent implements OnInit {
         // recupération des enregistrements
         chrome.storage.local.get(['tuelloRecords'], results => {
           this.records = results['tuelloRecords'];
-          this.jsonEditorTree.setText(JSON.stringify(results['tuelloRecords']));
+          this.jsonEditorTree?.setText(JSON.stringify(results['tuelloRecords']));
         });
       }
       sendResponse();
@@ -188,7 +188,7 @@ export class RecorderHttpComponent implements OnInit {
     this.jsonEditorTree = new JSONEditor(document.getElementById('jsonEditorTree'), this.options);
 
     try {
-      this.jsonEditorTree.setText(JSON.stringify(this.records));
+      this.jsonEditorTree?.setText(JSON.stringify(this.records));
     } catch (e) {
       this.jsonEditorTree.setText('{}');
     }

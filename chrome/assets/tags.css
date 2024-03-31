@@ -6,20 +6,34 @@
     height: 100%;
     border-radius: 5px;
     transition: all .5s ease;
-    clip-path: circle(4% at 100% 0px);
     display: flex;
+    z-index: 99999999999;
     justify-content: center;
     align-items: center;
     background: #D12566;
     transition: all .4s ease;
     animation: tuello-tag 3s ease-in-out 0s infinite forwards;
-
 }
 
-.tuello-front .tuello-content {
+.tuello-tag.right .tuello-front {
+    clip-path: circle(4% at 100% 0px);
+}
+.tuello-tag.left .tuello-front {
+    clip-path: circle(4% at 0px 0px); 
+}
+
+.tuello-tag.right .tuello-front .tuello-content {
     position: absolute; 
-    top: 30px; 
-    right: 100px !important;
+    top: 5vh; 
+    right: 5vh !important;
+    color: white !important;
+    max-width: 300px !important;
+}
+
+.tuello-tag.left .tuello-front .tuello-content {
+    left: 5vh !important;
+    position: absolute; 
+    top: 5vh; 
     color: white !important;
     max-width: 300px !important;
 }
@@ -28,14 +42,19 @@
     padding-bottom: 20px;
 }
 
-.tuello-tag:not(.nohover):hover .tuello-front{
+.tuello-tag.right:hover .tuello-front {
     cursor: pointer;
     clip-path: circle(50% at 100% 0px);
-    background: linear-gradient(45deg, rgba(209,37,102, 0.5) 0%, rgba(209,37,102, 1) 100%);
+    background: linear-gradient(-45deg, rgba(209,37,102, 0.5) 0%, rgba(209,37,102, 1) 100%);
 
 }
 
+.tuello-tag.left:hover .tuello-front {
+    cursor: pointer;
+    clip-path: circle(50% at 0px 0px); 
+    background: linear-gradient(45deg, rgba(209,37,102, 0.5) 0%, rgba(209,37,102, 1) 100%);
 
+}
 
 @keyframes tuello-tag{
     0%{

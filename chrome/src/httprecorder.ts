@@ -23,27 +23,38 @@ let recorderHttp = {
             // error
             console.log('Tuello : Problème de parsing de la reponse', e);
           }
-          if (httpRecordActivated) {
-            window.postMessage(
-              {
-                type: 'RECORD_HTTP',
-                url: self.responseURL,
-                delay: 0,
-                response: response,
-                status: self.status,
-                method: self['xhrMethod'] || '',
-                hrefLocation: window.location.href
-              },
-              '*',
-            );
+
+          const messageHttpRecorder = {
+            type: 'RECORD_HTTP',
+            url: self.responseURL,
+            delay: 0,
+            response: response,
+            status: self.status,
+            method: self['xhrMethod'] || '',
+            hrefLocation: window.location.href
           }
-          if (httpRecordForTagsActivated) {
-            window.top.postMessage({
-              type: 'ADD_HTTP_CALL_FOR_TAGS',
-              url: self.responseURL,
-              response: response
-            }, '*');
+
+          const messageHTTPTags = {
+            type: 'ADD_HTTP_CALL_FOR_TAGS',
+            url: self.responseURL,
+            response: response
           }
+
+          if (httpRecordActivated || httpRecordForTagsActivated) {
+            if (httpRecordActivated) {
+              sendMessages(window, messageForHTTPRecorderQueue);
+              window.postMessage(messageHttpRecorder, '*');
+            }
+            if (httpRecordForTagsActivated) {
+              sendMessages(window.top, messageForHTTPTagsQueue);
+              window.top.postMessage(messageHTTPTags, '*');
+            }
+          } else {
+            // On rajoute les messages dans la queue
+            addToQueue(messageHttpRecorder, messageForHTTPRecorderQueue);
+            addToQueue(messageHTTPTags, messageForHTTPTagsQueue);
+          }
+
         }
       }
       if (realOnReadyStateChange) {
@@ -91,7 +102,7 @@ let recorderHttp = {
         // En cas d'erreur, enregistrer l'erreur dans response
         data.response = error
       } finally {
-        
+
         // Envoyer le message contenant les données enregistrées
         //const message = JSON.parse(JSON.stringify(data));
         if (httpRecordActivated) {
@@ -136,6 +147,8 @@ window.addEventListener(
         (window as any).XMLHttpRequest.prototype.open = recorderHttp.originalOpenXHR;
         (window as any).XMLHttpRequest.prototype.send = recorderHttp.originalSendXHR;
         window.fetch = originalFetch;
+        messageForHTTPRecorderQueue = [];
+        messageForHTTPTagsQueue = [];
       }
     }
   },
@@ -150,3 +163,24 @@ window.postMessage(
   '*',
 );
 
+let messageForHTTPRecorderQueue = [];
+let messageForHTTPTagsQueue = [];
+
+// Au départ on active pour éviter de perdre des messages avant d'envoyer un RECORD_HTTP_READY et de recevoir un RECORD_HTTP_ACTIVATED 
+window.fetch = recorderHttp.recordFetch;
+(window as any).XMLHttpRequest.prototype.open = recorderHttp.openXHR;
+(window as any).XMLHttpRequest.prototype.send = recorderHttp.sendXHR;
+
+// Fonction pour ajouter un message à la file d'attente
+function addToQueue(message, file) {
+  file.push(message);
+}
+
+// Fonction pour vider la file d'attente et envoyer les messages
+function sendMessages(targetWindow, file) {
+  while (file.length > 0) {
+    var message = file.shift();
+    // Envoyer le message à la cible appropriée avec postMessage()
+    targetWindow.postMessage(message, '*');
+  }
+}

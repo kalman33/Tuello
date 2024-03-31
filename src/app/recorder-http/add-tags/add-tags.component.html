@@ -34,27 +34,31 @@
           </button>
         </div>
       </div>
-      <mat-accordion multi *ngIf="tagsService.elements">
-        <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of tagsService.elements; let i = index">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              {{ 'mmn.recorder-http.addTags.input.display' | translate }} : <input (change)="onChange()" [(ngModel)]="element.display" matInput />
-            </mat-panel-title>
-          </mat-expansion-panel-header>
+      <ng-container *ngIf="tagsService.elements">
+        <mat-accordion multi>
+          <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of tagsService.elements; let i = index">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                {{ 'mmn.recorder-http.addTags.input.display' | translate }} :
+                <input (change)="onChange()" [(ngModel)]="element.display" matInput />
+              </mat-panel-title>
+            </mat-expansion-panel-header>
 
-          <div fxLayout="column">
-            <div class="data">{{ 'mmn.recorder-http.addTags.input.httpKey' | translate }} : {{ element.httpKey }}</div>
-            <div fxLayout="row">
-              <div fxFlex="80%" class="data">{{ 'mmn.recorder-http.addTags.input.jsonKey' | translate }}: {{ element.jsonKey }}</div>
-              <div fxFlex="19%" fxLayoutAlign="end center" class="actions">
-                <button mat-icon-button color="primary" (click)="deleteElement(i)">
-                  <mat-icon>delete</mat-icon>
-                </button>
+            <div fxLayout="column">
+              <div class="data">{{ 'mmn.recorder-http.addTags.input.httpKey' | translate }} : {{ element.httpKey }}</div>
+              <div fxLayout="row">
+                <div fxFlex="80%" class="data">{{ 'mmn.recorder-http.addTags.input.jsonKey' | translate }}: {{ element.jsonKey }}</div>
+                <div fxFlex="19%" fxLayoutAlign="end center" class="actions">
+                  <button mat-icon-button color="primary" (click)="deleteElement(i)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </mat-expansion-panel>
-      </mat-accordion>
+          </mat-expansion-panel>
+        </mat-accordion>
+      </ng-container>
+      
     </div>
   </div>
 </div>
