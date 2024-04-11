@@ -34,9 +34,9 @@
           </button>
         </div>
       </div>
-      <ng-container *ngIf="tagsService.elements">
-        <mat-accordion multi>
-          <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of tagsService.elements; let i = index">
+      <ng-container *ngIf="dataLoaded">
+        <mat-accordion [multi]="false">
+          <mat-expansion-panel class="animated lightSpeedIn" *ngFor="let element of tagsService.elements; let i = index; trackBy: trackByFn">
             <mat-expansion-panel-header>
               <mat-panel-title>
                 {{ 'mmn.recorder-http.addTags.input.display' | translate }} :

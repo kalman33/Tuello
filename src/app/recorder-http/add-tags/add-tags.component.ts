@@ -12,12 +12,13 @@ import { TagsService } from '../services/tags.service';
   styleUrls: ['./add-tags.component.scss'],
   animations: [fadeInAnimation]
 })
-export class AddTagsComponent {
+export class AddTagsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
   httpKey: string;
   jsonKey: string;
   display: string
+  dataLoaded: boolean = false;
 
   constructor(
     private translate: TranslateService,
@@ -25,13 +26,23 @@ export class AddTagsComponent {
     public tagsService: TagsService,
     private changeDetectorRef: ChangeDetectorRef
 
-  ) { 
+  ) {
+  }
+
+  ngOnInit(): void {
     chrome.storage.local.get(['tuelloHTTPTags'], results => {
-      this.tagsService.elements = results['tuelloHTTPTags'];
-      //this.changeDetectorRef.detectChanges();
+      if (results['tuelloHTTPTags']) {
+        this.tagsService.elements = results['tuelloHTTPTags'];
+        this.dataLoaded = true;
+       // this.changeDetectorRef.detectChanges();
+      }
     });
   }
 
+  trackByFn(index:number, item: TagElement) {
+    item.display;
+  }
+    
   addElement() {
     if (this.httpKey && this.jsonKey) {
       const element: TagElement = {
@@ -51,7 +62,7 @@ export class AddTagsComponent {
    * Suppression d'un element
    */
   deleteElement(index: number) {
-   this.tagsService.deleteElement(index);
+    this.tagsService.deleteElement(index);
   }
 
   back() {
