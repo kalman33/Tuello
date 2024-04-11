@@ -43,19 +43,8 @@ function init() {
       resolve(false);
     } else {
       scriptInjected = true;
-      // Import de httpmock.js dans la page
-      const script = document.createElement('script');
-      script.setAttribute('type', 'text/javascript');
-      script.setAttribute('src', chrome.runtime.getURL('httpmock.js'));
-      document.documentElement.appendChild(script);
 
-      // Import de httprecorder.js dans la page
-      const scriptRecorder = document.createElement('script');
-      scriptRecorder.setAttribute('type', 'text/javascript');
-      scriptRecorder.setAttribute('src', chrome.runtime.getURL('httprecorder.js'));
-      document.documentElement.appendChild(scriptRecorder);
-
-      // Import de des styles liés au player
+      // Import des styles liés au player
       var head = document.head || document.getElementsByTagName("head")[0];
       if (head) {
         head.insertAdjacentHTML(

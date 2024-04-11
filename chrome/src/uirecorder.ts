@@ -50,7 +50,7 @@ export function launchUIRecorderHandler() {
       addListeners();
     } else {
       removeListeners();
-      httpRecordUI(false);
+      //httpRecordUI(false);
     }
   });
 }

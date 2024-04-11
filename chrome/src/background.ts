@@ -84,79 +84,107 @@ function test(tab)  {
 */
 
 
+async function dynamicallyInjectContentScripts() {
+  const contentScriptsToInject= [{
+    id: 'hook',
+    matches: ['<all_urls>'],
+    js: ['httprecorder.js'],
+    runAt: 'document_start',
+    allFrames: true,
+    world: 'MAIN'
+  }, {
+    id: 'renderer',
+    matches: ['<all_urls>'],
+    js: ['httpmock.js'],
+    runAt: 'document_start',
+    allFrames: true,
+    world: 'MAIN',
+    
+  }];
 
+  try { 
+    // @ts-ignore
+    await chrome.scripting.registerContentScripts(contentScriptsToInject);
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 function init() {
-  chrome.storage.local.get(['messages'], results => {
-    chrome.contextMenus.removeAll(function () {
-      if (results.messages) {
-        const msgs = results.messages.default;
-        chrome.contextMenus.create({
-          id: 'sel',
-          title: msgs['mmn.spy-http.tabs.shortcuts.jsonviewer'],
-          contexts: ['all'],
-        }, () => chrome.runtime.lastError); // ignore errors about an existing id
+  dynamicallyInjectContentScripts().then(() => {
+    chrome.storage.local.get(['messages'], results => {
+      chrome.contextMenus.removeAll(function () {
+        if (results.messages) {
+          const msgs = results.messages.default;
+          chrome.contextMenus.create({
+            id: 'sel',
+            title: msgs['mmn.spy-http.tabs.shortcuts.jsonviewer'],
+            contexts: ['all'],
+          }, () => chrome.runtime.lastError); // ignore errors about an existing id
+          
+          chrome.contextMenus.create({
+            id: 'id0',
+            title: msgs['mmn.spy-http.tabs.shortcuts.screenshot'] + " : ALT + MAJ + S",
+            contexts: ["all"],
+          });
+          chrome.contextMenus.create({
+            id: 'id1',
+            title: msgs['mmn.spy-http.tabs.shortcuts.pause'] + " : ALT + MAJ + P",
+            contexts: ["all"],
+          });
+          chrome.contextMenus.create({
+            id: 'id2',
+            title: msgs['mmn.spy-http.tabs.shortcuts.resume'] + " : ALT + MAJ + R",
+            contexts: ["all"],
+          });
+          chrome.contextMenus.create({
+            id: 'id3',
+            title: msgs['mmn.spy-http.tabs.shortcuts.record.by.img'] + " :  ALT + MAJ + click / Coord. + ALT + MAJ + I",
+            contexts: ["all"],
+          });
+          chrome.contextMenus.create({
+            id: 'id4',
+            title: msgs['mmn.spy-http.tabs.shortcuts.add.comment'] + " :  ALT + MAJ + C",
+            contexts: ["all"],
+          });
+        } else {
+          chrome.contextMenus.create({
+            id: 'sel',
+            title: 'JSON VIEWER',
+            contexts: ['all'],
+          }, () => chrome.runtime.lastError); // ignore errors about an existing id
         
-        chrome.contextMenus.create({
-          id: 'id0',
-          title: msgs['mmn.spy-http.tabs.shortcuts.screenshot'] + " : ALT + MAJ + S",
-          contexts: ["all"],
-        });
-        chrome.contextMenus.create({
-          id: 'id1',
-          title: msgs['mmn.spy-http.tabs.shortcuts.pause'] + " : ALT + MAJ + P",
-          contexts: ["all"],
-        });
-        chrome.contextMenus.create({
-          id: 'id2',
-          title: msgs['mmn.spy-http.tabs.shortcuts.resume'] + " : ALT + MAJ + R",
-          contexts: ["all"],
-        });
-        chrome.contextMenus.create({
-          id: 'id3',
-          title: msgs['mmn.spy-http.tabs.shortcuts.record.by.img'] + " :  ALT + MAJ + click / Coord. + ALT + MAJ + I",
-          contexts: ["all"],
-        });
-        chrome.contextMenus.create({
-          id: 'id4',
-          title: msgs['mmn.spy-http.tabs.shortcuts.add.comment'] + " :  ALT + MAJ + C",
-          contexts: ["all"],
-        });
-      } else {
-        chrome.contextMenus.create({
-          id: 'sel',
-          title: 'JSON VIEWER',
-          contexts: ['all'],
-        }, () => chrome.runtime.lastError); // ignore errors about an existing id
-      
-        chrome.contextMenus.create({
-          id: 'id0',
-          title: "Screenshot : ALT + MAJ + S",
-          contexts: ["all"],
-        });
-        chrome.contextMenus.create({
-          id: 'id1',
-          title: "Pause : ALT + MAJ + P",
-          contexts: ["all"],
-        });
-        chrome.contextMenus.create({
-          id: 'id2',
-          title: "Resume : ALT + MAJ + R",
-          contexts: ["all"],
-        });
-        chrome.contextMenus.create({
-          id: 'id3',
-          title: "Rec. by img :  ALT + MAJ + click / Coord. + ALT + MAJ + I",
-          contexts: ["all"],
-        });
-        chrome.contextMenus.create({
-          id: 'id4',
-          title: "Add comment :  ALT + MAJ + C",
-          contexts: ["all"],
-        });
-      }
+          chrome.contextMenus.create({
+            id: 'id0',
+            title: "Screenshot : ALT + MAJ + S",
+            contexts: ["all"],
+          });
+          chrome.contextMenus.create({
+            id: 'id1',
+            title: "Pause : ALT + MAJ + P",
+            contexts: ["all"],
+          });
+          chrome.contextMenus.create({
+            id: 'id2',
+            title: "Resume : ALT + MAJ + R",
+            contexts: ["all"],
+          });
+          chrome.contextMenus.create({
+            id: 'id3',
+            title: "Rec. by img :  ALT + MAJ + click / Coord. + ALT + MAJ + I",
+            contexts: ["all"],
+          });
+          chrome.contextMenus.create({
+            id: 'id4',
+            title: "Add comment :  ALT + MAJ + C",
+            contexts: ["all"],
+          });
+        }
+      });
     });
   });
+
+ 
 
   chrome.webRequest.onBeforeRequest.addListener(
     (details) => {

@@ -10,6 +10,7 @@
     "storage",
     "webNavigation",
     "tabs",
+    "scripting",
     "contextMenus",
     "activeTab",
     "webRequest"
