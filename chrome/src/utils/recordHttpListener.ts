@@ -11,7 +11,9 @@ export function recordHttpListener(event: MessageEvent) {
               items.tuelloRecords = [];
             }
 
-            if (!items['tuelloHTTPOverWrite']|| (items['tuelloHTTPOverWrite'] && stringContainedInURL(items['tuelloHTTPOverWrite'], event.data.url))) {
+            if (!items['tuelloHTTPFilter'] || (items['tuelloHTTPFilter'] && stringContainedInURL(items['tuelloHTTPFilter'], event.data.url))) {
+              
+             
               if (event.data.error) {
                 items.tuelloRecords.unshift({
                   key: event.data.url,
@@ -32,6 +34,7 @@ export function recordHttpListener(event: MessageEvent) {
                 data = { tuelloRecords: removeDuplicatesKeepLast(items.tuelloRecords) };
               } else {
                 data = { tuelloRecords: removeDuplicateEntries(items.tuelloRecords) };
+                
               }
               chrome.storage.local.set(data, () => {
                 chrome.runtime.sendMessage(

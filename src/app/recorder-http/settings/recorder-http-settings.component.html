@@ -4,9 +4,9 @@
       <h1 mat-dialog-title>{{ 'mmn.recorder-http.settings.title' | translate }}</h1>
     </div>
 
-    <div fxLayout="column" fxLayout.sm="column" fxLayout.xs="column">
+    <div fxLayout="column" fxLayout.sm="column" fxLayout.xs="column" *ngIf="dataloaded">
       <mat-checkbox [(ngModel)]="overwrite" class="example-margin">{{ 'mmn.recorder-http.settings.input.overwrite' | translate }}</mat-checkbox>
-      <mat-form-field>
+      <mat-form-field class="settingsForm">
         <mat-label>{{ 'mmn.recorder-http.settings.input.filter' | translate }}</mat-label>
         <input [(ngModel)]="filter" matInput placeholder="Ex: *.fr" />
       </mat-form-field>

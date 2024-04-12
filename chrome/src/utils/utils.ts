@@ -27,9 +27,13 @@ export function removeDuplicatesKeepLast(data) {
   return Object.values(temp);
 }
 
-export function stringContainedInURL(string, url) {
+export function stringContainedInURL(stringData, url) {
+  // Vérifier si la chaîne est définie et si elle est une chaîne de caractères
+  if (typeof stringData !== 'string') {
+    return true;
+  }
   // Échapper les caractères spéciaux dans la chaîne de caractères pour éviter les problèmes avec les expressions régulières
-  const escapedString = string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedString = stringData.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // Remplacer les astérisques (*) par des expressions régulières correspondant à n'importe quel caractère (.*)
   const regexString = escapedString.replace(/\\\*/g, '.*');
   // Créer une expression régulière à partir de la chaîne
@@ -340,7 +344,7 @@ export function removeURLPort(url: string) {
     let parseURL = new URL(url);
     parseURL.port = '';
     ret = parseURL.toString();
-  } catch(e) {
+  } catch (e) {
     ret = url;
   }
   return ret;
@@ -353,7 +357,7 @@ export function removeURLPortAndQueryString(url: string) {
     parseURL.port = '';
     parseURL.search = '';
     ret = parseURL.toString();
-  } catch(e) {
+  } catch (e) {
     ret = url;
   }
   return ret;

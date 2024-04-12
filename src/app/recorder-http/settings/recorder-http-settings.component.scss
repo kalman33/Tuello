@@ -1,7 +1,11 @@
-mat-form-field {
-    padding: O 20px;
+.mat-form-field.settingsForm {
+  padding: 2Opx 0px !important;
 }
 
-button .right{
+button .right {
   margin-left: 5px;
+}
+
+.example-margin {
+  margin-bottom: 20px !important;
 }

@@ -405,9 +405,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (results['tuelloHTTPTags']) {
           // On initialise le gestionnaire des tags
           initTagsHandler(results['tuelloHTTPTags']);
-          addTagsPanel(results['tuelloHTTPTags']);
+          addTagsPanel(results['tuelloHTTPTags']).then(() => {
+            sendResponse();
+          })
         }
-        sendResponse();
       });
       break;
     case 'TRACK_PLAY_STATE':

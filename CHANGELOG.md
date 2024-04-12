@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.0.0.16] - 2024-04-12
+    Refonte injection script httprecorderer.js et httpmock.js
+    Ajout des options dans le recorder http pour avoir la possibilité de ne pas effacer les élements déjà enregistrés ainsi que la possibilité de n'enregistrer que les éléments faisant parti d'un filtre
 ## [1.0.0.15] - 2024-03-31
     Correctifs 
 ## [1.0.0.14] - 2024-03-25

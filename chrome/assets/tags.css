@@ -28,6 +28,7 @@
     right: 5vh !important;
     color: white !important;
     max-width: 300px !important;
+    visibility: hidden !important;
 }
 
 .tuello-tag.left .tuello-front .tuello-content {
@@ -48,6 +49,11 @@
     background: linear-gradient(-45deg, rgba(209,37,102, 0.5) 0%, rgba(209,37,102, 1) 100%);
 
 }
+
+.tuello-tag:hover .tuello-front .tuello-content {
+    visibility: visible !important;
+}
+
 
 .tuello-tag.left:hover .tuello-front {
     cursor: pointer;

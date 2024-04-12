@@ -10,7 +10,8 @@ import { MatDialogRef } from '@angular/material/dialog';
 export class RecorderHttpSettingsComponent implements OnInit {
 
   filter: string;
-  overwrite: boolean;
+  overwrite = true;
+  dataloaded: boolean;
 
 
   constructor(
@@ -18,8 +19,10 @@ export class RecorderHttpSettingsComponent implements OnInit {
   ) {
     // recupération des elements
     chrome.storage.local.get(['tuelloHTTPFilter', 'tuelloHTTPOverWrite'], results => {
+      this.dataloaded = true;
       this.filter = results['tuelloHTTPFilter'];
-      this.overwrite = results['tuelloHTTPOverWrite'] || true;
+     
+      this.overwrite = results['tuelloHTTPOverWrite'] === false ? false : true;
     });
    }
 
@@ -34,6 +37,8 @@ export class RecorderHttpSettingsComponent implements OnInit {
   valider(): void {
     chrome.storage.local.set({ tuelloHTTPFilter: this.filter }); 
     chrome.storage.local.set({ tuelloHTTPOverWrite: this.overwrite }); 
+    
+    this.dialogRef.close();
   }
 
 

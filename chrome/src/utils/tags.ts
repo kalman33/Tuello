@@ -1,13 +1,13 @@
 import { Tag } from '../models/Tag';
-import { addcss } from './utils';
+import { addcss, stringContainedInURL } from './utils';
 import JsonFind from 'json-find';
 
 let httpCalls = new Map<string, any>();
-let rightState = true; 
+let rightState = true;
 
 
 export function initTagsHandler(tuelloHTTPTags) {
-  
+
   window.postMessage(
     {
       type: 'RECORD_HTTP_CALL_FOR_TAGS',
@@ -21,7 +21,7 @@ export function initTagsHandler(tuelloHTTPTags) {
     for (const tag of tuelloHTTPTags) {
       tag.jsonKeyValue = null;
     }
-});
+  });
 
   // on ecoute les postMessage si on est en fenetre mère
   if (window.top === window) {
@@ -60,10 +60,14 @@ function findInJson(data: any, keyString: string) {
 
 }
 
-function getResponseByPartialUrl(map, partialKey) {
+async function getResponseByPartialUrl(map, partialKey) {
+  const items = await chrome.storage.local.get(['tuelloHTTPFilter']);
   for (let [key, value] of map.entries()) {
-    if (key.includes(partialKey?.httpKey)) {
-      return value;
+    // on ne traite que celles qui ne sont pas filtrée ou si le filtre est vide
+    if (!items['tuelloHTTPFilter'] || (items['tuelloHTTPFilter'] && stringContainedInURL(items['tuelloHTTPFilter'], key))) {
+      if (key.includes(partialKey?.httpKey)) {
+        return value;
+      }
     }
   }
   return null; // Aucune correspondance trouvée
@@ -72,12 +76,12 @@ function getResponseByPartialUrl(map, partialKey) {
 /**
  * ajoute le panel tag dans la page
  */
-export function addTagsPanel(tags: Tag[]) {
+export async function addTagsPanel(tags: Tag[]) {
   let display = false;
   for (const tag of tags) {
     // le jsonKeyValue n'a pas été déjà calculée sur cette url
     if (!tag.jsonKeyValue) {
-      tag.jsonKeyValue = findTagInHttpCalls(tag);
+      tag.jsonKeyValue = await findTagInHttpCalls(tag);
       const tagLocation = new URL(document.location.href);
       tagLocation.search = '';
       tag.location = tagLocation.toString();
@@ -98,9 +102,9 @@ export function deleteTagsPanel() {
   });
 }
 
-function findTagInHttpCalls(tag: Tag) {
+async function findTagInHttpCalls(tag: Tag) {
   let ret;
-  const data = getResponseByPartialUrl(httpCalls, tag);
+  const data = await getResponseByPartialUrl(httpCalls, tag);
   if (data) {
     ret = findInJson(data, tag.jsonKey);
   }
@@ -109,7 +113,7 @@ function findTagInHttpCalls(tag: Tag) {
 
 function displayTags(tags: Tag[]) {
   let display = false;
-  
+
 
   // CONTENT
   const contentDiv = document.createElement('div');
@@ -125,7 +129,7 @@ function displayTags(tags: Tag[]) {
       display = true;
     }
   }
-  if (display){
+  if (display) {
     deleteTagsPanel();
     addcss(chrome.runtime.getURL('tags.css'));
 
@@ -142,13 +146,13 @@ function displayTags(tags: Tag[]) {
         tagDiv.classList.add('right');
       }
       rightState = !rightState;
-      
+
     });
 
     // FRONT
     const frontDiv = document.createElement('div');
     frontDiv.className = "tuello-front";
-   
+
 
 
     tagDiv.appendChild(frontDiv);
