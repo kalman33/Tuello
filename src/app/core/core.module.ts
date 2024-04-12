@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import {
     MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
+import { MatDialogModule } from '@angular/material/dialog';
 
 @NgModule({
     declarations: [LayoutComponent, RateSupportComponent, JsonViewerComponent],

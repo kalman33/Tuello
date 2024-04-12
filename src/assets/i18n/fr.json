@@ -43,6 +43,7 @@
   "mmn.recorder-http.button.addTags": "Tags",
   "mmn.recorder-http.button.mock": "Activer les mocks",
   "mmn.recorder-http.button.record": "Activer le mode enregistrement",
+  "mmn.recorder-http.button.settings": "Paramètres",
   "mmn.recorder-http.import.title": "Importer un flux Json",
   "mmn.recorder-http.import.button.load": "Charger",
   "mmn.recorder-http.import.button.cancel": "Abandonner",
@@ -63,6 +64,12 @@
   "mmn.recorder-http.addTags.input.httpKey": "Url de l'api",
   "mmn.recorder-http.addTags.input.display": "valeur du tag affiché",
   "mmn.recorder-http.addTags.add.tooltip": "Ajouter ce tag",
+
+  "mmn.recorder-http.settings.title": "Configuration",
+  "mmn.recorder-http.settings.input.overwrite": "Ecraser les enregistrements HTTP",
+  "mmn.recorder-http.settings.input.filter": "Filtre sur les urls enregistrés",
+  "mmn.recorder-http.settings.button.ok": "Valider",
+  "mmn.recorder-http.settings.button.cancel": "Annuler",
 
   "mmn.spy-http.button.record": "Enregistrer",
   "mmn.spy-http.button.stop": "Arrêter",

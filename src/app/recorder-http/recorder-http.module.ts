@@ -7,8 +7,9 @@ import {CoreModule} from '../core/core.module';
 import { ExportComponent } from './export/export.component';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { AddTagsComponent } from './add-tags/add-tags.component';
+import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
 
-const COMPONENTS = [RecorderHttpComponent, ExportComponent, AddTagsComponent];
+const COMPONENTS = [RecorderHttpComponent, ExportComponent, AddTagsComponent, RecorderHttpSettingsComponent];
 
 const DIRECTIVES = [];
 

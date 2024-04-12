@@ -25,6 +25,8 @@
         <mat-icon>content_copy</mat-icon>
         {{ 'mmn.recorder-http.button.copy' | translate }}
       </button>
+
+     
       
     </div>
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center" >
@@ -35,7 +37,11 @@
             [matTooltip]="'mmn.recorder-http.button.addTags.tooltip' | translate"
             [attr.aria-label]="'mmn.recorder-http.button.addTags.tooltip' | translate">
           <mat-icon>favorite_border</mat-icon>
-          {{ 'mmn.recorder-http.button.addTags' | translate }}
+        </button>
+        <button mat-button
+          (click)="openSettings()">
+          <mat-icon>settings</mat-icon>
+        
         </button>
       </div>
 

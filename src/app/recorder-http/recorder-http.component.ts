@@ -9,6 +9,7 @@ import { ExportComponent } from './export/export.component';
 import { RecorderHttpService } from './services/recorder-http.service';
 import { TagsService } from './services/tags.service';
 import { TagElement } from './models/TagElement';
+import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
 
 @Component({
   selector: 'mmn-recorder-http',
@@ -312,6 +313,10 @@ export class RecorderHttpComponent implements OnInit {
 
   addTags() {
     this.router.navigateByUrl('/recorder/tags', { skipLocationChange: true });
+  }
+
+  openSettings() {
+    const dialogRef = this.dialog.open(RecorderHttpSettingsComponent);
   }
 
 }
