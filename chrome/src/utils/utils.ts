@@ -17,6 +17,29 @@ export function removeDuplicateEntries(data: any): any {
   });
 }
 
+export function removeDuplicatesKeepLast(data) {
+  const temp = {};
+  data.forEach(item => {
+    temp[item.key] = item; // Remplace chaque élément avec la même clé dans temp
+  });
+
+  // Retourne les valeurs de temp, qui contiendront uniquement le dernier élément de chaque clé
+  return Object.values(temp);
+}
+
+export function stringContainedInURL(string, url) {
+  // Échapper les caractères spéciaux dans la chaîne de caractères pour éviter les problèmes avec les expressions régulières
+  const escapedString = string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Remplacer les astérisques (*) par des expressions régulières correspondant à n'importe quel caractère (.*)
+  const regexString = escapedString.replace(/\\\*/g, '.*');
+  // Créer une expression régulière à partir de la chaîne
+  const regex = new RegExp(regexString);
+  // Vérifier si la chaîne est contenue dans l'URL en utilisant l'expression régulière
+  return regex.test(url);
+}
+
+
+
 export function crop(canvas, cropX, cropY, cropWidth, cropHeight) {
   // create a temporary canvas sized to the cropped size
   var canvas1 = document.createElement('canvas');

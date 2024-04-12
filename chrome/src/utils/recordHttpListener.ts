@@ -1,38 +1,50 @@
-import { removeDuplicateEntries } from './utils';
+import { removeDuplicateEntries, removeDuplicatesKeepLast, stringContainedInURL } from './utils';
 
 export function recordHttpListener(event: MessageEvent) {
 
   if (event?.data?.type === 'RECORD_HTTP') {
     mutex.lock()
       .then(() => {
-        chrome.storage.local.get(['tuelloRecords'], (items) => {
+        chrome.storage.local.get(['tuelloRecords', 'tuelloHTTPOverWrite', 'tuelloHTTPFilter'], (items) => {
           if (!chrome.runtime.lastError) {
             if (!items.tuelloRecords || !Array.isArray(items.tuelloRecords)) {
               items.tuelloRecords = [];
             }
-            if (event.data.error) {
-              items.tuelloRecords.unshift({
-                key: event.data.url,
-                response: event.data.error,
-                httpCode: event.data.status,
-                delay: event.data.delay
+
+            if (!items['tuelloHTTPOverWrite']|| (items['tuelloHTTPOverWrite'] && stringContainedInURL(items['tuelloHTTPOverWrite'], event.data.url))) {
+              if (event.data.error) {
+                items.tuelloRecords.unshift({
+                  key: event.data.url,
+                  response: event.data.error,
+                  httpCode: event.data.status,
+                  delay: event.data.delay
+                });
+              } else {
+                items.tuelloRecords.unshift({
+                  key: event.data.url,
+                  response: event.data.response,
+                  httpCode: event.data.status,
+                  delay: event.data.delay
+                });
+              }
+              let data;
+              if (items['tuelloHTTPOverWrite'] === false) {
+                data = { tuelloRecords: removeDuplicatesKeepLast(items.tuelloRecords) };
+              } else {
+                data = { tuelloRecords: removeDuplicateEntries(items.tuelloRecords) };
+              }
+              chrome.storage.local.set(data, () => {
+                chrome.runtime.sendMessage(
+                  { refresh: true },
+                  (response) => { }
+                );
+                mutex.unlock(); // Déverrouiller une fois que le stockage local est mis à jour
               });
             } else {
-              items.tuelloRecords.unshift({
-                key: event.data.url,
-                response: event.data.response,
-                httpCode: event.data.status,
-                delay: event.data.delay
-              });
+              mutex.unlock(); // Déverrouiller
             }
-
-            chrome.storage.local.set({ tuelloRecords: removeDuplicateEntries(items.tuelloRecords) }, () => {
-              chrome.runtime.sendMessage(
-                { refresh: true },
-                (response) => { }
-              );
-              mutex.unlock(); // Déverrouiller une fois que le stockage local est mis à jour
-            });
+          } else {
+            mutex.unlock(); // Déverrouiller
           }
         });
       })

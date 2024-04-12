@@ -16,20 +16,24 @@ export class RecorderHttpSettingsComponent implements OnInit {
   constructor(
     public dialogRef: MatDialogRef<RecorderHttpSettingsComponent>,
   ) {
+    // recupération des elements
+    chrome.storage.local.get(['tuelloHTTPFilter', 'tuelloHTTPOverWrite'], results => {
+      this.filter = results['tuelloHTTPFilter'];
+      this.overwrite = results['tuelloHTTPOverWrite'] || true;
+    });
    }
 
 
   ngOnInit() {
-    chrome.storage.local.get(['httpMock', 'httpRecord'], results => {
-    });
+    
   }
   annuler(): void {
     this.dialogRef.close();
   }
 
   valider(): void {
-    alert(this.filter);
-    alert(this.overwrite);
+    chrome.storage.local.set({ tuelloHTTPFilter: this.filter }); 
+    chrome.storage.local.set({ tuelloHTTPOverWrite: this.overwrite }); 
   }
 
 
