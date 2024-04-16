@@ -29,7 +29,7 @@
 
       <mat-form-field fxFlex="49%" class="track-width">
         <mat-label>{{ 'mmn.track.input.data.display' | translate }}</mat-label>
-        <input [(ngModel)]="trackDataDisplay" matInput placeholder="Ex. name" />
+        <input [(ngModel)]="trackDataDisplay" matInput placeholder="Ex. name or name, name1" />
       </mat-form-field>
     </div>
     <mat-list *ngIf="tracks" [selectTrack]="selectedTrackId">

@@ -40,11 +40,13 @@ export class TrackDetailComponent implements OnInit {
 
 
   findInJson(data: any, keyString: string) {
+    keyString = keyString.trim();
     let result = '';
     const doc = JsonFind(data);
     try {
       if (keyString.includes(',') || keyString.includes(';')) {
         keyString.split(/,|;/).forEach(elt => {
+          elt = elt.trim();
           result += result ? ' | ' : '';
           result += elt + ' : ' + doc.findValues(elt)[elt];
         });

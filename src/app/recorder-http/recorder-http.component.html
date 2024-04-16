@@ -32,13 +32,13 @@
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center" >
         <mat-slide-toggle  [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>
         <mat-slide-toggle  [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
-        <button mat-button
+        <button class="noLabel" mat-button
             (click)="addTags()"
             [matTooltip]="'mmn.recorder-http.button.addTags.tooltip' | translate"
             [attr.aria-label]="'mmn.recorder-http.button.addTags.tooltip' | translate">
           <mat-icon>favorite_border</mat-icon>
         </button>
-        <button class="right" mat-button
+        <button class="noLabel" mat-button
           (click)="openSettings()">
           <mat-icon>settings</mat-icon>
         

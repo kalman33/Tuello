@@ -66,7 +66,7 @@ function init() {
               border-radius: 100%;
               border: 6px solid #D12566;
               position: fixed;
-              z-index: 9999999999999;
+              z-index: 2147483640;
               top: 50%;
               left: 50%;
               transform: translate(-50%, -50%);
@@ -148,7 +148,7 @@ function init() {
         iframe.style.setProperty('position', 'fixed', 'important');
         iframe.style.setProperty('top', '0', 'important');
         iframe.style.setProperty('right', '0', 'important');
-        iframe.style.setProperty('z-index', '9999999999999', 'important');
+        iframe.style.setProperty('z-index', '2147483647', 'important');
         iframe.style.setProperty('transform', 'translateX(570px)', 'important');
         iframe.style.setProperty('transition', 'all .4s', 'important');
         iframe.style.setProperty('box-shadow', '0 0 15px 2px rgba(0,0,0,0.12)', 'important');
