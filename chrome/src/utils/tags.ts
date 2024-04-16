@@ -3,8 +3,7 @@ import { addcss, stringContainedInURL } from './utils';
 import JsonFind from 'json-find';
 
 let httpCalls = new Map<string, any>();
-let rightState = true;
-
+let lastExecutionTimer;
 
 export function initTagsHandler(tuelloHTTPTags) {
 
@@ -98,6 +97,7 @@ export async function addTagsPanel(tags: Tag[]) {
 export function deleteTagsPanel() {
   const elements = document.querySelectorAll('#tuelloTags');
   elements.forEach((element) => {
+    element.removeEventListener('click', toggleTagPosition);
     element.remove();
   });
 }
@@ -111,10 +111,15 @@ async function findTagInHttpCalls(tag: Tag) {
   return ret;
 }
 
-function displayTags(tags: Tag[]) {
+async function displayTags(tags: Tag[]) {
+
+  // Annuler la dernière exécution en attente
+  clearTimeout(lastExecutionTimer);
+// Définir une nouvelle exécution à déclencher dans 300 ms
+lastExecutionTimer = setTimeout(async () => {
+  
   let display = false;
-
-
+  
   // CONTENT
   const contentDiv = document.createElement('div');
   contentDiv.className = "tuello-content";
@@ -130,35 +135,41 @@ function displayTags(tags: Tag[]) {
     }
   }
   if (display) {
-    deleteTagsPanel();
     addcss(chrome.runtime.getURL('tags.css'));
+    const storageData = await (chrome.storage.local.get(['tuelloTagsPosition']));
+    const position = storageData['tuelloTagsPosition'] || 'right';
+    deleteTagsPanel();
 
     //TAG
     const tagDiv = document.createElement('div');
     tagDiv.id = "tuelloTags"
-    tagDiv.className = "tuello-tag right";
-    tagDiv.addEventListener('click', () => {
-      if (rightState) {
-        tagDiv.classList.remove('right');
-        tagDiv.classList.add('left');
-      } else {
-        tagDiv.classList.remove('left');
-        tagDiv.classList.add('right');
-      }
-      rightState = !rightState;
-
-    });
+    tagDiv.className = "tuello-tag " + position;
+    tagDiv.addEventListener('click', toggleTagPosition);
 
     // FRONT
     const frontDiv = document.createElement('div');
     frontDiv.className = "tuello-front";
-
-
 
     tagDiv.appendChild(frontDiv);
     frontDiv.appendChild(contentDiv);
     tagDiv.appendChild(frontDiv);
     document.body.appendChild(tagDiv);
   }
+}, 300); // 300 ms de délai
 }
 
+// Définir la fonction du clic de l'événement
+async function toggleTagPosition(event) {
+  
+  const tagDiv = event.currentTarget;
+  let rightState = tagDiv.classList.contains('right');
+  if (rightState) {
+    tagDiv.classList.remove('right');
+    tagDiv.classList.add('left');
+    await chrome.storage.local.set({'tuelloTagsPosition': 'left'});
+  } else {
+    tagDiv.classList.remove('left');
+    tagDiv.classList.add('right');
+    await chrome.storage.local.set({'tuelloTagsPosition': 'right'});
+  }
+}
