@@ -29,7 +29,7 @@
      
       
     </div>
-    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" >
+    <div class="button-row mtn ptn"  fxLayout="row" fxLayoutAlign="start center" >
         <mat-slide-toggle  [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>
         <mat-slide-toggle  [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
         <button class="noLabel" mat-button

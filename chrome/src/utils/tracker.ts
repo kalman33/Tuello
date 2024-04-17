@@ -398,8 +398,8 @@ async function getDisplayData(track: Track) {
         data = findInJson(track.body, dataDisplay);
       }
     } else {
-      if (track.querystring && track.querystring['' + dataDisplay]) {
-        data = `${dataDisplay} : ${track.querystring['' + dataDisplay]}`;
+      if (track.querystring) {
+        data = findInJson(track.querystring, dataDisplay);
       }
     }
   }
