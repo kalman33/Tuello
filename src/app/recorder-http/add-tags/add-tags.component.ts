@@ -29,13 +29,21 @@ export class AddTagsComponent implements OnInit {
   ) {
   }
 
-  ngOnInit(): void {
-    chrome.storage.local.get(['tuelloHTTPTags'], results => {
-      if (results['tuelloHTTPTags']) {
-        this.tagsService.elements = results['tuelloHTTPTags'];
-        this.dataLoaded = true;
-       // this.changeDetectorRef.detectChanges();
-      }
+ 
+  async ngOnInit() {
+    this.tagsService.elements = await this.getDataFromChromeStorage();
+    this.dataLoaded = true;
+  }
+
+  getDataFromChromeStorage(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get(['tuelloHTTPTags'], result => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(result['tuelloHTTPTags']);
+        }
+      });
     });
   }
 
