@@ -38,14 +38,14 @@
       url1 = url1.replace(/^\//, '');
       url2 = url2.replace(/^\//, '');
 
-      const lg1 = url1.split('/').length;
+      /**const lg1 = url1.split('/').length;
       const lg2 = url2.split('/').length;
 
       if (lg1 > lg2) {
         url1 = url1.split('/').slice(0, lg2).join('/');
       } else if (lg2 > lg1) {
         url2 = url2.split('/').slice(0, lg1).join('/');
-      }
+      }*/
 
       return new RegExp('^' + url2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*') + '$').test(url1);
     };

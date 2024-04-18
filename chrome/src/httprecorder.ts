@@ -42,17 +42,17 @@ let recorderHttp = {
 
           if (httpRecordActivated || httpRecordForTagsActivated) {
             if (httpRecordActivated) {
-              // sendMessages(window, messageForHTTPRecorderQueue);
+              sendMessages(window, messageForHTTPRecorderQueue);
               window.postMessage(messageHttpRecorder, '*');
             }
             if (httpRecordForTagsActivated) {
-              // sendMessages(window.top, messageForHTTPTagsQueue);
+              sendMessages(window.top, messageForHTTPTagsQueue);
               window.top.postMessage(messageHTTPTags, '*');
             }
           } else {
             // On rajoute les messages dans la queue
-            // addToQueue(messageHttpRecorder, messageForHTTPRecorderQueue);
-            //addToQueue(messageHTTPTags, messageForHTTPTagsQueue);
+            addToQueue(messageHttpRecorder, messageForHTTPRecorderQueue);
+            addToQueue(messageHTTPTags, messageForHTTPTagsQueue);
           }
 
         }
@@ -147,8 +147,8 @@ window.addEventListener(
         (window as any).XMLHttpRequest.prototype.open = recorderHttp.originalOpenXHR;
         (window as any).XMLHttpRequest.prototype.send = recorderHttp.originalSendXHR;
         window.fetch = originalFetch;
-        // messageForHTTPRecorderQueue = [];
-        // messageForHTTPTagsQueue = [];
+        messageForHTTPRecorderQueue = [];
+        messageForHTTPTagsQueue = [];
       }
     }
   },
@@ -163,8 +163,6 @@ window.postMessage(
   '*',
 );
 
-
-/** 
 let messageForHTTPRecorderQueue = [];
 let messageForHTTPTagsQueue = [];
 
@@ -186,4 +184,3 @@ function sendMessages(targetWindow, file) {
     targetWindow.postMessage(message, '*');
   }
 }
-*/
