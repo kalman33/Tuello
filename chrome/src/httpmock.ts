@@ -89,6 +89,12 @@ let mockHttp = {
     const realOnReadyStateChange = self.onreadystatechange;
 
     self.onreadystatechange = function () {
+      if (self.readyState === XMLHttpRequest.OPENED) {
+        self.setRequestHeader(
+          'TEST',
+          `TOTO`
+        );
+      }
       // Vérifie si la requête est terminée (readyState === 4)
       if (self.readyState === 4) {
         mockHttp.modifyResponse(false, self);

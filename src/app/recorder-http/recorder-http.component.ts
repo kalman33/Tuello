@@ -219,6 +219,12 @@ export class RecorderHttpComponent implements OnInit {
       action: 'HTTP_MOCK_STATE',
       value: this.httpMockActivated
     }, () => { });
+    if (this.httpMockActivated) {
+      chrome.runtime.sendMessage({
+        action: 'HTTP_RECORD_STATE',
+        value: false
+      }, () => { });
+    }
   }
 
   /**
@@ -235,6 +241,12 @@ export class RecorderHttpComponent implements OnInit {
       action: 'HTTP_RECORD_STATE',
       value: this.httpRecordActivated
     }, () => { });
+    if (this.httpRecordActivated) {
+      chrome.runtime.sendMessage({
+        action: 'HTTP_MOCK_STATE',
+        value: false
+      }, () => { });
+    }
   }
 
   /**
@@ -276,16 +288,13 @@ export class RecorderHttpComponent implements OnInit {
 
   public onChange(fileList: any): void {
     const file = fileList.target.files[0];
+    const extension = file?.name?.split('.')?.pop()?.toLowerCase();
     const fileReader: FileReader = new FileReader();
     let jsonResult;
     fileReader.onloadend = x => {
       jsonResult = fileReader.result as string;
-      this.snackBar.open(
-        this.translate.instant('mmn.spy-http.import.message'),
-        this.translate.instant('mmn.spy-http.import.success.action'),
-        { duration: 2000 },
-      );
-      if (jsonResult) {
+      
+      if (jsonResult && extension === 'json') {
         try {
           JSON.stringify(jsonResult);
         } catch (e) {
@@ -293,7 +302,16 @@ export class RecorderHttpComponent implements OnInit {
         }
         this.jsonEditorTree.setText(jsonResult);
         this.updateData();
+      } else {
+        const jsonData = this.extraireFluxJSON(jsonResult);
+        this.jsonEditorTree.setText(jsonData);
+        this.updateData();
       }
+      this.snackBar.open(
+        this.translate.instant('mmn.spy-http.import.message'),
+        this.translate.instant('mmn.spy-http.import.success.action'),
+        { duration: 2000 },
+      );
     };
     fileReader.onerror = event => {
       this.snackBar.open(
@@ -317,6 +335,20 @@ export class RecorderHttpComponent implements OnInit {
 
   openSettings() {
     const dialogRef = this.dialog.open(RecorderHttpSettingsComponent);
+  }
+  // Fonction pour extraire le flux JSON du code JavaScript
+  private extraireFluxJSON(codeJS) {
+    // Recherche de la déclaration de la variable contenant le flux JSON
+    const regex = /window.tuelloRecords\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
+     const match = codeJS.match(regex);
+
+    if (match && match[1]) {
+      // Si la correspondance est trouvée, analysez la chaîne JSON et renvoyez l'objet JavaScript
+        return match[1];
+    } else {
+      console.error('Variable contenant le flux JSON non trouvée');
+      return null;
+    }
   }
 
 }

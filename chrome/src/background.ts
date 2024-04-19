@@ -88,7 +88,7 @@ async function dynamicallyInjectContentScripts() {
   const contentScriptsToInject= [{
     id: 'hook',
     matches: ['<all_urls>'],
-    js: ['httpmock'],
+    js: ['httpmock.js'],
     runAt: 'document_start',
     allFrames: true,
     world: 'MAIN'
