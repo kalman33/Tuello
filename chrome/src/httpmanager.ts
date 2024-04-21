@@ -16,7 +16,7 @@ class Interceptor {
     // Méthode pour intercepter la requête XHR
     interceptXHR(req) {
         if (this.isActive) {
-            console.log(`Interception XHR par ${this.name}`);
+            // console.log(`Interception XHR par ${this.name}`);
             // Modifier la requête ici
         }
     }
@@ -24,7 +24,7 @@ class Interceptor {
     // Méthode pour intercepter la requête fetch
     interceptFetch(response, ...args) {
         if (this.isActive) {
-            console.log(`Interception Fetch par ${this.name}`);
+            // console.log(`Interception Fetch par ${this.name}`);
             // Modifier la requête ici
         }
     }
@@ -60,9 +60,14 @@ class InterceptorManager {
         this.interceptors.forEach(interceptor => interceptor.interceptXHR(req));
     }
 
-    // Méthode pour exécuter les intercepteurs Fetch
-    runInterceptorsFetch(response, ...args) {
-        this.interceptors.forEach(interceptor => interceptor.interceptFetch(response, ...args));
+     // Méthode pour exécuter les intercepteurs Fetch et retourner la réponse modifiée
+     async runInterceptorsFetch(response, ...args) {
+        let modifiedResponse = response;
+        for (const interceptor of this.interceptors) {
+            // Exécuter interceptFetch et attendre la réponse modifiée
+            modifiedResponse = await interceptor.interceptFetch(modifiedResponse, ...args);
+        }
+        return modifiedResponse;
     }
 }
 
@@ -87,23 +92,20 @@ XMLHttpRequest.prototype.send = function (data) {
 // Surcharge du fetch
 (window as any).fetch = async (...args) => {
     const response = await originalFetch(...args);
-    manager.runInterceptorsFetch(response, ...args);
-    return response;
+    // Exécuter les intercepteurs et obtenir la réponse modifiée
+    const modifiedResponse = await manager.runInterceptorsFetch(response, ...args);
+    return modifiedResponse;
 };
-
-
-
 
 // Déclaration des intercepteurs
 const intercepteurHTTPRecorder = new Interceptor('intercepteurHTTPRecorder');
 const intercepteurHTTPMock = new Interceptor('intercepteurHTTPMock');
 const intercepteurHTTPTags = new Interceptor('intercepteurHTTPTags');
 
+// Ajout des intercepteurs
 manager.addInterceptor(intercepteurHTTPRecorder);
 manager.addInterceptor(intercepteurHTTPMock);
 manager.addInterceptor(intercepteurHTTPTags);
-
-
 
 // definition des methode intercept des intercepteurs
 intercepteurHTTPMock.interceptXHR = function (req) {
@@ -200,7 +202,9 @@ intercepteurHTTPMock.interceptFetch = function (response, ...args) {
         let txt = undefined;
         let status = undefined;
         if ((window as any).tuelloRecords) {
-            const records = (window as any).tuelloRecords.filter((key) => compareWithMockLevel(args[0], key));
+            const records = (window as any).tuelloRecords.filter((tuelloRecord) => 
+                compareWithMockLevel(args[0]?.url,tuelloRecord.key)
+            );
             if (records && records.length > 0) {
                 records.forEach(({ key, resp, httpCode, delay }) => {
                     if (delay) {
@@ -246,12 +250,12 @@ intercepteurHTTPMock.interceptFetch = function (response, ...args) {
                     proxy[key] = proxy[key].bind(newResponse);
                 }
             }
-
             return proxy;
-        } else {
-            return response;
-        }
+        } 
     }
+     // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
+    // retourner la réponse originale
+    return response;
 }
 
 
@@ -261,14 +265,13 @@ intercepteurHTTPRecorder.interceptFetch = async function (response, ...args) {
             let dataForRecordHTTP: any =
             {
                 type: 'RECORD_HTTP',
-                url: args[0],
+                url: response.url,
                 delay: 0,
                 status: response.status,
                 method: args[1] ? args[1].method : "GET",
                 body: args[1] ? args[1].body : undefined,
                 hrefLocation: window.location.href
             };
-            let dataForTags: any = { url: args[0], type: 'ADD_HTTP_CALL_FOR_TAGS' };
             let data: any = {};
             try {
                 // Essayer de lire le corps de la réponse en tant que JSON
@@ -288,24 +291,16 @@ intercepteurHTTPRecorder.interceptFetch = async function (response, ...args) {
             }
 
         }
-        /* the original response can be resolved unmodified: */
-        return response;
+        
     }
+     // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
+    // retourner la réponse originale
+    return response;
 }
 
 intercepteurHTTPTags.interceptFetch = async function (response, ...args) {
     if (this.isActive) {
         if (args[0] && typeof args[0] === 'string') {
-            let dataForRecordHTTP: any =
-            {
-                type: 'RECORD_HTTP',
-                url: args[0],
-                delay: 0,
-                status: response.status,
-                method: args[1] ? args[1].method : "GET",
-                body: args[1] ? args[1].body : undefined,
-                hrefLocation: window.location.href
-            };
             let dataForTags: any = { url: args[0], type: 'ADD_HTTP_CALL_FOR_TAGS' };
             let data: any = {};
             try {
@@ -322,9 +317,11 @@ intercepteurHTTPTags.interceptFetch = async function (response, ...args) {
             }
 
         }
-        /* the original response can be resolved unmodified: */
-        return response;
+        
     }
+     // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
+    // retourner la réponse originale
+    return response;
 }
 
 /**
