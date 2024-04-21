@@ -164,7 +164,6 @@ intercepteurHTTPTags.intercept = (req) => {
                         response: response
                     }
 
-                    sendMessages(window.top, messageForHTTPTagsQueue);
                     window.top.postMessage(messageHTTPTags, '*');
 
                 }
