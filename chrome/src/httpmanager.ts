@@ -22,7 +22,7 @@ class Interceptor {
     }
 
     // Méthode pour intercepter la requête fetch
-    interceptFetch(url, config) {
+    interceptFetch(response, ...args) {
         if (this.isActive) {
             console.log(`Interception Fetch par ${this.name}`);
             // Modifier la requête ici
@@ -61,8 +61,8 @@ class InterceptorManager {
     }
 
     // Méthode pour exécuter les intercepteurs Fetch
-    runInterceptorsFetch(req) {
-        this.interceptors.forEach(interceptor => interceptor.interceptFetch(req));
+    runInterceptorsFetch(response, ...args) {
+        this.interceptors.forEach(interceptor => interceptor.interceptFetch(response, ...args));
     }
 }
 
@@ -85,9 +85,10 @@ XMLHttpRequest.prototype.send = function (data) {
 
 
 // Surcharge du fetch
-(window as any).fetch = async (url, config) => {
-    this.interceptorManager.runInterceptorsFetch(this);
-    return originalFetch.apply(url, config);
+(window as any).fetch = async (...args) => {
+    const response = await originalFetch(...args);
+    manager.runInterceptorsFetch(response, ...args);
+    return response;
 };
 
 
@@ -105,7 +106,7 @@ manager.addInterceptor(intercepteurHTTPTags);
 
 
 // definition des methode intercept des intercepteurs
-intercepteurHTTPMock.interceptXHR = function(req) {
+intercepteurHTTPMock.interceptXHR = function (req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
         const self = this;
@@ -124,7 +125,7 @@ intercepteurHTTPMock.interceptXHR = function(req) {
         }
     }
 }
-intercepteurHTTPRecorder.interceptXHR = function(req) {
+intercepteurHTTPRecorder.interceptXHR = function (req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
 
@@ -161,7 +162,7 @@ intercepteurHTTPRecorder.interceptXHR = function(req) {
     }
 }
 
-intercepteurHTTPTags.interceptXHR = function(req) {
+intercepteurHTTPTags.interceptXHR = function (req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
 
@@ -194,14 +195,136 @@ intercepteurHTTPTags.interceptXHR = function(req) {
     }
 }
 
-intercepteurHTTPMock.interceptFetch=  function(url, req) {
+intercepteurHTTPMock.interceptFetch = function (response, ...args) {
+    if (this.isActive) {
+        let txt = undefined;
+        let status = undefined;
+        if ((window as any).tuelloRecords) {
+            const records = (window as any).tuelloRecords.filter((key) => compareWithMockLevel(args[0], key));
+            if (records && records.length > 0) {
+                records.forEach(({ key, resp, httpCode, delay }) => {
+                    if (delay) {
+                        sleep(delay);
+                    }
+                    txt = JSON.stringify(resp);
+                    status = httpCode;
+                });
+            }
+        }
 
+        if (txt !== undefined) {
+            const stream = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(new TextEncoder().encode(txt));
+                    controller.close();
+                }
+            });
+
+            const newResponse = new Response(stream, {
+                headers: response.headers,
+                status: status,
+                statusText: status,
+            });
+            const proxy = new Proxy(newResponse, {
+                get: function (target, name) {
+                    switch (name) {
+                        case 'ok':
+                        case 'redirected':
+                        case 'type':
+                        case 'url':
+                        case 'useFinalURL':
+                        case 'body':
+                        case 'bodyUsed':
+                            return response[name];
+                    }
+                    return target[name];
+                }
+            });
+
+            for (let key in proxy) {
+                if (typeof proxy[key] === 'function') {
+                    proxy[key] = proxy[key].bind(newResponse);
+                }
+            }
+
+            return proxy;
+        } else {
+            return response;
+        }
+    }
 }
-intercepteurHTTPRecorder.interceptFetch=  function(url, req) {
 
+
+intercepteurHTTPRecorder.interceptFetch = async function (response, ...args) {
+    if (this.isActive) {
+        if (args[0] && typeof args[0] === 'string') {
+            let dataForRecordHTTP: any =
+            {
+                type: 'RECORD_HTTP',
+                url: args[0],
+                delay: 0,
+                status: response.status,
+                method: args[1] ? args[1].method : "GET",
+                body: args[1] ? args[1].body : undefined,
+                hrefLocation: window.location.href
+            };
+            let dataForTags: any = { url: args[0], type: 'ADD_HTTP_CALL_FOR_TAGS' };
+            let data: any = {};
+            try {
+                // Essayer de lire le corps de la réponse en tant que JSON
+                const responseBody = await response.clone().json();
+                data.response = responseBody;
+            } catch (error) {
+                // En cas d'erreur, enregistrer l'erreur dans response
+                data.response = error
+            } finally {
+
+                // Envoyer le message contenant les données enregistrées
+                //const message = JSON.parse(JSON.stringify(data));
+                let message = { ...data, ...dataForRecordHTTP };
+                message = JSON.parse(JSON.stringify(message));
+                window.top.postMessage(message, '*');
+
+            }
+
+        }
+        /* the original response can be resolved unmodified: */
+        return response;
+    }
 }
-intercepteurHTTPTags.interceptFetch=  function(url, req) {
 
+intercepteurHTTPTags.interceptFetch = async function (response, ...args) {
+    if (this.isActive) {
+        if (args[0] && typeof args[0] === 'string') {
+            let dataForRecordHTTP: any =
+            {
+                type: 'RECORD_HTTP',
+                url: args[0],
+                delay: 0,
+                status: response.status,
+                method: args[1] ? args[1].method : "GET",
+                body: args[1] ? args[1].body : undefined,
+                hrefLocation: window.location.href
+            };
+            let dataForTags: any = { url: args[0], type: 'ADD_HTTP_CALL_FOR_TAGS' };
+            let data: any = {};
+            try {
+                // Essayer de lire le corps de la réponse en tant que JSON
+                const responseBody = await response.clone().json();
+                data.response = responseBody;
+            } catch (error) {
+                // En cas d'erreur, enregistrer l'erreur dans response
+                data.response = error
+            } finally {
+                let message = { ...data, ...dataForTags };
+                message = JSON.parse(JSON.stringify(message));
+                window.top.postMessage(message, '*');
+            }
+
+        }
+        /* the original response can be resolved unmodified: */
+        return response;
+    }
 }
 
 /**
