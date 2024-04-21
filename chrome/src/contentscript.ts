@@ -1,4 +1,3 @@
-// Import de httpmock.js dans la page
 import { IUserAction } from '../../src/app/spy-http/models/UserAction';
 import { launchUIRecorderHandler } from './uirecorder';
 import * as lightboxImg from './utils/imageviewer';
@@ -270,7 +269,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse();
     } else {
       // on regarde si le mock et le record sont activés et on active la popup le cas échéant
-      chrome.storage.local.get(['httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
+      chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
         if (results.httpMock) {
           window.postMessage(
             {
@@ -291,6 +290,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             '*'
           );
           window.addEventListener('message', recordHttpListener);
+        }
+
+        if (results.httpMock) {
+          window.postMessage(
+            {
+              type: 'MOCK_HTTP_ACTIVATED',
+              value: true,
+              tuelloRecords: results.tuelloRecords,
+              deepMockLevel: results.deepMockLevel || 0
+            },
+            '*'
+          );
+        }
+        if (results['tuelloHTTPTags']) {
+          // On initialise le gestionnaire des tags
+          initTagsHandler(results['tuelloHTTPTags']);
         }
         sendResponse();
       });
@@ -494,51 +509,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 /**
- * Listener des post message provenant de httpmock.js et httprecorder.js
+ * Listener des post message provenant de httpmanager.js
  */
 window.addEventListener(
   'message',
   event => {
     if (event?.data?.type) {
       switch (event.data.type) {
-        case 'RECORD_HTTP_READY':
-          // init : on regarde si le mode enregistrement est activé pour prévenir httprecord
-          chrome.storage.local.get(['httpRecord', 'tuelloHTTPTags'], results => {
-            if (results.httpRecord) {
-              window.postMessage(
-                {
-                  type: 'RECORD_HTTP_ACTIVATED',
-                  value: true
-                },
-                '*'
-              );
-
-              window.addEventListener('message', recordHttpListener);
-            }
-            if (results['tuelloHTTPTags']) {
-              // On initialise le gestionnaire des tags
-              initTagsHandler(results['tuelloHTTPTags']);
-            }
-          });
-          break;
-
-        case 'RECORD_MOCK_READY':
-          // init : on regarde si le mode mock est activé pour prévenir httpmock
-          chrome.storage.local.get(['httpMock', 'tuelloRecords', 'deepMockLevel'], results => {
-            if (results.httpMock) {
-              window.postMessage(
-                {
-                  type: 'MOCK_HTTP_ACTIVATED',
-                  value: true,
-                  tuelloRecords: results.tuelloRecords,
-                  deepMockLevel: results.deepMockLevel || 0
-                },
-                '*'
-              );
-            }
-          });
-
-          break;
         case 'VIEW_IMAGE_CLOSED':
           // send message to popup
           chrome.runtime.sendMessage({

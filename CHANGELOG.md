@@ -1,7 +1,9 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-## [1.0.0.98] - 2024-04-18
+## [1.0.0.20] - 2024-04-20
+    Refonte manager pour mock/record http
+## [1.0.0.19] - 2024-04-18
     Correctifs mineurs
 ## [1.0.0.18] - 2024-04-17
     Correctifs mineurs

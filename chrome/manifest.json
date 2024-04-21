@@ -31,7 +31,6 @@
       ],
       "js": [
         "contentscript.js",
-        "httpmock.js"
       ],
       "run_at": "document_start",
       "all_frames": true
@@ -44,8 +43,7 @@
         "default.css",
         "tags.css",
         "simptip.min.css",
-        "httpmock.js",
-        "httprecorder.js",
+        "httpmanager.js",
         "index.html"
       ],
       "matches": [
