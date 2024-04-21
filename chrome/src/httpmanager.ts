@@ -1,7 +1,7 @@
 // Sauvegarde des méthodes originales
 const originalOpen = (window as any).XMLHttpRequest.prototype.open;
 const originalSend = (window as any).XMLHttpRequest.prototype.send;
-// const originalFetch = window.fetch.bind(window);
+const originalFetch = window.fetch.bind(window);
 
 let deepMockLevel = 0;
 
@@ -13,10 +13,18 @@ class Interceptor {
         this.isActive = false;
     }
 
-    // Méthode pour intercepter la requête
-    intercept(req) {
+    // Méthode pour intercepter la requête XHR
+    interceptXHR(req) {
         if (this.isActive) {
-            console.log(`Interception par ${this.name}`);
+            console.log(`Interception XHR par ${this.name}`);
+            // Modifier la requête ici
+        }
+    }
+
+    // Méthode pour intercepter la requête fetch
+    interceptFetch(url, config) {
+        if (this.isActive) {
+            console.log(`Interception Fetch par ${this.name}`);
             // Modifier la requête ici
         }
     }
@@ -47,9 +55,14 @@ class InterceptorManager {
         }
     }
 
-    // Méthode pour exécuter les intercepteurs
-    runInterceptors(req) {
-        this.interceptors.forEach(interceptor => interceptor.intercept(req));
+    // Méthode pour exécuter les intercepteurs XHR
+    runInterceptorsXHR(req) {
+        this.interceptors.forEach(interceptor => interceptor.interceptXHR(req));
+    }
+
+    // Méthode pour exécuter les intercepteurs Fetch
+    runInterceptorsFetch(req) {
+        this.interceptors.forEach(interceptor => interceptor.interceptFetch(req));
     }
 }
 
@@ -66,11 +79,18 @@ XMLHttpRequest.prototype.open = function (method, url) {
 };
 
 XMLHttpRequest.prototype.send = function (data) {
-    this.interceptorManager.runInterceptors(this);
+    this.interceptorManager.runInterceptorsXHR(this);
     return originalSend.apply(this, arguments);
 };
 
+
 // Surcharge du fetch
+(window as any).fetch = async (url, config) => {
+    this.interceptorManager.runInterceptorsFetch(this);
+    return originalFetch.apply(url, config);
+};
+
+
 
 
 // Déclaration des intercepteurs
@@ -85,7 +105,7 @@ manager.addInterceptor(intercepteurHTTPTags);
 
 
 // definition des methode intercept des intercepteurs
-intercepteurHTTPMock.intercept = function(req) {
+intercepteurHTTPMock.interceptXHR = function(req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
         const self = this;
@@ -104,7 +124,7 @@ intercepteurHTTPMock.intercept = function(req) {
         }
     }
 }
-intercepteurHTTPRecorder.intercept = function(req) {
+intercepteurHTTPRecorder.interceptXHR = function(req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
 
@@ -141,7 +161,7 @@ intercepteurHTTPRecorder.intercept = function(req) {
     }
 }
 
-intercepteurHTTPTags.intercept = function(req) {
+intercepteurHTTPTags.interceptXHR = function(req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
 
@@ -172,6 +192,16 @@ intercepteurHTTPTags.intercept = function(req) {
 
         }
     }
+}
+
+intercepteurHTTPMock.interceptFetch=  function(url, req) {
+
+}
+intercepteurHTTPRecorder.interceptFetch=  function(url, req) {
+
+}
+intercepteurHTTPTags.interceptFetch=  function(url, req) {
+
 }
 
 /**

@@ -17,7 +17,7 @@ export class RecorderHttpInterceptorService {
 
   }
   /**
-  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+  interceptXHR(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     return next.handle(req).pipe(
       filter(event => event.type !== 0),
       tap(
