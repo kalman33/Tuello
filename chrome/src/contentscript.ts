@@ -193,6 +193,49 @@ function init() {
           activateSearchElements();
         }
       });
+
+// on regarde si le mock et le record sont activés et on active la popup le cas échéant
+chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
+  if (results.httpMock) {
+    window.postMessage(
+      {
+        type: 'MOCK_HTTP_ACTIVATED',
+        value: true,
+        tuelloRecords: results.tuelloRecords,
+        deepMockLevel: results.deepMockLevel || 0
+      },
+      '*'
+    );
+  }
+  if (results.httpRecord) {
+    window.postMessage(
+      {
+        type: 'RECORD_HTTP_ACTIVATED',
+        value: true
+      },
+      '*'
+    );
+    window.addEventListener('message', recordHttpListener);
+  }
+
+  if (results.httpMock) {
+    window.postMessage(
+      {
+        type: 'MOCK_HTTP_ACTIVATED',
+        value: true,
+        tuelloRecords: results.tuelloRecords,
+        deepMockLevel: results.deepMockLevel || 0
+      },
+      '*'
+    );
+  }
+  if (results['tuelloHTTPTags']) {
+    // On initialise le gestionnaire des tags
+    initTagsHandler(results['tuelloHTTPTags']);
+  }
+});
+
+
     }
   });
 }
@@ -268,47 +311,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       sendResponse();
     } else {
-      // on regarde si le mock et le record sont activés et on active la popup le cas échéant
-      chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
-        if (results.httpMock) {
-          window.postMessage(
-            {
-              type: 'MOCK_HTTP_ACTIVATED',
-              value: true,
-              tuelloRecords: results.tuelloRecords,
-              deepMockLevel: results.deepMockLevel || 0
-            },
-            '*'
-          );
-        }
-        if (results.httpRecord) {
-          window.postMessage(
-            {
-              type: 'RECORD_HTTP_ACTIVATED',
-              value: true
-            },
-            '*'
-          );
-          window.addEventListener('message', recordHttpListener);
-        }
-
-        if (results.httpMock) {
-          window.postMessage(
-            {
-              type: 'MOCK_HTTP_ACTIVATED',
-              value: true,
-              tuelloRecords: results.tuelloRecords,
-              deepMockLevel: results.deepMockLevel || 0
-            },
-            '*'
-          );
-        }
-        if (results['tuelloHTTPTags']) {
-          // On initialise le gestionnaire des tags
-          initTagsHandler(results['tuelloHTTPTags']);
-        }
-        sendResponse();
-      });
+      sendResponse();
     }
   }
   switch (message.action) {

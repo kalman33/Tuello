@@ -74,9 +74,9 @@ XMLHttpRequest.prototype.send = function (data) {
 
 
 // Déclaration des intercepteurs
-const intercepteurHTTPRecorder = new Interceptor('intercepteurHttpRecorder');
-const intercepteurHTTPMock = new Interceptor('intercepteurHttpMock');
-const intercepteurHTTPTags = new Interceptor('intercepteurHttpTags');
+const intercepteurHTTPRecorder = new Interceptor('intercepteurHTTPRecorder');
+const intercepteurHTTPMock = new Interceptor('intercepteurHTTPMock');
+const intercepteurHTTPTags = new Interceptor('intercepteurHTTPTags');
 
 manager.addInterceptor(intercepteurHTTPRecorder);
 manager.addInterceptor(intercepteurHTTPMock);
@@ -85,15 +85,16 @@ manager.addInterceptor(intercepteurHTTPTags);
 
 
 // definition des methode intercept des intercepteurs
-intercepteurHTTPMock.intercept = (req) => {
+intercepteurHTTPMock.intercept = function(req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
+        const self = this;
 
         req.onreadystatechange = function () {
 
             // Vérifie si la requête est terminée (readyState === 4)
             if (req.readyState === 4) {
-                this.modifyResponse(false, req);
+                modifyResponse(false, req);
             }
 
             // Appelle la fonction de rappel d'origine avec la réponse modifiée
@@ -103,7 +104,7 @@ intercepteurHTTPMock.intercept = (req) => {
         }
     }
 }
-intercepteurHTTPRecorder.intercept = (req) => {
+intercepteurHTTPRecorder.intercept = function(req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
 
@@ -140,7 +141,7 @@ intercepteurHTTPRecorder.intercept = (req) => {
     }
 }
 
-intercepteurHTTPTags.intercept = (req) => {
+intercepteurHTTPTags.intercept = function(req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
 

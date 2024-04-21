@@ -10,8 +10,7 @@ module.exports = {
     background: join(__dirname, 'src/background.ts'),
     backgroundWrapper: join(__dirname, 'src/backgroundWrapper.ts'),
     contentscript: join(__dirname, 'src/contentscript.ts'),
-    httpmock: join(__dirname, 'src/httpmock.ts'),
-    httprecorder: join(__dirname, 'src/httprecorder.ts'),
+    httpmanager: join(__dirname, 'src/httpmanager.ts'),
     popup: join(__dirname, 'src/popup/popup.ts'),
     exportTuelloTemplate: join(__dirname, 'assets/export/exportTuelloTemplate.ts')
   },
