@@ -45,7 +45,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       () => {
       });
   }
- 
+
 });
 
 /** 
@@ -85,16 +85,16 @@ function test(tab)  {
 
 
 async function dynamicallyInjectContentScripts() {
-  const contentScriptsToInject= [{
+  const contentScriptsToInject = [{
     id: 'hook',
     matches: ['<all_urls>'],
     js: ['httpmanager.js'],
     runAt: 'document_start',
     allFrames: true,
     world: 'MAIN'
-  }];
+  }]
 
-  try { 
+  try {
     // @ts-ignore
     await chrome.scripting.registerContentScripts(contentScriptsToInject);
   } catch (error) {
@@ -113,7 +113,7 @@ function init() {
             title: msgs['mmn.spy-http.tabs.shortcuts.jsonviewer'],
             contexts: ['all'],
           }, () => chrome.runtime.lastError); // ignore errors about an existing id
-          
+
           chrome.contextMenus.create({
             id: 'id0',
             title: msgs['mmn.spy-http.tabs.shortcuts.screenshot'] + " : ALT + MAJ + S",
@@ -145,7 +145,7 @@ function init() {
             title: 'JSON VIEWER',
             contexts: ['all'],
           }, () => chrome.runtime.lastError); // ignore errors about an existing id
-        
+
           chrome.contextMenus.create({
             id: 'id0',
             title: "Screenshot : ALT + MAJ + S",
@@ -176,7 +176,7 @@ function init() {
     });
   });
 
- 
+
 
   chrome.webRequest.onBeforeRequest.addListener(
     (details) => {
@@ -206,7 +206,7 @@ function init() {
         });
       }
     },
-    {urls: ["<all_urls>"]},
+    { urls: ["<all_urls>"] },
     ["requestBody"]
   );
 }
@@ -235,7 +235,7 @@ chrome.commands.onCommand.addListener(command => {
               action: 'ACTIONS_PAUSED',
               value: pausedActionNumber
             },
-            () => {});
+              () => { });
           }
         );
       });
@@ -274,7 +274,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         action: 'DEACTIVATE'
       },
         () => { });
-     break;
+      break;
     case 'FINISH_PLAY_ACTIONS':
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page
       chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
@@ -285,7 +285,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       loadRecordFromStorage();
       break;
     case 'START_UI_RECORDER':
-        // on envoie un message au content scrip
+      // on envoie un message au content scrip
       if (sender && sender.tab && sender.tab.id >= 0) {
         chrome.tabs.sendMessage(
           sender.tab.id,
@@ -296,7 +296,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: 0
           },
-          () => {}
+          () => { }
         );
       } else {
         port.postMessage({
@@ -304,7 +304,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           value: msg.value
         });
       }
-        break;
+      break;
     case 'VIEW_IMAGE':
       // on envoie un message au content scrip
       if (sender && sender.tab && sender.tab.id >= 0) {
@@ -317,7 +317,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: 0
           },
-          () => {}
+          () => { }
         );
       } else {
         port.postMessage({
@@ -334,7 +334,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           action: 'MOUSE_COORDINATES',
           value: msg.value
         },
-        () => {});
+          () => { });
       } else {
         port.postMessage({
           action: 'MOUSE_COORDINATES',
@@ -355,7 +355,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: 0
           },
-          () => {}
+          () => { }
         );
       }
       break;
@@ -367,7 +367,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           action: 'HTTP_MOCK_STATE',
           value: msg.value
         },
-        () => {});
+          () => { });
       }
       break;
     case 'UPDATE_MENU':
@@ -406,7 +406,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           action: 'HTTP_RECORD_STATE',
           value: msg.value
         },
-        () => {});
+          () => { });
       }
       break;
     case 'MMA_RECORDS_CHANGE':
@@ -415,18 +415,18 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'MMA_RECORDS_CHANGE'
         },
-        () => {});
+          () => { });
       }
       break;
-      case 'MMA_TAGS_CHANGE':
-        if (sender && sender.tab && sender.tab.id >= 0) {
-          // on envoie un message au content scrip
-          chrome.tabs.sendMessage(sender.tab.id, {
-            action: 'MMA_TAGS_CHANGE'
-          },
-          () => {});
-        }
-        break;
+    case 'MMA_TAGS_CHANGE':
+      if (sender && sender.tab && sender.tab.id >= 0) {
+        // on envoie un message au content scrip
+        chrome.tabs.sendMessage(sender.tab.id, {
+          action: 'MMA_TAGS_CHANGE'
+        },
+          () => { });
+      }
+      break;
     case 'TRACK_PLAY_STATE':
       if (sender && sender.tab && sender.tab.id >= 0) {
 
@@ -467,27 +467,27 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           chrome.storage.local.remove(['tuelloTracksBody']);
         }
         */
-       
+
         // on envoie un message au content scrip
         chrome.tabs.sendMessage(sender.tab.id, {
           action: 'TRACK_PLAY_STATE',
           value: msg.value
         },
-        () => {});
+          () => { });
 
 
       }
       break;
     case 'SEARCH_ELEMENTS_ACTIVATED':
-        if (sender && sender.tab && sender.tab.id >= 0) {
-          // on envoie un message au content scrip
-          chrome.tabs.sendMessage(sender.tab.id, {
-            action: 'SEARCH_ELEMENTS_ACTIVATED',
-            value: msg.value
-          },
-          () => {});
-        }
-        break;
+      if (sender && sender.tab && sender.tab.id >= 0) {
+        // on envoie un message au content scrip
+        chrome.tabs.sendMessage(sender.tab.id, {
+          action: 'SEARCH_ELEMENTS_ACTIVATED',
+          value: msg.value
+        },
+          () => { });
+      }
+      break;
     case 'VIEW_CLICK_ACTION':
       if (sender && sender.tab && sender.tab.id >= 0) {
         const action: UserAction = msg.value;
@@ -501,7 +501,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: action.frame && action.frame.frameId ? action.frame.frameId : 0
           },
-          () => {}
+          () => { }
         );
       }
       break;
@@ -516,7 +516,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: 0
           },
-          () => {}
+          () => { }
         );
       }
       break;
@@ -540,7 +540,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
               action: 'ACTIONS_PAUSED',
               value: pausedActionNumber
             },
-            () => {});
+              () => { });
           }
         );
       });
@@ -569,7 +569,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                 }
               },
               options,
-              () => {}
+              () => { }
             );
           }
         }
@@ -582,7 +582,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         chrome.tabs.sendMessage(sender.tab.id, 'toggle', {
           frameId: 0
         },
-        () => {});
+          () => { });
       }
       break;
 
@@ -611,7 +611,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                 value: false
               },
               options,
-              () => {}
+              () => { }
             );
             chrome.tabs.sendMessage(
               sender.tab.id,
@@ -624,7 +624,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                 }
               },
               options,
-              () => {}
+              () => { }
             );
           }
         }
@@ -643,14 +643,14 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           value: msg.value,
           data: msg.data
         },
-        () => {});
+          () => { });
       } else {
         port.postMessage({
           action: 'MOCK_HTTP_USER_ACTION',
           value: msg.value,
           data: msg.data
         },
-        () => {});
+          () => { });
       }
       break;
     case 'ACTIVATE':

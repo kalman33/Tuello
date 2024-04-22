@@ -142,15 +142,13 @@ intercepteurHTTPMock.interceptXHR = function (req) {
         const self = this;
 
         req.onreadystatechange = function () {
-
             // Vérifie si la requête est terminée (readyState === 4)
             if (req.readyState === 4) {
                 modifyResponse(false, req);
             }
-
             // Appelle la fonction de rappel d'origine avec la réponse modifiée
             if (realOnReadyStateChange) {
-                realOnReadyStateChange.apply(req, arguments as any);
+                realOnReadyStateChange.apply(this, arguments as any);
             }
         }
     }
@@ -191,10 +189,11 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                 }
 
             }
+            if (realOnReadyStateChange) {
+                realOnReadyStateChange.apply(this, arguments as any);
+            }
         }
-        if (realOnReadyStateChange) {
-            realOnReadyStateChange.apply(this, arguments as any);
-        }
+        
     };
 }
 
@@ -391,8 +390,6 @@ window.addEventListener(
             }
         } else if (event?.data?.type === 'RECORD_HTTP_ACTIVATED') {
             if (event.data.value) {
-                deepMockLevel = event.data.deepMockLevel || 0;
-                (window as any).tuelloRecords = event.data.tuelloRecords;
                 sendMessages(window, messageForHTTPRecorderQueue);
                 manager.activateInterceptorByUser('intercepteurHTTPRecorder');
             } else {
@@ -403,8 +400,6 @@ window.addEventListener(
             }
         } else if (event?.data?.type === 'RECORD_HTTP_CALL_FOR_TAGS') {
             if (event.data.value) {
-                deepMockLevel = event.data.deepMockLevel || 0;
-                (window as any).tuelloRecords = event.data.tuelloRecords;
                 sendMessages(window.top, messageForHTTPTagsQueue);
                 manager.activateInterceptorByUser('intercepteurHTTPTags');
             } else {
@@ -412,7 +407,10 @@ window.addEventListener(
                 messageForHTTPTagsQueue = [];
 
             }
-        }// else ignore messages seemingly not sent to yourself
+        } 
+        
+        
+        // else ignore messages seemingly not sent to yourself
     },
     false,
 );
@@ -518,3 +516,4 @@ function sendMessages(targetWindow, file) {
         targetWindow.postMessage(message, '*');
     }
 }
+
