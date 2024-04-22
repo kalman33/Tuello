@@ -94,6 +94,8 @@ XMLHttpRequest.prototype.send = function (data) {
     const response = await originalFetch(...args);
     // Exécuter les intercepteurs et obtenir la réponse modifiée
     const modifiedResponse = await manager.runInterceptorsFetch(response, ...args);
+   // modifiedResponse.json().then(body => console.log('TUELLO BODY', body));
+
     return modifiedResponse;
 };
 
@@ -202,15 +204,15 @@ intercepteurHTTPMock.interceptFetch = function (response, ...args) {
         let txt = undefined;
         let status = undefined;
         if ((window as any).tuelloRecords) {
-            const records = (window as any).tuelloRecords.filter((tuelloRecord) => 
-                compareWithMockLevel(args[0]?.url,tuelloRecord.key)
+            const records = (window as any).tuelloRecords.filter(({ key }) => 
+                compareWithMockLevel(response.url, key)
             );
             if (records && records.length > 0) {
-                records.forEach(({ key, resp, httpCode, delay }) => {
+                records.forEach(({ key, response, httpCode, delay }) => {
                     if (delay) {
                         sleep(delay);
                     }
-                    txt = JSON.stringify(resp);
+                    txt = JSON.stringify(response);
                     status = httpCode;
                 });
             }
@@ -227,29 +229,25 @@ intercepteurHTTPMock.interceptFetch = function (response, ...args) {
             const newResponse = new Response(stream, {
                 headers: response.headers,
                 status: status,
-                statusText: status,
+                statusText: status === 200 ? 'OK': 'Not Found'
             });
             const proxy = new Proxy(newResponse, {
-                get: function (target, name) {
-                    switch (name) {
-                        case 'ok':
-                        case 'redirected':
-                        case 'type':
-                        case 'url':
-                        case 'useFinalURL':
-                        case 'body':
-                        case 'bodyUsed':
-                            return response[name];
+                get: function (target, prop) {
+                    const checkKeys = ['ok', 'redirected', 'type', 'url', 'useFinalURL', 'body', 'bodyUsed'];
+                    if (checkKeys.includes(prop as string)) {
+                        return Reflect.get(target, prop);
                     }
-                    return target[name];
-                }
+                    return Reflect.get(target, prop);
+                },
             });
-
+    
             for (let key in proxy) {
-                if (typeof proxy[key] === 'function') {
-                    proxy[key] = proxy[key].bind(newResponse);
+                const target = Reflect.get(proxy, key);
+                if (typeof target === "function") {
+                    Reflect.set(proxy, key, target.bind(newResponse));
                 }
             }
+    
             return proxy;
         } 
     }
@@ -300,8 +298,8 @@ intercepteurHTTPRecorder.interceptFetch = async function (response, ...args) {
 
 intercepteurHTTPTags.interceptFetch = async function (response, ...args) {
     if (this.isActive) {
-        if (args[0] && typeof args[0] === 'string') {
-            let dataForTags: any = { url: args[0], type: 'ADD_HTTP_CALL_FOR_TAGS' };
+        if (response && typeof response.url === 'string') {
+            let dataForTags: any = { url: response.url, type: 'ADD_HTTP_CALL_FOR_TAGS' };
             let data: any = {};
             try {
                 // Essayer de lire le corps de la réponse en tant que JSON
@@ -353,9 +351,9 @@ window.addEventListener(
             if (event.data.value) {
                 deepMockLevel = event.data.deepMockLevel || 0;
                 (window as any).tuelloRecords = event.data.tuelloRecords;
-                manager.activateInterceptor('intercepteurHttpTags');
+                manager.activateInterceptor('intercepteurHTTPTags');
             } else {
-                manager.deactivateInterceptor('intercepteurHttpTags');
+                manager.deactivateInterceptor('intercepteurHTTPTags');
 
             }
         }// else ignore messages seemingly not sent to yourself
@@ -378,9 +376,10 @@ let removeURLPortAndProtocol = (url: string) => {
 }
 
 let compareWithMockLevel = (url1, url2) => {
-    if (typeof url2 !== 'string' || typeof url2 !== 'string') {
+    if (!url1 || !url1 || typeof url1 !== 'string' || typeof url2 !== 'string' ) {
         return false;
     }
+    
     url1 = removeURLPortAndProtocol(url1);
     url2 = removeURLPortAndProtocol(url2);
     let inc = deepMockLevel;
@@ -396,6 +395,7 @@ let compareWithMockLevel = (url1, url2) => {
         // @ts-ignore
         inc--;
     }
+
     url1 = url1.replace(/^\//, '');
     url2 = url2.replace(/^\//, '');
 
