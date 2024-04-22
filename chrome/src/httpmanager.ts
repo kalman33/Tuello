@@ -69,6 +69,20 @@ class InterceptorManager {
         }
         return modifiedResponse;
     }
+
+    applyInterceptorsXHR(req) {
+        const applyNextInterceptor = (index) => {
+            if (index < this.interceptors.length) {
+                const interceptor = this.interceptors[index];
+                if (interceptor.isActive) {
+                    interceptor.interceptXHR(req);
+                
+                }
+                applyNextInterceptor(index +1);
+            }
+        };
+        applyNextInterceptor(0);
+    }
 }
 
 // Création du gestionnaire
@@ -132,9 +146,7 @@ intercepteurHTTPMock.interceptXHR = function (req) {
 intercepteurHTTPRecorder.interceptXHR = function (req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
-
         req.onreadystatechange = function () {
-            // Vérifie si la requête est terminée (readyState === 4)
             if (req.readyState === 4) {
                 if (req.responseURL && typeof req.responseURL === 'string' && !req.responseURL.includes('tuello') && !req.responseURL.includes('sockjs')) {
                     let response = '';
@@ -163,15 +175,17 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                 realOnReadyStateChange.apply(this, arguments as any);
             }
         };
+
+       
     }
 }
 
 intercepteurHTTPTags.interceptXHR = function (req) {
     if (this.isActive) {
-        const realOnReadyStateChange = req.onreadystatechange;
 
+
+        const realOnReadyStateChange = req.onreadystatechange;
         req.onreadystatechange = function () {
-            // Vérifie si la requête est terminée (readyState === 4)
             if (req.readyState === 4) {
                 if (req.responseURL && typeof req.responseURL === 'string' && !req.responseURL.includes('tuello') && !req.responseURL.includes('sockjs')) {
                     let response = '';
@@ -194,8 +208,11 @@ intercepteurHTTPTags.interceptXHR = function (req) {
 
                 }
             }
-
-        }
+            if (realOnReadyStateChange) {
+                realOnReadyStateChange.apply(this, arguments as any);
+            }
+        };
+       
     }
 }
 
