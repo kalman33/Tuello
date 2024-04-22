@@ -2,12 +2,16 @@
 const originalOpen = (window as any).XMLHttpRequest.prototype.open;
 const originalSend = (window as any).XMLHttpRequest.prototype.send;
 const originalFetch = window.fetch.bind(window);
+let messageForHTTPRecorderQueue = [];
+let messageForHTTPTagsQueue = [];
+
 
 let deepMockLevel = 0;
 
 class Interceptor {
     name: string;
     isActive: boolean;
+    userActivation = false;
     constructor(name) {
         this.name = name;
         this.isActive = false;
@@ -48,6 +52,14 @@ class InterceptorManager {
         }
     }
 
+    activateInterceptorByUser(name) {
+        const interceptor = this.interceptors.find(i => i.name === name);
+        if (interceptor) {
+            interceptor.isActive = true;
+            interceptor.userActivation = true;
+        }
+    }
+
     deactivateInterceptor(name) {
         const interceptor = this.interceptors.find(i => i.name === name);
         if (interceptor) {
@@ -60,8 +72,8 @@ class InterceptorManager {
         this.interceptors.forEach(interceptor => interceptor.interceptXHR(req));
     }
 
-     // Méthode pour exécuter les intercepteurs Fetch et retourner la réponse modifiée
-     async runInterceptorsFetch(response, ...args) {
+    // Méthode pour exécuter les intercepteurs Fetch et retourner la réponse modifiée
+    async runInterceptorsFetch(response, ...args) {
         let modifiedResponse = response;
         for (const interceptor of this.interceptors) {
             // Exécuter interceptFetch et attendre la réponse modifiée
@@ -76,9 +88,9 @@ class InterceptorManager {
                 const interceptor = this.interceptors[index];
                 if (interceptor.isActive) {
                     interceptor.interceptXHR(req);
-                
+
                 }
-                applyNextInterceptor(index +1);
+                applyNextInterceptor(index + 1);
             }
         };
         applyNextInterceptor(0);
@@ -108,7 +120,7 @@ XMLHttpRequest.prototype.send = function (data) {
     const response = await originalFetch(...args);
     // Exécuter les intercepteurs et obtenir la réponse modifiée
     const modifiedResponse = await manager.runInterceptorsFetch(response, ...args);
-   // modifiedResponse.json().then(body => console.log('TUELLO BODY', body));
+    // modifiedResponse.json().then(body => console.log('TUELLO BODY', body));
 
     return modifiedResponse;
 };
@@ -146,6 +158,7 @@ intercepteurHTTPMock.interceptXHR = function (req) {
 intercepteurHTTPRecorder.interceptXHR = function (req) {
     if (this.isActive) {
         const realOnReadyStateChange = req.onreadystatechange;
+        const that = this;
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
                 if (req.responseURL && typeof req.responseURL === 'string' && !req.responseURL.includes('tuello') && !req.responseURL.includes('sockjs')) {
@@ -168,22 +181,27 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                         method: req['xhrMethod'] || '',
                         hrefLocation: window.location.href
                     }
-                    window.postMessage(messageHttpRecorder, '*');
+                    if (that.userActivation) {
+                        sendMessages(window, messageForHTTPRecorderQueue);
+                        window.postMessage(messageHttpRecorder, '*');
+                    } else {
+                        // On rajoute les messages dans la queue
+                        addToQueue(messageHttpRecorder, messageForHTTPRecorderQueue);
+                    }
                 }
-            }
-            if (realOnReadyStateChange) {
-                realOnReadyStateChange.apply(this, arguments as any);
-            }
-        };
 
-       
-    }
+            }
+        }
+        if (realOnReadyStateChange) {
+            realOnReadyStateChange.apply(this, arguments as any);
+        }
+    };
 }
 
 intercepteurHTTPTags.interceptXHR = function (req) {
     if (this.isActive) {
 
-
+        const that = this;
         const realOnReadyStateChange = req.onreadystatechange;
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
@@ -203,16 +221,20 @@ intercepteurHTTPTags.interceptXHR = function (req) {
                         url: req.responseURL,
                         response: response
                     }
-
-                    window.top.postMessage(messageHTTPTags, '*');
-
+                    if (that.userActivation) {
+                        sendMessages(window.top, messageForHTTPTagsQueue);
+                        window.top.postMessage(messageHTTPTags, '*');
+                    } else {
+                        // On rajoute les messages dans la queue
+                        addToQueue(messageHTTPTags, messageForHTTPTagsQueue);
+                    }
                 }
             }
             if (realOnReadyStateChange) {
                 realOnReadyStateChange.apply(this, arguments as any);
             }
         };
-       
+
     }
 }
 
@@ -221,7 +243,7 @@ intercepteurHTTPMock.interceptFetch = function (response, ...args) {
         let txt = undefined;
         let status = undefined;
         if ((window as any).tuelloRecords) {
-            const records = (window as any).tuelloRecords.filter(({ key }) => 
+            const records = (window as any).tuelloRecords.filter(({ key }) =>
                 compareWithMockLevel(response.url, key)
             );
             if (records && records.length > 0) {
@@ -246,7 +268,7 @@ intercepteurHTTPMock.interceptFetch = function (response, ...args) {
             const newResponse = new Response(stream, {
                 headers: response.headers,
                 status: status,
-                statusText: status === 200 ? 'OK': 'Not Found'
+                statusText: status === 200 ? 'OK' : 'Not Found'
             });
             const proxy = new Proxy(newResponse, {
                 get: function (target, prop) {
@@ -257,18 +279,18 @@ intercepteurHTTPMock.interceptFetch = function (response, ...args) {
                     return Reflect.get(target, prop);
                 },
             });
-    
+
             for (let key in proxy) {
                 const target = Reflect.get(proxy, key);
                 if (typeof target === "function") {
                     Reflect.set(proxy, key, target.bind(newResponse));
                 }
             }
-    
+
             return proxy;
-        } 
+        }
     }
-     // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
+    // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
     // retourner la réponse originale
     return response;
 }
@@ -301,14 +323,20 @@ intercepteurHTTPRecorder.interceptFetch = async function (response, ...args) {
                 //const message = JSON.parse(JSON.stringify(data));
                 let message = { ...data, ...dataForRecordHTTP };
                 message = JSON.parse(JSON.stringify(message));
-                window.top.postMessage(message, '*');
-
+                
+                if (this.userActivation) {
+            
+                    window.postMessage(message, '*');
+                } else {
+                    // On rajoute les messages dans la queue
+                    addToQueue(message, messageForHTTPTagsQueue);
+                }
             }
 
         }
-        
+
     }
-     // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
+    // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
     // retourner la réponse originale
     return response;
 }
@@ -328,13 +356,19 @@ intercepteurHTTPTags.interceptFetch = async function (response, ...args) {
             } finally {
                 let message = { ...data, ...dataForTags };
                 message = JSON.parse(JSON.stringify(message));
-                window.top.postMessage(message, '*');
+                if (this.userActivation) {
+                    window.top.postMessage(message, '*');
+                } else {
+                    // On rajoute les messages dans la queue
+                    addToQueue(message, messageForHTTPTagsQueue);
+                }
+               
             }
 
         }
-        
+
     }
-     // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
+    // Si l'intercepteur n'est pas actif ou si la réponse ne doit pas être modifiée,
     // retourner la réponse originale
     return response;
 }
@@ -359,18 +393,23 @@ window.addEventListener(
             if (event.data.value) {
                 deepMockLevel = event.data.deepMockLevel || 0;
                 (window as any).tuelloRecords = event.data.tuelloRecords;
-                manager.activateInterceptor('intercepteurHTTPRecorder');
+                sendMessages(window, messageForHTTPRecorderQueue);
+                manager.activateInterceptorByUser('intercepteurHTTPRecorder');
             } else {
                 manager.deactivateInterceptor('intercepteurHTTPRecorder');
+                messageForHTTPRecorderQueue = [];
+
 
             }
         } else if (event?.data?.type === 'RECORD_HTTP_CALL_FOR_TAGS') {
             if (event.data.value) {
                 deepMockLevel = event.data.deepMockLevel || 0;
                 (window as any).tuelloRecords = event.data.tuelloRecords;
-                manager.activateInterceptor('intercepteurHTTPTags');
+                sendMessages(window.top, messageForHTTPTagsQueue);
+                manager.activateInterceptorByUser('intercepteurHTTPTags');
             } else {
                 manager.deactivateInterceptor('intercepteurHTTPTags');
+                messageForHTTPTagsQueue = [];
 
             }
         }// else ignore messages seemingly not sent to yourself
@@ -393,10 +432,10 @@ let removeURLPortAndProtocol = (url: string) => {
 }
 
 let compareWithMockLevel = (url1, url2) => {
-    if (!url1 || !url1 || typeof url1 !== 'string' || typeof url2 !== 'string' ) {
+    if (!url1 || !url1 || typeof url1 !== 'string' || typeof url2 !== 'string') {
         return false;
     }
-    
+
     url1 = removeURLPortAndProtocol(url1);
     url2 = removeURLPortAndProtocol(url2);
     let inc = deepMockLevel;
@@ -456,5 +495,26 @@ let modifyResponse = (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
 
             });
         }
+    }
+}
+
+
+
+// Au départ on active pour éviter de perdre des messages
+manager.activateInterceptor('intercepteurHTTPRecorder');
+manager.activateInterceptor('intercepteurHTTPTags');
+
+
+// Fonction pour ajouter un message à la file d'attente
+function addToQueue(message, file) {
+    file.push(message);
+}
+
+// Fonction pour vider la file d'attente et envoyer les messages
+function sendMessages(targetWindow, file) {
+    while (file.length > 0) {
+        var message = file.shift();
+        // Envoyer le message à la cible appropriée avec postMessage()
+        targetWindow.postMessage(message, '*');
     }
 }
