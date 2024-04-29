@@ -193,7 +193,7 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                 realOnReadyStateChange.apply(this, arguments as any);
             }
         }
-        
+
     };
 }
 
@@ -322,7 +322,7 @@ intercepteurHTTPRecorder.interceptFetch = async function (response, ...args) {
                 //const message = JSON.parse(JSON.stringify(data));
                 let message = { ...data, ...dataForRecordHTTP };
                 message = JSON.parse(JSON.stringify(message));
-                
+
                 if (this.userActivation) {
                     sendMessages(window, messageForHTTPTagsQueue);
                     window.postMessage(message, '*');
@@ -362,7 +362,7 @@ intercepteurHTTPTags.interceptFetch = async function (response, ...args) {
                     // On rajoute les messages dans la queue
                     addToQueue(message, messageForHTTPTagsQueue);
                 }
-               
+
             }
 
         }
@@ -408,9 +408,12 @@ window.addEventListener(
                 messageForHTTPTagsQueue = [];
 
             }
-        } 
-        
-        
+        } else if (event?.data?.type === 'MOCK_HTTP_TUELLO_RECORDS') {
+            deepMockLevel = event.data.deepMockLevel || 0;
+            (window as any).tuelloRecords = event.data.tuelloRecords;
+        }
+
+
         // else ignore messages seemingly not sent to yourself
     },
     false,

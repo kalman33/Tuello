@@ -13,6 +13,21 @@ import { displayEffect } from './utils/utils';
 let show = false;
 let clickedElement: string;
 
+chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], function (result) {
+  if (result.tuelloRecords) {
+    window.postMessage(
+      {
+        type: 'MOCK_HTTP_TUELLO_RECORDS',
+        value: true,
+        tuelloRecords: result.tuelloRecords,
+        deepMockLevel: result.deepMockLevel || 0
+      },
+      '*'
+    );
+  }
+
+});
+
 document.addEventListener("mousedown", function (event) {
   clickedElement = event.target['innerHTML'];
 }, true);
