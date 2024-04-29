@@ -324,7 +324,7 @@ intercepteurHTTPRecorder.interceptFetch = async function (response, ...args) {
                 message = JSON.parse(JSON.stringify(message));
                 
                 if (this.userActivation) {
-            
+                    sendMessages(window, messageForHTTPTagsQueue);
                     window.postMessage(message, '*');
                 } else {
                     // On rajoute les messages dans la queue
@@ -356,6 +356,7 @@ intercepteurHTTPTags.interceptFetch = async function (response, ...args) {
                 let message = { ...data, ...dataForTags };
                 message = JSON.parse(JSON.stringify(message));
                 if (this.userActivation) {
+                    sendMessages(window.top, messageForHTTPTagsQueue);
                     window.top.postMessage(message, '*');
                 } else {
                     // On rajoute les messages dans la queue
