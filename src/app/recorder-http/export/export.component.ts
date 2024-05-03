@@ -29,7 +29,7 @@ export class ExportComponent implements OnInit {
 
   save() {
     const value = formatDate(new Date());
-    const txtBlob = new Blob([this.data], { type: 'text/plain;charset=utf-8' });
+    const txtBlob = new Blob([ this.replaceDynamicData(this.data)], { type: 'text/plain;charset=utf-8' });
     saveAs(txtBlob, `tuello-http-${value}.json`);
     this.dialogRef.close();
   }
@@ -49,9 +49,9 @@ export class ExportComponent implements OnInit {
           //const txtBlobJson = new Blob([this.data], { type: 'text/plain;charset=utf-8' });
           //saveAs(txtBlobJson, jsonFileName);
           let contentFile = txt.replace(/.###IMPORT_DATA###./, this.data);
-          contentFile = contentFile.replace(/.###IMPORT_DEEPMOCKLEVEL###./, results['deepMockLevel'] || 0);
+          //contentFile = contentFile.replace(/.###IMPORT_DEEPMOCKLEVEL###./, results['deepMockLevel'] || 0);
           this.libFileName = `tuello-mocks-library-${value}.js`;
-          const txtBlob = new Blob([contentFile], { type: 'text/plain;charset=utf-8' });
+          const txtBlob = new Blob([this.replaceDynamicData(contentFile)], { type: 'text/plain;charset=utf-8' });
           saveAs(txtBlob, this.libFileName);
           this.zone.run(() => {
             this.snackBar.open(
@@ -62,5 +62,11 @@ export class ExportComponent implements OnInit {
           });
         });
       });
+  }
+
+  replaceDynamicData(data) {
+    let dataTxt = data.replace(/'###window.location.origin###/, " window.location.origin + '");
+    dataTxt = dataTxt.replace(/"###window.location.origin###/, ' window.location.origin + "');
+    return dataTxt;
   }
 }

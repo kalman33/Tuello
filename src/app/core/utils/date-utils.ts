@@ -10,5 +10,5 @@ export function formatDate(date) {
         minuteFormatted = minute < 10 ? "0" + minute : minute;
 
     // YYYY-MM-DD_HH-mm
-    return year + '-' + montFormatted + "-" + dayFormatted + "_" + hourFormatted + "h-" + minuteFormatted + "m";
+    return year + '-' + montFormatted + "-" + dayFormatted + "_" + hourFormatted + "h" + minuteFormatted + "m";
 }

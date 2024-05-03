@@ -300,11 +300,13 @@ export class RecorderHttpComponent implements OnInit {
         } catch (e) {
           jsonResult = JSON.parse(jsonResult);
         }
-        this.jsonEditorTree.setText(jsonResult);
+        this.jsonEditorTree.setText(this.replaceDynamicData(jsonResult));
         this.updateData();
       } else {
-        const jsonData = this.extraireFluxJSON(jsonResult);
-        this.jsonEditorTree.setText(jsonData);
+        let jsonData = this.extraireFluxJSON(jsonResult);
+
+        //on remplace la donnée dynamique window.location.origin pour pouvoir l'importer dans jsoneditor
+        this.jsonEditorTree.setText(this.replaceDynamicData(jsonData));
         this.updateData();
       }
       this.snackBar.open(
@@ -322,6 +324,12 @@ export class RecorderHttpComponent implements OnInit {
       fileReader.abort();
     };
     fileReader.readAsText(file);
+  }
+
+  replaceDynamicData(data) {
+    let ret  = data.replace(/window.location.origin \+ "/g, '"###window.location.origin### ');
+    ret = ret.replace(/window.location.origin \+ '/g, "'###window.location.origin### ");
+    return ret;
   }
 
   selectFile() {

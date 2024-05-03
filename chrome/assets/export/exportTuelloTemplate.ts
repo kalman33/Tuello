@@ -1,6 +1,6 @@
 ({
   tuello: function () {
-    let deepMockLevel = '###IMPORT_DEEPMOCKLEVEL###';
+    let deepMockLevel = 2; //'###IMPORT_DEEPMOCKLEVEL###';
     (window as any).tuelloRecords = '###IMPORT_DATA###'; //#ENDOFJSON#: don't remove this comment
 
     function removeURLPortAndProtocol(url: string) {
@@ -106,8 +106,16 @@
 
       },
 
-
       openXHR: function (method, url) {
+        // Permet de palier le problème de CORS : on bascule sur le même serveur
+        try {
+          const urlObj = new URL(url);
+          const currentURL = new URL(window.location.href); 
+          url = url.replace(urlObj.origin, currentURL.origin);
+        } catch(e) {
+
+        }
+
         // Stocker l'URL dans l'objet XMLHttpRequest
         this["originalURL"] = url;
 
