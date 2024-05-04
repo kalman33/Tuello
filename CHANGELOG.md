@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.0.0.21] - 2024-05-04
+    Refonte manager pour mock/record http
 ## [1.0.0.20] - 2024-04-29
     Refonte manager pour mock/record http
 ## [1.0.0.19] - 2024-04-18
