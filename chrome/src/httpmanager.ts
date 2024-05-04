@@ -162,32 +162,34 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                 if (req.responseURL && typeof req.responseURL === 'string' && !req.responseURL.includes('tuello') && !req.responseURL.includes('sockjs')) {
                     let response = '';
                     try {
-                        response = JSON.parse(req.responseText);
+                        const contentType = req.getResponseHeader('Content-Type');
+                        // on ne traite que si le content type est du json
+                        if (contentType && contentType.includes("application/json")) {
+                            response = JSON.parse(req.responseText);
+                            const messageHttpRecorder = {
+                                type: 'RECORD_HTTP',
+                                url: req.responseURL,
+                                delay: 0,
+                                response: response,
+                                status: req.status,
+                                method: req['xhrMethod'] || '',
+                                hrefLocation: window.location.href
+                            }
+                            if (that.userActivation) {
+                                sendMessages(window, messageForHTTPRecorderQueue);
+                                window.postMessage(messageHttpRecorder, '*');
+                            } else {
+                                // On rajoute les messages dans la queue
+                                addToQueue(messageHttpRecorder, messageForHTTPRecorderQueue);
+                            }
+                        }
 
                     } catch (e) {
-                        response = req.responseText;
+                        // response = req.responseText;
                         // error
-                        console.log('Tuello : Problème de parsing de la reponse', e);
-                    }
-
-                    const messageHttpRecorder = {
-                        type: 'RECORD_HTTP',
-                        url: req.responseURL,
-                        delay: 0,
-                        response: response,
-                        status: req.status,
-                        method: req['xhrMethod'] || '',
-                        hrefLocation: window.location.href
-                    }
-                    if (that.userActivation) {
-                        sendMessages(window, messageForHTTPRecorderQueue);
-                        window.postMessage(messageHttpRecorder, '*');
-                    } else {
-                        // On rajoute les messages dans la queue
-                        addToQueue(messageHttpRecorder, messageForHTTPRecorderQueue);
+                        console.log('Tuello : Problème de parsing de la reponse pour l url : ' + req.responseURL);
                     }
                 }
-
             }
             if (realOnReadyStateChange) {
                 realOnReadyStateChange.apply(this, arguments as any);

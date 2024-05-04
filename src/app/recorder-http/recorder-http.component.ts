@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { AfterViewChecked, AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -39,8 +39,10 @@ export class RecorderHttpComponent implements OnInit {
 
   httpMockActivated: boolean;
   httpRecordActivated: boolean;
+  dernierEvenementTampon: number;
 
   records;
+
 
   ngOnInit() {
     chrome.storage.local.get(['httpMock', 'httpRecord'], results => {
@@ -58,14 +60,32 @@ export class RecorderHttpComponent implements OnInit {
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.refresh) {
-        // recupération des enregistrements
-        chrome.storage.local.get(['tuelloRecords'], results => {
-          this.records = results['tuelloRecords'];
-          this.jsonEditorTree?.setText(JSON.stringify(results['tuelloRecords']));
-        });
+        this.gererRefresh();
       }
       sendResponse();
     });
+  }
+
+  refresh() {
+    // recupération des enregistrements
+    chrome.storage.local.get(['tuelloRecords'], results => {
+      this.records = results['tuelloRecords'];
+      this.jsonEditorTree?.setText(JSON.stringify(results['tuelloRecords']));
+    });
+  }
+
+
+  gererRefresh() {
+    // Mettre à jour le tampon avec le timestamp actuel
+    this.dernierEvenementTampon = Date.now();
+
+    // Attendre 300ms avant de traiter l'événement
+    setTimeout(() => {
+      // Vérifier si aucun nouvel événement n'a été déclenché pendant le délai
+      if (Date.now() - this.dernierEvenementTampon >= 300) {
+        this.refresh();
+      }
+    }, 300);
   }
 
   /**
@@ -293,7 +313,7 @@ export class RecorderHttpComponent implements OnInit {
     let jsonResult;
     fileReader.onloadend = x => {
       jsonResult = fileReader.result as string;
-      
+
       if (jsonResult && extension === 'json') {
         try {
           JSON.stringify(jsonResult);
@@ -327,7 +347,7 @@ export class RecorderHttpComponent implements OnInit {
   }
 
   replaceDynamicData(data) {
-    let ret  = data.replace(/window.location.origin \+ "/g, '"###window.location.origin### ');
+    let ret = data.replace(/window.location.origin \+ "/g, '"###window.location.origin### ');
     ret = ret.replace(/window.location.origin \+ '/g, "'###window.location.origin### ");
     return ret;
   }
@@ -348,11 +368,11 @@ export class RecorderHttpComponent implements OnInit {
   private extraireFluxJSON(codeJS) {
     // Recherche de la déclaration de la variable contenant le flux JSON
     const regex = /window.tuelloRecords\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
-     const match = codeJS.match(regex);
+    const match = codeJS.match(regex);
 
     if (match && match[1]) {
       // Si la correspondance est trouvée, analysez la chaîne JSON et renvoyez l'objet JavaScript
-        return match[1];
+      return match[1];
     } else {
       console.error('Variable contenant le flux JSON non trouvée');
       return null;
