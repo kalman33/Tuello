@@ -110,8 +110,10 @@
         // Permet de palier le problème de CORS : on bascule sur le même serveur
         try {
           const urlObj = new URL(url);
+          const urlObjWithPort = urlObj.protocol + '//' + urlObj.hostname + (urlObj.port ? ':' + urlObj.port : '');
           const currentURL = new URL(window.location.href); 
-          url = url.replace(urlObj.origin, currentURL.origin);
+          const currentURLWithPort = currentURL.protocol + '//' + currentURL.hostname + (currentURL.port ? ':' + currentURL.port : '');
+          url = url.replace(urlObjWithPort, currentURLWithPort);
         } catch(e) {
 
         }
