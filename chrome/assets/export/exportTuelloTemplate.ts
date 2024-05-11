@@ -1,7 +1,7 @@
 ({
   tuello: function () {
     let deepMockLevel = 2; //'###IMPORT_DEEPMOCKLEVEL###';
-    (window as any).tuelloRecords = '###IMPORT_DATA###'; //#ENDOFJSON#: don't remove this comment
+    window['tuelloRecords'] = '###IMPORT_DATA###'; //#ENDOFJSON#: don't remove this comment
 
     function removeURLPortAndProtocol(url: string) {
       let ret = '';
@@ -62,9 +62,9 @@
 
       modifyResponse: (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
 
-        if ((window as any).tuelloRecords) {
+        if (window['tuelloRecords']) {
           // this.responseURL
-          const records = (window as any).tuelloRecords.filter(({ key, response, httpCode }) => compareWithMockLevel(xhr["originalURL"], key));
+          const records = window['tuelloRecords'].filter(({ key, response, httpCode }) => compareWithMockLevel(xhr["originalURL"], key));
           if (records && records.length > 0) {
             records.forEach(({ key, response, httpCode, delay }) => {
               if (delay && isOnLoad) {
@@ -73,12 +73,11 @@
               Object.defineProperty(xhr, 'response', { writable: true });
               Object.defineProperty(xhr, 'responseText', { writable: true });
               Object.defineProperty(xhr, 'status', { writable: true });
-              // @ts-expect-error
+              // @ts-ignore: Ignorer l'erreur TypeScript ici
               xhr.responseText = JSON.stringify(response);
-              // Object.defineProperty(this,'responseText', JSON.stringify(response));
-              // @ts-expect-error
+              // @ts-ignore: Ignorer l'erreur TypeScript ici
               xhr.response = response;
-              // @ts-expect-error
+              // @ts-ignore: Ignorer l'erreur TypeScript ici
               xhr.status = httpCode;
 
             });
@@ -110,10 +109,11 @@
         // Permet de palier le problème de CORS : on bascule sur le même serveur
         try {
           const urlObj = new URL(url);
-          const urlObjWithPort = urlObj.protocol + '//' + urlObj.hostname + (urlObj.port ? ':' + urlObj.port : '');
+          urlObj.port = '';
+          urlObj.password = '';
+          urlObj.username = '';
           const currentURL = new URL(window.location.href); 
-          const currentURLWithPort = currentURL.protocol + '//' + currentURL.hostname + (currentURL.port ? ':' + currentURL.port : '');
-          url = url.replace(urlObjWithPort, currentURLWithPort);
+          url = urlObj.toString().replace(urlObj.origin, currentURL.origin);
         } catch(e) {
 
         }
@@ -131,8 +131,8 @@
         return mockHttp.originalFetch(...args).then((response) => {
           let txt = undefined;
           let status = undefined;
-          if ((window as any).tuelloRecords) {
-            const records = (window as any).tuelloRecords.filter(({ key, response, httpCode }) => compareWithMockLevel(args[0], key));
+          if (window['tuelloRecords']) {
+            const records =window['tuelloRecords'].filter(({ key, response, httpCode }) => compareWithMockLevel(args[0], key));
             if (records && records.length > 0) {
               records.forEach(({ key, response, httpCode, delay }) => {
                 if (delay) {
