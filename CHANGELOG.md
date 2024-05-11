@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.0.0.23] - 2024-05-13
+    Corrections dans exportTuelloTemplate
 ## [1.0.0.22] - 2024-05-06
     Refonte manager pour mock/record http : correctifs
 ## [1.0.0.21] - 2024-05-04
