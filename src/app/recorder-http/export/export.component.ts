@@ -48,6 +48,11 @@ export class ExportComponent implements OnInit {
           //const jsonFileName = `tuello-mocks-data-${value}.json`;
           //const txtBlobJson = new Blob([this.data], { type: 'text/plain;charset=utf-8' });
           //saveAs(txtBlobJson, jsonFileName);
+          // Trouver l'index de la ligne où vous voulez insérer le commentaire
+          let index = txt.indexOf('###IMPORT_DATA###');
+
+          // Insérer le commentaire après cette ligne
+          txt = txt.slice(0, index + 19) + " //#ENDOFJSON#: don't remove this comment\n" + txt.slice(index + 19);
           let contentFile = txt.replace(/.###IMPORT_DATA###./, this.data);
           //contentFile = contentFile.replace(/.###IMPORT_DEEPMOCKLEVEL###./, results['deepMockLevel'] || 0);
           this.libFileName = `tuello-mocks-library-${value}.js`;

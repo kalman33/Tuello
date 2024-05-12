@@ -1,7 +1,7 @@
 ({
   tuello: function () {
     let deepMockLevel = 2; //'###IMPORT_DEEPMOCKLEVEL###';
-    window['tuelloRecords'] = '###IMPORT_DATA###'; //#ENDOFJSON#: don't remove this comment
+    window['tuelloRecords'] = '###IMPORT_DATA###';
 
     function removeURLPortAndProtocol(url: string) {
       let ret = '';
