@@ -32,21 +32,11 @@ document.addEventListener("mousedown", function (event) {
   clickedElement = event.target['innerHTML'];
 }, true);
 
-
-chrome.storage.local.get(['disabled'], function (result) {
-  if (!result.disabled) {
-    document.onreadystatechange = () => {
-      if (document.readyState === 'interactive') {
-        init();
-      }
-    };
-  } else {
-    chrome.runtime.sendMessage({
-      action: 'updateIcon',
-      value: 'tuello-stop-32x32.png'
-    }, () => { });
+document.onreadystatechange = () => {
+  if (document.readyState === 'interactive') {
+    init();
   }
-});
+};
 
 let scriptInjected = false;
 
@@ -196,63 +186,93 @@ function init() {
         }
       });
 
-      chrome.storage.local.get(['trackPlay'], results => {
-        if (results.trackPlay) {
-          activateRecordTracks();
-
+      chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated'], results => {
+       console.error('TUELLO', results.disabled);
+        if (!results.disabled) {
+          if (results.httpMock) {
+            window.postMessage(
+              {
+                type: 'MOCK_HTTP_ACTIVATED',
+                value: true,
+                tuelloRecords: results.tuelloRecords,
+                deepMockLevel: results.deepMockLevel || 0
+              },
+              '*'
+            );
+          }
+          if (results.httpRecord) {
+            window.postMessage(
+              {
+                type: 'RECORD_HTTP_ACTIVATED',
+                value: true
+              },
+              '*'
+            );
+            window.addEventListener('message', recordHttpListener);
+          }
+  
+          if (results.httpMock) {
+            window.postMessage(
+              {
+                type: 'MOCK_HTTP_ACTIVATED',
+                value: true,
+                tuelloRecords: results.tuelloRecords,
+                deepMockLevel: results.deepMockLevel || 0
+              },
+              '*'
+            );
+          }
+          if (results['tuelloHTTPTags']) {
+            // On initialise le gestionnaire des tags
+            initTagsHandler(results['tuelloHTTPTags']);
+          }
+          if (results.trackPlay) {
+            activateRecordTracks();
+  
+          }
+          if (results['searchElementsActivated']) {
+            activateSearchElements();
+          }
         }
       });
-
-      chrome.storage.local.get(['searchElementsActivated'], results => {
-        if (results['searchElementsActivated']) {
-          activateSearchElements();
-        }
-      });
-
-// on regarde si le mock et le record sont activés et on active la popup le cas échéant
-chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'searchElementsActivated'], results => {
-  if (results.httpMock) {
-    window.postMessage(
-      {
-        type: 'MOCK_HTTP_ACTIVATED',
-        value: true,
-        tuelloRecords: results.tuelloRecords,
-        deepMockLevel: results.deepMockLevel || 0
-      },
-      '*'
-    );
-  }
-  if (results.httpRecord) {
-    window.postMessage(
-      {
-        type: 'RECORD_HTTP_ACTIVATED',
-        value: true
-      },
-      '*'
-    );
-    window.addEventListener('message', recordHttpListener);
-  }
-
-  if (results.httpMock) {
-    window.postMessage(
-      {
-        type: 'MOCK_HTTP_ACTIVATED',
-        value: true,
-        tuelloRecords: results.tuelloRecords,
-        deepMockLevel: results.deepMockLevel || 0
-      },
-      '*'
-    );
-  }
-  if (results['tuelloHTTPTags']) {
-    // On initialise le gestionnaire des tags
-    initTagsHandler(results['tuelloHTTPTags']);
-  }
-});
-
 
     }
   });
+}
+
+// desactive tuello
+function desactivate() {
+  window.postMessage(
+    {
+      type: 'MOCK_HTTP_ACTIVATED',
+      value: false
+    },
+    '*'
+  );
+  window.postMessage(
+    {
+      type: 'RECORD_HTTP_ACTIVATED',
+      value: false
+    },
+    '*'
+  );
+
+
+    window.removeEventListener('message', recordHttpListener);
+    deleteTagsPanel();
+    window.postMessage(
+      {
+        type: 'MOCK_HTTP_ACTIVATED',
+        value: false,
+      },
+      '*'
+    );
+  desactivateRecordTracks();
+  desactivateSearchElements();
+  chrome.runtime.sendMessage({
+    action: 'updateIcon',
+    value: 'tuello-stop-32x32.png'
+  }, () => { });
 }
 
 // gestion de l'activation et la désactivation du devtools et du record ui
@@ -331,7 +351,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   switch (message.action) {
     case 'DEACTIVATE':
-      desactivateSearchElements();
+      desactivate();
       break;
     case 'ACTIVATE':
       init().then(() => {
