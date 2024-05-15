@@ -44,6 +44,7 @@ function init() {
   return new Promise((resolve, reject) => {
     if (scriptInjected) {
       // Tuello est déjà injecté
+      activate();
       resolve(false);
     } else {
       scriptInjected = true;
@@ -180,62 +181,64 @@ function init() {
           return true;
         });*/
       }
-      chrome.storage.local.get(['mouseCoordinates'], results => {
-        if (results.mouseCoordinates) {
-          addMouseCoordinates();
-        }
-      });
 
-      chrome.storage.local.get(['tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated'], results => {
-       console.error('TUELLO', results.disabled);
-        if (!results.disabled) {
-          if (results.httpMock) {
-            window.postMessage(
-              {
-                type: 'MOCK_HTTP_ACTIVATED',
-                value: true,
-                tuelloRecords: results.tuelloRecords,
-                deepMockLevel: results.deepMockLevel || 0
-              },
-              '*'
-            );
-          }
-          if (results.httpRecord) {
-            window.postMessage(
-              {
-                type: 'RECORD_HTTP_ACTIVATED',
-                value: true
-              },
-              '*'
-            );
-            window.addEventListener('message', recordHttpListener);
-          }
-  
-          if (results.httpMock) {
-            window.postMessage(
-              {
-                type: 'MOCK_HTTP_ACTIVATED',
-                value: true,
-                tuelloRecords: results.tuelloRecords,
-                deepMockLevel: results.deepMockLevel || 0
-              },
-              '*'
-            );
-          }
-          if (results['tuelloHTTPTags']) {
-            // On initialise le gestionnaire des tags
-            initTagsHandler(results['tuelloHTTPTags']);
-          }
-          if (results.trackPlay) {
-            activateRecordTracks();
-  
-          }
-          if (results['searchElementsActivated']) {
-            activateSearchElements();
-          }
-        }
-      });
 
+      activate();
+    }
+  });
+}
+
+function activate() {
+  chrome.storage.local.get(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated'], results => {
+    if (!results.disabled) {
+
+      if (results.httpMock) {
+        window.postMessage(
+          {
+            type: 'MOCK_HTTP_ACTIVATED',
+            value: true,
+            tuelloRecords: results.tuelloRecords,
+            deepMockLevel: results.deepMockLevel || 0
+          },
+          '*'
+        );
+      }
+      if (results.httpRecord) {
+        window.postMessage(
+          {
+            type: 'RECORD_HTTP_ACTIVATED',
+            value: true
+          },
+          '*'
+        );
+        window.addEventListener('message', recordHttpListener);
+      }
+
+      if (results.httpMock) {
+        window.postMessage(
+          {
+            type: 'MOCK_HTTP_ACTIVATED',
+            value: true,
+            tuelloRecords: results.tuelloRecords,
+            deepMockLevel: results.deepMockLevel || 0
+          },
+          '*'
+        );
+      }
+      if (results['tuelloHTTPTags']) {
+        // On initialise le gestionnaire des tags
+        initTagsHandler(results['tuelloHTTPTags']);
+      }
+      if (results.trackPlay) {
+        activateRecordTracks();
+
+      }
+      if (results['searchElementsActivated']) {
+        activateSearchElements();
+      }
+      if (results.mouseCoordinates) {
+        addMouseCoordinates();
+      }
     }
   });
 }
@@ -258,17 +261,18 @@ function desactivate() {
   );
 
 
-    window.removeEventListener('message', recordHttpListener);
-    deleteTagsPanel();
-    window.postMessage(
-      {
-        type: 'MOCK_HTTP_ACTIVATED',
-        value: false,
-      },
-      '*'
-    );
+  window.removeEventListener('message', recordHttpListener);
+  deleteTagsPanel();
+  window.postMessage(
+    {
+      type: 'MOCK_HTTP_ACTIVATED',
+      value: false,
+    },
+    '*'
+  );
   desactivateRecordTracks();
   desactivateSearchElements();
+  removeMouseCoordinates();
   chrome.runtime.sendMessage({
     action: 'updateIcon',
     value: 'tuello-stop-32x32.png'
