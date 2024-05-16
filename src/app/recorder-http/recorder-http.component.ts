@@ -374,7 +374,7 @@ export class RecorderHttpComponent implements OnInit {
       // Si la correspondance est trouvée, analysez la chaîne JSON et renvoyez l'objet JavaScript
       return match[1];
     } else {
-      console.error('Variable contenant le flux JSON non trouvée');
+      console.error('Tuello: Variable contenant le flux JSON non trouvée');
       return null;
     }
   }

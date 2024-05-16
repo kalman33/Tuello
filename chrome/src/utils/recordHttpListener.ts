@@ -52,7 +52,7 @@ export function recordHttpListener(event: MessageEvent) {
         });
       })
       .catch((error) => {
-        console.error('Erreur lors de l\'acquisition du verrou :', error);
+        console.error('Tuello: Erreur lors de l\'acquisition du verrou :', error);
       });
   }
 }

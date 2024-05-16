@@ -259,8 +259,6 @@ function desactivate() {
     },
     '*'
   );
-
-
   window.removeEventListener('message', recordHttpListener);
   deleteTagsPanel();
   window.postMessage(
