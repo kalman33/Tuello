@@ -131,6 +131,10 @@ export class SettingsComponent implements OnInit {
 
   }
 
+  clear() {
+    chrome.storage.local.clear();
+  }
+
   public onChange(fileList: any): void {
     const file = fileList.target.files[0];
     const fileReader: FileReader = new FileReader();

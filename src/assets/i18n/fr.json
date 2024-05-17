@@ -31,6 +31,7 @@
   "mmn.settings.setup.title": "Configuration",
   "mmn.settings.setup.button.saveAs": "Sauvegarder",
   "mmn.settings.setup.button.import": "Importer",
+  "mmn.settings.setup.button.clear": "Effacer",
   "mmn.settings.import.message": "chargement du fichier",
   "mmn.settings.import.error.action": "Erreur",
   "mmn.settings.import.success.action": "Succès",

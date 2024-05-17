@@ -83,6 +83,10 @@
             {{ 'mmn.settings.setup.button.import' | translate }}
           </button>
           <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
+          <button mat-flat-button color="accent" (click)="clear()" style="color: white">
+            <mat-icon>delete_forever</mat-icon>
+            {{ 'mmn.settings.setup.button.clear' | translate }}
+          </button>
         </div>
       </mat-tab>
     </mat-tab-group>
