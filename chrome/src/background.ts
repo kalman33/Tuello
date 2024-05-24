@@ -1,6 +1,7 @@
 import {
   addComment,
   addHttpUserAction,
+  addNavigate,
   addRecordByImage,
   addRecordWindowSize,
   addScreenShot,
@@ -706,6 +707,20 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           left: windowInfos.left
         };
         addRecordWindowSize(data);
+      });
+      chrome.tabs.query({active: true}, function(tabs) {
+        if (tabs.length > 0) {
+          const activeTab = tabs[0];
+          const url = activeTab?.url;
+          const action = new UserAction(null);
+          action.type = "navigation";
+          action.hrefLocation = url;
+          addNavigate(action, tabs[0].id, 0);
+(url);
+        } else {
+          console.error("No active tab found.");
+         
+        }
       });
 
       break;

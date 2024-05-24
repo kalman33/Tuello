@@ -13,6 +13,7 @@ export interface IUserAction {
   x?: number;
   y?: number;
   key?: number;
+  hrefLocation?: string;
   scrollX?: number;
   scrollY?: number;
   value?: string;

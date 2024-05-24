@@ -5,6 +5,17 @@
   </div>
 
   <!-- screenshot -->
+  <ng-container *ngIf="action.actionType === 'NAVIGATE'">
+    <div fxFlex="15%" class="label screenshot">
+      <mat-icon class="v-align-middle">my_location</mat-icon>
+      <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.navigate' | translate }}</span>
+    </div>
+    <div fxFlex="50%">
+      <div fxFlex="50%" class="data">{{action?.userAction?.hrefLocation}}</div>
+    </div>
+  </ng-container>
+
+  <!-- screenshot -->
   <ng-container *ngIf="action.actionType === 'SCREENSHOT'">
     <div fxFlex="15%" class="label screenshot">
       <mat-icon class="v-align-middle">photo_camera</mat-icon>

@@ -110,6 +110,7 @@
   "mmn.spy-http.record-dialog.content": "Do you want to add or create a new record?",
   "mmn.spy-http.actions.type.comment": "Comment",
   "mmn.spy-http.actions.type.screenshot": "Screenshot",
+  "mmn.spy-http.actions.type.navigate": "Navigate",
   "mmn.spy-http.actions.type.record.by.img": "Rec by img",
 
   "mmn.track.button.import": "Import",

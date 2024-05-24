@@ -111,6 +111,7 @@
   "mmn.spy-http.record-dialog.content": "Voulez-vous ajouter ou créer un nouvel enregistrement?",
   "mmn.spy-http.actions.type.comment": "Commentaire",
   "mmn.spy-http.actions.type.screenshot": "Capture",
+  "mmn.spy-http.actions.type.navigate": "Navigation",
   "mmn.spy-http.actions.type.record.by.img": "Cpt par img",
   "mmn.track.button.import": "Importer",
   "mmn.track.button.saveAs": "Sauvegarder",

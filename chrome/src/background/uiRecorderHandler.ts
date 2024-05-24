@@ -43,6 +43,23 @@ export function addRecordByImage(userAction: IUserAction, tabId: number, frameId
   }
 }
 
+export function addNavigate(userAction: IUserAction, tabId: number, frameId: number) {
+  const now = Date.now();
+  const delay = isNaN(now - last) ? 0 : now - last;
+
+  getSrcFromFrameId(tabId, frameId)
+    .then(iframe => {
+      userAction.frame = iframe;
+    })
+    .then(() => {
+      const action = new Action(delay, ActionType.NAVIGATE, userAction);
+      record.actions.push(action);
+      last = now;
+      record.last = last;
+      saveUiRecordToLocalStorage();
+    });
+}
+
 export function addUserAction(userAction: IUserAction, tabId: number, frameId: number) {
   if (!pause) {
     const now = Date.now();
@@ -68,7 +85,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
             lastAction.userAction.scrollX = userAction.scrollX;
             lastAction.userAction.scrollY = userAction.scrollY;
             // on rajoute le delay
-            lastAction.delay = lastAction.delay + delay; 
+            lastAction.delay = lastAction.delay + delay;
           } else {
             record.actions.push(action);
             lastAction = action;
@@ -134,7 +151,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
                 lastAction.userAction.scrollX = userAction.scrollX;
                 lastAction.userAction.scrollY = userAction.scrollY;
                 // on rajoute le delay
-                lastAction.delay = lastAction.delay + delay; 
+                lastAction.delay = lastAction.delay + delay;
               } else {
                 record.actions.push(action);
                 lastAction = action;
@@ -199,7 +216,7 @@ export function addScreenShot(tabId, isPopupVisible: boolean) {
         action: 'HIDE'
       }, {
         frameId: 0
-      }, ()=>{});
+      }, () => { });
     }
     chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
       const now = Date.now();
@@ -215,7 +232,7 @@ export function addScreenShot(tabId, isPopupVisible: boolean) {
           action: 'SHOW'
         }, {
           frameId: 0
-        }, ()=>{});
+        }, () => { });
       }
       saveUiRecordToLocalStorage();
       resolve(true);
@@ -331,7 +348,7 @@ function saveUiRecordToLocalStorage() {
   chrome.runtime.sendMessage({
     action: 'UI_RECORD_CHANGED',
     value: record
-  }, ()=> {});
+  }, () => { });
 
 
 }

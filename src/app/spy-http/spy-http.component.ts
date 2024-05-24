@@ -185,7 +185,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   }
 
   private launchActions() {
-    const hasScreenshot = this.actions.find(action => action.actionType === 'SCREENSHOT');
+    // const hasScreenshot = this.actions.find(action => action.actionType === 'SCREENSHOT');
     chrome.runtime.sendMessage({
       action: 'PLAY_USER_ACTIONS',
       value: this.actions
