@@ -589,6 +589,9 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
 
     // @TODO A inclure dans le play des actions
     case 'PLAY_USER_ACTION_INIT':
+      
+
+
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page
       chrome.webNavigation.onCompleted.addListener(onCompletedPlayer);
       chrome.webNavigation.onBeforeNavigate.addListener(onbeforePlayer);
@@ -708,7 +711,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         };
         addRecordWindowSize(data);
       });
-      chrome.tabs.query({active: true}, function(tabs) {
+      chrome.tabs.query({ active: true }, function (tabs) {
         if (tabs.length > 0) {
           const activeTab = tabs[0];
           const url = activeTab?.url;
@@ -716,10 +719,9 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           action.type = "navigation";
           action.hrefLocation = url;
           addNavigate(action, tabs[0].id, 0);
-(url);
         } else {
           console.error("No active tab found.");
-         
+
         }
       });
 

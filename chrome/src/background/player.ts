@@ -44,8 +44,18 @@ export class Player {
         value: { comparisonResults: this.comparisonResults }
       }, {
         frameId: 0
-      }, ()=> {});
+      }, () => { });
     } else {
+      if (action.value.actionType === 'NAVIGATE') {
+        await chrome.tabs.query({ active: true }, async function (tabs) {
+          let currentTab = tabs[0]; // L'onglet courant est le premier (et le seul) élément du tableau renvoyé.
+          let currentTabId = currentTab.id; // L'ID de l'onglet courant.
+
+          // Utiliser chrome.tabs.update avec l'ID de l'onglet courant
+          //await chrome.tabs.update(currentTabId, {url: "https://www.example.com"}, function(tab) {
+          await chrome.tabs.update(currentTabId, { url: userAction.hrefLocation });
+        });
+      }
       if (action.value.actionType === 'SCREENSHOT') {
         if (!this.comparisonResults) {
           this.comparisonResults = [];

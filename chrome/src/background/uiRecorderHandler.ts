@@ -262,6 +262,7 @@ export function addRecordWindowSize(windowSize: WindowSize) {
   }
 }
 
+
 export function addHttpUserAction(data: HttpReturn) {
   if (!record) {
     record = new Record();
