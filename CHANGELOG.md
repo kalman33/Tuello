@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.0.0.25] - 2024-05-26
+    Ajout du navigate sur le spy & replay
 ## [1.0.0.24] - 2024-05-16
     Corrections sur l'activation de Tuello
 ## [1.0.0.23] - 2024-05-13
