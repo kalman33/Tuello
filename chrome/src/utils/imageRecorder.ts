@@ -5,19 +5,16 @@ import { PNG } from 'pngjs/browser';
 import pixelmatch from "pixelmatch";
 import { Buffer } from 'buffer';
 
-/**
- * permet de recuperer l'image
- */
-export function recordImg(element: HTMLElement): Promise<string> {
+export function convertImageToBase64(imageElement: HTMLImageElement): Promise<string> {
   return new Promise((resolve, reject) => {
-    const domRec = element.getBoundingClientRect();
-    html2canvas(document.body, {
-      scale: 1
-    }).then((canvas: HTMLCanvasElement) => {
 
-      const dataUrl = crop(canvas, getOffset(element).left, getOffset(element).top, domRec.width.toFixed(2), domRec.height.toFixed(2));
-      resolve(dataUrl);
-    });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = imageElement.width;
+    canvas.height = imageElement.height;
+
+    ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+    resolve(canvas.toDataURL('image/png')); // Vous pouvez changer le format de l'image si nécessaire
   });
 }
 

@@ -3,7 +3,7 @@
  */
 import { ImageType } from '../../src/app/spy-http/models/UserAction';
 import { UserAction } from './models/UserAction';
-import { findImageHover, recordImg } from './utils/imageRecorder';
+import { convertImageToBase64, findImageHover } from './utils/imageRecorder';
 import * as lightbox from './utils/lightbox';
 import { recordHttpUserActionListener } from './utils/recordUserActionListener';
 import { addcss } from './utils/utils';
@@ -230,7 +230,7 @@ function recordImage(withClick: boolean) {
     document.getElementById('cover-spin').style.setProperty('display', 'block', 'important');
 
     // Record by img
-    recordImg((elt as HTMLImageElement)).then(base64Img => {
+    convertImageToBase64((elt as HTMLImageElement)).then(base64Img => {
       const action = new UserAction(null);
       action.type = 'recordByImg';
       action.value = base64Img;
