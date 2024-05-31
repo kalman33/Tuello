@@ -52,11 +52,14 @@ export function addNavigate(userAction: IUserAction, tabId: number, frameId: num
       userAction.frame = iframe;
     })
     .then(() => {
-      const action = new Action(delay, ActionType.NAVIGATE, userAction);
-      record.actions.push(action);
-      last = now;
-      record.last = last;
-      saveUiRecordToLocalStorage();
+      if (record?.actions?.length === 0) {
+        const action = new Action(delay, ActionType.NAVIGATE, userAction);
+        record.actions.push(action);
+        last = now;
+        record.last = last;
+        saveUiRecordToLocalStorage();
+      }
+      
     });
 }
 

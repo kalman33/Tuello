@@ -58,4 +58,11 @@ export class ActionComponent implements OnInit {
       }
     });
   }
+
+  getDomain(): string {
+    const url = new URL(this.action?.userAction?.hrefLocation);
+    return url.hostname;
+  }
+
+
 }
