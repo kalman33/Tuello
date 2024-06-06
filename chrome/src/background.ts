@@ -294,9 +294,6 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
             action: 'START_UI_RECORDER',
             value: msg.value
           },
-          {
-            frameId: 0
-          },
           () => { }
         );
       } else {
