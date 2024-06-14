@@ -235,6 +235,8 @@ function recordImage(withClick: boolean) {
       action.type = 'recordByImg';
       action.value = base64Img;
       action.frame = frame;
+      action.clientHeight = elt.clientHeight,
+      action.clientWidth = elt.clientWidth
       action.imageType = elt instanceof HTMLImageElement ? ImageType.IMG : ImageType.BACKGROUND;
       chrome.runtime.sendMessage(
         {

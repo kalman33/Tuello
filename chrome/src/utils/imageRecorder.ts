@@ -9,12 +9,12 @@ export function convertElementToBase64(element: HTMLElement): Promise<string> {
     if (element instanceof HTMLImageElement) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = element.width || element.clientWidth;
-      canvas.height = element.height || element.clientHeight;
+      canvas.width = element.clientWidth;
+      canvas.height = element.clientHeight;
 
       ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
       resolve(canvas.toDataURL('image/png')); // Vous pouvez changer le format de l'image si nécessaire
-    } else {
+     } else {
       html2canvas(element).then(function (canvas) {
         // Convertir le canvas en base64
         resolve(canvas.toDataURL('image/png'));
@@ -37,7 +37,7 @@ export function searchImg(action: IUserAction): Promise<(HTMLElement | string)> 
 }
 
 function searchInDom(action): Promise<(HTMLElement | string)[]> {
-  const promiseArray = findImages().map(async img => {
+  const promiseArray = findElementsBySize(action).map(async img => {
     const dataUrl = await imgToDataURL(img);
     return await compareImages(action.value, dataUrl, img);
   });
@@ -105,6 +105,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+/** 
 export function findImages(): HTMLElement[] {
   let images = Array.from(document.images) as HTMLElement[];
   const elements = document.body.getElementsByTagName("*");
@@ -115,6 +116,15 @@ export function findImages(): HTMLElement[] {
     }
   });
   return images;
+}*/
+
+export function findElementsBySize(action: IUserAction): HTMLElement[] {
+  const elements = document.body.getElementsByTagName("*");
+  return Array.from(elements).filter((element) : element is HTMLElement => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      return element instanceof HTMLElement && action.clientHeight === element.clientHeight && action.clientWidth === element.clientWidth;
+  })
 }
 
 

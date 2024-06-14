@@ -35,6 +35,8 @@ export class UserAction implements IUserAction {
   public imageType: ImageType;
   public htmlCoordinates: ICoordinates
   public element: string;
+  public clientWidth: number;
+  public clientHeight: number;
 
   constructor(e: MouseEvent) {
     if (e) {

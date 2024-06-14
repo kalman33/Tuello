@@ -19,6 +19,8 @@ export interface IUserAction {
   value?: string;
   imageType?: ImageType;
   htmlCoordinates?: ICoordinates;
+  clientWidth: number;
+  clientHeight: number;
 }
 
 export enum ImageType {
