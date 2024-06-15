@@ -70,6 +70,8 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
     const action = new Action(delay, ActionType.EVENT, userAction);
 
     if (!record) {
+      console.log('TUELLO addUserAction');
+      
       record = new Record();
       record.actions = [];
       lastAction = null;
@@ -136,6 +138,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
       }
       last = now;
       record.last = last;
+      console.log('TUELLO addUserAction SAVE', record);
       saveUiRecordToLocalStorage();
     } else {
       getSrcFromFrameId(tabId, frameId)
@@ -202,6 +205,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
           }
           last = now;
           record.last = last;
+          console.log('TUELLO addUserAction SAVE2', record);
           saveUiRecordToLocalStorage();
         });
     }
@@ -211,6 +215,7 @@ export function addUserAction(userAction: IUserAction, tabId: number, frameId: n
 export function addScreenShot(tabId, isPopupVisible: boolean) {
   return new Promise(resolve => {
     if (!record) {
+      console.log('TUELLO addScreenShot');
       record = new Record();
       lastAction = null;
     }
@@ -258,16 +263,20 @@ export function addComment(comment: string) {
 
 export function addRecordWindowSize(windowSize: WindowSize) {
   if (!record) {
+    console.log('TUELLO addRecordWindowSize');
     record = new Record(windowSize);
     lastAction = null;
   } else {
+    console.log('TUELLO addRecordWindowSize ELSE');
     record.windowSize = windowSize;
   }
+
 }
 
 
 export function addHttpUserAction(data: HttpReturn) {
   if (!record) {
+    console.log('TUELLO addHttpUserAction');
     record = new Record();
     lastAction = null;
   }
@@ -285,11 +294,14 @@ export function loadRecordFromStorage() {
   chrome.storage.local.get(['uiRecord'], results => {
     if (results.uiRecord) {
       const data = results.uiRecord;
-      record = new Record(data.windowSize);
-      record.actions = data.actions;
-      record.httpRecords = data.httpRecords;
-      lastAction = data.actions && data.actions.length ? data.actions[data.actions.length - 1] : null;
-      last = data.last;
+      console.log('TUELLO loadRecordFromStorage');
+      if (!record) {
+        record = new Record(data.windowSize);
+        record.actions = data.actions;
+        record.httpRecords = data.httpRecords;
+        lastAction = data.actions && data.actions.length ? data.actions[data.actions.length - 1] : null;
+        last = data.last;
+      }
     } else {
       last = Date.now();
     }

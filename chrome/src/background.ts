@@ -20,7 +20,6 @@ let player = null;
 
 
 self.addEventListener('activate', event => {
-  // console.log('Tuello : Service worker Tuello is activated');
   (self as any).process = {
     versions: {
       node: "test"
@@ -282,8 +281,10 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
       break;
     case 'LOAD_UI_RECORDERS':
-      // on charge les enregistrements du local storage
-      loadRecordFromStorage();
+      // on charge les enregistrements du local storage : uniquement pour la frame principale
+      if (sender.frameId === 0) {
+        loadRecordFromStorage();
+      }
       break;
     case 'START_UI_RECORDER':
       // on envoie un message au content scrip

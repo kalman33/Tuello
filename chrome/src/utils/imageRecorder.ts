@@ -4,7 +4,7 @@ import pixelmatch from "pixelmatch";
 import { Buffer } from 'buffer';
 import html2canvas from 'html2canvas';
 
-export function convertElementToBase64(element: HTMLElement): Promise<string> {
+export async function convertElementToBase64(element: HTMLElement): Promise<string> {
   return new Promise((resolve, reject) => {
     if (element instanceof HTMLImageElement) {
       const canvas = document.createElement('canvas');
@@ -38,7 +38,7 @@ export function searchImg(action: IUserAction): Promise<(HTMLElement | string)> 
 
 function searchInDom(action): Promise<(HTMLElement | string)[]> {
   const promiseArray = findElementsBySize(action).map(async img => {
-    const dataUrl = await imgToDataURL(img);
+    const dataUrl = await convertElementToBase64(img);
     return await compareImages(action.value, dataUrl, img);
   });
   return Promise.all(promiseArray);
@@ -74,26 +74,7 @@ async function compareImages(dataurl1, dataurl2, img): Promise<HTMLElement | str
   });
 }
 
-async function imgToDataURL(img): Promise<string> {
-  if (img.tagName.toLowerCase() === 'img') {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, img.width, img.height);
-    return canvas.toDataURL();
-  } else {
-    const style = window.getComputedStyle(img);
-    const url = style.backgroundImage.slice(5, -2);
-    const image = await loadImage(url);
-    const canvas = document.createElement('canvas');
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0, image.width, image.height);
-    return canvas.toDataURL();
-  }
-}
+
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
