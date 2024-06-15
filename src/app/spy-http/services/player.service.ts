@@ -74,7 +74,6 @@ export class PlayerService {
         var chunks = [];
         diffImage.on('data', (chunk) => {
           chunks.push(chunk);
-          // console.log('chunk:', chunk.length);
         });
         diffImage.on('end', () => {
           var result = Buffer.concat(chunks);

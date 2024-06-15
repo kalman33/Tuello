@@ -99,7 +99,7 @@ function listener(e) {
  
   if (e.shiftKey && e.altKey) {
     recordImage(false);
-  } else {
+  } else if (e.x !== 0 && e.y !== 0) {
     const useraction = new UserAction(e);
     useraction.frame = frame;
     chrome.runtime.sendMessage({

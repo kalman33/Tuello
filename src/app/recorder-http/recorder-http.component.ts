@@ -149,7 +149,6 @@ export class RecorderHttpComponent implements OnInit {
         const path = node.path
 
         // log the current items and node for inspection
-        // console.log('items:', items, 'node:', node);
 
         if (path && node && node.path[1] === 'response') {
           items.push({
