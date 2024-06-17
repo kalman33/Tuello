@@ -1,6 +1,6 @@
 {
   "name": "Tuello",
-  "version": "1.0.0.25",
+  "version": "1.0.0.26",
   "description": "Intercept and modify HTTP Requests, Track ressources, search elements and record and replay user's browser actions",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
