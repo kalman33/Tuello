@@ -9,11 +9,19 @@ import { recordHttpUserActionListener } from './utils/recordUserActionListener';
 import { addcss } from './utils/utils';
 
 let frame;
+let screenshotKeyboardShortcut;
+let captureImageKeyboardShortcut;
+let commentKeyboardShortcut;
 
 
 export function launchUIRecorderHandler() {
-  chrome.storage.local.get(['uiRecordActivated'], results => {
+  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], results => {
     if (results.uiRecordActivated) {
+      if (results.tuelloKeyboardShortcut) {
+        screenshotKeyboardShortcut = results['tuelloKeyboardShortcut']?.screenshot || {key: 'S', code: 'KeyS'}
+        captureImageKeyboardShortcut = results['tuelloKeyboardShortcut']?.captureImage ||  {key: 'I', code: 'KeyI'}
+        commentKeyboardShortcut = results['tuelloKeyboardShortcut']?.comment?.key  ||  {key: 'C', code: 'KeyC'}
+      }
       // on previent background qu'on a démarré le recording
       chrome.runtime.sendMessage({
         action: 'LOAD_UI_RECORDERS',
@@ -110,7 +118,10 @@ function listener(e) {
 }
 
 function keyboardListener(e) {
-  if (e.altKey && e.shiftKey && (e.key === 'S' || e.code === 'KeyS')) {
+
+  
+
+  if (e.altKey && e.shiftKey && (e.key === screenshotKeyboardShortcut.key || e.code === screenshotKeyboardShortcut.code)) {
     const isPopupVisible =
             document.getElementById('iframeTuello') && document.getElementById('iframeTuello').style.display !== 'none' ? true : false;
           chrome.runtime.sendMessage(
@@ -124,7 +135,7 @@ function keyboardListener(e) {
           );
 
     return false;
-  } else if (e.altKey && e.shiftKey && (e.key === 'C' || e.code === 'KeyC')) {
+  } else if (e.altKey && e.shiftKey && (e.key === commentKeyboardShortcut.key || e.code === commentKeyboardShortcut.code)) {
     chrome.runtime.sendMessage({
       action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
       value: true
@@ -176,7 +187,7 @@ function keyboardListener(e) {
     });
 
     return false;
-  } else if (e.altKey && e.shiftKey && (e.key === 'I' || e.code === 'KeyI')) {
+  } else if (e.altKey && e.shiftKey && (e.key === captureImageKeyboardShortcut.key || e.code === captureImageKeyboardShortcut.code)) {
     recordImage(true);
   } else if (e.key === 'Enter' && e.target.tagName && e.target.tagName.toLowerCase() === 'input') {
     const action = new UserAction(null);

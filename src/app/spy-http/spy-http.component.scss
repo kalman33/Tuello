@@ -43,3 +43,9 @@ mmn-action {
   margin-right: 20px;
   line-height: 30px;
 }
+
+/* styles.css (ou votre fichier CSS local) */
+.custom-label .mat-placeholder-required,
+.mat-form-field-required-marker {
+  display: none !important;
+}

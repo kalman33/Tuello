@@ -89,6 +89,7 @@
   "mmn.spy-http.tabs.shortcuts.add.comment": "Add comment",
   "mmn.spy-http.tabs.shortcuts.record.by.img": "Record by image",
   "mmn.spy-http.tabs.shortcuts.record.by.img.shortcut": "Press",
+  "mmn.spy-http.tabs.shortcuts.required": "This field is required",
   "mmn.spy-http.tabs.parameters": "Settings",
 
   "mmn.spy-http.results.button.close": "Close",

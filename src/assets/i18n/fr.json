@@ -93,6 +93,7 @@
   "mmn.spy-http.tabs.shortcuts.add.comment": "Ajouter un commentaire",
   "mmn.spy-http.tabs.shortcuts.record.by.img": "Enregistrer par l'image",
   "mmn.spy-http.tabs.shortcuts.record.by.img.shortcut": "Appui long",
+  "mmn.spy-http.tabs.shortcuts.required": "Ce champ est obligatoire",
   "mmn.spy-http.tabs.parameters": "Paramètres",
   "mmn.spy-http.results.button.close": "Fermer",
   "mmn.spy-http.results.title": "Comparaison des captures d'écran",

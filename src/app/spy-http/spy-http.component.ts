@@ -18,6 +18,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { JsonViewerComponent } from '../core/json-viewer/json-viewer.component';
 import { RecordDialogComponent } from './record-dialog/record-dialog.component';
 import { formatDate } from '../core/utils/date-utils';
+import { getKeyCode } from 'chrome/src/utils/utils';
 
 @Component({
   selector: 'mmn-spy-http',
@@ -30,6 +31,9 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   pausable: PausableObservable<Action>;
   actions: Action[];
   pausedAction = 0;
+  screenshot = 'S';
+  comment = 'C';
+  captureImage = 'I';
 
   uiRecordListener;
   resumerPauseListener;
@@ -67,16 +71,22 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       sendResponse();
     });
 
-    chrome.storage.local.get(['uiRecordActivated'], results => {
+    chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], results => {
       if (results['uiRecordActivated']) {
         this.spyActif = true;
         // on previent background qui va prevenir contentscript qu'on a démarré le recording
         chrome.runtime.sendMessage({
           action: 'START_UI_RECORDER',
           value: true
-        }, ()=>{});
+        }, () => { });
       } else {
         this.spyActif = false;
+      }
+
+      if (results['tuelloKeyboardShortcut']) {
+        this.screenshot = results['tuelloKeyboardShortcut']?.screenshot?.key;
+        this.captureImage = results['tuelloKeyboardShortcut']?.captureImage?.key;
+        this.comment = results['tuelloKeyboardShortcut']?.comment?.key;
       }
     });
 
@@ -114,13 +124,13 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.runtime.sendMessage({
       action: 'updateIcon',
       value: 'tuello-32x32.png'
-    }, ()=>{});
+    }, () => { });
 
     // on previent background qui va prevenir contentscript qu'on a stopé le recording
     chrome.runtime.sendMessage({
       action: 'START_UI_RECORDER',
       value: false
-    }, ()=>{});
+    }, () => { });
     if (this.recorderHistoryService.record) {
       this.actions = this.recorderHistoryService.record.actions;
       this.jsonContent = JSON.stringify(this.recorderHistoryService.record);
@@ -149,19 +159,19 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     // permet de demander de scroller en 0,0 sur toutes les iframes
     chrome.runtime.sendMessage({
       action: 'PLAY_USER_ACTION_INIT'
-    }, ()=> {});
+    }, () => { });
 
     chrome.runtime.sendMessage({
       action: 'updateIcon',
       value: 'tuello-play-32x32.png'
-    }, ()=>{});
+    }, () => { });
 
     // Mock http
     chrome.runtime.sendMessage({
       action: 'MOCK_HTTP_USER_ACTION',
       value: true,
       data: this.recorderHistoryService.record.httpRecords
-    }, ()=>{});
+    }, () => { });
 
     // on cache l'extension
     this.chromeExtentionUtilsService.hide();
@@ -188,7 +198,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.runtime.sendMessage({
       action: 'PLAY_USER_ACTIONS',
       value: this.actions
-    }, ()=>{});
+    }, () => { });
   }
 
   public onChange(fileList: any): void {
@@ -279,7 +289,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.runtime.sendMessage({
       action: 'VIEW_CLICK_ACTION',
       value: this.actions[indexAction].userAction
-    }, ()=>{});
+    }, () => { });
   }
 
   /**
@@ -311,6 +321,23 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     // tslint:disable-next-line: deprecation
     // chrome.storage.onChanged.removeListener(this.uiRecordListener);
     //chrome.storage.onChanged.removeListener(this.resumerPauseListener);
+    chrome.storage.local.set({
+      'tuelloKeyboardShortcut': {
+        'screenshot': { 'key': this.screenshot, 'code': getKeyCode(this.screenshot) },
+        'captureImage': { 'key': this.captureImage, 'code': getKeyCode(this.captureImage) },
+        'comment': { 'key': this.comment, 'code': getKeyCode(this.comment) },
+      }
+    });
+  }
+
+  keyboardShortcutChange($event){
+    chrome.storage.local.set({
+      'tuelloKeyboardShortcut': {
+        'screenshot': { 'key': this.screenshot, 'code': getKeyCode(this.screenshot) },
+        'captureImage': { 'key': this.captureImage, 'code': getKeyCode(this.captureImage) },
+        'comment': { 'key': this.comment, 'code': getKeyCode(this.comment) },
+      }
+    });
   }
 
   private saveActionsOnLocalStorage() {
@@ -318,4 +345,6 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     this.recorderHistoryService.saveUiRecordToLocalStorage();
 
   }
+
+
 }
