@@ -28,7 +28,19 @@ self.addEventListener('activate', event => {
 });
 
 
+// // Listener pour les mises à jour des onglets (changement d'URL, rafraîchissement, etc.)
+// chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+//   if (changeInfo.url) {
+//     console.log(`TUELLO= L'URL de l'onglet ${tabId} a changé en : ${changeInfo.url}`);
+//     // Vous pouvez ajouter ici du code pour traiter le changement d'URL
+//   }
+// });
 
+// // Listener pour les changements de navigation (par exemple, l'utilisateur clique sur un lien, soumet un formulaire, etc.)
+// chrome.webNavigation.onCompleted.addListener((details) => {
+//   console.log(`TUELLO=La navigation dans l'onglet ${details.tabId} est terminée, URL: ${details.url}`);
+//   // Vous pouvez ajouter ici du code pour traiter la fin de la navigation
+// });
 
 chrome.runtime.onInstalled.addListener(() => {
   init();
@@ -587,8 +599,6 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
 
     // @TODO A inclure dans le play des actions
     case 'PLAY_USER_ACTION_INIT':
-      
-
 
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page
       chrome.webNavigation.onCompleted.addListener(onCompletedPlayer);
@@ -634,6 +644,9 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
 
       break;
     case 'PLAY_USER_ACTIONS':
+      if (player) {
+        player.launchAction('RESET');
+      }
       player = new Player(msg.value, sender.tab.id, senderResponse);
       player.launchAction('PLAY');
       break;

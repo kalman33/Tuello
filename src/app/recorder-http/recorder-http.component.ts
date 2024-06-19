@@ -366,8 +366,13 @@ export class RecorderHttpComponent implements OnInit {
   // Fonction pour extraire le flux JSON du code JavaScript
   private extraireFluxJSON(codeJS) {
     // Recherche de la déclaration de la variable contenant le flux JSON
-    const regex = /window.tuelloRecords\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
-    const match = codeJS.match(regex);
+    let regex = /window.tuelloRecords\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
+    
+    let match = codeJS.match(regex);
+    if (!match) {
+      regex = /window\['tuelloRecords'\]\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
+      match = codeJS.match(regex);
+    }
 
     if (match && match[1]) {
       // Si la correspondance est trouvée, analysez la chaîne JSON et renvoyez l'objet JavaScript
