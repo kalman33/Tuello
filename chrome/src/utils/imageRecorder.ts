@@ -1,7 +1,7 @@
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
-import { PNG } from 'pngjs/browser';
-import pixelmatch from "pixelmatch";
-import { Buffer } from 'buffer';
+// import { PNG } from 'pngjs/browser';
+// import pixelmatch from "pixelmatch";
+// import { Buffer } from 'buffer';
 import html2canvas from 'html2canvas';
 
 export async function convertElementToBase64(element: HTMLElement): Promise<string> {
@@ -47,7 +47,7 @@ function searchInDom(action): Promise<(HTMLElement | string)[]> {
 async function compareImages(dataurl1, dataurl2, img): Promise<HTMLElement | string> {
   return new Promise((resolve) => {
     try {
-      const pngImg1 = PNG.sync.read(Buffer.from(dataurl1.slice('data:image/png;base64,'.length), 'base64'));
+      /**const pngImg1 = PNG.sync.read(Buffer.from(dataurl1.slice('data:image/png;base64,'.length), 'base64'));
       const pngImg2 = PNG.sync.read(Buffer.from(dataurl2.slice('data:image/png;base64,'.length), 'base64'));
       const diffImage = new PNG({ width: pngImg1.width, height: pngImg1.height });
 
@@ -67,7 +67,12 @@ async function compareImages(dataurl1, dataurl2, img): Promise<HTMLElement | str
         resolve(img);
       } else {
         resolve('not founded');
-      }
+      }*/
+     if (dataurl1 === dataurl2) {
+      resolve(img);
+     } else {
+      resolve('not founded');
+     }
     } catch (err) {
       resolve('not founded');
     }

@@ -84,9 +84,9 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       }
 
       if (results['tuelloKeyboardShortcut']) {
-        this.screenshot = results['tuelloKeyboardShortcut']?.screenshot?.key;
-        this.captureImage = results['tuelloKeyboardShortcut']?.captureImage?.key;
-        this.comment = results['tuelloKeyboardShortcut']?.comment?.key;
+        this.screenshot = results['tuelloKeyboardShortcut']?.screenshot?.key || 'S';
+        this.captureImage = results['tuelloKeyboardShortcut']?.captureImage?.key || 'I';
+        this.comment = results['tuelloKeyboardShortcut']?.comment?.key || 'C'
       }
     });
 

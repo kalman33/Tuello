@@ -21,6 +21,11 @@ export function launchUIRecorderHandler() {
         screenshotKeyboardShortcut = results['tuelloKeyboardShortcut']?.screenshot || {key: 'S', code: 'KeyS'}
         captureImageKeyboardShortcut = results['tuelloKeyboardShortcut']?.captureImage ||  {key: 'I', code: 'KeyI'}
         commentKeyboardShortcut = results['tuelloKeyboardShortcut']?.comment?.key  ||  {key: 'C', code: 'KeyC'}
+      } else {
+        screenshotKeyboardShortcut = {key: 'S', code: 'KeyS'}
+        captureImageKeyboardShortcut = {key: 'I', code: 'KeyI'}
+        commentKeyboardShortcut = {key: 'C', code: 'KeyC'}
+
       }
       // on previent background qu'on a démarré le recording
       chrome.runtime.sendMessage({
