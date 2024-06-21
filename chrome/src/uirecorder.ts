@@ -243,7 +243,7 @@ function recordImage(withClick: boolean) {
   const elt = findImageHover();
   if (elt) {
     // const elt = document.querySelectorAll( ":hover" );
-    document.getElementById('cover-spin').style.setProperty('display', 'block', 'important');
+    document.getElementById('cover-spin')?.style?.setProperty('display', 'block', 'important');
 
     // Record by img
     convertElementToBase64((elt as HTMLElement)).then(base64Img => {
