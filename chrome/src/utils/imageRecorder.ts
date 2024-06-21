@@ -2,7 +2,8 @@ import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 // import { PNG } from 'pngjs/browser';
 // import pixelmatch from "pixelmatch";
 // import { Buffer } from 'buffer';
-import html2canvas from 'html2canvas';
+// import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image';
 
 export async function convertElementToBase64(element: HTMLElement): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -15,10 +16,7 @@ export async function convertElementToBase64(element: HTMLElement): Promise<stri
       ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
       resolve(canvas.toDataURL('image/png')); // Vous pouvez changer le format de l'image si nécessaire
      } else {
-      html2canvas(element).then(function (canvas) {
-        // Convertir le canvas en base64
-        resolve(canvas.toDataURL('image/png'));
-      });
+      resolve(domtoimage.toPng(element));
     }
   });
 }
