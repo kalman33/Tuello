@@ -522,11 +522,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       run(message.value)
         .then(() => {
           sendResponse();
-          return true;
+          // return true;
         })
         .catch(() => {
           sendResponse();
-          return true;
+          //return true;
         });
       return true;
       break;

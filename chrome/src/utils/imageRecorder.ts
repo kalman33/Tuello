@@ -5,6 +5,8 @@ import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 // import html2canvas from 'html2canvas';
 import domtoimage from 'dom-to-image';
 
+const cache: { [key: string]: HTMLElement | string } = {};
+
 export async function convertElementToBase64(element: HTMLElement): Promise<string> {
   return new Promise((resolve, reject) => {
     if (element instanceof HTMLImageElement) {
@@ -23,10 +25,16 @@ export async function convertElementToBase64(element: HTMLElement): Promise<stri
 
 export function searchImg(action: IUserAction): Promise<(HTMLElement | string)> {
   return new Promise((resolve, reject) => {
+    // Vérifiez si le résultat est déjà dans le cache
+    if (action.value in cache) {
+      return resolve(cache[action.value]);
+    }
+
     searchInDom(action).then(values => {
       const imgFinded = values.find(val => val !== 'not founded');
 
       if (imgFinded) {
+        cache[action.value] = imgFinded;
         return resolve(imgFinded);
       }
       return reject('Image introuvable');

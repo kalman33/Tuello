@@ -30,7 +30,7 @@ export class Player {
   }
 
   async treatAction() {
-
+    
     const action = this.yieldActions.next();
     this.count++;
     const userAction = action.value ? action.value.userAction : null;
@@ -83,7 +83,6 @@ export class Player {
           });
         }
       }
-
       this.timeoutId = setTimeout(
         this.treatAction.bind(this),
         this.initialActions[this.count] ? this.initialActions[this.count].delay : this.initialActions[this.count - 1].delay
@@ -145,6 +144,7 @@ export class Player {
           },
           options,
           (response: any) => {
+        
             resolve(true);
           }
         );
