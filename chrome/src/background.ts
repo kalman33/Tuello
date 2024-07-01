@@ -7,6 +7,7 @@ import {
   addScreenShot,
   addUserAction,
   deleteRecord,
+  initRecord,
   loadRecordFromStorage,
   setPause
 } from './background/uiRecorderHandler';
@@ -713,6 +714,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       setPause(msg.value);
       break;
     case 'RECORD_WINDOW_SIZE':
+      initRecord();
       chrome.windows.getCurrent((windowInfos) => {
         let data = {
           width: windowInfos.width,

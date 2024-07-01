@@ -75,18 +75,23 @@ export class Player {
               : {};
             // on envoie un message au bon content scrip
             await this.sendMessageToContent(userAction, options);
+            
           });
         } else {
+            
           // on envoie un message au bon content scrip
           await this.sendMessageToContent(userAction, {
             frameId: 0
           });
         }
       }
-      this.timeoutId = setTimeout(
-        this.treatAction.bind(this),
-        this.initialActions[this.count] ? this.initialActions[this.count].delay : this.initialActions[this.count - 1].delay
-      );
+      if (!this.pauseCurrentAction) {
+        this.timeoutId = setTimeout(
+          this.treatAction.bind(this),
+          this.initialActions[this.count] ? this.initialActions[this.count].delay : this.initialActions[this.count - 1].delay
+        );
+      }
+      
     }
   }
 

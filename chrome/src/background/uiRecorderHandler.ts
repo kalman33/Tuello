@@ -13,6 +13,9 @@ let record: Record;
 let pause = false;
 
 
+export function initRecord() {
+  last = Date.now();
+}
 
 export function setPause(val: boolean) {
   pause = val;
@@ -52,13 +55,17 @@ export function addNavigate(userAction: IUserAction, tabId: number, frameId: num
       userAction.frame = iframe;
     })
     .then(() => {
+      const action = new Action(delay, ActionType.NAVIGATE, userAction);
       if (record?.actions?.length === 0) {
-        const action = new Action(delay, ActionType.NAVIGATE, userAction);
+       
         record.actions.push(action);
-        last = now;
-        record.last = last;
-        saveUiRecordToLocalStorage();
+        
+      } else {
+        record.actions.unshift(action);
       }
+      last = now;
+      record.last = last;
+      saveUiRecordToLocalStorage();
       
     });
 }

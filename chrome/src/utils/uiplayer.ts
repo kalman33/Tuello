@@ -33,6 +33,7 @@ function mouseup(x: number, y: number, key: number) {
 }
 
 function scrollTo(scrollX, scrollY) {
+  console.log("TUELLO", window);
   window.scrollTo(scrollX, scrollY);
 }
 
