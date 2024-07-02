@@ -21,6 +21,7 @@ export class SettingsComponent implements OnInit {
   deepMockLevel = 0;
   mouseCoordinates: boolean;
   desactivate = false;
+  verboseMode: boolean;
   languages = [
     { value: 'en', label: 'en' },
     { value: 'fr', label: 'fr' }
@@ -44,7 +45,7 @@ export class SettingsComponent implements OnInit {
   }
 
   init() {
-    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates'], results => {
+    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode'], results => {
       if (results['language']) {
         this.selectedLanguage = results['language'];
       }
@@ -59,6 +60,10 @@ export class SettingsComponent implements OnInit {
 
       if (results['mouseCoordinates']) {
         this.mouseCoordinates = results['mouseCoordinates'];
+      }
+
+      if (results['verboseMode']) {
+        this.verboseMode = results['verboseMode'];
       }
 
       if (results['deepMockLevel']) {
@@ -108,6 +113,15 @@ export class SettingsComponent implements OnInit {
     } else {
       this.desactivate = !this.desactivate;
     }
+  }
+
+  toggleVerboseMode(verboseModeValue: boolean) {
+    chrome.storage.local.set({ verboseMode: verboseModeValue });
+    // on previent background qui va prevenir contentscript qu'on a modifié le mouseCoordinates
+    chrome.runtime.sendMessage({
+      action: 'VERBOSE_MODE',
+      value: verboseModeValue
+    }, () => { });
   }
 
   onLanguageSelect({ value }) {

@@ -22,6 +22,7 @@
   "mmn.settings.general.placeholder": "Language",
   "mmn.settings.general.mouse.title": "Display mouse coordinates",
   "mmn.settings.general.desactivate.title": "Disable the plugin",
+  "mmn.settings.general.verbosemode.title": "Verbose mode",
   "mmn.settings.customize.mode": "Dark mode",
   "mmn.settings.deeprecord.title": "Deep for the HTTP mock",
   "mmn.settings.customize.title": "Customize",

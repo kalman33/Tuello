@@ -14,6 +14,11 @@
               <mat-slide-toggle [checked]="desactivate" class="darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
             </div>
             <div class="icon-form-field">
+              <mat-icon color="accent">draw</mat-icon>
+              <mat-placeholder>{{ 'mmn.settings.general.verbosemode.title' | translate }} </mat-placeholder>
+              <mat-slide-toggle [checked]="verboseMode" [(ngModel)]="verboseMode" class="darkMode" (change)="toggleVerboseMode(verboseMode)"> </mat-slide-toggle>
+            </div>
+            <div class="icon-form-field">
               <mat-icon color="accent">language</mat-icon>
               <mat-form-field>
                 <mat-select

@@ -24,6 +24,7 @@
   
   "mmn.settings.deeprecord.title": "Profondeur pour le mock HTTP",
   "mmn.settings.general.desactivate.title": "Désactiver le plugin",
+  "mmn.settings.general.verbosemode.title": "Mode verbeux",
   "mmn.settings.general.mouse.title": "Afficher les coordonnées de la souris",
   "mmn.settings.customize.title": "Personnaliser",
   "mmn.settings.customize.mode": "Mode sombre",

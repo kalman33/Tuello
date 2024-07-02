@@ -15,6 +15,7 @@ import Port = chrome.runtime.Port;
 import { Player } from './background/player';
 import { UserAction } from './models/UserAction';
 import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
+import { LogManager } from './utils/LogManager';
 
 let port;
 let player = null;
@@ -287,6 +288,9 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         action: 'DEACTIVATE'
       },
         () => { });
+      break;
+    case "VERBOSE_MODE": 
+      msg.value ? LogManager.enable() : LogManager.disable();
       break;
     case 'FINISH_PLAY_ACTIONS':
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page
