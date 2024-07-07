@@ -116,12 +116,8 @@ export class SettingsComponent implements OnInit {
   }
 
   toggleVerboseMode(verboseModeValue: boolean) {
-    chrome.storage.local.set({ verboseMode: verboseModeValue });
-    // on previent background qui va prevenir contentscript qu'on a modifié le mouseCoordinates
-    chrome.runtime.sendMessage({
-      action: 'VERBOSE_MODE',
-      value: verboseModeValue
-    }, () => { });
+    chrome.storage.local.set({ loggerEnabled: verboseModeValue });
+    
   }
 
   onLanguageSelect({ value }) {

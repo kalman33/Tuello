@@ -15,10 +15,10 @@ import Port = chrome.runtime.Port;
 import { Player } from './background/player';
 import { UserAction } from './models/UserAction';
 import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
-import { LogManager } from './utils/LogManager';
 
 let port;
 let player = null;
+const prefix: string = '[ TUELLO ]';
 
 
 self.addEventListener('activate', event => {
@@ -278,6 +278,16 @@ chrome.commands.onCommand.addListener(command => {
 
 chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
   switch (msg.action) {
+
+    case 'LOG_DATA':
+      chrome.storage.local.get(['loggerEnabled'], function (result) {
+        const loggerEnabled = result.loggerEnabled !== undefined ? result.loggerEnabled : true;
+        if (loggerEnabled) {
+          console.log(prefix, ...msg.value);
+        }
+        senderResponse();
+      });
+      break;
     case 'updateIcon':
       chrome.action.setIcon({ path: `/assets/logos/${msg.value}` });
 
@@ -288,9 +298,6 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         action: 'DEACTIVATE'
       },
         () => { });
-      break;
-    case "VERBOSE_MODE": 
-      msg.value ? LogManager.enable() : LogManager.disable();
       break;
     case 'FINISH_PLAY_ACTIONS':
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page

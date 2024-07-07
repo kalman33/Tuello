@@ -1,10 +1,11 @@
+import { logData } from "./utils/utils";
+
 // Sauvegarde des méthodes originales
 const originalOpen = (window as any).XMLHttpRequest.prototype.open;
 const originalSend = (window as any).XMLHttpRequest.prototype.send;
 const originalFetch = window.fetch.bind(window);
 let messageForHTTPRecorderQueue = [];
 let messageForHTTPTagsQueue = [];
-
 
 let deepMockLevel = 0;
 
@@ -497,6 +498,7 @@ let modifyResponse = (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
                 // @ts-expect-error
                 xhr.status = httpCode;
 
+                logData('- Mock HTTP - Mock de ' + xhr["originalURL"]);
             });
         }
     }

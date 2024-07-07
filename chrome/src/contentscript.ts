@@ -525,7 +525,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // return true;
         })
         .catch(() => {
-         
+
           sendResponse();
           //return true;
         });
@@ -564,6 +564,12 @@ window.addEventListener(
           }, () => { });
           break;
       }
+    } else if (event.data?.action === 'LOG_DATA') {
+      // send message to background
+      chrome.runtime.sendMessage({
+        action: 'LOG_DATA',
+        value: event.data.value
+      }, () => { });
     }
   },
   false

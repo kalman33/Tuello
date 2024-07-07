@@ -1,6 +1,20 @@
 import { ICoordinates } from '../models/UserAction';
 
 
+export function logData(...args: any[]) {
+  if (chrome.runtime) {
+    chrome.runtime.sendMessage({
+      action: 'LOG_DATA',
+      value: args
+    }, () => { });
+  } else {
+    window.top.postMessage({
+      action: 'LOG_DATA',
+      value: args
+    }, '*');
+  }
+}
+
 /**
  * permet de supprimer les doublons dans le flux json
  */
