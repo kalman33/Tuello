@@ -1,6 +1,9 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.0.0.27] - 2024-06-17
+    Correctifs sur le spy & replay
+    Ajout du mode verbeux
 ## [1.0.0.26] - 2024-06-17
     Correctifs sur le spy & replay
 ## [1.0.0.25] - 2024-05-26
