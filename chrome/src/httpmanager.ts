@@ -165,8 +165,8 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                     try {
                         const contentType = req.getResponseHeader('Content-Type');
                         // on ne traite que si le content type est du json
-                        if (contentType && contentType.includes("application/json")) {
-                            response = JSON.parse(req.responseText);
+                        if (!contentType || contentType.includes("json")) {
+                            response = req.responseText ? JSON.parse(req.responseText) : '';
                             const messageHttpRecorder = {
                                 type: 'RECORD_HTTP',
                                 url: req.responseURL,
