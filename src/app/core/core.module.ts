@@ -5,7 +5,6 @@ import { AngularMaterialModule } from '../angular-material.module';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { FlexLayoutModule } from '@angular/flex-layout';
 import { JsonViewerComponent } from './json-viewer/json-viewer.component';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { MatIconModule, MatIconRegistry } from '@angular/material/icon';
