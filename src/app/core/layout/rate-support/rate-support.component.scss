@@ -1,4 +1,4 @@
-.mat-button {
+.mat-mdc-button {
   text-align: left !important;
 }
 
@@ -9,6 +9,17 @@ h2 {
 
 form {
   margin-top: 5px;
+}
+
+.rateTitle {
+  align-items: flex-start;
+}
+
+.rateTitle span.mdc-button__label {
+  display: flex; 
+  align-items: center;
+  text-align: left; 
+  width: auto; 
 }
 
 .icon-button{

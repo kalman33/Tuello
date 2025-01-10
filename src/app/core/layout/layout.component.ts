@@ -21,6 +21,8 @@ export class LayoutComponent implements AfterViewInit, OnInit {
   activate = true;
   displayTitle = false;
   title: string;
+  // Indice de l'élément sélectionné
+  selectedIndex = 0;
 
   menuLabels: string[] = [];
 
@@ -38,11 +40,17 @@ export class LayoutComponent implements AfterViewInit, OnInit {
   ) {}
 
   ngOnInit(): void {
-    chrome.storage.local.get(['settings'], results => {
+    chrome.storage.local.get(['settings', 'selectedMenu'], results => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }
+      if (results['selectedMenu']) {
+        this.selectedIndex = results['selectedMenu'];
+      }
+      //this.sidenav.toggle();
+      //this.isOpen = !this.isOpen;
     });
+   
   }
 
   ngAfterViewInit(): void {
@@ -102,13 +110,20 @@ export class LayoutComponent implements AfterViewInit, OnInit {
   }
   
   openSideNav() {
-    chrome.storage.local.get(['settings'], results => {
+    chrome.storage.local.get(['settings', 'selectedMenu'], results => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }
       //this.sidenav.toggle();
       //this.isOpen = !this.isOpen;
     });
+  }
+
+  // Fonction pour gérer la sélection d'un élément
+  selectMenuItem(index: number): void {
+    this.selectedIndex = index;
+    chrome.storage.local.set({ selectedMenu : index});
+   
   }
 
   openRateSupport() {

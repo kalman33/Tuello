@@ -3,12 +3,12 @@ table {
   background-color: #fafafa;
 }
 
-.mat-header-cell {
+.mat-mdc-header-cell {
   flex-direction: column;
   justify-content: center;
 }
 
-.mat-cell {
+.mat-mdc-cell {
   text-align: center;
   justify-content:center;
 }
@@ -26,7 +26,7 @@ img {
   height: 40px;
 }
 
-.mat-spinner {
+.mat-mdc-progress-spinner {
   position: relative;
   margin-left: 50%;
   margin-right: 50%;

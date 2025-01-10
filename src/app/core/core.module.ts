@@ -5,7 +5,6 @@ import { AngularMaterialModule } from '../angular-material.module';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { FlexLayoutModule } from '@angular/flex-layout';
 import { JsonViewerComponent } from './json-viewer/json-viewer.component';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 import { MatIconModule, MatIconRegistry } from '@angular/material/icon';
@@ -15,6 +14,7 @@ import {
     MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
 import { MatDialogModule } from '@angular/material/dialog';
+import { FlexLayoutModule } from '@angular/flex-layout';
 
 @NgModule({
     declarations: [LayoutComponent, RateSupportComponent, JsonViewerComponent],

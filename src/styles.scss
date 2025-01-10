@@ -44,4 +44,6 @@ body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
   animation-fill-mode: forwards;
 }
 
-
+mat-form-field .mat-mdc-form-field-bottom-align {
+  /*display: none !important; /* Cache complètement le div si vide */
+}

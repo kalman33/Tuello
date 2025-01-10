@@ -20,8 +20,7 @@ h2 {
 }
 
 .button-row button {
-  display: table-cell;
-  margin-right: 20px;
+  display: inline-flex;
   line-height: 30px;
 }
 
@@ -37,6 +36,18 @@ h2 {
 
   mat-placeholder {
     flex: 2 1 auto;
+  }
+
+  div {
+    flex: 1; /* Permet au texte de prendre tout l'espace disponible */
+  }
+  
+  mat-slide-toggle {
+    margin-left: auto; /* Pousse le slide-toggle complètement à droite */
+  }
+
+  mat-slider {
+    margin-right: 24px;
   }
 }
 
@@ -57,13 +68,4 @@ mat-form-field {
 
 .-tab-icon {
   margin-right: 8px;
-}
-
-
-mat-tab mat-icon {
-  margin-right: 10px;
-}
-
-mat-slider {
-  margin-right: 10px;
 }

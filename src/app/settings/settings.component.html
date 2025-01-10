@@ -10,12 +10,12 @@
           <div [ngClass]="routeAnimationsElements">
             <div class="icon-form-field">
               <mat-icon color="accent">not_interested</mat-icon>
-              <mat-placeholder>{{ 'mmn.settings.general.desactivate.title' | translate }} </mat-placeholder>
+              <div>{{ 'mmn.settings.general.desactivate.title' | translate }} </div>
               <mat-slide-toggle [checked]="desactivate" class="darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
             </div>
             <div class="icon-form-field">
               <mat-icon color="accent">draw</mat-icon>
-              <mat-placeholder>{{ 'mmn.settings.general.verbosemode.title' | translate }} </mat-placeholder>
+              <div>{{ 'mmn.settings.general.verbosemode.title' | translate }} </div>
               <mat-slide-toggle [checked]="verboseMode" [(ngModel)]="verboseMode" class="darkMode" (change)="toggleVerboseMode(verboseMode)"> </mat-slide-toggle>
             </div>
             <div class="icon-form-field">
@@ -35,7 +35,7 @@
             </div>
             <div class="icon-form-field">
               <mat-icon color="accent">gamepad</mat-icon>
-              <mat-placeholder>{{ 'mmn.settings.general.mouse.title' | translate }} </mat-placeholder>
+              <div>{{ 'mmn.settings.general.mouse.title' | translate }} </div>
               <mat-slide-toggle
                 [checked]="mouseCoordinates"
                 [(ngModel)]="mouseCoordinates"
@@ -47,13 +47,13 @@
             <h2>{{ 'mmn.settings.deeprecord.title' | translate }}</h2>
             <div class="icon-form-field">
               <mat-icon color="accent">brush</mat-icon>
-              <mat-placeholder>
+              <div>
                 <span [ngClass]="{ bold: deepMockLevel === 0 }">https://my-server</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 1 }">/api</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 2 }">/2.2</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 3 }">/users</span>
-              </mat-placeholder>
-              <mat-slider [(ngModel)]="deepMockLevel" (input)="updateDeepMockLevel($event)" thumbLabel tickInterval="50" min="0" max="3">
+              </div>
+              <mat-slider [(ngModel)]="deepMockLevel" step="1" thumbLabel min="0" max="3" #ngSlider><input name="deepMockLevel" matSliderThumb (input)="updateDeepMockLevel({source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value})" #ngSliderThumb="matSliderThumb" />
               </mat-slider>
             </div>
           </div>
@@ -66,7 +66,7 @@
         </ng-template>
         <div class="icon-form-field">
           <mat-icon color="accent">brush</mat-icon>
-          <mat-placeholder>{{ 'mmn.settings.customize.mode' | translate }} </mat-placeholder>
+          <div>{{ 'mmn.settings.customize.mode' | translate }} </div>
           <mat-slide-toggle [checked]="darkMode" [(ngModel)]="darkMode" class="darkMode" (change)="toggleTheme(darkMode)">
           </mat-slide-toggle>
         </div>
@@ -87,7 +87,7 @@
             <mat-icon>save_alt</mat-icon>
             {{ 'mmn.settings.setup.button.import' | translate }}
           </button>
-          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
+          <input name="fileJson" style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
           <button mat-flat-button color="accent" (click)="clear()" style="color: white">
             <mat-icon>delete_forever</mat-icon>
             {{ 'mmn.settings.setup.button.clear' | translate }}

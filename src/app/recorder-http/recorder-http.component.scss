@@ -15,11 +15,17 @@
   height: calc(100vh - 180px);
 }
 
-.button-row button {
-  display: table-cell;
+.button-row > button {
+  display: inline-flex;
+  align-items: center; /* Centre verticalement le texte et l'icône */
+  justify-content: center; /* Centre horizontalement le contenu */
   padding: 0 12px !important;
   margin-right: 20px;
   line-height: 30px;
+}
+
+.button-row mat-slide-toggle button {
+  margin-right: 0px !important;
 }
 
 .button-row mat-slide-toggle {

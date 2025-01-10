@@ -2,16 +2,12 @@
   margin-right: 8px;
 }
 
-.mat-tab-group {
+.mat-mdc-tab-group {
   margin-top: 15px;
 }
 
-mat-tab mat-icon {
-  margin-right: 10px;
-}
-
-mat-list {
-  height: auto;
+.shortcut.mat-mdc-list-item {
+  margin-bottom: 8px !important;
 }
 
 mmn-action {
@@ -39,13 +35,15 @@ mmn-action {
 }
 
 .button-row button {
-  display: table-cell;
+  display: inline-flex;
+  align-items: center; /* Centre verticalement le texte et l'icône */
+  justify-content: center; /* Centre horizontalement le contenu */
   margin-right: 20px;
   line-height: 30px;
 }
 
 /* styles.css (ou votre fichier CSS local) */
 .custom-label .mat-placeholder-required,
-.mat-form-field-required-marker {
+.mat-mdc-form-field-required-marker {
   display: none !important;
 }

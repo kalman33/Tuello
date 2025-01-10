@@ -2,14 +2,16 @@
   margin-right: 8px;
 }
 
-.mat-tab-group {
+.mat-mdc-tab-group {
   margin-top: 15px;
 }
 
+/* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version. */
 mat-tab mat-icon {
   margin-right: 10px;
 }
 
+/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version. */
 mat-list {
   height: auto;
 }
@@ -17,6 +19,7 @@ mat-list {
 mmn-track-detail {
   width: -webkit-fill-available;
 }
+/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version. */
 mat-list {
   height: 92vh;
 }
@@ -26,11 +29,11 @@ mat-form-field {
 }
 
 
-:host ::ng-deep mat-list mat-list-item span.mat-list-item-content {
+:host ::ng-deep mat-list mat-list-item span.mat-mdc-list-item-content {
   padding-right: 0px !important;
 }
 
-:host ::ng-deep mat-list .mat-list-item:hover {
+:host ::ng-deep mat-list .mat-mdc-list-item:hover {
   background-color: #f2b04a !important;
 }
 
@@ -45,7 +48,9 @@ mat-form-field {
 }
 
 .button-row button {
-  display: table-cell;
+  display: inline-flex;
+  align-items: center; /* Centre verticalement le texte et l'icône */
+  justify-content: center; /* Centre horizontalement le contenu */
   margin-right: 20px;
   line-height: 30px;
 }

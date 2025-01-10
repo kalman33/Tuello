@@ -61,61 +61,97 @@
           {{ 'mmn.spy-http.tabs.shortcuts' | translate }}
         </ng-template>
         <mat-list>
-          <mat-list-item>
-            <mat-icon color="accent" mat-list-icon>keyboard</mat-icon>
-            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.screenshot' | translate }}</div>
-            <div mat-line>ALT + MAJ + 
-              <mat-form-field>
-                <mat-label class="custom-label"></mat-label>
-                <input [(ngModel)]="screenshot" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #screenshotModel="ngModel" pattern="^[a-zA-Z]" required>
-                <mat-error *ngIf="screenshotModel.errors?.['required']">
-                  {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
-                </mat-error>
-              </mat-form-field>
+          <mat-list-item fxLayout="row" fxLayoutAlign="space-between center" class="shortcut">
+            <div fxFlex="15%" fxLayoutAlign="center center">
+              <mat-icon color="accent" mat-list-icon>keyboard</mat-icon>
+            </div>
+            <div fxFlex="25%" fxLayoutAlign="start center">
+              <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.screenshot' | translate }}</div>
+            </div>
+            <div fxFlex fxLayoutAlign="start center">
+              <div mat-line>ALT + MAJ + 
+                <mat-form-field style="width: 100%;">
+                  <mat-label class="custom-label"></mat-label>
+                  <input [(ngModel)]="screenshot" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #screenshotModel="ngModel" pattern="^[a-zA-Z]" required>
+                  <mat-error *ngIf="screenshotModel.errors?.['required']">
+                    {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
+                  </mat-error>
+                </mat-form-field>
+              </div>
             </div>
             <!--<div mat-line>Mobile:  Rotate</div>-->
           </mat-list-item>
-          <mat-list-item>
-            <mat-icon color="accent" mat-list-icon>pause</mat-icon>
-            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.pause' | translate }}</div>
-            <div mat-line> ALT + MAJ + P </div>
+          <mat-list-item fxLayout="row" fxLayoutAlign="space-between center" class="shortcut">
+            <div fxFlex="15%" fxLayoutAlign="center center">
+              <mat-icon color="accent" mat-list-icon>pause</mat-icon>
+            </div>
+            <div fxFlex="25%" fxLayoutAlign="start center">
+              <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.pause' | translate }}</div>
+            </div>
+            <div fxFlex fxLayoutAlign="start center">
+              <div mat-line> ALT + MAJ + P </div>
+            </div>
           </mat-list-item>
-          <mat-list-item>
-            <mat-icon color="accent" mat-list-icon>play_arrow</mat-icon>
-            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.resume' | translate }}</div>
-            <div mat-line> ALT + MAJ + R </div>
+          <mat-list-item fxLayout="row" fxLayoutAlign="space-between center" class="shortcut">
+            <div fxFlex="15%" fxLayoutAlign="center center">
+              <mat-icon color="accent" mat-list-icon>play_arrow</mat-icon>
+            </div>
+            <div fxFlex="25%" fxLayoutAlign="start center">
+              <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.resume' | translate }}</div>
+            </div>
+            <div fxFlex fxLayoutAlign="start center">
+              <div mat-line> ALT + MAJ + R </div>
+            </div>
           </mat-list-item>
-          <mat-list-item>
-            <mat-icon color="accent" mat-list-icon>image_search</mat-icon>
-            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.record.by.img' | translate }}</div>
-            <div mat-line>ALT + MAJ + click / Coord. + ALT + MAJ + 
-              <mat-form-field>
-                <mat-label class="custom-label"></mat-label>
-                <input [(ngModel)]="captureImage" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #captureImageModel="ngModel" pattern="^[a-zA-Z]" required>
-                <mat-error *ngIf="captureImageModel.errors?.['required']">
-                  {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
-                </mat-error>
-              </mat-form-field>
-
-
-
+          <mat-list-item fxLayout="row" fxLayoutAlign="space-between center" class="shortcut">
+            <div fxFlex="15%" fxLayoutAlign="center center">
+              <mat-icon color="accent" mat-list-icon>image_search</mat-icon>
+            </div>
+            <div fxFlex="25%" fxLayoutAlign="start center">
+              <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.record.by.img' | translate }}</div>
+            </div>
+            <div fxFlex fxLayoutAlign="start center">
+              <div mat-line>ALT + MAJ + click </div>
             </div>
             <!--<div mat-line>Mobile: {{ 'mmn.spy-http.tabs.shortcuts.record.by.img.shortcut' | translate }} </div>-->
           </mat-list-item>
-          <mat-list-item>
-            <mat-icon color="accent" mat-list-icon>message</mat-icon>
-            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.add.comment' | translate }}</div>
-            <div mat-line>ALT + MAJ + 
-              <mat-form-field>
-                <mat-label class="custom-label"></mat-label>
-                <input [(ngModel)]="comment" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #commentModel="ngModel" pattern="^[a-zA-Z]" required>
-                <mat-error *ngIf="commentModel.errors?.['required']">
-                  {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
-                </mat-error>
-              </mat-form-field>
+          <mat-list-item fxLayout="row" fxLayoutAlign="space-between center" class="shortcut">
+            <div fxFlex="15%" fxLayoutAlign="center center">
+            </div>
+            <div fxFlex="25%" fxLayoutAlign="start center">
+            </div>
+            <div fxFlex fxLayout="column" fxLayoutAlign="start center">
+              <div mat-line>Coord. + ALT + MAJ + 
+                <mat-form-field>
+                  <mat-label class="custom-label"></mat-label>
+                  <input [(ngModel)]="captureImage" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #captureImageModel="ngModel" pattern="^[a-zA-Z]" required>
+                  <mat-error *ngIf="captureImageModel.errors?.['required']">
+                    {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
+                  </mat-error>
+                </mat-form-field>
+              </div>
+            </div>
+            <!--<div mat-line>Mobile: {{ 'mmn.spy-http.tabs.shortcuts.record.by.img.shortcut' | translate }} </div>-->
+          </mat-list-item>
+          <mat-list-item fxLayout="row" fxLayoutAlign="space-between center" class="shortcut">
+            <div fxFlex="15%" fxLayoutAlign="center center">
+              <mat-icon color="accent" mat-list-icon>message</mat-icon>
+            </div>
+            <div fxFlex="25%" fxLayoutAlign="start center">
+              <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.add.comment' | translate }}</div>
+            </div>
+            <div fxFlex fxLayoutAlign="start center">
+              <div mat-line>ALT + MAJ + 
+                <mat-form-field>
+                  <mat-label class="custom-label"></mat-label>
+                  <input [(ngModel)]="comment" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #commentModel="ngModel" pattern="^[a-zA-Z]" required>
+                  <mat-error *ngIf="commentModel.errors?.['required']">
+                    {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
+                  </mat-error>
+                </mat-form-field>
+              </div>
             </div>
           </mat-list-item>
-          <mat-divider></mat-divider>
         </mat-list>
       </mat-tab>
 
