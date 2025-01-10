@@ -39,7 +39,7 @@
     "dom-to-image": "^2.6.0",
     "file-saver": "^2.0.5",
     "json-find": "^2.0.8",
-    "jsoneditor": "^10.0.0",
+    "jsoneditor": "^10.1.2",
     "ngx-json-viewer": "^3.2.1",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",

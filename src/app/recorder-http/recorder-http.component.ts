@@ -1,4 +1,4 @@
-import { AfterViewChecked, AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { AfterViewChecked, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -15,9 +15,10 @@ import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings
   selector: 'mmn-recorder-http',
   templateUrl: './recorder-http.component.html',
   styleUrls: ['./recorder-http.component.scss'],
-  encapsulation: ViewEncapsulation.None
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RecorderHttpComponent implements OnInit {
+export class RecorderHttpComponent implements OnInit, OnDestroy {
   constructor(
     private dialog: MatDialog,
     private infoBar: MatSnackBar,
@@ -40,7 +41,6 @@ export class RecorderHttpComponent implements OnInit {
   httpMockActivated: boolean;
   httpRecordActivated: boolean;
   dernierEvenementTampon: number;
-
   records;
 
 
@@ -65,6 +65,14 @@ export class RecorderHttpComponent implements OnInit {
       sendResponse();
     });
   }
+
+  ngOnDestroy(): void {
+    if (this.jsonEditorTree) {
+      this.jsonEditorTree.destroy();
+    }
+  }
+
+
 
   refresh() {
     // recupération des enregistrements
@@ -103,6 +111,8 @@ export class RecorderHttpComponent implements OnInit {
       enableSort: false,
       enableTransform: false,
       language: this.translate.instant('mmn.jsoneditor.language') || 'en',
+      ajv: null,
+      history: false,
       onValidationError: errors => {
         errors.forEach(error => {
           switch (error.type) {
