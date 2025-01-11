@@ -69,8 +69,7 @@ button.mat-mdc-raised-button mat-icon {
   height:24px
 }
 
-/* TODO(mdc-migration): The following rule targets internal classes of button that may no longer apply for the MDC version.*/
-button.mat-mdc-raised-button .mat-button-wrapper {
+button.mat-mdc-raised-button span {
   padding-left: 0px !important;
 }
 
@@ -120,15 +119,11 @@ a.mat-mdc-list-item:hover p {
   color: #FFB61E;
 }
 
-/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version.*/
-a.mat-mdc-list-item:hover .mat-list-text {
+/* OK TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version.*/
+a.mat-mdc-list-item:hover .mat-line {
   padding-left: 15px !important;
 }
 
-/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version.*/
-a.mat-mdc-list-item .mat-list-text {
-  //padding-left: 14px !important;
-}
 
 a.mat-mdc-list-item:hover mat-icon {
   // padding-left: 10px !important;

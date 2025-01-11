@@ -14,6 +14,7 @@ import {
     MatBottomSheetModule,
 } from '@angular/material/bottom-sheet';
 import { MatDialogModule } from '@angular/material/dialog';
+import { FlexLayoutModule } from '@angular/flex-layout';
 
 @NgModule({
     declarations: [LayoutComponent, RateSupportComponent, JsonViewerComponent],
