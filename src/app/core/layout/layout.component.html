@@ -34,32 +34,32 @@
           <mat-icon color="accent" mat-list-icon>
             camera
           </mat-icon>
-          <p mat-line> {{ this.menuLabels[0] ?  this.menuLabels[0] : ('mmn.layout.mockAndRecord' | translate) }}</p>
+          <span mat-line> {{ this.menuLabels[0] ?  this.menuLabels[0] : ('mmn.layout.mockAndRecord' | translate) }}</span>
         </a>
         <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/spy']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>
             queue_play_next
           </mat-icon>
-          <p mat-line>{{ this.menuLabels[1] ?  this.menuLabels[1] : ('mmn.layout.spyAndReplay' | translate) }} </p>
+          <span mat-line>{{ this.menuLabels[1] ?  this.menuLabels[1] : ('mmn.layout.spyAndReplay' | translate) }} </span>
         </a>
         <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/track']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>
             search
           </mat-icon>
-          <p mat-line>{{ this.menuLabels[2] ?  this.menuLabels[2] : ('mmn.layout.trackResources' | translate) }}</p>
+          <span mat-line>{{ this.menuLabels[2] ?  this.menuLabels[2] : ('mmn.layout.trackResources' | translate) }}</span>
         </a>
         <a *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/search']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>
             remove_red_eye
           </mat-icon>
-          <p mat-line> {{ this.menuLabels[3] ?  this.menuLabels[3] : ('mmn.layout.searchElements' | translate) }} </p>
+          <span mat-line> {{ this.menuLabels[3] ?  this.menuLabels[3] : ('mmn.layout.searchElements' | translate) }} </span>
         </a>
 
         <a mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>
             settings
           </mat-icon>
-          <p mat-line> {{ 'mmn.layout.settings' | translate }} </p>
+          <span mat-line> {{ 'mmn.layout.settings' | translate }} </span>
         </a>
 
         <div id="push-bottom" >
@@ -71,7 +71,7 @@
           </div>
           <div>
             <mat-icon class="v-align-middle">info_outline</mat-icon>
-            <span class="v-align-middle">Version 1.0.28</span>
+            <span class="v-align-middle">Version 1.0.10</span>
           </div>
         </div>
       </mat-nav-list>

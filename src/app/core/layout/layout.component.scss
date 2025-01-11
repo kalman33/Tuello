@@ -110,8 +110,9 @@ a.mat-mdc-list-item.active {
   background: rgba(0, 0, 0, .04) !important;
 }
 
-.mat-mdc-list-item {
-  // background-color: white !important;
+a.mat-mdc-list-item .mdc-list-item__content span {
+  display: flex;
+  align-items: center;
 }
 
 a.mat-mdc-list-item:hover p {
@@ -119,7 +120,6 @@ a.mat-mdc-list-item:hover p {
   color: #FFB61E;
 }
 
-/* OK TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version.*/
 a.mat-mdc-list-item:hover .mat-line {
   padding-left: 15px !important;
 }
@@ -136,8 +136,15 @@ a.mat-mdc-list-item mat-icon {
   border-radius: 50%;
   padding: 5px;
   margin: 3px;
+  margin-right: 8px; /* Ajustez l'espacement entre l'icône et le texte */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
   transition: color 0.2s ease, background-color 0.2s ease, transform 0.3s ease;
+}
+
+a.mat-mdc-list-item [mat-line] {
+  white-space: nowrap; /* Empêche les retours à la ligne */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 
@@ -259,4 +266,11 @@ button#rate:active {
 
 button#rate {
   box-shadow: 0 0 0 0;
+}
+
+button#rate mat-icon {
+  margin-left: 0px;
+  font-size: 24px !important;
+  height: 24px !important;
+  width: 24px !important;
 }
