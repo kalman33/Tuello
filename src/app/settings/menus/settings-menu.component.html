@@ -1,16 +1,10 @@
 <div class="icon-form-field">
-  <div fxFlex="8%" fxLayoutAlign="center center" class="label actionType">
     <mat-icon>{{ icons[index] }}</mat-icon>
-  </div>
-  <div fxFlex="75%" fxLayoutAlign="start center">
     <mat-form-field>
       <mat-label>{{ defaultLabels[index] | translate }}</mat-label>
       <input [(ngModel)]="label" (ngModelChange)="labelChange($event)" matInput type="text" />
     </mat-form-field>
-  </div>
-  <div fxFlex="8%" fxLayoutAlign="center center">
     <button (click)="deleteLabel()" mat-icon-button color="primary">
       <mat-icon>delete</mat-icon>
     </button>
-  </div>
 </div>

@@ -20,7 +20,7 @@ h2 {
 }
 
 .button-row button {
-  display: table-cell;
+  display: inline-flex;
   margin-right: 20px;
   line-height: 30px;
 }
@@ -37,6 +37,14 @@ h2 {
 
   mat-placeholder {
     flex: 2 1 auto;
+  }
+
+  div {
+    flex: 1; /* Permet au texte de prendre tout l'espace disponible */
+  }
+  
+  mat-slide-toggle {
+    margin-left: auto; /* Pousse le slide-toggle complètement à droite */
   }
 }
 
@@ -57,15 +65,4 @@ mat-form-field {
 
 .-tab-icon {
   margin-right: 8px;
-}
-
-
-/* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version.*/
-mat-tab mat-icon {
-  margin-right: 10px;
-}
-
-/* TODO(mdc-migration): The following rule targets internal classes of slider that may no longer apply for the MDC version.*/
-mat-slider {
-  margin-right: 10px;
 }

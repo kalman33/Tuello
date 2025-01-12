@@ -162,42 +162,10 @@ a.mat-mdc-list-item [mat-line] {
   vertical-align: middle;
 }
 
-/* toogle size : reduction de sa taille*/
-/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
-.darkMode .mat-slide-toggle-bar {
-  height: 14px;
-  width: 36px;
-  border-radius: 40px;
-}
-
-/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
-.darkMode .mat-slide-toggle-thumb {
-  height: 20px;
-  width: 20px;
-}
-
-/*THIS IS WHAT'S HOLDING ME UP, >:( */
-/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
-.darkMode.mat-checked .mat-slide-toggle-thumb-container {
-  transform: translate3d(16px, 0, 0) !important;
-}
-
 
 .darkMode span {
   font-size: 13px;
 }
-
-/* TODO(mdc-migration): The following rule targets internal classes of slide-toggle that may no longer apply for the MDC version.*/
-.darkMode .mat-slide-toggle-thumb-container {
-  width: 20px;
-  height: 20px;
-  /*not 5X (looked a little off)*/
-  top: -3px;
-  /*add left prop*/
-  /*left: 80px*/
-}
-
-
 
 /** MENU BURGER */
 .nav-icon {
