@@ -102,28 +102,36 @@ mat-sidenav {
   height: 5px;
 }
 
-a.mat-mdc-list-item.active {
-  background: rgba(0, 0, 0, .04);
+a.mat-mdc-list-item {
+ height: 56px !important;
 }
 
-.mat-mdc-list-item:hover {
-  background: rgba(0, 0, 0, .04) !important;
+a.mat-mdc-list-item.active {
+  background: rgba(0, 0, 0, 0.01) !important;
+}
+
+a.mat-mdc-list-item.focus {
+  background: rgba(0, 0, 0, 0.01) !important;
+}
+
+a.mat-mdc-list-item:hover {
+  background: rgba(0, 0, 0, 0.01) !important;
+}
+
+a.mdc-list-item {
+  padding-left: 0px !important;
 }
 
 a.mat-mdc-list-item .mdc-list-item__content span {
   display: flex;
+  height: 56px;
   align-items: center;
 }
 
-a.mat-mdc-list-item:hover p {
+mat-nav-list a.mat-mdc-list-item:hover span {
   font-weight: bold !important;
   color: #FFB61E;
 }
-
-a.mat-mdc-list-item:hover .mat-line {
-  padding-left: 15px !important;
-}
-
 
 a.mat-mdc-list-item:hover mat-icon {
   // padding-left: 10px !important;
@@ -136,7 +144,8 @@ a.mat-mdc-list-item mat-icon {
   border-radius: 50%;
   padding: 5px;
   margin: 3px;
-  margin-right: 8px; /* Ajustez l'espacement entre l'icône et le texte */
+  margin-left: 15px;
+  margin-right: 15px; /* Ajustez l'espacement entre l'icône et le texte */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
   transition: color 0.2s ease, background-color 0.2s ease, transform 0.3s ease;
 }
@@ -147,21 +156,28 @@ a.mat-mdc-list-item [mat-line] {
   text-overflow: ellipsis;
 }
 
-
 #push-bottom {
   position: absolute;
   bottom: 10px;
-  padding: 0 16px;
+  padding: 0 16px !important;
 }
 
 #push-bottom span {
   padding-left: 16px;
 }
 
+#push-bottom button:hover {
+  color: #FFB61E;
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+#push-bottom button:active {
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
 .v-align-middle {
   vertical-align: middle;
 }
-
 
 .darkMode span {
   font-size: 13px;

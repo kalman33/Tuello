@@ -39,7 +39,9 @@
   }
   
   .button-row button {
-    display: table-cell;
+    display: inline-flex;
+    align-items: center; /* Centre verticalement le texte et l'icône */
+    justify-content: center; /* Centre horizontalement le contenu */
     margin-right: 20px;
     line-height: 30px;
   }
@@ -49,6 +51,7 @@
   }
   
   mat-form-field {
+    padding-top: 15px;
     padding-right: 10px;
   }
 

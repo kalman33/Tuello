@@ -2,10 +2,10 @@
   <div fxFlex="99%">
 
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
-       <button mat-flat-button color="primary" (click)="save()" >
+      <button mat-flat-button color="primary" (click)="save()" >
           <mat-icon>save</mat-icon>
           {{ 'mmn.recorder-http.button.saveAs' | translate }}
-        </button>
+      </button>
 
       <button mat-flat-button color="primary" (click)="selectFile()" >
         <mat-icon>save_alt</mat-icon>
@@ -25,9 +25,6 @@
         <mat-icon>content_copy</mat-icon>
         {{ 'mmn.recorder-http.button.copy' | translate }}
       </button>
-
-     
-      
     </div>
     <div class="button-row mtn ptn"  fxLayout="row" fxLayoutAlign="start center" >
         <mat-slide-toggle  [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>

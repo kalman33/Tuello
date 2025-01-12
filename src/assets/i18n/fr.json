@@ -61,7 +61,7 @@
   "mmn.recorder-http.export.saveAsLib.information.success.action": "Succès",
   "mmn.recorder-http.export.button.saveAsLib": "Sauvegarde en tant que librairie",
   "mmn.recorder-http.export.button.close": "Fermer",
-  "mmn.recorder-http.addTags.title": "Liste des tagsa afficher",
+  "mmn.recorder-http.addTags.title": "Liste des tags à afficher",
   "mmn.recorder-http.addTags.input.jsonKey": "Clef json",
   "mmn.recorder-http.addTags.input.httpKey": "Url de l'api",
   "mmn.recorder-http.addTags.input.display": "valeur du tag affiché",

@@ -84,6 +84,7 @@ export class SettingsComponent implements OnInit {
 
   updateDeepMockLevel(event) {
     chrome.storage.local.set({ deepMockLevel: event.value });
+    this.deepMockLevel = event.value;
   }
 
   toggleMouseCoordinatesOption(mouseCoordinatesValue: boolean) {

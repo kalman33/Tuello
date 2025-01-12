@@ -46,6 +46,10 @@ h2 {
   mat-slide-toggle {
     margin-left: auto; /* Pousse le slide-toggle complètement à droite */
   }
+
+  mat-slider {
+    margin-right: 24px;
+  }
 }
 
 mat-icon {
