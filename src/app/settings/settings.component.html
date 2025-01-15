@@ -53,7 +53,7 @@
                 <span [ngClass]="{ bold: deepMockLevel <= 2 }">/2.2</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 3 }">/users</span>
               </div>
-              <mat-slider [(ngModel)]="deepMockLevel" step="1" thumbLabel min="0" max="3" #ngSlider><input matSliderThumb (input)="updateDeepMockLevel({source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value})" #ngSliderThumb="matSliderThumb" />
+              <mat-slider [(ngModel)]="deepMockLevel" step="1" thumbLabel min="0" max="3" #ngSlider><input name="deepMockLevel" matSliderThumb (input)="updateDeepMockLevel({source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value})" #ngSliderThumb="matSliderThumb" />
               </mat-slider>
             </div>
           </div>
@@ -87,7 +87,7 @@
             <mat-icon>save_alt</mat-icon>
             {{ 'mmn.settings.setup.button.import' | translate }}
           </button>
-          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
+          <input name="fileJson" style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
           <button mat-flat-button color="accent" (click)="clear()" style="color: white">
             <mat-icon>delete_forever</mat-icon>
             {{ 'mmn.settings.setup.button.clear' | translate }}

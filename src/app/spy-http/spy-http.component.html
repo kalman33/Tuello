@@ -61,17 +61,23 @@
           {{ 'mmn.spy-http.tabs.shortcuts' | translate }}
         </ng-template>
         <mat-list>
-          <mat-list-item>
-            <mat-icon color="accent" mat-list-icon>keyboard</mat-icon>
-            <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.screenshot' | translate }}</div>
-            <div mat-line>ALT + MAJ + 
-              <mat-form-field>
-                <mat-label class="custom-label"></mat-label>
-                <input [(ngModel)]="screenshot" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #screenshotModel="ngModel" pattern="^[a-zA-Z]" required>
-                <mat-error *ngIf="screenshotModel.errors?.['required']">
-                  {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
-                </mat-error>
-              </mat-form-field>
+          <mat-list-item fxLayout="row" fxLayoutAlign="space-between center">
+            <div fxFlex="15%">
+              <mat-icon color="accent" mat-list-icon>keyboard</mat-icon>
+            </div>
+            <div fxFlex="40%">
+              <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.screenshot' | translate }}</div>
+            </div>
+            <div fxFlex="40%">
+              <div mat-line>ALT + MAJ + 
+                <mat-form-field style="width: 100%;">
+                  <mat-label class="custom-label"></mat-label>
+                  <input [(ngModel)]="screenshot" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #screenshotModel="ngModel" pattern="^[a-zA-Z]" required>
+                  <mat-error *ngIf="screenshotModel.errors?.['required']">
+                    {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
+                  </mat-error>
+                </mat-form-field>
+              </div>
             </div>
             <!--<div mat-line>Mobile:  Rotate</div>-->
           </mat-list-item>
@@ -96,9 +102,6 @@
                   {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
                 </mat-error>
               </mat-form-field>
-
-
-
             </div>
             <!--<div mat-line>Mobile: {{ 'mmn.spy-http.tabs.shortcuts.record.by.img.shortcut' | translate }} </div>-->
           </mat-list-item>
