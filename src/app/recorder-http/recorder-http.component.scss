@@ -24,6 +24,10 @@
   line-height: 30px;
 }
 
+.button-row mat-slide-toggle button {
+  margin-right: 0px !important;
+}
+
 .button-row mat-slide-toggle {
   margin-right: 20px;
 }
