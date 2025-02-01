@@ -97,10 +97,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "tuello:build:production"
+              "buildTarget": "tuello:build:production"
             },
             "development": {
-              "browserTarget": "tuello:build:development"
+              "buildTarget": "tuello:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -108,7 +108,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "tuello:build"
+            "buildTarget": "tuello:build"
           }
         },
         "test": {

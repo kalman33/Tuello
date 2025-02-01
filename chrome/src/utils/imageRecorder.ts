@@ -8,20 +8,38 @@ import domtoimage from 'dom-to-image';
 const cache: { [key: string]: HTMLElement | string } = {};
 
 export async function convertElementToBase64(element: HTMLElement): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (element instanceof HTMLImageElement) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = element.clientWidth;
-      canvas.height = element.clientHeight;
-
-      ctx.drawImage(element, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/png')); // Vous pouvez changer le format de l'image si nécessaire
-     } else {
-      resolve(domtoimage.toPng(element));
+  if (element instanceof HTMLImageElement) {
+    // Vérification que l'image est complètement chargée
+    if (!element.complete) {
+      // Attendre que l'image soit chargée avant de la dessiner
+      await new Promise<void>((resolve, reject) => {
+        element.onload = () => resolve();
+        element.onerror = () => reject(new Error("Erreur lors du chargement de l'image"));
+      });
     }
-  });
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error("Impossible d'obtenir le contexte du canvas");
+    }
+
+    // Utilisation de naturalWidth et naturalHeight pour éviter les distorsions
+    canvas.width = element.naturalWidth;
+    canvas.height = element.naturalHeight;
+
+    ctx.drawImage(element as unknown as CanvasImageSource, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/png'); 
+  } else {
+    // Utilisation de dom-to-image pour les autres éléments HTML
+    try {
+      return await domtoimage.toPng(element);
+    } catch (error) {
+      throw new Error("Erreur lors de la conversion de l'élément HTML en image");
+    }
+  }
 }
+
 
 export function searchImg(action: IUserAction): Promise<(HTMLElement | string)> {
   return new Promise((resolve, reject) => {
