@@ -26,19 +26,23 @@
           <mat-icon class="tab-icon">list</mat-icon>
           {{ 'mmn.spy-http.tabs.records' | translate }}
         </ng-template>
-        <mat-list *ngIf="actions" cdkDropList [cdkDropListData]="actions"
-        (cdkDropListDropped)="onTaskDrop($event)">
-            <mat-list-item *ngFor="let action of actions; let i = index">
-              <mmn-action cdkDrag [index]='i' [action]="action" class="animated lightSpeedIn"
-                          [ngClass]="{'selected': playerService.pausedActionNumber === i}"
-                          (delete)='deleteAction($event)'
-                          (duplicate)='duplicateAction($event)'
-                          (modify)='modifyAction($event)'
-                          (preview)='previewAction($event)'
-                          (decreaseDelay)='decreaseDelayAction($event)'
-              ></mmn-action>
-            </mat-list-item>
-        </mat-list>
+        @if (actions) {
+          <mat-list cdkDropList [cdkDropListData]="actions"
+            (cdkDropListDropped)="onTaskDrop($event)">
+            @for (action of actions; track action; let i = $index) {
+              <mat-list-item>
+                <mmn-action cdkDrag [index]='i' [action]="action" class="animated lightSpeedIn"
+                  [ngClass]="{'selected': playerService.pausedActionNumber === i}"
+                  (delete)='deleteAction($event)'
+                  (duplicate)='duplicateAction($event)'
+                  (modify)='modifyAction($event)'
+                  (preview)='previewAction($event)'
+                  (decreaseDelay)='decreaseDelayAction($event)'
+                ></mmn-action>
+              </mat-list-item>
+            }
+          </mat-list>
+        }
       </mat-tab>
 
       <mat-tab>
@@ -48,9 +52,11 @@
         </ng-template>
         <mat-list>
           <mat-nav-list dense>
-            <mat-list-item style="cursor: pointer" (click)="visualiserFlux(httpRecord)"  *ngFor="let httpRecord of recorderHistoryService?.record?.httpRecords">
-              {{ httpRecord.key }}
-            </mat-list-item>
+            @for (httpRecord of recorderHistoryService?.record?.httpRecords; track httpRecord) {
+              <mat-list-item style="cursor: pointer" (click)="visualiserFlux(httpRecord)" >
+                {{ httpRecord.key }}
+              </mat-list-item>
+            }
           </mat-nav-list>
         </mat-list>
       </mat-tab>
@@ -69,13 +75,15 @@
               <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.screenshot' | translate }}</div>
             </div>
             <div fxFlex fxLayoutAlign="start center">
-              <div mat-line>ALT + MAJ + 
+              <div mat-line>ALT + MAJ +
                 <mat-form-field style="width: 100%;">
                   <mat-label class="custom-label"></mat-label>
                   <input [(ngModel)]="screenshot" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #screenshotModel="ngModel" pattern="^[a-zA-Z]" required>
-                  <mat-error *ngIf="screenshotModel.errors?.['required']">
-                    {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
-                  </mat-error>
+                  @if (screenshotModel.errors?.['required']) {
+                    <mat-error>
+                      {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
+                    </mat-error>
+                  }
                 </mat-form-field>
               </div>
             </div>
@@ -121,13 +129,15 @@
             <div fxFlex="25%" fxLayoutAlign="start center">
             </div>
             <div fxFlex fxLayout="column" fxLayoutAlign="start center">
-              <div mat-line>Coord. + ALT + MAJ + 
+              <div mat-line>Coord. + ALT + MAJ +
                 <mat-form-field>
                   <mat-label class="custom-label"></mat-label>
                   <input [(ngModel)]="captureImage" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #captureImageModel="ngModel" pattern="^[a-zA-Z]" required>
-                  <mat-error *ngIf="captureImageModel.errors?.['required']">
-                    {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
-                  </mat-error>
+                  @if (captureImageModel.errors?.['required']) {
+                    <mat-error>
+                      {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
+                    </mat-error>
+                  }
                 </mat-form-field>
               </div>
             </div>
@@ -141,13 +151,15 @@
               <div mat-line>{{ 'mmn.spy-http.tabs.shortcuts.add.comment' | translate }}</div>
             </div>
             <div fxFlex fxLayoutAlign="start center">
-              <div mat-line>ALT + MAJ + 
+              <div mat-line>ALT + MAJ +
                 <mat-form-field>
                   <mat-label class="custom-label"></mat-label>
                   <input [(ngModel)]="comment" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #commentModel="ngModel" pattern="^[a-zA-Z]" required>
-                  <mat-error *ngIf="commentModel.errors?.['required']">
-                    {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
-                  </mat-error>
+                  @if (commentModel.errors?.['required']) {
+                    <mat-error>
+                      {{'mmn.spy-http.tabs.shortcuts.required' | translate }}
+                    </mat-error>
+                  }
                 </mat-form-field>
               </div>
             </div>
@@ -170,10 +182,12 @@
             {{ 'mmn.spy-http.button.import' | translate }}
           </button>
           <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json">
-          <button *ngIf="this.playerService.comparisonResults" mat-flat-button color="warn" [routerLink]="['/spy/results']" [skipLocationChange]="true">
-            <mat-icon>save</mat-icon>
-            {{ 'mmn.spy-http.button.results' | translate }}
-          </button>
+          @if (this.playerService.comparisonResults) {
+            <button mat-flat-button color="warn" [routerLink]="['/spy/results']" [skipLocationChange]="true">
+              <mat-icon>save</mat-icon>
+              {{ 'mmn.spy-http.button.results' | translate }}
+            </button>
+          }
         </div>
       </mat-tab>
     </mat-tab-group>

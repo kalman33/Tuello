@@ -1,18 +1,18 @@
 <div fxLayout="row">
   <div fxFlex="8%" class="label actionType">
-    <ng-container *ngIf="track.type === 'CLICK'">
+    @if (track.type === 'CLICK') {
       <mat-icon  matTooltip="Click">ads_click</mat-icon>
-    </ng-container>
-    <ng-container *ngIf="track.type === 'PAGE'">
+    }
+    @if (track.type === 'PAGE') {
       <mat-icon  matTooltip="PAGE">pageview</mat-icon>
-    </ng-container>
+    }
   </div>
   <div fxFlex class="data">
     {{getDisplayData()}}
   </div>
   <div fxFlex="8%" class="actions">
     <button mat-icon-button
-            color="primary" (click)='previewTrack()'>
+      color="primary" (click)='previewTrack()'>
       <mat-icon>remove_red_eye</mat-icon>
     </button>
   </div>

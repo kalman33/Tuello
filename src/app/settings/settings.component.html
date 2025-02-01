@@ -26,10 +26,12 @@
                   [(value)]="selectedLanguage"
                   (selectionChange)="onLanguageSelect($event)"
                   name="language"
-                >
-                  <mat-option *ngFor="let l of languages" [value]="l.value">
-                    {{ 'mmn.settings.general.language.' + l.label | translate }}
-                  </mat-option>
+                  >
+                  @for (l of languages; track l) {
+                    <mat-option [value]="l.value">
+                      {{ 'mmn.settings.general.language.' + l.label | translate }}
+                    </mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
             </div>
@@ -41,7 +43,7 @@
                 [(ngModel)]="mouseCoordinates"
                 class="darkMode"
                 (change)="toggleMouseCoordinatesOption(mouseCoordinates)"
-              >
+                >
               </mat-slide-toggle>
             </div>
             <h2>{{ 'mmn.settings.deeprecord.title' | translate }}</h2>
@@ -71,7 +73,9 @@
           </mat-slide-toggle>
         </div>
         <h2>{{ 'mmn.settings.customize.menu.title' | translate }}</h2>
-        <mmn-settings-menu *ngFor="let item of [0, 1, 2, 3]" [index]="item"></mmn-settings-menu>
+        @for (item of [0, 1, 2, 3]; track item) {
+          <mmn-settings-menu [index]="item"></mmn-settings-menu>
+        }
       </mat-tab>
       <mat-tab>
         <ng-template mat-tab-label>

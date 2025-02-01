@@ -14,20 +14,22 @@
     <mat-slide-toggle [checked]="activate" class="darkMode" (change)="toggleDesactivate($event)">
     </mat-slide-toggle>
 
-    <button *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" class="toolbar-action" mat-icon-button
-            color="basic"
-            (click)="close()"
-            aria-label="Fermer"><mat-icon>close</mat-icon>
-    </button>
+    @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+      <button class="toolbar-action" mat-icon-button
+        color="basic"
+        (click)="close()"
+        aria-label="Fermer"><mat-icon>close</mat-icon>
+      </button>
+    }
   </mat-toolbar>
 
   <mat-sidenav-container class="navbar-sidenav-container">
     <!-- Side nav -->
     <mat-sidenav #snav [mode]="'over'"
       fixedTopGap="56" class="sidenav"
-                 (openedStart)="statesSlideInMenuAnimation = 'active'"
-                 (closed)="statesSlideInMenuAnimation = 'inactive'; isOpen= false"
-    >
+      (openedStart)="statesSlideInMenuAnimation = 'active'"
+      (closed)="statesSlideInMenuAnimation = 'inactive'; isOpen= false"
+      >
 
       <mat-nav-list [@slideInMenuAnimation]="statesSlideInMenuAnimation">
         <a [class.selected]="selectedIndex === 0" (click)="selectMenuItem(0)" mat-list-item [routerLink]="['/recorder']" [skipLocationChange]="true">
@@ -36,24 +38,30 @@
           </mat-icon>
           <span mat-line> {{ this.menuLabels[0] ?  this.menuLabels[0] : ('mmn.layout.mockAndRecord' | translate) }}</span>
         </a>
-        <a [class.selected]="selectedIndex === 1" (click)="selectMenuItem(1)" *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/spy']" [skipLocationChange]="true">
-          <mat-icon color="accent" mat-list-icon>
-            queue_play_next
-          </mat-icon>
-          <span mat-line>{{ this.menuLabels[1] ?  this.menuLabels[1] : ('mmn.layout.spyAndReplay' | translate) }} </span>
-        </a>
-        <a [class.selected]="selectedIndex === 2" (click)="selectMenuItem(2)" *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/track']" [skipLocationChange]="true">
-          <mat-icon color="accent" mat-list-icon>
-            search
-          </mat-icon>
-          <span mat-line>{{ this.menuLabels[2] ?  this.menuLabels[2] : ('mmn.layout.trackResources' | translate) }}</span>
-        </a>
-        <a [class.selected]="selectedIndex === 3" (click)="selectMenuItem(3)" *ngIf="!this.chromeExtentionUtilsService.devtoolsOpened" mat-list-item [routerLink]="['/search']" [skipLocationChange]="true">
-          <mat-icon color="accent" mat-list-icon>
-            remove_red_eye
-          </mat-icon>
-          <span mat-line> {{ this.menuLabels[3] ?  this.menuLabels[3] : ('mmn.layout.searchElements' | translate) }} </span>
-        </a>
+        @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+          <a [class.selected]="selectedIndex === 1" (click)="selectMenuItem(1)" mat-list-item [routerLink]="['/spy']" [skipLocationChange]="true">
+            <mat-icon color="accent" mat-list-icon>
+              queue_play_next
+            </mat-icon>
+            <span mat-line>{{ this.menuLabels[1] ?  this.menuLabels[1] : ('mmn.layout.spyAndReplay' | translate) }} </span>
+          </a>
+        }
+        @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+          <a [class.selected]="selectedIndex === 2" (click)="selectMenuItem(2)" mat-list-item [routerLink]="['/track']" [skipLocationChange]="true">
+            <mat-icon color="accent" mat-list-icon>
+              search
+            </mat-icon>
+            <span mat-line>{{ this.menuLabels[2] ?  this.menuLabels[2] : ('mmn.layout.trackResources' | translate) }}</span>
+          </a>
+        }
+        @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+          <a [class.selected]="selectedIndex === 3" (click)="selectMenuItem(3)" mat-list-item [routerLink]="['/search']" [skipLocationChange]="true">
+            <mat-icon color="accent" mat-list-icon>
+              remove_red_eye
+            </mat-icon>
+            <span mat-line> {{ this.menuLabels[3] ?  this.menuLabels[3] : ('mmn.layout.searchElements' | translate) }} </span>
+          </a>
+        }
 
         <a [class.selected]="selectedIndex === 4" (click)="selectMenuItem(4)" mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>

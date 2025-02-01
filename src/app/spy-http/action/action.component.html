@@ -5,7 +5,7 @@
   </div>
 
   <!-- navigate -->
-  <ng-container *ngIf="action.actionType === 'NAVIGATE'">
+  @if (action.actionType === 'NAVIGATE') {
     <div fxFlex="15%" class="label screenshot">
       <mat-icon class="v-align-middle">my_location</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.navigate' | translate }}</span>
@@ -13,73 +13,75 @@
     <div fxFlex="50%">
       <div fxFlex="50%" class="data">{{getDomain()}}</div>
     </div>
-  </ng-container>
+  }
 
   <!-- screenshot -->
-  <ng-container *ngIf="action.actionType === 'SCREENSHOT'">
+  @if (action.actionType === 'SCREENSHOT') {
     <div fxFlex="15%" class="label screenshot">
       <mat-icon class="v-align-middle">photo_camera</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.screenshot' | translate }}</span>
     </div>
     <div fxFlex="50%">
       <img style='display:block; width:50px;height:50px;'
-           (click)="chromeExtentionUtilsService.openImageViewer(action?.data)"
-           [src]='action?.data' alt="Screenshot"/>
+        (click)="chromeExtentionUtilsService.openImageViewer(action?.data)"
+        [src]='action?.data' alt="Screenshot"/>
     </div>
-  </ng-container>
+  }
 
   <!-- record by img -->
-  <ng-container *ngIf="action.actionType === 'RECORD_BY_IMAGE'">
+  @if (action.actionType === 'RECORD_BY_IMAGE') {
     <div fxFlex="15%" class="label screenshot">
       <mat-icon class="v-align-middle">photo_camera</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.record.by.img' | translate }}</span>
     </div>
     <div fxFlex="50%">
       <img style='display:block; width:30px;height:30px;'
-           (click)="chromeExtentionUtilsService.openImageViewer(action?.userAction?.value)"
-           [src]='action?.userAction?.value' alt="Screenshot"/>
+        (click)="chromeExtentionUtilsService.openImageViewer(action?.userAction?.value)"
+        [src]='action?.userAction?.value' alt="Screenshot"/>
     </div>
-  </ng-container>
+  }
 
   <!-- Comment -->
-  <ng-container *ngIf="action.actionType === 'COMMENT'">
+  @if (action.actionType === 'COMMENT') {
     <div fxFlex="15%" class="label screenshot">
       <mat-icon>comment</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.comment' | translate }}</span>
     </div>
     <div fxFlex="50%" class="data">{{action?.data}}</div>
-  </ng-container>
+  }
 
   <!-- event -->
-  <ng-container *ngIf="action.actionType === 'EVENT'">
+  @if (action.actionType === 'EVENT') {
     <div fxFlex="15%"  [className]="action?.userAction?.type === 'resize' ? 'label windowResize' : 'label actionType'" >
       <mat-icon>face</mat-icon>
       <span class="v-align-middle">{{action?.userAction?.type | lowercase}}</span>
     </div>
     <div fxFlex="50%" class="data">{{action?.userAction?.value}}</div>
-  </ng-container>
+  }
   <div fxFlex class="actions">
-    <button *ngIf="action?.userAction?.type === 'click'" mat-icon-button
-            color="primary" (click)='previewAction()'>
-      <mat-icon>remove_red_eye</mat-icon>
-    </button>
+    @if (action?.userAction?.type === 'click') {
+      <button mat-icon-button
+        color="primary" (click)='previewAction()'>
+        <mat-icon>remove_red_eye</mat-icon>
+      </button>
+    }
     <button mat-icon-button
-            color="primary"
-            (click)='duplicateAction()'
-    >
+      color="primary"
+      (click)='duplicateAction()'
+      >
       <mat-icon>content_copy</mat-icon>
     </button>
     <button mat-icon-button
-            color="primary"
-            (click)="openJsonEditor()"
-    >
+      color="primary"
+      (click)="openJsonEditor()"
+      >
       <mat-icon>edit</mat-icon>
     </button>
     <button mat-icon-button
-            color="primary" (click)='deleteAction()'>
+      color="primary" (click)='deleteAction()'>
       <mat-icon>delete</mat-icon>
     </button>
-    
+
   </div>
 </div>
 
