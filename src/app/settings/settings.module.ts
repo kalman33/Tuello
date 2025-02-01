@@ -9,13 +9,13 @@ import { SettingsComponent } from './settings.component';
 
 
 @NgModule({
-  declarations: [SettingsComponent, SettingsMenuComponent],
-  imports: [
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    CoreModule,
-    SettingsRoutingModule,
-  ]
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        CoreModule,
+        SettingsRoutingModule,
+        SettingsComponent, SettingsMenuComponent,
+    ]
 })
 export class SettingsModule { }

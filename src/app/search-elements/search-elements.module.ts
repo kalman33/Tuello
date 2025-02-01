@@ -9,7 +9,6 @@ import { ElementComponent } from './element/element.component';
 import { SearchElementsComponent } from './search-elements.component';
 
 @NgModule({
-  declarations: [ElementComponent, SearchElementsComponent],
-  imports: [CommonModule, CoreModule, FormsModule, SearchElementsRoutingModule, ScrollingModule, DragDropModule]
+    imports: [CommonModule, CoreModule, FormsModule, SearchElementsRoutingModule, ScrollingModule, DragDropModule, ElementComponent, SearchElementsComponent]
 })
 export class SearchElementsModule {}

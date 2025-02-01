@@ -2,7 +2,7 @@ import { AfterViewChecked, AfterViewInit, ChangeDetectionStrategy, ChangeDetecto
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslateModule } from '@ngx-translate/core';
 import JSONEditor from 'jsoneditor';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
@@ -10,13 +10,23 @@ import { RecorderHttpService } from './services/recorder-http.service';
 import { TagsService } from './services/tags.service';
 import { TagElement } from './models/TagElement';
 import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
+import { FormsModule } from '@angular/forms';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatIcon } from '@angular/material/icon';
+import { MatButton } from '@angular/material/button';
+import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
+import { NgClass } from '@angular/common';
+import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 @Component({
-  selector: 'mmn-recorder-http',
-  templateUrl: './recorder-http.component.html',
-  styleUrls: ['./recorder-http.component.scss'],
-  encapsulation: ViewEncapsulation.None,
-  changeDetection: ChangeDetectionStrategy.OnPush
+    selector: 'mmn-recorder-http',
+    templateUrl: './recorder-http.component.html',
+    styleUrls: ['./recorder-http.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: true,
+    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, FormsModule, TranslateModule]
 })
 export class RecorderHttpComponent implements OnInit, OnDestroy {
   constructor(

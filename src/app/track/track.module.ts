@@ -9,7 +9,6 @@ import { TrackRoutingModule } from './track-routing.module';
 import { TrackComponent } from './track.component';
 
 @NgModule({
-  declarations: [TrackComponent, TrackDetailComponent, SelectTrackDirective],
-  imports: [CommonModule, CoreModule, FormsModule, TrackRoutingModule]
+    imports: [CommonModule, CoreModule, FormsModule, TrackRoutingModule, TrackComponent, TrackDetailComponent, SelectTrackDirective]
 })
 export class TrackModule {}

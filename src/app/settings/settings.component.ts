@@ -1,6 +1,6 @@
 import { Component, ElementRef, NgZone, OnInit, ViewChild } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslateModule } from '@ngx-translate/core';
 import { saveAs } from 'file-saver';
 import * as enMessages from '../../assets/i18n/en.json';
 import * as frMessages from '../../assets/i18n/fr.json';
@@ -8,12 +8,27 @@ import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ConfigurationService } from '../core/configuration/configuration.service';
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
+import { MatButton } from '@angular/material/button';
+import { SettingsMenuComponent } from './menus/settings-menu.component';
+import { MatSlider, MatSliderThumb } from '@angular/material/slider';
+import { MatOption } from '@angular/material/core';
+import { MatSelect } from '@angular/material/select';
+import { MatFormField } from '@angular/material/form-field';
+import { FormsModule } from '@angular/forms';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
+import { NgClass } from '@angular/common';
+import { MatIcon } from '@angular/material/icon';
+import { MatTabGroup, MatTab, MatTabLabel } from '@angular/material/tabs';
+import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 
 @Component({
-  selector: 'mmn-settings',
-  templateUrl: './settings.component.html',
-  styleUrls: ['./settings.component.scss']
+    selector: 'mmn-settings',
+    templateUrl: './settings.component.html',
+    styleUrls: ['./settings.component.scss'],
+    standalone: true,
+    imports: [FlexModule, MatTabGroup, MatTab, MatTabLabel, MatIcon, NgClass, ExtendedModule, MatSlideToggle, FormsModule, MatFormField, MatSelect, MatOption, MatSlider, MatSliderThumb, SettingsMenuComponent, MatButton, TranslateModule]
 })
 export class SettingsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;

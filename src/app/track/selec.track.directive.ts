@@ -1,7 +1,8 @@
 import { AfterViewInit, Directive, Input } from "@angular/core";
 
 @Directive({
-    selector: '[selectTrack]'
+    selector: '[selectTrack]',
+    standalone: true
 })
 export class SelectTrackDirective implements AfterViewInit {
     private el: HTMLElement;

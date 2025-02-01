@@ -12,7 +12,6 @@ import {ResultsComponent} from './results/results.component';
 import { RecordDialogComponent } from './record-dialog/record-dialog.component';
 
 @NgModule({
-    declarations: [SpyHttpComponent, ActionComponent, JsonEditorComponent, ResultsComponent, RecordDialogComponent],
-    imports: [CommonModule, CoreModule, FormsModule, SpyHttpRoutingModule, ScrollingModule, DragDropModule]
+    imports: [CommonModule, CoreModule, FormsModule, SpyHttpRoutingModule, ScrollingModule, DragDropModule, SpyHttpComponent, ActionComponent, JsonEditorComponent, ResultsComponent, RecordDialogComponent]
 })
 export class SpyHttpModule {}

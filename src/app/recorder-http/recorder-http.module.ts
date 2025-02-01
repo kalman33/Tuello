@@ -14,13 +14,13 @@ const COMPONENTS = [RecorderHttpComponent, ExportComponent, AddTagsComponent, Re
 const DIRECTIVES = [];
 
 @NgModule({
-  declarations: [...COMPONENTS, ...DIRECTIVES],
-  imports: [
-    CommonModule,
-    FormsModule,
-    CoreModule,
-    RecorderHttpRoutingModule,
-    ScrollingModule
-  ]
+    imports: [
+        CommonModule,
+        FormsModule,
+        CoreModule,
+        RecorderHttpRoutingModule,
+        ScrollingModule,
+        ...COMPONENTS, ...DIRECTIVES
+    ]
 })
 export class RecorderHttpModule {}

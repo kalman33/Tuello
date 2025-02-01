@@ -3,11 +3,17 @@ import { MatDialog } from '@angular/material/dialog';
 import { JsonViewerComponent } from '../../core/json-viewer/json-viewer.component';
 import { Track } from '../models/Track';
 import JsonFind from 'json-find';
+import { MatIconButton } from '@angular/material/button';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatIcon } from '@angular/material/icon';
+import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 @Component({
-  selector: 'mmn-track-detail',
-  templateUrl: './track-detail.component.html',
-  styleUrls: ['./track-detail.component.scss']
+    selector: 'mmn-track-detail',
+    templateUrl: './track-detail.component.html',
+    styleUrls: ['./track-detail.component.scss'],
+    standalone: true,
+    imports: [FlexModule, MatIcon, MatTooltip, MatIconButton]
 })
 export class TrackDetailComponent implements OnInit {
   @Input() track: Track;

@@ -10,7 +10,7 @@
 html, body { height: 100%; }
 body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
 
-@import '@angular/material/theming';
+@import '~@angular/material/theming';
 
 @include mat-core();
 
@@ -44,6 +44,3 @@ body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
   animation-fill-mode: forwards;
 }
 
-mat-form-field .mat-mdc-form-field-bottom-align {
-  /*display: none !important; /* Cache complètement le div si vide */
-}

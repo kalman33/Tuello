@@ -1,11 +1,23 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/material/dialog';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
+import { TranslateModule } from '@ngx-translate/core';
+import { MatButton } from '@angular/material/button';
+import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'mmn-json-editor',
-  templateUrl: './json-editor.component.html',
-  animations: [fadeInAnimation],
+    selector: 'mmn-json-editor',
+    templateUrl: './json-editor.component.html',
+    animations: [fadeInAnimation],
+    standalone: true,
+    imports: [
+        MatDialogTitle,
+        MatDialogContent,
+        FormsModule,
+        MatDialogActions,
+        MatButton,
+        TranslateModule,
+    ],
 })
 export class JsonEditorComponent implements OnInit {
   jsonAction: string;

@@ -1,17 +1,17 @@
 import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslateModule } from '@ngx-translate/core';
 
 import { saveAs } from 'file-saver';
 import { RecorderHistoryService } from './services/recorder-history.service';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { Action } from './models/Action';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, moveItemInArray, CdkDropList, CdkDrag } from '@angular/cdk/drag-drop';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PlayerService } from './services/player.service';
 import { ChromeExtentionUtilsService } from '../core/utils/chrome-extention-utils.service';
-import { MatTabGroup } from '@angular/material/tabs';
-import { Router } from '@angular/router';
+import { MatTabGroup, MatTab, MatTabLabel } from '@angular/material/tabs';
+import { Router, RouterLink } from '@angular/router';
 import { PausableObservable } from 'rxjs-pausable';
 import { HttpReturn } from '../recorder-http/models/http.return';
 import { MatDialog } from '@angular/material/dialog';
@@ -19,12 +19,25 @@ import { JsonViewerComponent } from '../core/json-viewer/json-viewer.component';
 import { RecordDialogComponent } from './record-dialog/record-dialog.component';
 import { formatDate } from '../core/utils/date-utils';
 import { getKeyCode } from 'chrome/src/utils/utils';
+import { FormsModule } from '@angular/forms';
+import { MatInput } from '@angular/material/input';
+import { MatFormField, MatLabel, MatError } from '@angular/material/form-field';
+import { MatLine } from '@angular/material/core';
+import { ActionComponent } from './action/action.component';
+import { MatList, MatListItem, MatNavList } from '@angular/material/list';
+import { MatIcon } from '@angular/material/icon';
+import { MatButton } from '@angular/material/button';
+import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
+import { NgClass } from '@angular/common';
+import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 @Component({
-  selector: 'mmn-spy-http',
-  templateUrl: './spy-http.component.html',
-  encapsulation: ViewEncapsulation.None,
-  styleUrls: ['./spy-http.component.scss']
+    selector: 'mmn-spy-http',
+    templateUrl: './spy-http.component.html',
+    encapsulation: ViewEncapsulation.None,
+    styleUrls: ['./spy-http.component.scss'],
+    standalone: true,
+    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTabGroup, MatTab, MatTabLabel, MatList, CdkDropList, MatListItem, ActionComponent, CdkDrag, MatNavList, MatLine, MatFormField, MatLabel, MatInput, FormsModule, MatError, RouterLink, TranslateModule]
 })
 export class SpyHttpComponent implements OnInit, OnDestroy {
   spyActif: boolean;

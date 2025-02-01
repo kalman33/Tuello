@@ -3,11 +3,26 @@ import {MatDialog} from '@angular/material/dialog';
 import {Action} from '../models/Action';
 import {JsonEditorComponent} from '../json-editor/json-editor.component';
 import {ChromeExtentionUtilsService} from '../../core/utils/chrome-extention-utils.service';
+import { TranslateModule } from '@ngx-translate/core';
+import { LowerCasePipe } from '@angular/common';
+import { MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
+import { MatTooltip } from '@angular/material/tooltip';
+import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 @Component({
-  selector: 'mmn-action',
-  templateUrl: './action.component.html',
-  styleUrls: ['./action.component.scss'],
+    selector: 'mmn-action',
+    templateUrl: './action.component.html',
+    styleUrls: ['./action.component.scss'],
+    standalone: true,
+    imports: [
+        FlexModule,
+        MatTooltip,
+        MatIcon,
+        MatIconButton,
+        LowerCasePipe,
+        TranslateModule,
+    ],
 })
 export class ActionComponent implements OnInit {
   @Input() action: Action;

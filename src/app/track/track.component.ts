@@ -2,18 +2,33 @@ import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, Vi
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslateModule } from '@ngx-translate/core';
 import { saveAs } from 'file-saver';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { formatDate } from '../core/utils/date-utils';
 import { Track } from './models/Track';
 import { TrackType } from './models/TrackType';
 import { TrackService } from './services/track.service';
+import { TrackDetailComponent } from './detail/track-detail.component';
+import { SelectTrackDirective } from './selec.track.directive';
+import { MatList, MatListItem } from '@angular/material/list';
+import { MatInput } from '@angular/material/input';
+import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatRadioGroup, MatRadioButton } from '@angular/material/radio';
+import { FormsModule } from '@angular/forms';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { MatIcon } from '@angular/material/icon';
+import { MatButton } from '@angular/material/button';
+import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
+import { NgClass } from '@angular/common';
+import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 @Component({
-  selector: 'mmn-track',
-  templateUrl: './track.component.html',
-  styleUrls: ['./track.component.scss']
+    selector: 'mmn-track',
+    templateUrl: './track.component.html',
+    styleUrls: ['./track.component.scss'],
+    standalone: true,
+    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, FormsModule, MatRadioGroup, MatRadioButton, MatFormField, MatLabel, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslateModule]
 })
 export class TrackComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput: ElementRef;

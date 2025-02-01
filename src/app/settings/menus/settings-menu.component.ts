@@ -1,9 +1,17 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { TranslateModule } from '@ngx-translate/core';
+import { MatIconButton } from '@angular/material/button';
+import { FormsModule } from '@angular/forms';
+import { MatInput } from '@angular/material/input';
+import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
 
 @Component({
-  selector: 'mmn-settings-menu',
-  templateUrl: './settings-menu.component.html',
-  styleUrls: ['./settings-menu.component.scss']
+    selector: 'mmn-settings-menu',
+    templateUrl: './settings-menu.component.html',
+    styleUrls: ['./settings-menu.component.scss'],
+    standalone: true,
+    imports: [MatIcon, MatFormField, MatLabel, MatInput, FormsModule, MatIconButton, TranslateModule]
 })
 export class SettingsMenuComponent implements OnInit {
   @Input() index: number;

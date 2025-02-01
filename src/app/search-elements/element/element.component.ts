@@ -1,11 +1,16 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SearchElement } from '../models/SearchElement';
+import { MatIcon } from '@angular/material/icon';
+import { MatIconButton } from '@angular/material/button';
+import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 @Component({
-  selector: 'mmn-element',
-  templateUrl: './element.component.html',
-  styleUrls: ['./element.component.scss']
+    selector: 'mmn-element',
+    templateUrl: './element.component.html',
+    styleUrls: ['./element.component.scss'],
+    standalone: true,
+    imports: [FlexModule, MatIconButton, MatIcon]
 })
 export class ElementComponent implements OnInit {
   @Input() element: SearchElement;
