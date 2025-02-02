@@ -148,9 +148,6 @@ a.mat-mdc-list-item [mat-line] {
   padding: 0 16px !important;
 }
 
-#push-bottom span {
-  padding-left: 16px;
-}
 
 #push-bottom #rate span {
   padding-left: 0px !important;
@@ -166,6 +163,11 @@ a.mat-mdc-list-item [mat-line] {
 
 .v-align-middle {
   vertical-align: middle;
+}
+
+#outline {
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .darkMode span {
