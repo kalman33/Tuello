@@ -1,7 +1,39 @@
-@import './palette';
 
-$mmn-primary: mat-palette($md-primary, 800, 300, 900);
-$mmn-accent: mat-palette($md-accent, 500);
-$mmn-warn: mat-palette($md-warn, 500);
+@use '@angular/material' as mat;
+@use './palette';
 
-$mmn-theme: mat-light-theme($mmn-primary, $mmn-accent, $mmn-warn);
+$my-primary: mat.define-palette(palette.$m2-primary);
+$my-accent: mat.define-palette(palette.$m2-accent, A200, A100, A400);
+
+// The "warn" palette is optional and defaults to red if not specified.
+$my-warn: mat.define-palette(palette.$m2-error);
+
+$my-theme: mat.define-light-theme(
+  (
+    color: (
+      primary: $my-primary,
+      accent: $my-accent,
+      warn: $my-warn,
+    ),
+    typography: mat.define-typography-config(),
+    density: 0,
+  )
+);
+
+$my-dark-theme: mat.define-dark-theme(
+  (
+    color: (
+      primary: $my-primary,
+      accent: $my-accent,
+      warn: $my-warn,
+    ),
+  )
+);
+
+@include mat.core();
+
+@include mat.all-component-themes($my-theme);
+
+.black-theme {
+  @include mat.all-component-colors($my-dark-theme);
+}
