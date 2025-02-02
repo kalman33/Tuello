@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 
 import { LayoutComponent } from '../core/layout/layout.component';
 import { AddTagsComponent } from './add-tags/add-tags.component';
-import { RecorderHttpComponent } from './recorder-http.component';
+import { RecorderHttpPageComponent } from './recorder-http-page.component';
 
 export const routes: Routes = [
   {
@@ -11,7 +11,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        component: RecorderHttpComponent
+        component: RecorderHttpPageComponent
       }, {
         path: 'tags',
         component: AddTagsComponent

@@ -1,17 +1,12 @@
 /* You can add global styles to this file, and also import other style files */
-@import 'jsoneditor/dist/jsoneditor.css';
-
-@import './assets/css/jsoneditor-default.css';
-@import './assets/css/jsoneditor-dark.css';
-
-@import 'animate.css/animate.min.css';
+@use 'jsoneditor/dist/jsoneditor.css' as *;
+@use './assets/css/jsoneditor-default.css' as *;
+@use './assets/css/jsoneditor-dark.css' as *;
+@use 'animate.css/animate.min.css' as *;
+@use './themes/default-theme' as *;
 
 html, body { height: 100%; }
 body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
-
-@import './themes/default-theme';
-
-
 
 .full-width {
   width: 100%;
