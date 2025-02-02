@@ -2,7 +2,7 @@ import { AfterViewChecked, AfterViewInit, ChangeDetectionStrategy, ChangeDetecto
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { TranslateService, TranslateModule } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
 import JSONEditor from 'jsoneditor';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
@@ -26,7 +26,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true,
-    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, FormsModule, TranslateModule]
+    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, FormsModule, TranslatePipe, TranslateDirective]
 })
 export class RecorderHttpComponent implements OnInit, OnDestroy {
   constructor(

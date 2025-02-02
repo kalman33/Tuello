@@ -1,7 +1,7 @@
 import {Component, Inject, OnInit} from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } from '@angular/material/dialog';
 import {fadeInAnimation} from '../animations/fadeInAnimation';
-import { TranslateModule } from '@ngx-translate/core';
+import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { MatButton } from '@angular/material/button';
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
@@ -17,7 +17,7 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
         MatDialogActions,
         MatButton,
         MatDialogClose,
-        TranslateModule,
+        TranslatePipe, TranslateDirective,
     ],
 })
 export class JsonViewerComponent implements OnInit {

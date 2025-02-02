@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, Vi
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslateService, TranslateModule } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
 import { saveAs } from 'file-saver';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { formatDate } from '../core/utils/date-utils';
@@ -28,7 +28,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     templateUrl: './track.component.html',
     styleUrls: ['./track.component.scss'],
     standalone: true,
-    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, FormsModule, MatRadioGroup, MatRadioButton, MatFormField, MatLabel, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslateModule]
+    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, FormsModule, MatRadioGroup, MatRadioButton, MatFormField, MatLabel, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslatePipe, TranslateDirective]
 })
 export class TrackComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput: ElementRef;

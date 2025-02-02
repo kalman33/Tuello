@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
 import { ChromeExtentionUtilsService } from '../../core/utils/chrome-extention-utils.service';
 import { PlayerService } from '../services/player.service';
-import { TranslateModule } from '@ngx-translate/core';
+import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow } from '@angular/material/table';
 import { MatIcon } from '@angular/material/icon';
 import { MatIconButton } from '@angular/material/button';
@@ -33,7 +33,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
         MatRowDef,
         MatRow,
         SlicePipe,
-        TranslateModule,
+        TranslatePipe, TranslateDirective,
     ],
 })
 export class ResultsComponent implements OnInit, OnDestroy {

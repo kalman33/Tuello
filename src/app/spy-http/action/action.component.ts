@@ -3,7 +3,7 @@ import {MatDialog} from '@angular/material/dialog';
 import {Action} from '../models/Action';
 import {JsonEditorComponent} from '../json-editor/json-editor.component';
 import {ChromeExtentionUtilsService} from '../../core/utils/chrome-extention-utils.service';
-import { TranslateModule } from '@ngx-translate/core';
+import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { LowerCasePipe } from '@angular/common';
 import { MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
@@ -21,7 +21,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
         MatIcon,
         MatIconButton,
         LowerCasePipe,
-        TranslateModule,
+        TranslatePipe, TranslateDirective,
     ],
 })
 export class ActionComponent implements OnInit {

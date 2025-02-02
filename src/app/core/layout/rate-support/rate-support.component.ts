@@ -5,7 +5,7 @@ import {
 } from '@angular/material/bottom-sheet';
 import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
-import { TranslateService, TranslateModule } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
 import { MatAnchor } from '@angular/material/button';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
@@ -21,7 +21,7 @@ import { MatDialogTitle } from '@angular/material/dialog';
         FlexModule,
         MatAnchor,
         FormsModule,
-        TranslateModule,
+        TranslatePipe, TranslateDirective,
     ],
 })
 export class RateSupportComponent implements OnInit {

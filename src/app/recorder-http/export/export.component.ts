@@ -5,7 +5,7 @@ import { formatDate } from 'src/app/core/utils/date-utils';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslateService, TranslateModule } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
 import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatButton } from '@angular/material/button';
@@ -18,7 +18,7 @@ import { NgClass } from '@angular/common';
     styleUrls: ['./export.component.scss'],
     animations: [fadeInAnimation],
     standalone: true,
-    imports: [MatDialogTitle, MatDialogContent, NgClass, ExtendedModule, MatButton, MatIcon, MatDivider, MatDialogActions, MatDialogClose, TranslateModule]
+    imports: [MatDialogTitle, MatDialogContent, NgClass, ExtendedModule, MatButton, MatIcon, MatDivider, MatDialogActions, MatDialogClose, TranslatePipe, TranslateDirective]
 })
 export class ExportComponent implements OnInit {
   libFileName = 'Tuello-Lib-file.js';

@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { MatDialogRef, MatDialogTitle, MatDialogActions } from '@angular/material/dialog';
-import { TranslateModule } from '@ngx-translate/core';
+import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { MatIcon } from '@angular/material/icon';
 import { MatButton } from '@angular/material/button';
 import { MatInput } from '@angular/material/input';
@@ -15,7 +15,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     templateUrl: './recorder-http-settings.component.html',
     styleUrls: ['./recorder-http-settings.component.scss'],
     standalone: true,
-    imports: [FlexModule, MatDialogTitle, MatCheckbox, FormsModule, MatFormField, MatLabel, MatInput, MatDialogActions, MatButton, MatIcon, TranslateModule]
+    imports: [FlexModule, MatDialogTitle, MatCheckbox, FormsModule, MatFormField, MatLabel, MatInput, MatDialogActions, MatButton, MatIcon, TranslatePipe, TranslateDirective]
 })
 export class RecorderHttpSettingsComponent implements OnInit {
 

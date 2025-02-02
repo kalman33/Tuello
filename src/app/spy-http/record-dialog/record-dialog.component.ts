@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
-import { TranslateModule } from '@ngx-translate/core';
+import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { MatButton } from '@angular/material/button';
 import { MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } from '@angular/material/dialog';
 
@@ -15,7 +15,7 @@ import { MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } fr
         MatDialogActions,
         MatButton,
         MatDialogClose,
-        TranslateModule,
+        TranslatePipe, TranslateDirective,
     ],
 })
 export class RecordDialogComponent  {

@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
-import { TranslateService, TranslateModule } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
 
 import { saveAs } from 'file-saver';
 import { RecorderHistoryService } from './services/recorder-history.service';
@@ -37,7 +37,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     encapsulation: ViewEncapsulation.None,
     styleUrls: ['./spy-http.component.scss'],
     standalone: true,
-    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTabGroup, MatTab, MatTabLabel, MatList, CdkDropList, MatListItem, ActionComponent, CdkDrag, MatNavList, MatLine, MatFormField, MatLabel, MatInput, FormsModule, MatError, RouterLink, TranslateModule]
+    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTabGroup, MatTab, MatTabLabel, MatList, CdkDropList, MatListItem, ActionComponent, CdkDrag, MatNavList, MatLine, MatFormField, MatLabel, MatInput, FormsModule, MatError, RouterLink, TranslatePipe, TranslateDirective]
 })
 export class SpyHttpComponent implements OnInit, OnDestroy {
   spyActif: boolean;

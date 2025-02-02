@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/material/dialog';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
-import { TranslateModule } from '@ngx-translate/core';
+import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { MatButton } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 
@@ -16,7 +16,7 @@ import { FormsModule } from '@angular/forms';
         FormsModule,
         MatDialogActions,
         MatButton,
-        TranslateModule,
+        TranslatePipe, TranslateDirective,
     ],
 })
 export class JsonEditorComponent implements OnInit {

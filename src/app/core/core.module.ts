@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule, MatIconRegistry } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
 import { FlexLayoutModule } from '@ngbracket/ngx-layout';
-import { TranslateModule } from '@ngx-translate/core';
+import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { NgxJsonViewerModule } from 'ngx-json-viewer';
 
 import { JsonViewerComponent } from './json-viewer/json-viewer.component';
@@ -16,8 +16,8 @@ import { LayoutComponent } from './layout/layout.component';
 import { RateSupportComponent } from './layout/rate-support/rate-support.component';
 
 @NgModule({
-    imports: [CommonModule, RouterModule, FormsModule, TranslateModule, FlexLayoutModule, NgxJsonViewerModule, MatIconModule, MatButtonModule, MatBottomSheetModule, LayoutComponent, RateSupportComponent, JsonViewerComponent],
-    exports: [LayoutComponent, RateSupportComponent, TranslateModule, FlexLayoutModule, NgxJsonViewerModule, MatIconModule],
+    imports: [CommonModule, RouterModule, FormsModule, TranslatePipe, TranslateDirective, FlexLayoutModule, NgxJsonViewerModule, MatIconModule, MatButtonModule, MatBottomSheetModule, LayoutComponent, RateSupportComponent, JsonViewerComponent],
+    exports: [LayoutComponent, RateSupportComponent, TranslatePipe, TranslateDirective, FlexLayoutModule, NgxJsonViewerModule, MatIconModule],
     providers: [MatIconRegistry]
 })
 export class CoreModule { }

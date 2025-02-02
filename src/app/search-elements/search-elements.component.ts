@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslateService, TranslateModule } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { SearchElement } from './models/SearchElement';
 import { ElementComponent } from './element/element.component';
@@ -23,7 +23,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     templateUrl: './search-elements.component.html',
     styleUrls: ['./search-elements.component.scss'],
     standalone: true,
-    imports: [FlexModule, NgClass, ExtendedModule, MatSlideToggle, FormsModule, MatFormField, MatLabel, MatInput, MatIconButton, MatTooltip, MatIcon, MatList, CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf, MatListItem, ElementComponent, TranslateModule]
+    imports: [FlexModule, NgClass, ExtendedModule, MatSlideToggle, FormsModule, MatFormField, MatLabel, MatInput, MatIconButton, MatTooltip, MatIcon, MatList, CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf, MatListItem, ElementComponent, TranslatePipe, TranslateDirective]
 })
 export class SearchElementsComponent implements OnInit {
   @ViewChild('fileInput') fileInput: ElementRef;

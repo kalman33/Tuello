@@ -8,7 +8,7 @@ import { ChromeExtentionUtilsService } from '../utils/chrome-extention-utils.ser
 import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { RateSupportComponent } from './rate-support/rate-support.component';
-import { TranslateModule } from '@ngx-translate/core';
+import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { MatLine } from '@angular/material/core';
 import { MatNavList, MatListItem } from '@angular/material/list';
 import { MatIcon } from '@angular/material/icon';
@@ -25,7 +25,7 @@ import { MatToolbar } from '@angular/material/toolbar';
     encapsulation: ViewEncapsulation.None,
     animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation],
     standalone: true,
-    imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslateModule]
+    imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe, TranslateDirective]
 })
 export class LayoutComponent implements AfterViewInit, OnInit {
   isOpen = false;
