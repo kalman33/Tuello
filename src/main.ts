@@ -5,19 +5,28 @@ import { OverlayModule } from '@angular/cdk/overlay';
 import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { BrowserModule, bootstrapApplication } from '@angular/platform-browser';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
 import { FlexLayoutModule } from '@ngbracket/ngx-layout';
 import { TranslateLoader, provideTranslateService } from '@ngx-translate/core';
-import { AppRoutingModule } from './app/app-routing.module';
+import { routes } from './app/app-routes';
 import { AppComponent } from './app/app.component';
-import { HttpLoaderFactory, configurationInit } from './app/app.module';
 import { ConfigurationService } from './app/core/configuration/configuration.service';
-import { RecorderHttpModule } from './app/recorder-http/recorder-http.module';
 import { PlayerService } from './app/spy-http/services/player.service';
 import { environment } from './environments/environment';
+import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 
 if (environment.production) {
   enableProdMode();
 }
+
+function configurationInit(config: ConfigurationService) {
+    return () => config.init();
+  }
+  
+  // required for AOT compilation
+ function HttpLoaderFactory(http: HttpClient) {
+    return new TranslateHttpLoader(http);
+  }
 
 bootstrapApplication(AppComponent, {
     providers: [
@@ -28,11 +37,12 @@ bootstrapApplication(AppComponent, {
                 deps: [HttpClient],
             },
         }),
-        importProvidersFrom(BrowserModule, AppRoutingModule, 
+        provideRouter(routes),
+        importProvidersFrom(BrowserModule,
         // flex-layout
         FlexLayoutModule, 
         // Module Applicatif
-        RecorderHttpModule, OverlayModule),
+        OverlayModule),
         {
             provide: APP_INITIALIZER,
             useFactory: configurationInit,

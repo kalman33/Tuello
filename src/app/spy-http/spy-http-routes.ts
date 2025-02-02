@@ -5,7 +5,7 @@ import { LayoutComponent } from '../core/layout/layout.component';
 import {SpyHttpComponent} from './spy-http.component';
 import {ResultsComponent} from './results/results.component';
 
-const routes: Routes = [
+export const routes: Routes = [
   {
     path: '',
     component: LayoutComponent,
@@ -19,8 +19,3 @@ const routes: Routes = [
   },
 ];
 
-@NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule],
-})
-export class SpyHttpRoutingModule {}

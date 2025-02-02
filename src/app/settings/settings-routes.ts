@@ -5,7 +5,7 @@ import {RecorderHttpComponent} from '../recorder-http/recorder-http.component';
 import {SettingsComponent} from './settings.component';
 
 
-const routes: Routes = [
+export const routes: Routes = [
   {
     path: '',
     component: LayoutComponent,
@@ -13,8 +13,3 @@ const routes: Routes = [
   },
 ];
 
-@NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule]
-})
-export class SettingsRoutingModule { }

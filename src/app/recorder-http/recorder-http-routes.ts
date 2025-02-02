@@ -1,11 +1,10 @@
-import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
+import { Routes } from '@angular/router';
 
-import { RecorderHttpComponent } from './recorder-http.component';
 import { LayoutComponent } from '../core/layout/layout.component';
 import { AddTagsComponent } from './add-tags/add-tags.component';
+import { RecorderHttpComponent } from './recorder-http.component';
 
-const routes: Routes = [
+export const routes: Routes = [
   {
     path: '',
     component: LayoutComponent,
@@ -21,9 +20,3 @@ const routes: Routes = [
 
 
 ];
-
-@NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule],
-})
-export class RecorderHttpRoutingModule { }
