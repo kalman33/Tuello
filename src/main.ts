@@ -1,5 +1,5 @@
 
-import { APP_INITIALIZER, enableProdMode, importProvidersFrom } from '@angular/core';
+import { enableProdMode, importProvidersFrom, inject, provideAppInitializer } from '@angular/core';
 
 import { OverlayModule } from '@angular/cdk/overlay';
 import { HttpClient, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
@@ -43,12 +43,10 @@ bootstrapApplication(AppComponent, {
         FlexLayoutModule, 
         // Module Applicatif
         OverlayModule),
-        {
-            provide: APP_INITIALIZER,
-            useFactory: configurationInit,
-            deps: [ConfigurationService],
-            multi: true
-        }, PlayerService,
+        provideAppInitializer(() => {
+        const initializerFn = (configurationInit)(inject(ConfigurationService));
+        return initializerFn();
+      }), PlayerService,
         provideAnimations(),
         provideHttpClient(withInterceptorsFromDi()),
     ]

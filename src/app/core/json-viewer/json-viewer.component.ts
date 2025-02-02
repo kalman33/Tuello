@@ -9,7 +9,6 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
     selector: 'mmn-json-viewer',
     templateUrl: './json-viewer.component.html',
     animations: [fadeInAnimation],
-    standalone: true,
     imports: [
         MatDialogTitle,
         MatDialogContent,
@@ -18,7 +17,7 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
         MatButton,
         MatDialogClose,
         TranslatePipe, TranslateDirective,
-    ],
+    ]
 })
 export class JsonViewerComponent implements OnInit {
 

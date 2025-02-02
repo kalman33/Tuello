@@ -12,7 +12,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-track-detail',
     templateUrl: './track-detail.component.html',
     styleUrls: ['./track-detail.component.scss'],
-    standalone: true,
     imports: [FlexModule, MatIcon, MatTooltip, MatIconButton]
 })
 export class TrackDetailComponent implements OnInit {

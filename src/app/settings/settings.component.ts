@@ -27,7 +27,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-settings',
     templateUrl: './settings.component.html',
     styleUrls: ['./settings.component.scss'],
-    standalone: true,
     imports: [FlexModule, MatTabGroup, MatTab, MatTabLabel, MatIcon, NgClass, ExtendedModule, MatSlideToggle, FormsModule, MatFormField, MatSelect, MatOption, MatSlider, MatSliderThumb, SettingsMenuComponent, MatButton, TranslatePipe, TranslateDirective]
 })
 export class SettingsComponent implements OnInit {

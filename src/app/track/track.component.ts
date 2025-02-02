@@ -27,7 +27,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-track',
     templateUrl: './track.component.html',
     styleUrls: ['./track.component.scss'],
-    standalone: true,
     imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, FormsModule, MatRadioGroup, MatRadioButton, MatFormField, MatLabel, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslatePipe, TranslateDirective]
 })
 export class TrackComponent implements OnInit, OnDestroy {

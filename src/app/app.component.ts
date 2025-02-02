@@ -12,7 +12,6 @@ import { TrackService } from './track/services/track.service';
     template: `
     <router-outlet></router-outlet>
   `,
-    standalone: true,
     imports: [RouterOutlet]
 })
 export class AppComponent implements OnInit, OnDestroy, AfterViewInit {

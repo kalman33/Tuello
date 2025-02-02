@@ -8,7 +8,6 @@ import { MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } fr
     selector: 'mmn-spy-record-dialog',
     templateUrl: './record-dialog.component.html',
     animations: [fadeInAnimation],
-    standalone: true,
     imports: [
         MatDialogTitle,
         MatDialogContent,
@@ -16,7 +15,7 @@ import { MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } fr
         MatButton,
         MatDialogClose,
         TranslatePipe, TranslateDirective,
-    ],
+    ]
 })
 export class RecordDialogComponent  {
 

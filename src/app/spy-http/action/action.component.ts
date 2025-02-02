@@ -14,7 +14,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-action',
     templateUrl: './action.component.html',
     styleUrls: ['./action.component.scss'],
-    standalone: true,
     imports: [
         FlexModule,
         MatTooltip,
@@ -22,7 +21,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
         MatIconButton,
         LowerCasePipe,
         TranslatePipe, TranslateDirective,
-    ],
+    ]
 })
 export class ActionComponent implements OnInit {
   @Input() action: Action;

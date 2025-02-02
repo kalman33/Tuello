@@ -15,14 +15,13 @@ import { MatDialogTitle } from '@angular/material/dialog';
     selector: 'mmn-rate-support',
     templateUrl: './rate-support.component.html',
     styleUrls: ['./rate-support.component.scss'],
-    standalone: true,
     imports: [
         MatDialogTitle,
         FlexModule,
         MatAnchor,
         FormsModule,
         TranslatePipe, TranslateDirective,
-    ],
+    ]
 })
 export class RateSupportComponent implements OnInit {
 

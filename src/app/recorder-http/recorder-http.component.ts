@@ -25,7 +25,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     styleUrls: ['./recorder-http.component.scss'],
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: true,
     imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, FormsModule, TranslatePipe, TranslateDirective]
 })
 export class RecorderHttpComponent implements OnInit, OnDestroy {

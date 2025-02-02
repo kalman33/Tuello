@@ -24,7 +24,6 @@ import { MatToolbar } from '@angular/material/toolbar';
     styleUrls: ['./layout.component.scss'],
     encapsulation: ViewEncapsulation.None,
     animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation],
-    standalone: true,
     imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe, TranslateDirective]
 })
 export class LayoutComponent implements AfterViewInit, OnInit {

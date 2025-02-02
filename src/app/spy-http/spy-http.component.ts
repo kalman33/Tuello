@@ -36,7 +36,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     templateUrl: './spy-http.component.html',
     encapsulation: ViewEncapsulation.None,
     styleUrls: ['./spy-http.component.scss'],
-    standalone: true,
     imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTabGroup, MatTab, MatTabLabel, MatList, CdkDropList, MatListItem, ActionComponent, CdkDrag, MatNavList, MatLine, MatFormField, MatLabel, MatInput, FormsModule, MatError, RouterLink, TranslatePipe, TranslateDirective]
 })
 export class SpyHttpComponent implements OnInit, OnDestroy {

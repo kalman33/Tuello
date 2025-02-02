@@ -17,7 +17,6 @@ import { NgClass } from '@angular/common';
     templateUrl: './export.component.html',
     styleUrls: ['./export.component.scss'],
     animations: [fadeInAnimation],
-    standalone: true,
     imports: [MatDialogTitle, MatDialogContent, NgClass, ExtendedModule, MatButton, MatIcon, MatDivider, MatDialogActions, MatDialogClose, TranslatePipe, TranslateDirective]
 })
 export class ExportComponent implements OnInit {

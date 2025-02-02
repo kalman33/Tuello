@@ -22,7 +22,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-search-elements',
     templateUrl: './search-elements.component.html',
     styleUrls: ['./search-elements.component.scss'],
-    standalone: true,
     imports: [FlexModule, NgClass, ExtendedModule, MatSlideToggle, FormsModule, MatFormField, MatLabel, MatInput, MatIconButton, MatTooltip, MatIcon, MatList, CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf, MatListItem, ElementComponent, TranslatePipe, TranslateDirective]
 })
 export class SearchElementsComponent implements OnInit {

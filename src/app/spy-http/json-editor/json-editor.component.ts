@@ -9,7 +9,6 @@ import { FormsModule } from '@angular/forms';
     selector: 'mmn-json-editor',
     templateUrl: './json-editor.component.html',
     animations: [fadeInAnimation],
-    standalone: true,
     imports: [
         MatDialogTitle,
         MatDialogContent,
@@ -17,7 +16,7 @@ import { FormsModule } from '@angular/forms';
         MatDialogActions,
         MatButton,
         TranslatePipe, TranslateDirective,
-    ],
+    ]
 })
 export class JsonEditorComponent implements OnInit {
   jsonAction: string;

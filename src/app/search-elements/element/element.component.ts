@@ -9,7 +9,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-element',
     templateUrl: './element.component.html',
     styleUrls: ['./element.component.scss'],
-    standalone: true,
     imports: [FlexModule, MatIconButton, MatIcon]
 })
 export class ElementComponent implements OnInit {

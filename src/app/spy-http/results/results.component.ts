@@ -15,7 +15,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-spy-results',
     templateUrl: './results.component.html',
     styleUrls: ['./results.component.scss'],
-    standalone: true,
     imports: [
         FlexModule,
         NgClass,
@@ -34,7 +33,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
         MatRow,
         SlicePipe,
         TranslatePipe, TranslateDirective,
-    ],
+    ]
 })
 export class ResultsComponent implements OnInit, OnDestroy {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;

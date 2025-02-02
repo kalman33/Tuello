@@ -10,7 +10,6 @@ import { MatIcon } from '@angular/material/icon';
     selector: 'mmn-settings-menu',
     templateUrl: './settings-menu.component.html',
     styleUrls: ['./settings-menu.component.scss'],
-    standalone: true,
     imports: [MatIcon, MatFormField, MatLabel, MatInput, FormsModule, MatIconButton, TranslatePipe, TranslateDirective]
 })
 export class SettingsMenuComponent implements OnInit {

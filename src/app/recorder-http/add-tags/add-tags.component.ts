@@ -22,7 +22,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     templateUrl: './add-tags.component.html',
     styleUrls: ['./add-tags.component.scss'],
     animations: [fadeInAnimation],
-    standalone: true,
     imports: [FlexModule, MatDialogTitle, MatIconButton, MatIcon, NgClass, ExtendedModule, MatFormField, MatLabel, MatInput, FormsModule, MatTooltip, MatAccordion, MatExpansionPanel, MatExpansionPanelHeader, MatExpansionPanelTitle, TranslatePipe, TranslateDirective]
 })
 export class AddTagsComponent implements OnInit {

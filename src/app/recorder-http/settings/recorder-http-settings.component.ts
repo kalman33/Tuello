@@ -14,7 +14,6 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-recorder-http-settings',
     templateUrl: './recorder-http-settings.component.html',
     styleUrls: ['./recorder-http-settings.component.scss'],
-    standalone: true,
     imports: [FlexModule, MatDialogTitle, MatCheckbox, FormsModule, MatFormField, MatLabel, MatInput, MatDialogActions, MatButton, MatIcon, TranslatePipe, TranslateDirective]
 })
 export class RecorderHttpSettingsComponent implements OnInit {
