@@ -17,11 +17,13 @@ h2 {
 .button-row {
   padding-top: 15px;
   padding-bottom: 15px;
+  
 }
 
 .button-row button {
   display: inline-flex;
   line-height: 30px;
+  margin-right: 16px !important;
 }
 
 .group {

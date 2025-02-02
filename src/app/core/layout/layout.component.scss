@@ -257,6 +257,11 @@ button#rate mat-icon {
   font-weight: bold !important;
 }
 
+.black-theme .selected.mat-mdc-list-item:not(:focus){
+  background-color: #afadad !important;
+  font-weight: bold !important;
+}
+
 .mdc-list-item:not(.selected):focus::before {
   background-color: transparent !important;
   opacity: 0 !important;
