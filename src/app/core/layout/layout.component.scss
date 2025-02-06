@@ -258,11 +258,21 @@ button#rate mat-icon {
 }
 
 .black-theme .selected.mat-mdc-list-item:not(:focus){
-  background-color: #afadad !important;
+  background-color: #878787 !important;
   font-weight: bold !important;
 }
 
-.mdc-list-item:not(.selected):focus::before {
+.black-theme .mat-mdc-nav-list .mat-mdc-list-item:focus::before{
+  background-color: transparent !important;
+  opacity: 0 !important;
+}
+
+.mat-mdc-nav-list .mat-mdc-list-item:focus::before{
+  background-color: transparent !important;
+  opacity: 0 !important;
+}
+
+#rate span::before {
   background-color: transparent !important;
   opacity: 0 !important;
 }
