@@ -99,3 +99,37 @@ $m2-error: (
     )
 );
 
+/* These palettes are generated using https://themes.angular-material.dev/ */
+
+$m2-black-primary: (
+    50 : #e6f3f8,
+    100 : #c1e0ed,
+    200 : #98cce1,
+    300 : #6fb8d4,
+    400 : #50a8cb,
+    500 : #3199c2,
+    600 : #2c91bc,
+    700 : #2586b4,
+    800 : #1f7cac,
+    900 : #136b9f,
+    A100 : #e4f9ff,
+    A200 : #b1edff,
+    A400 : #7ee1ff,
+    A700 : #65dcff,
+    contrast: (
+        50 : #000000,
+        100 : #000000,
+        200 : #000000,
+        300 : #000000,
+        400 : #000000,
+        500 : #ffffff,
+        600 : #ffffff,
+        700 : #ffffff,
+        800 : #ffffff,
+        900 : #ffffff,
+        A100 : #000000,
+        A200 : #000000,
+        A400 : #000000,
+        A700 : #000000,
+    )
+);

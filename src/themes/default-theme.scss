@@ -3,6 +3,7 @@
 
 // Définition des palettes
 $mmn-primary: mat.m2-define-palette(palette.$m2-primary);
+$mmn-dark-primary: mat.m2-define-palette(palette.$m2-black-primary);
 $mmn-accent: mat.m2-define-palette(palette.$m2-accent, A200, A100, A400);
 $mmn-warn: mat.m2-define-palette(palette.$m2-error);
 
@@ -34,7 +35,7 @@ $mmn-theme: mat.m2-define-light-theme(
 $mmn-dark-theme: mat.m2-define-dark-theme(
   (
     color: (
-      primary: $mmn-primary,
+      primary: $mmn-dark-primary,
       accent: $mmn-accent,
       warn: $mmn-warn,
     ),
@@ -49,3 +50,27 @@ $mmn-dark-theme: mat.m2-define-dark-theme(
 .black-theme {
   @include mat.all-component-colors($mmn-dark-theme);
 }
+
+.black-theme .mat-mdc-form-field label.mdc-floating-label.mat-mdc-floating-label{
+  color: #D59F5D !important;
+}
+
+.mat-toolbar {
+  background: linear-gradient(
+    -45deg,
+    #8facb6,
+    #417182,
+    #1b5064,
+    #123d4f,
+  ) !important; 
+}
+
+.black-theme .mat-toolbar {
+  background: linear-gradient(
+    -45deg,
+    #8facb6,
+    #417182,
+    #1b5064,
+    #123d4f,
+  ) !important; 
+} 

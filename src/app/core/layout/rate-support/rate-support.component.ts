@@ -1,15 +1,14 @@
 import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import {
-  MatBottomSheet,
-  MatBottomSheetRef,
+  MatBottomSheetRef
 } from '@angular/material/bottom-sheet';
+import { MatAnchor } from '@angular/material/button';
+import { MatDialogTitle } from '@angular/material/dialog';
 import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
-import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
-import { FormsModule } from '@angular/forms';
-import { MatAnchor } from '@angular/material/button';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
-import { MatDialogTitle } from '@angular/material/dialog';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 @Component({
     selector: 'mmn-rate-support',
@@ -20,7 +19,7 @@ import { MatDialogTitle } from '@angular/material/dialog';
         FlexModule,
         MatAnchor,
         FormsModule,
-        TranslatePipe, TranslateDirective,
+        TranslatePipe,
     ]
 })
 export class RateSupportComponent implements OnInit {

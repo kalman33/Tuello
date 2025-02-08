@@ -1,28 +1,28 @@
-import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
-import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
-import { SearchElement } from './models/SearchElement';
-import { ElementComponent } from './element/element.component';
-import { CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf } from '@angular/cdk/scrolling';
-import { MatList, MatListItem } from '@angular/material/list';
-import { MatIcon } from '@angular/material/icon';
-import { MatTooltip } from '@angular/material/tooltip';
-import { MatIconButton } from '@angular/material/button';
-import { MatInput } from '@angular/material/input';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
-import { FormsModule } from '@angular/forms';
-import { MatSlideToggle } from '@angular/material/slide-toggle';
-import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
+import { CdkFixedSizeVirtualScroll, CdkVirtualForOf, CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { NgClass } from '@angular/common';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MatIconButton } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
+import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInput } from '@angular/material/input';
+import { MatList, MatListItem } from '@angular/material/list';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltip } from '@angular/material/tooltip';
+import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
+import { ElementComponent } from './element/element.component';
+import { SearchElement } from './models/SearchElement';
 
 @Component({
     selector: 'mmn-search-elements',
     templateUrl: './search-elements.component.html',
     styleUrls: ['./search-elements.component.scss'],
-    imports: [FlexModule, NgClass, ExtendedModule, MatSlideToggle, FormsModule, MatFormField, MatLabel, MatInput, MatIconButton, MatTooltip, MatIcon, MatList, CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf, MatListItem, ElementComponent, TranslatePipe, TranslateDirective]
+    imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatSlideToggle, MatFormField, MatLabel, MatInput, MatIconButton, MatTooltip, MatIcon, MatList, CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf, MatListItem, ElementComponent, TranslatePipe]
 })
 export class SearchElementsComponent implements OnInit {
   @ViewChild('fileInput') fileInput: ElementRef;

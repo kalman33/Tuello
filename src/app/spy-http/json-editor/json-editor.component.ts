@@ -10,12 +10,12 @@ import { FormsModule } from '@angular/forms';
     templateUrl: './json-editor.component.html',
     animations: [fadeInAnimation],
     imports: [
+        FormsModule, 
         MatDialogTitle,
         MatDialogContent,
-        FormsModule,
         MatDialogActions,
         MatButton,
-        TranslatePipe, TranslateDirective,
+        TranslatePipe,
     ]
 })
 export class JsonEditorComponent implements OnInit {

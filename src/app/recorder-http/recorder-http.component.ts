@@ -10,7 +10,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
-import { TranslateDirective, TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import JSONEditor from 'jsoneditor';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
@@ -25,7 +25,7 @@ import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings
     styleUrls: ['./recorder-http.component.scss'],
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, FormsModule, TranslatePipe, TranslateDirective]
+    imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, TranslatePipe]
 })
 export class RecorderHttpComponent implements OnInit, OnDestroy {
   constructor(

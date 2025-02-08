@@ -1,14 +1,14 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {MatDialog} from '@angular/material/dialog';
-import {Action} from '../models/Action';
-import {JsonEditorComponent} from '../json-editor/json-editor.component';
-import {ChromeExtentionUtilsService} from '../../core/utils/chrome-extention-utils.service';
-import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { LowerCasePipe } from '@angular/common';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatTooltip } from '@angular/material/tooltip';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
+import { TranslatePipe } from "@ngx-translate/core";
+import { ChromeExtentionUtilsService } from '../../core/utils/chrome-extention-utils.service';
+import { JsonEditorComponent } from '../json-editor/json-editor.component';
+import { Action } from '../models/Action';
 
 @Component({
     selector: 'mmn-action',
@@ -20,7 +20,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
         MatIcon,
         MatIconButton,
         LowerCasePipe,
-        TranslatePipe, TranslateDirective,
+        TranslatePipe,
     ]
 })
 export class ActionComponent implements OnInit {

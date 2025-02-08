@@ -1,15 +1,15 @@
+import { NgClass, SlicePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
+import { MatCell, MatCellDef, MatColumnDef, MatHeaderCell, MatHeaderCellDef, MatHeaderRow, MatHeaderRowDef, MatRow, MatRowDef, MatTable } from '@angular/material/table';
 import { Router } from '@angular/router';
+import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
+import { FlexModule } from '@ngbracket/ngx-layout/flex';
+import { TranslatePipe } from "@ngx-translate/core";
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
 import { ChromeExtentionUtilsService } from '../../core/utils/chrome-extention-utils.service';
 import { PlayerService } from '../services/player.service';
-import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
-import { MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow } from '@angular/material/table';
-import { MatIcon } from '@angular/material/icon';
-import { MatIconButton } from '@angular/material/button';
-import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
-import { NgClass, SlicePipe } from '@angular/common';
-import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 @Component({
     selector: 'mmn-spy-results',
@@ -32,7 +32,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
         MatRowDef,
         MatRow,
         SlicePipe,
-        TranslatePipe, TranslateDirective,
+        TranslatePipe
     ]
 })
 export class ResultsComponent implements OnInit, OnDestroy {

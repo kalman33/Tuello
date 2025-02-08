@@ -1,23 +1,23 @@
+import { NgClass } from '@angular/common';
 import { Component, Inject, NgZone, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } from '@angular/material/dialog';
+import { MatButton } from '@angular/material/button';
+import { MAT_DIALOG_DATA, MatDialogActions, MatDialogClose, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
+import { MatDivider } from '@angular/material/divider';
+import { MatIcon } from '@angular/material/icon';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { saveAs } from 'file-saver';
 import { formatDate } from 'src/app/core/utils/date-utils';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslateService, TranslatePipe, TranslateDirective } from '@ngx-translate/core';
-import { MatDivider } from '@angular/material/divider';
-import { MatIcon } from '@angular/material/icon';
-import { MatButton } from '@angular/material/button';
-import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
-import { NgClass } from '@angular/common';
 
 @Component({
     selector: 'mmn-export',
     templateUrl: './export.component.html',
     styleUrls: ['./export.component.scss'],
     animations: [fadeInAnimation],
-    imports: [MatDialogTitle, MatDialogContent, NgClass, ExtendedModule, MatButton, MatIcon, MatDivider, MatDialogActions, MatDialogClose, TranslatePipe, TranslateDirective]
+    imports: [MatDialogTitle, MatDialogContent, NgClass, ExtendedModule, MatButton, MatIcon, MatDivider, MatDialogActions, MatDialogClose, TranslatePipe]
 })
 export class ExportComponent implements OnInit {
   libFileName = 'Tuello-Lib-file.js';

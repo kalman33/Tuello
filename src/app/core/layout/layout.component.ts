@@ -1,22 +1,22 @@
 import { MediaMatcher } from '@angular/cdk/layout';
-import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { NgClass } from '@angular/common';
+import { AfterViewInit, ChangeDetectorRef, Component, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatButton, MatIconButton } from '@angular/material/button';
+import { MatLine } from '@angular/material/core';
+import { MatIcon } from '@angular/material/icon';
+import { MatListItem, MatNavList } from '@angular/material/list';
+import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { MatToolbar } from '@angular/material/toolbar';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
+import { TranslatePipe } from "@ngx-translate/core";
 import { fadeInAnimation } from '../animations/fadeInAnimation';
 import { routeAnimations } from '../animations/route.animations';
 import { slideInMenuAnimation } from '../animations/slideInMenuAnimation';
 import { ChromeExtentionUtilsService } from '../utils/chrome-extention-utils.service';
-import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
-import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { RateSupportComponent } from './rate-support/rate-support.component';
-import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
-import { MatLine } from '@angular/material/core';
-import { MatNavList, MatListItem } from '@angular/material/list';
-import { MatIcon } from '@angular/material/icon';
-import { MatIconButton, MatButton } from '@angular/material/button';
-import { MatSlideToggle } from '@angular/material/slide-toggle';
-import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
-import { NgClass } from '@angular/common';
-import { MatToolbar } from '@angular/material/toolbar';
 
 @Component({
     selector: 'mmn-layout',
@@ -24,7 +24,7 @@ import { MatToolbar } from '@angular/material/toolbar';
     styleUrls: ['./layout.component.scss'],
     encapsulation: ViewEncapsulation.None,
     animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation],
-    imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe, TranslateDirective]
+    imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe]
 })
 export class LayoutComponent implements AfterViewInit, OnInit {
   isOpen = false;

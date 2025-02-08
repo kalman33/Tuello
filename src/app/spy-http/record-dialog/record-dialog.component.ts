@@ -14,7 +14,7 @@ import { MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } fr
         MatDialogActions,
         MatButton,
         MatDialogClose,
-        TranslatePipe, TranslateDirective,
+        TranslatePipe,
     ]
 })
 export class RecordDialogComponent  {

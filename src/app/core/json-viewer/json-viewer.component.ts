@@ -16,7 +16,7 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
         MatDialogActions,
         MatButton,
         MatDialogClose,
-        TranslatePipe, TranslateDirective,
+        TranslatePipe,
     ]
 })
 export class JsonViewerComponent implements OnInit {
