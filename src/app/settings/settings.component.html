@@ -55,7 +55,7 @@
                 <span [ngClass]="{ bold: deepMockLevel <= 2 }">/2.2</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 3 }">/users</span>
               </div>
-              <mat-slider [(ngModel)]="deepMockLevel" step="1" thumbLabel min="0" max="3" #ngSlider><input name="deepMockLevel" matSliderThumb (input)="updateDeepMockLevel({source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value})" #ngSliderThumb="matSliderThumb" />
+              <mat-slider step="1" thumbLabel min="0" max="3" #ngSlider><input name="deepMockLevel"  [(ngModel)]="deepMockLevel" matSliderThumb (input)="updateDeepMockLevel({source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value})" #ngSliderThumb="matSliderThumb" />
               </mat-slider>
             </div>
           </div>
