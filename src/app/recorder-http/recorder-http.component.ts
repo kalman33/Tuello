@@ -62,7 +62,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
     // recupération des enregistrements
     chrome.storage.local.get(['tuelloRecords'], results => {
-      this.records = results['tuelloRecords'];
+      this.records = JSON.parse(results['tuelloRecords']);
       // paramétrage du jsoneditor
       this.initJsonEditor();
     });
@@ -241,9 +241,43 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     this.jsonEditorTree = createJSONEditor({
       target: document.getElementById('jsonEditorTree'),
       props: {
-        content: { text: "" }, options, onRenderMenu: (items, context) => items.filter(item =>
+        content: { json: {} },
+        options,
+        onRenderMenu: (items, context) => items.filter(item =>
           !item.text && item.type !== 'separator' && item.className !== "jse-transform"
-        )
+        ),
+        onChange: () => {
+          this.updateData();
+        },
+        onClassName: (path: any, value: any) => {
+          if (value && path[1] === 'httpCode' && value.toString().startsWith('5')) {
+            return "server-error-http-response";
+          }
+          if (value && path[1] === 'httpCode' && value.httpCode.toString().startsWith('4')) {
+            return "client-error-http-response";
+          }
+          return "no-error-http-response";
+        },
+        // onRenderValue: (props: any) => {
+        //   const myRendererAction = {
+        //     action: (node: any) => {
+        //       const content = document.createElement('div')
+        //       content.innerHTML = props.value
+        //       node.classList.add('highlight1')
+        //       node.appendChild(content)
+        //       return {
+        //         update: (node: any) => {
+        //           // update the DOM
+        //         },
+        //         destroy: () => {
+        //           // cleanup the DOM
+        //         },
+        //       }
+        //     },
+        //     props,
+        //   }
+        //   return [myRendererAction]
+        // }
       }
     });
 
@@ -362,9 +396,9 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       jsonResult = fileReader.result as string;
 
       if (jsonResult && extension === 'json') {
-        
+
         const dataJson = JSON.parse(this.replaceDynamicData(jsonResult));
-        this.jsonEditorTree.update({ json: dataJson});
+        this.jsonEditorTree.update({ json: dataJson });
         this.updateData();
       } else {
         let jsonData = JSON.parse(this.extraireFluxJSON(jsonResult));
