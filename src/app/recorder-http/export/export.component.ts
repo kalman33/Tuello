@@ -35,7 +35,7 @@ export class ExportComponent implements OnInit {
 
   save() {
     const value = formatDate(new Date());
-    const txtBlob = new Blob([ this.replaceDynamicData(this.data)], { type: 'text/plain;charset=utf-8' });
+    const txtBlob = new Blob([ this.replaceDynamicData(JSON.stringify(this.data))], { type: 'text/plain;charset=utf-8' });
     saveAs(txtBlob, `tuello-http-${value}.json`);
     this.dialogRef.close();
   }

@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import JSONEditor from 'jsoneditor';
+import { Content, createJSONEditor, JSONContent, JsonEditor } from 'vanilla-jsoneditor'
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
 import { TagElement } from './models/TagElement';
@@ -20,12 +20,12 @@ import { TagsService } from './services/tags.service';
 import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
 
 @Component({
-    selector: 'mmn-recorder-http',
-    templateUrl: './recorder-http.component.html',
-    styleUrls: ['./recorder-http.component.scss'],
-    encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, TranslatePipe]
+  selector: 'mmn-recorder-http',
+  templateUrl: './recorder-http.component.html',
+  styleUrls: ['./recorder-http.component.scss'],
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, TranslatePipe]
 })
 export class RecorderHttpComponent implements OnInit, OnDestroy {
   constructor(
@@ -43,7 +43,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
   // Json Editor
   options: any;
-  jsonEditorTree: any;
+  jsonEditorTree: JsonEditor;
 
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
@@ -86,8 +86,12 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   refresh() {
     // recupération des enregistrements
     chrome.storage.local.get(['tuelloRecords'], results => {
-      this.records = results['tuelloRecords'];
-      this.jsonEditorTree?.setText(JSON.stringify(results['tuelloRecords']));
+      try {
+        this.records = JSON.parse(results['tuelloRecords']);
+        this.jsonEditorTree?.update({ json: this.records });
+      } catch (e) {
+        this.jsonEditorTree?.update({ json: {} });
+      }
     });
   }
 
@@ -114,122 +118,140 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     //const clearResponseTitle = this.translate.instant('mmn.jsoneditor.menu.clearResponse.title');
 
     // options du jsoneditor
-    this.options = {
+    // this.options = {
 
-      mode: 'tree',
-      enableSort: false,
-      enableTransform: false,
-      language: this.translate.instant('mmn.jsoneditor.language') || 'en',
-      ajv: null,
-      history: false,
-      onValidationError: errors => {
-        errors.forEach(error => {
-          switch (error.type) {
-            case 'validation': // schema validation error
-              this.infoBar.open('Format json invalide', '', {
-                duration: 2000,
-                verticalPosition: 'bottom',
-              });
-              break;
-            case 'customValidation': // custom validation error
-              this.infoBar.open('Format json invalide', '', {
-                duration: 2000,
-                verticalPosition: 'bottom',
-              });
-              break;
-            case 'error': // json parse error
-              this.infoBar.open('Json invalide', '', {
-                duration: 2000,
-                verticalPosition: 'bottom',
-              });
-              break;
-          }
-        });
-      },
-      onChange: () => {
-        this.updateData();
-      },
-      onNodeName: params => {
-        const { path, type, size } = params;
-        if (type === 'object' && path && path.length === 1 && size > 0) {
-          return this.jsonEditorTree.get()[path[0]].key;
-        }
-      },
-      onClassName: ({ path, field, value }) => {
-        if (value && value.httpCode && value.httpCode.toString().startsWith('5')) {
-          return "server-error-http-response";
-        }
-        if (value && value.httpCode && value.httpCode.toString().startsWith('4')) {
-          return "client-error-http-response";
-        }
-        return "no-error-http-response";
-      },
-      onCreateMenu: (items, node) => {
-        const path = node.path
+    //   mode: 'tree',
+    //   enableSort: false,
+    //   enableTransform: false,
+    //   language: this.translate.instant('mmn.jsoneditor.language') || 'en',
+    //   ajv: null,
+    //   history: false,
+    //   onValidationError: errors => {
+    //     errors.forEach(error => {
+    //       switch (error.type) {
+    //         case 'validation': // schema validation error
+    //           this.infoBar.open('Format json invalide', '', {
+    //             duration: 2000,
+    //             verticalPosition: 'bottom',
+    //           });
+    //           break;
+    //         case 'customValidation': // custom validation error
+    //           this.infoBar.open('Format json invalide', '', {
+    //             duration: 2000,
+    //             verticalPosition: 'bottom',
+    //           });
+    //           break;
+    //         case 'error': // json parse error
+    //           this.infoBar.open('Json invalide', '', {
+    //             duration: 2000,
+    //             verticalPosition: 'bottom',
+    //           });
+    //           break;
+    //       }
+    //     });
+    //   },
+    //   onChange: () => {
+    //     this.updateData();
+    //   },
+    //   onNodeName: params => {
+    //     const { path, type, size } = params;
+    //     if (type === 'object' && path && path.length === 1 && size > 0) {
+    //       return this.jsonEditorTree.get()[path[0]].key;
+    //     }
+    //   },
+    //   onClassName: ({ path, field, value }) => {
+    //     if (value && value.httpCode && value.httpCode.toString().startsWith('5')) {
+    //       return "server-error-http-response";
+    //     }
+    //     if (value && value.httpCode && value.httpCode.toString().startsWith('4')) {
+    //       return "client-error-http-response";
+    //     }
+    //     return "no-error-http-response";
+    //   },
+    //   onCreateMenu: (items, node) => {
+    //     const path = node.path
 
-        // log the current items and node for inspection
+    //     // log the current items and node for inspection
 
-        if (path && node && node.path[1] === 'response') {
-          items.push({
-            text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'),
-            title: this.translate.instant('mmn.jsoneditor.menu.clearResponse.title'),
-            className: 'example-class',
-            click: () => {
-              const json = this.jsonEditorTree.get();
-              if (json && Array.isArray(json)) {
+    //     if (path && node && node.path[1] === 'response') {
+    //       items.push({
+    //         text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'),
+    //         title: this.translate.instant('mmn.jsoneditor.menu.clearResponse.title'),
+    //         className: 'example-class',
+    //         click: () => {
+    //           const json = this.jsonEditorTree.get();
+    //           if (json && Array.isArray(json)) {
 
-                if (json[node.path[0]][node.path[1]]) {
-                  if (Array.isArray(json[node.path[0]][node.path[1]])) {
-                    json[node.path[0]][node.path[1]] = [];
-                  } else {
-                    json[node.path[0]][node.path[1]] = {};
-                  }
-                  this.jsonEditorTree.update(json);
-                  this.updateData();
-                }
-              }
-            }
-          });
-          items.push({
-            text: this.translate.instant('mmn.jsoneditor.menu.addTag'),
-            title: this.translate.instant('mmn.jsoneditor.menu.addTag.title'),
-            className: 'example-class',
-            click: () => {
-              const json = this.jsonEditorTree.get();
-              if (json && Array.isArray(json)) {
-                const api = json[node.path[0]];
-                const jsonKey = path.pop();
-                if (api) {
-                  const element: TagElement = {
-                    httpKey: api.key,
-                    jsonKey: jsonKey,
-                    display: jsonKey
-                  }
-                  this.tagsService.addTagElement(element);
-                }
-              }
-            }
-          });
-        }
-        items = items.filter(function (item) {
-          // on supprime separator, type et Extract
-          return item.type !== 'separator' && item.text !== 'Type' && item.text !== 'Extract'
-        })
+    //             if (json[node.path[0]][node.path[1]]) {
+    //               if (Array.isArray(json[node.path[0]][node.path[1]])) {
+    //                 json[node.path[0]][node.path[1]] = [];
+    //               } else {
+    //                 json[node.path[0]][node.path[1]] = {};
+    //               }
+    //               this.jsonEditorTree.update(json);
+    //               this.updateData();
+    //             }
+    //           }
+    //         }
+    //       });
+    //       items.push({
+    //         text: this.translate.instant('mmn.jsoneditor.menu.addTag'),
+    //         title: this.translate.instant('mmn.jsoneditor.menu.addTag.title'),
+    //         className: 'example-class',
+    //         click: () => {
+    //           const json = this.jsonEditorTree.get();
+    //           if (json && Array.isArray(json)) {
+    //             const api = json[node.path[0]];
+    //             const jsonKey = path.pop();
+    //             if (api) {
+    //               const element: TagElement = {
+    //                 httpKey: api.key,
+    //                 jsonKey: jsonKey,
+    //                 display: jsonKey
+    //               }
+    //               this.tagsService.addTagElement(element);
+    //             }
+    //           }
+    //         }
+    //       });
+    //     }
+    //     items = items.filter(function (item) {
+    //       // on supprime separator, type et Extract
+    //       return item.type !== 'separator' && item.text !== 'Type' && item.text !== 'Extract'
+    //     })
 
-        // finally we need to return the items array. If we don't, the menu
-        // will be empty.
-        return items
+    //     // finally we need to return the items array. If we don't, the menu
+    //     // will be empty.
+    //     return items
 
-      }
+    //   }
+    // };
+    let options = {
+      mode: "tree",  // Modes disponibles : "tree", "text", "view"
+      indentation: 2, // Indentation pour le mode code
+      mainMenuBar: true, // Afficher la barre d'outils
+      navigationBar: true, // Activer la navigation JSON
+      readOnly: false, // Permettre l'édition
     };
 
+
     // init du jsoneditor
-    this.jsonEditorTree = new JSONEditor(document.getElementById('jsonEditorTree'), this.options);
+    //this.jsonEditorTree = new JSONEditor(document.getElementById('jsonEditorTree'), this.options);
+
+    this.jsonEditorTree = createJSONEditor({
+      target: document.getElementById('jsonEditorTree'),
+      props: {
+        content: { text: "" }, options, onRenderMenu: (items, context) => items.filter(item =>
+          !item.text && item.type !== 'separator' && item.className !== "jse-transform"
+        )
+      }
+    });
+
 
     try {
-      this.jsonEditorTree?.setText(JSON.stringify(this.records));
+      this.jsonEditorTree.update({ json: this.records });
     } catch (e) {
-      this.jsonEditorTree.setText('{}');
+      this.jsonEditorTree.update({ json: {} });
     }
   }
 
@@ -239,7 +261,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
    */
   effacerEnregistrements() {
     this.recorderService.reset();
-    this.jsonEditorTree.set({});
+    this.jsonEditorTree.update({ json: {} });
   }
 
   /**
@@ -293,20 +315,26 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
    */
   copyToClipboard() {
     const el = document.createElement('textarea');
-    el.value = this.jsonEditorTree.getText();
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
+    try {
+      const jsonData = this.jsonEditorTree.get() as JSONContent;
+      el.value = JSON.stringify(jsonData.json);
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    } catch (e) {
+      // @TODO : a compléter
+    }
   }
 
   /**
    * Permet de mettre à jour les données si le json est valide
    */
   updateData() {
-    const json = this.jsonEditorTree.get();
-    if (json) {
-      this.recorderService.saveToLocalStorage(json);
+    const jsonData = this.jsonEditorTree.get() as JSONContent;
+    const jsonTxt = JSON.stringify(jsonData.json);
+    if (jsonTxt) {
+      this.recorderService.saveToLocalStorage(jsonTxt);
       chrome.runtime.sendMessage({
         action: 'MMA_RECORDS_CHANGE'
       }, () => { });
@@ -319,8 +347,9 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   }
 
   save() {
+    const jsonData = this.jsonEditorTree.get() as JSONContent;
     const dialogRef = this.dialog.open(ExportComponent, {
-      data: this.jsonEditorTree.getText()
+      data: jsonData.json
     });
   }
 
@@ -333,18 +362,15 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       jsonResult = fileReader.result as string;
 
       if (jsonResult && extension === 'json') {
-        try {
-          JSON.stringify(jsonResult);
-        } catch (e) {
-          jsonResult = JSON.parse(jsonResult);
-        }
-        this.jsonEditorTree.setText(this.replaceDynamicData(jsonResult));
+        
+        const dataJson = JSON.parse(this.replaceDynamicData(jsonResult));
+        this.jsonEditorTree.update({ json: dataJson});
         this.updateData();
       } else {
-        let jsonData = this.extraireFluxJSON(jsonResult);
+        let jsonData = JSON.parse(this.extraireFluxJSON(jsonResult));
 
         //on remplace la donnée dynamique window.location.origin pour pouvoir l'importer dans jsoneditor
-        this.jsonEditorTree.setText(this.replaceDynamicData(jsonData));
+        this.jsonEditorTree.update({ json: this.replaceDynamicData(jsonData) });
         this.updateData();
       }
       this.snackBar.open(
@@ -386,7 +412,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   private extraireFluxJSON(codeJS) {
     // Recherche de la déclaration de la variable contenant le flux JSON
     let regex = /window.tuelloRecords\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
-    
+
     let match = codeJS.match(regex);
     if (!match) {
       regex = /window\['tuelloRecords'\]\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
