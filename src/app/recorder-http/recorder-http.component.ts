@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { Content, createJSONEditor, JSONContent, JsonEditor } from 'vanilla-jsoneditor'
+import { Content, createJSONEditor, JSONContent, JsonEditor, RenderValueProps } from 'vanilla-jsoneditor'
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
 import { TagElement } from './models/TagElement';
@@ -44,6 +44,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   // Json Editor
   options: any;
   jsonEditorTree: JsonEditor;
+  isBlackTheme = false;
 
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
@@ -54,6 +55,10 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
 
   ngOnInit() {
+    // Vérifier si body a la classe 'black-theme'
+    const hasBlackTheme = document.body.classList.contains('black-theme');
+    this.isBlackTheme = hasBlackTheme;
+
     chrome.storage.local.get(['httpMock', 'httpRecord'], results => {
       this.httpRecordActivated = results['httpRecord'];
       this.httpMockActivated = results['httpMock'];
@@ -62,7 +67,12 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
     // recupération des enregistrements
     chrome.storage.local.get(['tuelloRecords'], results => {
-      this.records = JSON.parse(results['tuelloRecords']);
+      try {
+        this.records = JSON.parse(results['tuelloRecords']);
+      } catch (e) {
+        this.records = {};
+      }
+      
       // paramétrage du jsoneditor
       this.initJsonEditor();
     });
@@ -246,18 +256,43 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
         onRenderMenu: (items, context) => items.filter(item =>
           !item.text && item.type !== 'separator' && item.className !== "jse-transform"
         ),
-        onChange: () => {
-          this.updateData();
-        },
-        onClassName: (path: any, value: any) => {
-          if (value && path[1] === 'httpCode' && value.toString().startsWith('5')) {
-            return "server-error-http-response";
+        onClassName: function (path, schema) {
+          // Exemple : changer la couleur en fonction de la valeur
+          //const value = path.reduce((obj, key) => (obj && obj[key] !== 'undefined') ? obj[key] : null,  this.jsonEditorTree.editor.get());
+        const  value = 'error';
+          if (value === 'error') {
+              return 'highlight-red';
+          } else if (value === 'success') {
+              return 'highlight-green';
           }
-          if (value && path[1] === 'httpCode' && value.httpCode.toString().startsWith('4')) {
-            return "client-error-http-response";
-          }
-          return "no-error-http-response";
-        },
+          return '';
+      },
+      pathParser: (path: string) => {
+        const match = path.match(/^array\[(\d+)\]/);
+        if (match) {
+          const index = parseInt(match[1]);
+          return "TOTTO"; // Ou toute autre propriété que vous souhaitez afficher
+        }
+        return path;
+      }
+      // onRenderValue: (props: RenderValueProps) => {
+      //   const { path, value } = props;
+  
+      //   // Vérifier si l'on est dans un tableau (path.length === 1) et que l'élément est un objet avec httpCode
+      //   if (path.length === 1 && typeof value === 'object' && value['key']) {
+      //     return [
+      //       `${path[0]} (${value['key']}): `,
+      //       value
+      //     ];
+      //   }
+      //   return [value];
+      // }
+
+
+      
+        // onChange: () => {
+        //   this.updateData();
+        // }
         // onRenderValue: (props: any) => {
         //   const myRendererAction = {
         //     action: (node: any) => {

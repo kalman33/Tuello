@@ -40,7 +40,8 @@
               ]
             },
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/vanilla-jsoneditor/themes/jse-theme-dark.css"
             ],
             "scripts": [],
             "allowedCommonJsDependencies": [

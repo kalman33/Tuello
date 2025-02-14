@@ -59,7 +59,7 @@ export class ExportComponent implements OnInit {
 
           // Insérer le commentaire après cette ligne
           txt = txt.slice(0, index + 19) + " //#ENDOFJSON#: don't remove this comment\n" + txt.slice(index + 19);
-          let contentFile = txt.replace(/.###IMPORT_DATA###./, this.data);
+          let contentFile = txt.replace(/.###IMPORT_DATA###./, JSON.stringify(this.data));
           //contentFile = contentFile.replace(/.###IMPORT_DEEPMOCKLEVEL###./, results['deepMockLevel'] || 0);
           this.libFileName = `tuello-mocks-library-${value}.js`;
           const txtBlob = new Blob([this.replaceDynamicData(contentFile)], { type: 'text/plain;charset=utf-8' });
