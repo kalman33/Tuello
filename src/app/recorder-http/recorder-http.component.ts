@@ -266,53 +266,12 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
               return 'highlight-green';
           }
           return '';
-      },
-      pathParser: (path: string) => {
-        const match = path.match(/^array\[(\d+)\]/);
-        if (match) {
-          const index = parseInt(match[1]);
-          return "TOTTO"; // Ou toute autre propriété que vous souhaitez afficher
-        }
-        return path;
       }
-      // onRenderValue: (props: RenderValueProps) => {
-      //   const { path, value } = props;
-  
-      //   // Vérifier si l'on est dans un tableau (path.length === 1) et que l'élément est un objet avec httpCode
-      //   if (path.length === 1 && typeof value === 'object' && value['key']) {
-      //     return [
-      //       `${path[0]} (${value['key']}): `,
-      //       value
-      //     ];
-      //   }
-      //   return [value];
-      // }
-
-
       
         // onChange: () => {
         //   this.updateData();
         // }
-        // onRenderValue: (props: any) => {
-        //   const myRendererAction = {
-        //     action: (node: any) => {
-        //       const content = document.createElement('div')
-        //       content.innerHTML = props.value
-        //       node.classList.add('highlight1')
-        //       node.appendChild(content)
-        //       return {
-        //         update: (node: any) => {
-        //           // update the DOM
-        //         },
-        //         destroy: () => {
-        //           // cleanup the DOM
-        //         },
-        //       }
-        //     },
-        //     props,
-        //   }
-        //   return [myRendererAction]
-        // }
+       
       }
     });
 
