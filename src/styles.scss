@@ -23,3 +23,11 @@ body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
   animation-fill-mode: forwards;
 }
 
+/* JSON Editor */
+#jsonEditorTree {
+  --jse-value-color-number: #569cd6;
+  --jse-value-color-boolean: #569cd6;
+  --jse-value-color-null: #569cd6;
+  --jse-value-color-string: #569cd6;
+  --jse-value-color-url: #569cd6;
+}
