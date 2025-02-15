@@ -1,5 +1,4 @@
 /* You can add global styles to this file, and also import other style files */
-@use 'jsoneditor/dist/jsoneditor.css' as *;
 @use './assets/css/jsoneditor-default.css' as *;
 @use './assets/css/jsoneditor-dark.css' as *;
 @use 'animate.css/animate.min.css' as *;
@@ -30,4 +29,14 @@ body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
   --jse-value-color-null: #569cd6;
   --jse-value-color-string: #569cd6;
   --jse-value-color-url: #569cd6;
+  --jse-tag-background: white;
+  --jse-tag-color: black;
+  --jse-delimiter-color: black;
+}
+
+body.black-theme  #jsonEditorTree {
+  --jse-tag-background: #303030;
+  --jse-tag-color: #d4d4d4;
+  --jse-delimiter-color: #d4d4d4;
+  --jse-background-color: #303030;
 }

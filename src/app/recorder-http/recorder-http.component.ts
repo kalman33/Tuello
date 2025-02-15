@@ -72,7 +72,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       } catch (e) {
         this.records = {};
       }
-      
+
       // paramétrage du jsoneditor
       this.initJsonEditor();
     });
@@ -256,22 +256,32 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
         onRenderMenu: (items, context) => items.filter(item =>
           !item.text && item.type !== 'separator' && item.className !== "jse-transform"
         ),
-        onClassName: function (path, schema) {
+        onClassName: function (path, value) {
           // Exemple : changer la couleur en fonction de la valeur
           //const value = path.reduce((obj, key) => (obj && obj[key] !== 'undefined') ? obj[key] : null,  this.jsonEditorTree.editor.get());
-        const  value = 'error';
-          if (value === 'error') {
-              return 'highlight-red';
-          } else if (value === 'success') {
-              return 'highlight-green';
+          // const  value = 'error';
+          //   if (value === 'error') {
+          //       return 'highlight-red';
+          //   } else if (value === 'success') {
+          //       return 'highlight-green';
+          //   }
+          //   return '';
+          if (path[path.length - 1] === 'httpCode') {
+            if (value.toString().startsWith('5')) {
+              return "server-error-http-response";
+            }
+            if (value.toString().startsWith('4')) {
+              return "client-error-http-response";
+            }
+            return null;
+          } else {
+            return null;
           }
-          return '';
-      }
-      
-        // onChange: () => {
-        //   this.updateData();
-        // }
-       
+
+        },
+        onChange: () => {
+          this.updateData();
+        }
       }
     });
 
