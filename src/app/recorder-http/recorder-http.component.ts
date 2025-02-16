@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { Content, ContextMenuItem, createJSONEditor, JSONContent, JsonEditor, RenderMenuContext, RenderValueProps } from 'vanilla-jsoneditor'
+import { ContextMenuItem, createJSONEditor, JSONContent, JsonEditor, RenderContextMenuContext } from 'vanilla-jsoneditor';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ExportComponent } from './export/export.component';
 import { TagElement } from './models/TagElement';
@@ -127,7 +127,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     const clearResponse = this.translate.instant('mmn.jsoneditor.menu.clearResponse');
     const clearResponseTitle = this.translate.instant('mmn.jsoneditor.menu.clearResponse.title');
 
-    
+
     //   onValidationError: errors => {
     //     errors.forEach(error => {
     //       switch (error.type) {
@@ -151,54 +151,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     //           break;
     //       }
     //     });
-    
-      // onCreateMenu: (items, node) => {
-      //   const path = node.path
 
-      //   // log the current items and node for inspection
-
-      //   if (path && node && node.path[1] === 'response') {
-      //     items.push({
-      //       text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'),
-      //       title: this.translate.instant('mmn.jsoneditor.menu.clearResponse.title'),
-      //       className: 'example-class',
-      //       click: () => {
-      //         const json = this.jsonEditorTree.get();
-      //         if (json && Array.isArray(json)) {
-
-      //           if (json[node.path[0]][node.path[1]]) {
-      //             if (Array.isArray(json[node.path[0]][node.path[1]])) {
-      //               json[node.path[0]][node.path[1]] = [];
-      //             } else {
-      //               json[node.path[0]][node.path[1]] = {};
-      //             }
-      //             this.jsonEditorTree.update(json);
-      //             this.updateData();
-      //           }
-      //         }
-      //       }
-      //     });
-      //     items.push({
-      //       text: this.translate.instant('mmn.jsoneditor.menu.addTag'),
-      //       title: this.translate.instant('mmn.jsoneditor.menu.addTag.title'),
-      //       className: 'example-class',
-      //       click: () => {
-      //         const json = this.jsonEditorTree.get();
-      //         if (json && Array.isArray(json)) {
-      //           const api = json[node.path[0]];
-      //           const jsonKey = path.pop();
-      //           if (api) {
-      //             const element: TagElement = {
-      //               httpKey: api.key,
-      //               jsonKey: jsonKey,
-      //               display: jsonKey
-      //             }
-      //             this.tagsService.addTagElement(element);
-      //           }
-      //         }
-      //       }
-      //     });
-      //   }
 
     let options = {
       mode: "tree",  // Modes disponibles : "tree", "text", "view"
@@ -237,71 +190,62 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
           console.log("onChange");
           this.updateData();
         },
-        onRenderContextMenu: (items: ContextMenuItem[],
-          context: RenderMenuContext) => {
-            console.log('handleRenderContextMenu', { items, context })
+        onRenderContextMenu: (items: ContextMenuItem[], context: RenderContextMenuContext) => {
 
-            return [
-              ...items,
-              { type: 'separator' },
-              {
-                type: 'row',
-                items: [
-                  {
-                    type: 'button',
-                    onClick: ()=>{},
-                    icon: "",
-                    text: 'Calculate size',
-                    title: 'Calculate the size of the document and report that in an alert',
-                    disabled: false
-                  }
-                ]
+          // On supprime le separator annsi que le bloc couper/copier/coller
+          items.splice(1, 2);
+
+          let menuClearResponse, menuAddTag;
+          // 
+          if (context.selection && context.selection['path'] && context.selection['path'][context.selection['path'].length - 1] === 'response') {
+            menuClearResponse = {
+              type: 'row',
+              text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'),
+              title: this.translate.instant('mmn.jsoneditor.menu.clearResponse.title'),
+              disabled: false,
+              onClick: () => {
+                const json = (this.jsonEditorTree.get() as JSONContent).json;
+                if (json && Array.isArray(json)) {
+                  const target = json[context.selection['path'][0]][context.selection['path'][1]];
+                  json[context.selection['path'][0]][context.selection['path'][1]] = Array.isArray(target) ? [] : {};
+                  this.jsonEditorTree.update({ json: json });
+                  this.updateData();
+                }
               }
-            ]
+            }
+            menuAddTag = {
+              type: 'row',
+              text: this.translate.instant('mmn.jsoneditor.menu.addTag'),
+              title: this.translate.instant('mmn.jsoneditor.menu.addTag.title'),
+              disabled: false,
+              onClick: () => {
+                const json = (this.jsonEditorTree.get() as JSONContent).json;
+                if (json && Array.isArray(json)) {
+                  const api = json[context.selection['path'][0]];
+                  const jsonKey = context.selection['path'][context.selection['path'].length - 1];
+                  if (api) {
+                    const element: TagElement = {
+                      httpKey: api.key,
+                      jsonKey: jsonKey,
+                      display: jsonKey
+                    }
+                    this.tagsService.addTagElement(element);
+                  }
+                }
+              }
+            };
+          }
+          if (menuClearResponse) {
+            items.push({ type: 'separator' });
+            items.push(menuClearResponse);
+            items.push(menuAddTag);
+
+          }
+
+          return items;
+
         }
-        //   // Vérifier si on est sur un "response"
-        //   if (path && path[1] === 'response') {
-        //     // Ajouter l'option "Clear Response"
-        //     menuItems.push({
-        //       text: clearResponse,
-        //       title: clearResponseTitle,
-        //       className: 'example-class',
-        //       onClick: () => {
-        //         const json = this.jsonEditorTree.get();
-        //         if (json && Array.isArray(json)) {
-        //           const target = json[path[0]][path[1]];
-        //           json[path[0]][path[1]] = Array.isArray(target) ? [] : {};
-        //           this.jsonEditorTree.update({ json });
-        //           this.updateData();
-        //         }
-        //       }
-        //     });
-    
-        //     // Ajouter l'option "Add Tag"
-        //     menuItems.push({
-        //       text: clearResponse,
-        //       title: clearResponseTitle,
-        //       className: 'example-class',
-        //       onClick: () => {
-        //         const json = this.jsonEditorTree.get();
-        //         if (json && Array.isArray(json)) {
-        //           const api = json[path[0]];
-        //           const jsonKey = path[path.length - 1];
-        //           if (api) {
-        //             const element: TagElement = {
-        //               httpKey: api.key,
-        //               jsonKey: jsonKey,
-        //               display: jsonKey
-        //             };
-        //             this.tagsService.addTagElement(element);
-        //           }
-        //         }
-        //       }
-        //     });
-        //   }
-    
-        //   return menuItems;
-        // }
+
       }
     });
 
