@@ -18,6 +18,7 @@ import { TagElement } from './models/TagElement';
 import { RecorderHttpService } from './services/recorder-http.service';
 import { TagsService } from './services/tags.service';
 import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
+import JSON5 from 'json5';
 
 @Component({
   selector: 'mmn-recorder-http',
@@ -68,7 +69,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     // recupération des enregistrements
     chrome.storage.local.get(['tuelloRecords'], results => {
       try {
-        this.records = JSON.parse(results['tuelloRecords']);
+        this.records = typeof results['tuelloRecords'] === 'string' ? JSON.parse(results['tuelloRecords']) : results['tuelloRecords'] || {};
       } catch (e) {
         this.records = {};
       }
@@ -97,7 +98,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     // recupération des enregistrements
     chrome.storage.local.get(['tuelloRecords'], results => {
       try {
-        this.records = JSON.parse(results['tuelloRecords']);
+        this.records = typeof results['tuelloRecords'] === 'string' ? JSON.parse(results['tuelloRecords']) : results['tuelloRecords'] || {}
         this.jsonEditorTree?.update({ json: this.records });
       } catch (e) {
         this.jsonEditorTree?.update({ json: {} });
@@ -364,15 +365,18 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       jsonResult = fileReader.result as string;
 
       if (jsonResult && extension === 'json') {
-
-        const dataJson = JSON.parse(this.replaceDynamicData(jsonResult));
+        const data = this.replaceDynamicData(jsonResult);
+        const dataJson = typeof data === 'string' ? JSON5.parse(data) : data || {};
         this.jsonEditorTree.update({ json: dataJson });
         this.updateData();
       } else {
-        let jsonData = JSON.parse(this.extraireFluxJSON(jsonResult));
+        let data = this.extraireFluxJSON(jsonResult);
+        data = this.replaceDynamicData(data);
+       
+        let jsonData = typeof data === 'string' ? JSON5.parse(data) : data || {};
 
         //on remplace la donnée dynamique window.location.origin pour pouvoir l'importer dans jsoneditor
-        this.jsonEditorTree.update({ json: this.replaceDynamicData(jsonData) });
+        this.jsonEditorTree.update({ json: jsonData });
         this.updateData();
       }
       this.snackBar.open(
