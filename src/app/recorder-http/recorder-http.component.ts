@@ -35,7 +35,6 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     private recorderService: RecorderHttpService,
     private translate: TranslateService,
     private ref: ChangeDetectorRef,
-    private snackBar: MatSnackBar,
     private router: Router,
     private tagsService: TagsService
   ) { }
@@ -365,33 +364,18 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       jsonResult = fileReader.result as string;
 
       if (jsonResult && extension === 'json') {
-        const data = this.replaceDynamicData(jsonResult);
-        // Correction : Ajout de guillemets autour des nombres en tant que clés
-        const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
-        const dataJson = typeof fixedJsonString === 'string' ? JSON5.parse(fixedJsonString) : fixedJsonString || {};
-        this.jsonEditorTree.update({ json: dataJson });
-        this.updateData();
+        this.processJsonResult(jsonResult);
       } else {
-        let data = this.extraireFluxJSON(jsonResult);
-        // Correction : Ajout de guillemets autour des nombres en tant que clés
-        const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
-
-        data = this.replaceDynamicData(fixedJsonString);
-       
-        let jsonData = typeof data === 'string' ? JSON5.parse(data) : data || {};
-
-        //on remplace la donnée dynamique window.location.origin pour pouvoir l'importer dans jsoneditor
-        this.jsonEditorTree.update({ json: jsonData });
-        this.updateData();
+        this.processNonJsonResult(jsonResult);
       }
-      this.snackBar.open(
+      this.infoBar.open(
         this.translate.instant('mmn.spy-http.import.message'),
         this.translate.instant('mmn.spy-http.import.success.action'),
         { duration: 2000 },
       );
     };
     fileReader.onerror = event => {
-      this.snackBar.open(
+      this.infoBar.open(
         this.translate.instant('mmn.spy-http.import.message'),
         this.translate.instant('mmn.spy-http.import.error.action'),
         { duration: 2000 },
@@ -399,6 +383,22 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       fileReader.abort();
     };
     fileReader.readAsText(file);
+  }
+  processNonJsonResult(jsonResult: string) {
+    let data = this.extraireFluxJSON(jsonResult);
+    const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
+    data = this.replaceDynamicData(fixedJsonString);
+    const jsonData = JSON5.parse(data);
+    this.jsonEditorTree.update({ json: jsonData });
+    this.updateData();
+  }
+  processJsonResult(jsonResult: string) {
+    const data = this.replaceDynamicData(jsonResult);
+    // Correction : Ajout de guillemets autour des nombres en tant que clés
+    const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
+    const dataJson = JSON5.parse(fixedJsonString);
+    this.jsonEditorTree.update({ json: dataJson });
+    this.updateData();
   }
 
   replaceDynamicData(data) {
@@ -419,21 +419,18 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   openSettings() {
     const dialogRef = this.dialog.open(RecorderHttpSettingsComponent);
   }
-  // Fonction pour extraire le flux JSON du code JavaScript
-  private extraireFluxJSON(codeJS) {
-    // Recherche de la déclaration de la variable contenant le flux JSON
-    let regex = /window.tuelloRecords\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
+  private extraireFluxJSON(codeJS: string): string | null {
+    // Expression régulière pour capturer la déclaration de la variable contenant le flux JSON
+    const regex = /window(?:\.tuelloRecords|\['tuelloRecords'\])\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
 
-    let match = codeJS.match(regex);
-    if (!match) {
-      regex = /window\['tuelloRecords'\]\s*=\s*(.*?); \/\/#ENDOFJSON#/s;
-      match = codeJS.match(regex);
-    }
+    // Recherche de la correspondance dans le code JavaScript
+    const match = codeJS.match(regex);
 
     if (match && match[1]) {
-      // Si la correspondance est trouvée, analysez la chaîne JSON et renvoyez l'objet JavaScript
+      // Si une correspondance est trouvée, retourner la chaîne JSON capturée
       return match[1];
     } else {
+      // Log un message d'erreur si aucune correspondance n'est trouvée
       console.error('Tuello: Variable contenant le flux JSON non trouvée');
       return null;
     }
