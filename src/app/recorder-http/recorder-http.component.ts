@@ -366,12 +366,17 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
       if (jsonResult && extension === 'json') {
         const data = this.replaceDynamicData(jsonResult);
-        const dataJson = typeof data === 'string' ? JSON5.parse(data) : data || {};
+        // Correction : Ajout de guillemets autour des nombres en tant que clés
+        const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
+        const dataJson = typeof fixedJsonString === 'string' ? JSON5.parse(fixedJsonString) : fixedJsonString || {};
         this.jsonEditorTree.update({ json: dataJson });
         this.updateData();
       } else {
         let data = this.extraireFluxJSON(jsonResult);
-        data = this.replaceDynamicData(data);
+        // Correction : Ajout de guillemets autour des nombres en tant que clés
+        const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
+
+        data = this.replaceDynamicData(fixedJsonString);
        
         let jsonData = typeof data === 'string' ? JSON5.parse(data) : data || {};
 
