@@ -7,19 +7,33 @@ h2 {
   margin-top: 2px;
 }
 
+::ng-deep #rateTitle a span.mdc-button__label {
+  display: flex !important; 
+  align-items: center !important;
+  text-align: left; 
+  width: auto; 
+}
+
+::ng-deep .mat-mdc-button .mat-mdc-button-persistent-ripple:hover::before {
+  background-color: transparent !important;
+  opacity: 0 !important;
+}
+
+::ng-deep .rateTitle span::before {
+  background-color: transparent !important;
+  opacity: 0 !important;
+}
+
+::ng-deep .rateTitle a:hover {
+  color: #FFB61E !important;
+}
+
 form {
   margin-top: 5px;
 }
 
 .rateTitle {
   align-items: flex-start;
-}
-
-.rateTitle span.mdc-button__label {
-  display: flex; 
-  align-items: center;
-  text-align: left; 
-  width: auto; 
 }
 
 .icon-button{

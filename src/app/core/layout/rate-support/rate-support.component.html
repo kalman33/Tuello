@@ -1,12 +1,13 @@
 <h2 mat-dialog-title>{{ 'mmn.layout.rate.title' | translate }}</h2>
-<div fxLayout="column" class="rateTitle">
-  <a class="icon-button" mat-button href="https://github.com/kalman33/Tuello" target="_blank" (click)="openLink($event)">
+<div fxLayout="column" id="rateTitle" class="rateTitle">
+  <a class="icon-button" [disableRipple]="true" mat-button href="https://github.com/kalman33/Tuello" target="_blank" (click)="openLink($event)">
     <img src="/assets/img/github-mark.png" class="icon" />
     <span>{{ 'mmn.layout.rate.github' | translate }}</span>
   </a>
   <a
     class="icon-button"
     mat-button
+    [disableRipple]="true"
     href="https://chromewebstore.google.com/detail/tuello/keggceicipngaimacccgmcfbbnmnldoc"
     target="_blank"
     (click)="openLink($event)"

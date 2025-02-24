@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   MatBottomSheetRef
@@ -22,14 +22,13 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
         TranslatePipe,
     ]
 })
-export class RateSupportComponent implements OnInit {
+export class RateSupportComponent {
 
   constructor(private bottomSheetRef: MatBottomSheetRef<RateSupportComponent>, private matIconRegister: MatIconRegistry, private domSanitizer: DomSanitizer, public translate: TranslateService) {
     this.matIconRegister.addSvgIcon('github', this.domSanitizer.bypassSecurityTrustResourceUrl('/assets/img/github-mark.png'));
     this.matIconRegister.addSvgIcon('chrome', this.domSanitizer.bypassSecurityTrustResourceUrl('/assets/img/chrome.svg'));
   }
 
-  ngOnInit() {}
 
   openLink(event: MouseEvent): void {
     this.bottomSheetRef.dismiss();

@@ -139,7 +139,7 @@ manager.addInterceptor(intercepteurHTTPTags);
 // definition des methode intercept des intercepteurs
 intercepteurHTTPMock.interceptXHR = function (req) {
     if (this.isActive) {
-        const realOnReadyStateChange = req.onreadystatechange;
+        const originalOnReadyStateChange = req.onreadystatechange;
         const self = this;
 
         req.onreadystatechange = function () {
@@ -148,15 +148,15 @@ intercepteurHTTPMock.interceptXHR = function (req) {
                 modifyResponse(false, req);
             }
             // Appelle la fonction de rappel d'origine avec la réponse modifiée
-            if (realOnReadyStateChange) {
-                realOnReadyStateChange.apply(this, arguments as any);
+            if (originalOnReadyStateChange) {
+                originalOnReadyStateChange.apply(this, arguments as any);
             }
         }
     }
 }
 intercepteurHTTPRecorder.interceptXHR = function (req) {
     if (this.isActive) {
-        const realOnReadyStateChange = req.onreadystatechange;
+        const originalOnReadyStateChange = req.onreadystatechange;
         const that = this;
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
@@ -177,7 +177,7 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                                 hrefLocation: window.location.href
                             }
                             if (that.userActivation) {
-                                sendMessages(window, messageForHTTPRecorderQueue);
+                                flushQueue(window, messageForHTTPRecorderQueue);
                                 window.postMessage(messageHttpRecorder, '*');
                             } else {
                                 // On rajoute les messages dans la queue
@@ -192,8 +192,8 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                     }
                 }
             }
-            if (realOnReadyStateChange) {
-                realOnReadyStateChange.apply(this, arguments as any);
+            if (originalOnReadyStateChange) {
+                originalOnReadyStateChange.apply(this, arguments as any);
             }
         }
 
@@ -204,7 +204,7 @@ intercepteurHTTPTags.interceptXHR = function (req) {
     if (this.isActive) {
 
         const that = this;
-        const realOnReadyStateChange = req.onreadystatechange;
+        const originalOnReadyStateChange = req.onreadystatechange;
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
                 if (req.responseURL && typeof req.responseURL === 'string' && !req.responseURL.includes('tuello') && !req.responseURL.includes('sockjs')) {
@@ -224,7 +224,7 @@ intercepteurHTTPTags.interceptXHR = function (req) {
                         response: response
                     }
                     if (that.userActivation) {
-                        sendMessages(window.top, messageForHTTPTagsQueue);
+                        flushQueue(window.top, messageForHTTPTagsQueue);
                         window.top.postMessage(messageHTTPTags, '*');
                     } else {
                         // On rajoute les messages dans la queue
@@ -232,8 +232,8 @@ intercepteurHTTPTags.interceptXHR = function (req) {
                     }
                 }
             }
-            if (realOnReadyStateChange) {
-                realOnReadyStateChange.apply(this, arguments as any);
+            if (originalOnReadyStateChange) {
+                originalOnReadyStateChange.apply(this, arguments as any);
             }
         };
 
@@ -327,7 +327,7 @@ intercepteurHTTPRecorder.interceptFetch = async function (response, ...args) {
                 message = JSON.parse(JSON.stringify(message));
 
                 if (this.userActivation) {
-                    sendMessages(window, messageForHTTPTagsQueue);
+                    flushQueue(window, messageForHTTPTagsQueue);
                     window.postMessage(message, '*');
                 } else {
                     // On rajoute les messages dans la queue
@@ -359,7 +359,7 @@ intercepteurHTTPTags.interceptFetch = async function (response, ...args) {
                 let message = { ...data, ...dataForTags };
                 message = JSON.parse(JSON.stringify(message));
                 if (this.userActivation) {
-                    sendMessages(window.top, messageForHTTPTagsQueue);
+                    flushQueue(window.top, messageForHTTPTagsQueue);
                     window.top.postMessage(message, '*');
                 } else {
                     // On rajoute les messages dans la queue
@@ -394,7 +394,7 @@ window.addEventListener(
             }
         } else if (event?.data?.type === 'RECORD_HTTP_ACTIVATED') {
             if (event.data.value) {
-                sendMessages(window, messageForHTTPRecorderQueue);
+                flushQueue(window, messageForHTTPRecorderQueue);
                 manager.activateInterceptorByUser('intercepteurHTTPRecorder');
             } else {
                 manager.deactivateInterceptor('intercepteurHTTPRecorder');
@@ -404,7 +404,7 @@ window.addEventListener(
             }
         } else if (event?.data?.type === 'RECORD_HTTP_CALL_FOR_TAGS') {
             if (event.data.value) {
-                sendMessages(window.top, messageForHTTPTagsQueue);
+                flushQueue(window.top, messageForHTTPTagsQueue);
                 manager.activateInterceptorByUser('intercepteurHTTPTags');
             } else {
                 manager.deactivateInterceptor('intercepteurHTTPTags');
@@ -511,17 +511,19 @@ manager.activateInterceptor('intercepteurHTTPRecorder');
 manager.activateInterceptor('intercepteurHTTPTags');
 
 
-// Fonction pour ajouter un message à la file d'attente
-function addToQueue(message, file) {
-    file.push(message);
+// Fonction utilitaire pour envoyer des messages
+function sendMessage(targetWindow, message) {
+    targetWindow.postMessage(message, '*');
 }
 
-// Fonction pour vider la file d'attente et envoyer les messages
-function sendMessages(targetWindow, file) {
-    while (file.length > 0) {
-        var message = file.shift();
-        // Envoyer le message à la cible appropriée avec postMessage()
-        targetWindow.postMessage(message, '*');
+// Fonction utilitaire pour ajouter un message à la file d'attente
+function addToQueue(message, queue) {
+    queue.push(message);
+}
+
+// Fonction utilitaire pour vider la file d'attente et envoyer les messages
+function flushQueue(targetWindow, queue) {
+    while (queue.length > 0) {
+        sendMessage(targetWindow, queue.shift());
     }
 }
-

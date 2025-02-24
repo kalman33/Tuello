@@ -72,7 +72,7 @@
 
         <div id="push-bottom" >
           <div>
-            <button class="no-ripple-color mat-mdc-button" id="rate" mat-raised-button (click)="openRateSupport()">
+            <button [disableRipple]="true" class="no-ripple-color mat-mdc-button" id="rate" mat-raised-button (click)="openRateSupport()">
               <mat-icon >favorite</mat-icon>
               <span>{{ 'mmn.layout.rate' | translate }}</span>
             </button>
