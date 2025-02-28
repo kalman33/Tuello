@@ -16,7 +16,7 @@
       return ret;
     }
 
-    let compareWithMockLevel = (url1, url2) => {
+    const compareWithMockLevel = (url1, url2) => {
       if (typeof url2 !== 'string' || typeof url2 !== 'string') {
         return false;
       }
@@ -38,17 +38,32 @@
       url1 = url1.replace(/^\//, '');
       url2 = url2.replace(/^\//, '');
 
-      /**const lg1 = url1.split('/').length;
-      const lg2 = url2.split('/').length;
-
-      if (lg1 > lg2) {
-        url1 = url1.split('/').slice(0, lg2).join('/');
-      } else if (lg2 > lg1) {
-        url2 = url2.split('/').slice(0, lg1).join('/');
-      }*/
+      url1 = normalizeUrl(url1);
+      url2 = normalizeUrl(url2);
 
       return new RegExp('^' + url2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*') + '$').test(url1);
     };
+
+    
+    const normalizeUrl = (url) => {
+      // Vérifier s'il y a `..` dans l'URL
+      if (!url.includes('..')) {
+          return url; // Si non, renvoyer l'URL telle quelle
+      }
+  
+      const parts = url.split('/');
+      const stack = [];
+  
+      for (const part of parts) {
+          if (part === '..') {
+              stack.pop();
+          } else if (part !== '.' && part !== '') {
+              stack.push(part);
+          }
+      }
+  
+      return stack.join('/');
+    }
 
     const sleep = (ms: number) => {
       const stop = new Date().getTime() + ms;

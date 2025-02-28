@@ -36,6 +36,12 @@ body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
   --jse-font-size-mono: 12px;
 }
 
+#jsonEditorTree .jse-tag.svelte-wovgt4 {
+  font-size: 90% !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+
 body.black-theme  #jsonEditorTree {
   --jse-tag-background: #303030;
   --jse-tag-color: #d4d4d4;

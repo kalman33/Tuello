@@ -386,7 +386,7 @@ window.addEventListener(
         if (event?.data?.type && event?.data?.type === 'MOCK_HTTP_ACTIVATED') {
             if (event.data.value) {
                 deepMockLevel = event.data.deepMockLevel || 0;
-                (window as any).tuelloRecords = event.data.tuelloRecords;
+                (window as any).tuelloRecords = typeof event.data.tuelloRecords === 'string' ? JSON.parse(event.data.tuelloRecords) : event.data.tuelloRecords || {}; 
                 manager.activateInterceptor('intercepteurHTTPMock');
             } else {
                 manager.deactivateInterceptor('intercepteurHTTPMock');
@@ -413,7 +413,7 @@ window.addEventListener(
             }
         } else if (event?.data?.type === 'MOCK_HTTP_TUELLO_RECORDS') {
             deepMockLevel = event.data.deepMockLevel || 0;
-            (window as any).tuelloRecords = event.data.tuelloRecords;
+            (window as any).tuelloRecords = typeof event.data.tuelloRecords === 'string' ? JSON.parse(event.data.tuelloRecords) : event.data.tuelloRecords || {}; 
         }
 
 
@@ -423,7 +423,7 @@ window.addEventListener(
 );
 
 
-let removeURLPortAndProtocol = (url: string) => {
+const removeURLPortAndProtocol = (url: string) => {
     let ret = '';
     try {
         let parseURL = new URL(url);
@@ -436,7 +436,7 @@ let removeURLPortAndProtocol = (url: string) => {
     return ret;
 }
 
-let compareWithMockLevel = (url1, url2) => {
+const compareWithMockLevel = (url1, url2) => {
     if (!url1 || !url1 || typeof url1 !== 'string' || typeof url2 !== 'string') {
         return false;
     }
@@ -460,17 +460,36 @@ let compareWithMockLevel = (url1, url2) => {
     url1 = url1.replace(/^\//, '');
     url2 = url2.replace(/^\//, '');
 
-    /**const lg1 = url1.split('/').length;
-    const lg2 = url2.split('/').length;
-  
-    if (lg1 > lg2) {
-      url1 = url1.split('/').slice(0, lg2).join('/');
-    } else if (lg2 > lg1) {
-      url2 = url2.split('/').slice(0, lg1).join('/');
-    }*/
+    url1 = normalizeUrl(url1);
+    url2 = normalizeUrl(url2);
 
     return new RegExp('^' + url2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*') + '$').test(url1);
 };
+
+/**
+ * permet de gérer les .. dans les url
+ * @param url 
+ * @returns url normalisé
+ */
+const normalizeUrl = (url) => {
+    // Vérifier s'il y a `..` dans l'URL
+    if (!url.includes('..')) {
+        return url; // Si non, renvoyer l'URL telle quelle
+    }
+
+    const parts = url.split('/');
+    const stack = [];
+
+    for (const part of parts) {
+        if (part === '..') {
+            stack.pop();
+        } else if (part !== '.' && part !== '') {
+            stack.push(part);
+        }
+    }
+
+    return stack.join('/');
+}
 
 let sleep = (ms: number) => {
     const stop = new Date().getTime() + ms;

@@ -39,7 +39,7 @@
           @for (element of tagsService.elements; track trackByFn(i, element); let i = $index) {
             <mat-expansion-panel class="animated lightSpeedIn">
               <mat-expansion-panel-header>
-                <mat-panel-title>
+                <mat-panel-title id="tagPanel">
                   {{ 'mmn.recorder-http.addTags.input.display' | translate }} :
                   <input (change)="onChange()" [(ngModel)]="element.display" matInput />
                 </mat-panel-title>
