@@ -13,8 +13,33 @@ import { displayEffect } from './utils/utils';
 let show = false;
 let clickedElement: string;
 
+// Récupération des données du localStorage
+try {
+  const jsonData = localStorage.getItem("TUELLO_RECORDS");
+  if (jsonData) {
+    window.postMessage(
+      {
+        ...JSON.parse(jsonData),
+        ...{
+          type: 'MOCK_HTTP_TUELLO_RECORDS',
+          value: true
+        }
+      },
+      '*'
+    );
+  }
+} catch (error) {
+}
 chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], function (result) {
   if (result.tuelloRecords) {
+    try {
+      const jsonData = JSON.stringify({
+        tuelloRecords: result.tuelloRecords,
+        deepMockLevel: result.deepMockLevel || 0
+      });
+      localStorage.setItem("TUELLO_RECORDS", jsonData);
+    } catch (error) {
+    }
     window.postMessage(
       {
         type: 'MOCK_HTTP_TUELLO_RECORDS',
