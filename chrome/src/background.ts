@@ -20,6 +20,19 @@ let port;
 let player = null;
 const prefix: string = '[ TUELLO ]';
 
+chrome.action.onClicked.addListener(async (tab) => {
+  if (tab.url && tab.url.startsWith("http")) {
+    // Définir le popup uniquement si l'onglet actuel est un site web valide
+    chrome.action.setPopup({ popup: "popup.html" });
+
+    // Simuler un clic pour afficher le popup immédiatement
+    // chrome.action.openPopup();
+  } else {
+    // Pas de popup si l'utilisateur n'est pas sur un site
+    console.log("Le popup ne s'affichera pas (pas de site actif).");
+  }
+});
+
 
 self.addEventListener('activate', event => {
   (self as any).process = {

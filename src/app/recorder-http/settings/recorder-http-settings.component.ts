@@ -16,7 +16,7 @@ import { TranslatePipe } from "@ngx-translate/core";
     styleUrls: ['./recorder-http-settings.component.scss'],
     imports: [FlexModule, FormsModule, MatDialogTitle, MatCheckbox, MatFormField, MatLabel, MatInput, MatDialogActions, MatButton, MatIcon, TranslatePipe]
 })
-export class RecorderHttpSettingsComponent implements OnInit {
+export class RecorderHttpSettingsComponent {
 
   filter: string;
   overwrite = true;
@@ -36,9 +36,6 @@ export class RecorderHttpSettingsComponent implements OnInit {
    }
 
 
-  ngOnInit() {
-    
-  }
   annuler(): void {
     this.dialogRef.close();
   }
