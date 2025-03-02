@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadChildren: () => import('./settings/settings-routes').then(m => m.routes)
   },
   {
+    path: 'json-formatter',
+    loadChildren: () => import('./json-formatter/json-formatter-routes').then(m => m.routes)
+  },
+  {
     path: 'spy',
     loadChildren: () => import('./spy-http/spy-http-routes').then(m => m.routes)
   },

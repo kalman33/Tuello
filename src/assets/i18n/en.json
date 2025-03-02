@@ -3,6 +3,7 @@
   "mmn.layout.spyAndReplay": "Spy & replay navigation",
   "mmn.layout.trackResources": "Track resources",
   "mmn.layout.searchElements": "Search elements",
+  "mmn.layout.jsonFormatter": "Beautify JSON",
   "mmn.layout.settings": "Settings",
   "mmn.layout.rate": "Rate and support us",
   "mmn.layout.rate.title": "Rate and feedback",
@@ -40,6 +41,7 @@
   "mmn.recorder-http.button.delete": "Delete",
   "mmn.recorder-http.button.copy": "Copy",
   "mmn.recorder-http.button.copyToClipboard": "Copy to clipboard",
+  "mmn.recorder-http.button.copied": "copied to clipboard",
   "mmn.recorder-http.button.addTags.tooltip": "Display specific HTTP response value",
   "mmn.recorder-http.button.addTags": "Tags",
   "mmn.recorder-http.button.mock": "Activating the mocks",
@@ -131,7 +133,15 @@
   "mmn.search.input": "Element to look for",
   "mmn.search.input.attribute.display": "attribute of the element to display",
   "mmn.search.elements.required": "Select at least one Element to look for",
-  "mmn.search.input.add.tooltip": "HTML tags (e.g. <h1>), HTML attributes (e.g. aria-labelledby) or text"
+  "mmn.search.input.add.tooltip": "HTML tags (e.g. <h1>), HTML attributes (e.g. aria-labelledby) or text",
+
+  "mmn.json-formatter.button.format": "Format / beautify JSON",
+  "mmn.json-formatter.button.copy": "Copy",
+  "mmn.json-formatter.button.copyToClipboard": "Copy to clipboard",
+  "mmn.json-formatter.button.copied": "copied to clipboard",
+  "mmn.json-formatter.jsoninput.placeholder": "Enter your JSON here...",
+  "mmn.json-formatter.button.clean": "Clean",
+  "mmn.json-formatter.json.invalid": "JSON is invalid!"
 
 }
 

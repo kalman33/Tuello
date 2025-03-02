@@ -1,0 +1,17 @@
+.zone-saisie {
+  width: 100%;        /* 100% de la largeur */
+  height: 80vh;       /* 80% de la hauteur de la fenêtre */
+  resize: none;       /* Empêche le redimensionnement */
+  padding: 10px;
+  box-sizing: border-box; /* Inclut le padding et la bordure dans la taille totale */
+}
+
+.button-row > button {
+  display: inline-flex;
+  align-items: center; /* Centre verticalement le texte et l'icône */
+  justify-content: center; /* Centre horizontalement le contenu */
+  padding: 0 12px !important;
+  margin-right: 20px;
+  margin-bottom: 10px !important;
+  line-height: 30px;
+}

@@ -1,0 +1,27 @@
+<div class="container" >
+  <div fxFlex="99">
+    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+      <button mat-flat-button color="primary" (click)="beautifyJson()">
+        <mat-icon>view_timeline</mat-icon>
+        {{ 'mmn.json-formatter.button.format' | translate }}
+      </button>
+    
+      <button mat-flat-button
+                color="primary"
+                (click)="copyToClipboard()"
+                [matTooltip]="'mmn.json-formatter.button.copyToClipboard' | translate"
+                [attr.aria-label]="'mmn.json-formatter.button.copyToClipboard' | translate">
+          <mat-icon>content_copy</mat-icon>
+          {{ 'mmn.json-formatter.button.copy' | translate }}
+        </button>
+
+        <button mat-flat-button color="primary" (click)="cleanInputText()" >
+          <mat-icon>delete</mat-icon>
+          {{ 'mmn.json-formatter.button.clean' | translate }}
+        </button>
+      </div>
+
+      <textarea [(ngModel)]="jsonInput" class="zone-saisie" [placeholder]="'mmn.json-formatter.jsoninput.placeholder' | translate"></textarea>
+   
+  </div>
+</div>

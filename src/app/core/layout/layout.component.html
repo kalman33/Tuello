@@ -62,8 +62,14 @@
             <span mat-line> {{ this.menuLabels[3] ?  this.menuLabels[3] : ('mmn.layout.searchElements' | translate) }} </span>
           </a>
         }
+        <a [class.selected]="selectedIndex === 4" (click)="selectMenuItem(4)" mat-list-item [routerLink]="['/json-formatter']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon>
+            view_timeline
+          </mat-icon>
+          <span mat-line> {{ 'mmn.layout.jsonFormatter' | translate }} </span>
+        </a>
 
-        <a [class.selected]="selectedIndex === 4" (click)="selectMenuItem(4)" mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
+        <a [class.selected]="selectedIndex === 5" (click)="selectMenuItem(5)" mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon>
             settings
           </mat-icon>

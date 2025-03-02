@@ -324,6 +324,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       el.select();
       document.execCommand('copy');
       document.body.removeChild(el);
+      this.infoBar.open(this.translate.instant('mmn.recorder-http.button.copied'), '', {duration: 1000});
     } catch (e) {
       // @TODO : a compléter
     }
