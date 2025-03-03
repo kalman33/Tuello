@@ -6,6 +6,7 @@ Among other things, it allows you to
 
 - Intercept and modify HTTP requests (xrh and fetch).
 - Track HTML tags (e.g. \<h1>), HTML attributes (e.g. aria-labelledby) or text on the page. Tuello will highlight these elements directly in your HTML page as you navigate.
+- Format and beautify JSON
 - Visualise a Json stream within the page and display it as a tree.
 - Track resources consumed on the page or during a user click (e.g. XITI tags).
 - Record and replay user's browser actions on the web page. When replaying, Tuello is able to visually compare them with those previously recorded.

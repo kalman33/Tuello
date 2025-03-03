@@ -29,7 +29,7 @@
         @if (actions) {
           <mat-list cdkDropList [cdkDropListData]="actions"
             (cdkDropListDropped)="onTaskDrop($event)">
-            @for (action of actions; track action; let i = $index) {
+            @for (action of actions; track action.id; let i = $index) {
               <mat-list-item>
                 <mmn-action cdkDrag [index]='i' [action]="action" class="animated lightSpeedIn"
                   [ngClass]="{'selected': playerService.pausedActionNumber === i}"
@@ -52,7 +52,7 @@
         </ng-template>
         <mat-list>
           <mat-nav-list dense>
-            @for (httpRecord of recorderHistoryService?.record?.httpRecords; track httpRecord) {
+            @for (httpRecord of recorderHistoryService?.record?.httpRecords; track httpRecord.key) {
               <mat-list-item style="cursor: pointer" (click)="visualiserFlux(httpRecord)" >
                 {{ httpRecord.key }}
               </mat-list-item>

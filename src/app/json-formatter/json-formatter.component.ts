@@ -36,8 +36,10 @@ export class JsonFormatterComponent  {
 
   beautifyJson() {
     try {
+      // Correction : Ajout de guillemets autour des nombres en tant que clés
+      const fixedJsonString = this.jsonInput.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
       // Parse le JSON et le formate avec une indentation de 2 espaces
-      const parsedJson = JSON5.parse(this.jsonInput);
+      const parsedJson = JSON5.parse(fixedJsonString);
       this.jsonInput = JSON.stringify(parsedJson, null, 2); // Beautify
     } catch (e) {
       this.snackBar.open(this.translate.instant('mmn.json-formatter.json.invalid'), '', {duration: 2000});

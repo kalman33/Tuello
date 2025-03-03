@@ -1,7 +1,7 @@
 import { NgClass } from '@angular/common';
 import { Component, ElementRef, NgZone, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButton } from '@angular/material/button';
+import { MatButton, MatButtonModule } from '@angular/material/button';
 import { MatOption } from '@angular/material/core';
 import { MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
@@ -21,13 +21,15 @@ import { ConfigurationService } from '../core/configuration/configuration.servic
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
 import { SettingsMenuComponent } from './menus/settings-menu.component';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 
 
 @Component({
     selector: 'mmn-settings',
     templateUrl: './settings.component.html',
     styleUrls: ['./settings.component.scss'],
-    imports: [FlexModule,FormsModule, MatTabGroup, MatTab, MatTabLabel, MatIcon, NgClass, ExtendedModule, MatSlideToggle, MatFormField, MatSelect, MatOption, MatSlider, MatSliderThumb, SettingsMenuComponent, MatButton, TranslatePipe]
+    imports: [FlexModule,FormsModule, MatTabGroup, MatTab, MatTabLabel, MatIcon, NgClass, MatDialogModule, MatDialogModule, MatButtonModule, ExtendedModule, MatSlideToggle, MatFormField, MatSelect, MatOption, MatSlider, MatSliderThumb, SettingsMenuComponent, MatButton, TranslatePipe]
 })
 export class SettingsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
@@ -51,7 +53,8 @@ export class SettingsComponent implements OnInit {
     private translate: TranslateService,
     private snackBar: MatSnackBar,
     private configurationService: ConfigurationService,
-    private zone: NgZone
+    private zone: NgZone,
+    private dialog: MatDialog
   ) { }
 
   ngOnInit() {
@@ -157,7 +160,18 @@ export class SettingsComponent implements OnInit {
   }
 
   clear() {
-    chrome.storage.local.clear();
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '350px',
+      data: { message: this.translate.instant('mmn.settings.setup.button.clear.message')  }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        chrome.storage.local.clear();
+        // Logique à exécuter en cas de confirmation
+      } 
+    });
+   
   }
 
   public onChange(fileList: any): void {

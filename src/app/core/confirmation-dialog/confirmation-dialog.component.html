@@ -1,0 +1,10 @@
+<h2 mat-dialog-title>Confirmation</h2>
+<mat-dialog-content>
+  <p>{{ data.message }}</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-flat-button cdkFocusInitial (click)="onCancel()"><mat-icon>cancel</mat-icon>{{ 'mmn.settings.setup.button.clear.cancel' | translate }}</button>
+  <button mat-flat-button color="warn" (click)="onConfirm()"><mat-icon>done</mat-icon>{{ 'mmn.settings.setup.button.clear.ok' | translate }}</button>
+</mat-dialog-actions>
+
+

@@ -19,6 +19,7 @@ import { RecorderHttpService } from './services/recorder-http.service';
 import { TagsService } from './services/tags.service';
 import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
 import JSON5 from 'json5';
+import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'mmn-recorder-http',
@@ -262,8 +263,18 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
    * vide le composant jsoneditor
    */
   effacerEnregistrements() {
-    this.recorderService.reset();
-    this.jsonEditorTree.update({ json: {} });
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '350px',
+      data: { message: this.translate.instant('mmn.recorder-http.button.delete.message')  }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.recorderService.reset();
+        this.jsonEditorTree.update({ json: {} });
+      } 
+    });
   }
 
   /**
