@@ -145,5 +145,13 @@
   "mmn.json-formatter.button.copied": "Copié dans le presse-papier",
   "mmn.json-formatter.jsoninput.placeholder": "Saisir votre JSON ici...",
   "mmn.json-formatter.button.clean": "Effacer",
-  "mmn.json-formatter.json.invalid": "Le JSON est invalide!"
+  "mmn.json-formatter.json.invalid": "Le JSON est invalide!",
+  "mmn.error-json.title": "Erreur JSONr",
+  "mmn.error-json.button.close": "Fermer",
+  "mmn.error-json.line": "Ligne",
+  "mmn.error-json.column": "Colonne",
+  "mmn.error-json.lastEntry": "Élément proche de l'erreur",
+  "mmn.error-json.button.copied": "Copié dans le presse-papier",
+  "mmn.error-json.button.copyToClipboard": "Copier dans le presse-papier",
+  "mmn.error-json.button.copy": "Copier"
 }

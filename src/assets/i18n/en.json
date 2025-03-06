@@ -145,7 +145,16 @@
   "mmn.json-formatter.button.copied": "copied to clipboard",
   "mmn.json-formatter.jsoninput.placeholder": "Enter your JSON here...",
   "mmn.json-formatter.button.clean": "Clean",
-  "mmn.json-formatter.json.invalid": "JSON is invalid!"
+  "mmn.json-formatter.json.invalid": "JSON is invalid!",
+
+  "mmn.error-json.title": "JSON Error",
+  "mmn.error-json.button.close": "Close",
+  "mmn.error-json.line": "Line",
+  "mmn.error-json.column": "Column",
+  "mmn.error-json.lastEntry": "Element near the error",
+  "mmn.error-json.button.copied": "copied to clipboard",
+  "mmn.error-json.button.copyToClipboard": "Copy to clipboard",
+  "mmn.error-json.button.copy": "Copy"
 
 }
 

@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>{{ 'mmn.error-json.title' | translate }}</h2>
+<mat-dialog-content>
+
+  <mat-grid-list cols="3" rowHeight="40px">
+    <mat-grid-tile class="align-left" colspan="1">
+      {{ 'mmn.error-json.line' | translate }} :
+    </mat-grid-tile>
+    <mat-grid-tile class="align-left" colspan="1">
+      {{ data.line }}
+    </mat-grid-tile>
+    <mat-grid-tile class="align-left" colspan="1">
+    </mat-grid-tile>
+
+    <mat-grid-tile class="align-left" colspan="1">
+      {{ 'mmn.error-json.column' | translate }} :
+    </mat-grid-tile>
+    <mat-grid-tile class="align-left" colspan="1">
+      {{ data.column }}
+    </mat-grid-tile>
+    <mat-grid-tile class="align-left" colspan="1">
+    </mat-grid-tile>
+
+    <mat-grid-tile class="align-left" colspan="3" class="divider-tile">
+      <mat-divider></mat-divider>
+    </mat-grid-tile>
+
+    <mat-grid-tile class="align-left" colspan="2">
+      {{ 'mmn.error-json.lastEntry' | translate }} :
+    </mat-grid-tile>
+    <mat-grid-tile colspan="1" rowspan="2">
+      <button mat-flat-button color="primary" (click)="copyToClipboard()"
+        [matTooltip]="'mmn.error-json.button.copied' | translate"
+        [attr.aria-label]="'mmn.error-json.button.copied' | translate">
+        <mat-icon>content_copy</mat-icon>
+        {{ 'mmn.error-json.button.copy' | translate }}
+      </button>
+    </mat-grid-tile>
+    <mat-grid-tile class="align-left" colspan="2">
+      {{ data.lastEntry }}
+    </mat-grid-tile>
+   
+  </mat-grid-list>
+
+
+
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="warn" (click)="onClose()"><mat-icon>done</mat-icon>{{ 'mmn.error-json.button.close' |
+    translate }}</button>
+</mat-dialog-actions>

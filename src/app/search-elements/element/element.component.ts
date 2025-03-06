@@ -11,15 +11,13 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     styleUrls: ['./element.component.scss'],
     imports: [FlexModule, MatIconButton, MatIcon]
 })
-export class ElementComponent implements OnInit {
+export class ElementComponent {
   @Input() element: SearchElement;
   @Input() index: number;
   @Output() delete: EventEmitter<number> = new EventEmitter<number>();
 
 
   constructor(public dialog: MatDialog) {}
-
-  ngOnInit() {}
 
   removeElement() {
     this.delete.emit(this.index);

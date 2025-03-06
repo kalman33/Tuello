@@ -1,0 +1,5 @@
+.divider-tile mat-divider {
+  width: 100%;
+}
+
+.align-left { ::ng-deep { .mat-grid-tile-content { justify-content: flex-start; align-items: flex-start; } } }
