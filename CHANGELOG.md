@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.1.1.0] - 2025-03-08
+    Gestion des erreurs sur le formateur JSON
 ## [1.1.0.0] - 2025-02-09
     Montée version bibliotheques
     Migration de jsoneditor à svelte-jsoneditor
