@@ -1,3 +1,4 @@
+import { Player } from './background/player';
 import {
   addComment,
   addHttpUserAction,
@@ -11,14 +12,13 @@ import {
   loadRecordFromStorage,
   setPause
 } from './background/uiRecorderHandler';
-import Port = chrome.runtime.Port;
-import { Player } from './background/player';
 import { UserAction } from './models/UserAction';
 import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
+import Port = chrome.runtime.Port;
 
 let port;
 let player = null;
-const prefix: string = '[ TUELLO ]';
+
 
 chrome.action.onClicked.addListener(async (tab) => {
   if (tab.url && tab.url.startsWith("http")) {
@@ -292,15 +292,6 @@ chrome.commands.onCommand.addListener(command => {
 chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
   switch (msg.action) {
 
-    case 'LOG_DATA':
-      chrome.storage.local.get(['loggerEnabled'], function (result) {
-        const loggerEnabled = result.loggerEnabled !== undefined ? result.loggerEnabled : true;
-        if (loggerEnabled) {
-          console.log(prefix, ...msg.value);
-        }
-        senderResponse();
-      });
-      break;
     case 'updateIcon':
       chrome.action.setIcon({ path: `/assets/logos/${msg.value}` });
 
@@ -719,7 +710,6 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         );
       });
       return true;
-      break;
     case 'RECORD_USER_ACTION':
       addUserAction(msg.value, sender.tab.id, sender.frameId);
       break;

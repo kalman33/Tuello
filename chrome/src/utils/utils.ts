@@ -2,17 +2,10 @@ import { ICoordinates } from '../models/UserAction';
 
 
 export function logData(...args: any[]) {
-  if (chrome.runtime) {
-    chrome.runtime.sendMessage({
-      action: 'LOG_DATA',
-      value: args
-    }, () => { });
-  } else {
-    window.top.postMessage({
-      action: 'LOG_DATA',
-      value: args
-    }, '*');
-  }
+  window.top.postMessage({
+    action: 'LOG_DATA',
+    value: args
+  }, '*');
 }
 
 /**
@@ -37,10 +30,10 @@ export function removeDuplicateEntries(data: any): any {
  * @returns 
  */
 async function hashString(message) {
-  const msgBuffer = new TextEncoder().encode(message);                     
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);     
-  const hashArray = Array.from(new Uint8Array(hashBuffer));                
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); 
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   return hashHex;
 }
 
@@ -438,72 +431,72 @@ export function getBodyFromData(data: any) {
 // donne le keycode clavier à partir de la key
 export function getKeyCode(key) {
   const keyMap = {
-      'Backspace': 'Backspace',
-      'Tab': 'Tab',
-      'Enter': 'Enter',
-      'Shift': 'ShiftLeft',
-      'Control': 'ControlLeft',
-      'Alt': 'AltLeft',
-      'CapsLock': 'CapsLock',
-      'Escape': 'Escape',
-      'Space': 'Space',
-      'PageUp': 'PageUp',
-      'PageDown': 'PageDown',
-      'End': 'End',
-      'Home': 'Home',
-      'ArrowLeft': 'ArrowLeft',
-      'ArrowUp': 'ArrowUp',
-      'ArrowRight': 'ArrowRight',
-      'ArrowDown': 'ArrowDown',
-      'Insert': 'Insert',
-      'Delete': 'Delete',
-      '0': 'Digit0',
-      '1': 'Digit1',
-      '2': 'Digit2',
-      '3': 'Digit3',
-      '4': 'Digit4',
-      '5': 'Digit5',
-      '6': 'Digit6',
-      '7': 'Digit7',
-      '8': 'Digit8',
-      '9': 'Digit9',
-      'A': 'KeyA',
-      'B': 'KeyB',
-      'C': 'KeyC',
-      'D': 'KeyD',
-      'E': 'KeyE',
-      'F': 'KeyF',
-      'G': 'KeyG',
-      'H': 'KeyH',
-      'I': 'KeyI',
-      'J': 'KeyJ',
-      'K': 'KeyK',
-      'L': 'KeyL',
-      'M': 'KeyM',
-      'N': 'KeyN',
-      'O': 'KeyO',
-      'P': 'KeyP',
-      'Q': 'KeyQ',
-      'R': 'KeyR',
-      'S': 'KeyS',
-      'T': 'KeyT',
-      'U': 'KeyU',
-      'V': 'KeyV',
-      'W': 'KeyW',
-      'X': 'KeyX',
-      'Y': 'KeyY',
-      'Z': 'KeyZ',
-      ';': 'Semicolon',
-      '=': 'Equal',
-      ',': 'Comma',
-      '-': 'Minus',
-      '.': 'Period',
-      '/': 'Slash',
-      '`': 'Backquote',
-      '[': 'BracketLeft',
-      '\\': 'Backslash',
-      ']': 'BracketRight',
-      '\'': 'Quote'
+    'Backspace': 'Backspace',
+    'Tab': 'Tab',
+    'Enter': 'Enter',
+    'Shift': 'ShiftLeft',
+    'Control': 'ControlLeft',
+    'Alt': 'AltLeft',
+    'CapsLock': 'CapsLock',
+    'Escape': 'Escape',
+    'Space': 'Space',
+    'PageUp': 'PageUp',
+    'PageDown': 'PageDown',
+    'End': 'End',
+    'Home': 'Home',
+    'ArrowLeft': 'ArrowLeft',
+    'ArrowUp': 'ArrowUp',
+    'ArrowRight': 'ArrowRight',
+    'ArrowDown': 'ArrowDown',
+    'Insert': 'Insert',
+    'Delete': 'Delete',
+    '0': 'Digit0',
+    '1': 'Digit1',
+    '2': 'Digit2',
+    '3': 'Digit3',
+    '4': 'Digit4',
+    '5': 'Digit5',
+    '6': 'Digit6',
+    '7': 'Digit7',
+    '8': 'Digit8',
+    '9': 'Digit9',
+    'A': 'KeyA',
+    'B': 'KeyB',
+    'C': 'KeyC',
+    'D': 'KeyD',
+    'E': 'KeyE',
+    'F': 'KeyF',
+    'G': 'KeyG',
+    'H': 'KeyH',
+    'I': 'KeyI',
+    'J': 'KeyJ',
+    'K': 'KeyK',
+    'L': 'KeyL',
+    'M': 'KeyM',
+    'N': 'KeyN',
+    'O': 'KeyO',
+    'P': 'KeyP',
+    'Q': 'KeyQ',
+    'R': 'KeyR',
+    'S': 'KeyS',
+    'T': 'KeyT',
+    'U': 'KeyU',
+    'V': 'KeyV',
+    'W': 'KeyW',
+    'X': 'KeyX',
+    'Y': 'KeyY',
+    'Z': 'KeyZ',
+    ';': 'Semicolon',
+    '=': 'Equal',
+    ',': 'Comma',
+    '-': 'Minus',
+    '.': 'Period',
+    '/': 'Slash',
+    '`': 'Backquote',
+    '[': 'BracketLeft',
+    '\\': 'Backslash',
+    ']': 'BracketRight',
+    '\'': 'Quote'
   };
 
   // Retourner le code correspondant si la touche existe dans la table

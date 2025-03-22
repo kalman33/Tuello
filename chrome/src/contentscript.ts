@@ -12,6 +12,7 @@ import { displayEffect } from './utils/utils';
 
 let show = false;
 let clickedElement: string;
+const prefix: string = '[ TUELLO ]';
 
 // Récupération des données du localStorage
 try {
@@ -214,6 +215,7 @@ function init() {
 }
 
 function activate() {
+
   chrome.storage.local.get(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated'], results => {
     if (!results.disabled) {
 
@@ -227,6 +229,7 @@ function activate() {
           },
           '*'
         );
+
       }
       if (results.httpRecord) {
         window.postMessage(
@@ -239,17 +242,6 @@ function activate() {
         window.addEventListener('message', recordHttpListener);
       }
 
-      if (results.httpMock) {
-        window.postMessage(
-          {
-            type: 'MOCK_HTTP_ACTIVATED',
-            value: true,
-            tuelloRecords: results.tuelloRecords,
-            deepMockLevel: results.deepMockLevel || 0
-          },
-          '*'
-        );
-      }
       if (results['tuelloHTTPTags']) {
         // On initialise le gestionnaire des tags
         initTagsHandler(results['tuelloHTTPTags']);
@@ -286,13 +278,7 @@ function desactivate() {
   );
   window.removeEventListener('message', recordHttpListener);
   deleteTagsPanel();
-  window.postMessage(
-    {
-      type: 'MOCK_HTTP_ACTIVATED',
-      value: false,
-    },
-    '*'
-  );
+
   desactivateRecordTracks();
   desactivateSearchElements();
   removeMouseCoordinates();
@@ -370,6 +356,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           },
           '*'
         );
+
       });
       sendResponse();
     } else {
@@ -388,7 +375,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse();
       });
       return true;
-      break;
     case 'VIEW_IMAGE':
       if (window.self === window.top) {
         lightboxImg.open(message.value);
@@ -461,6 +447,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           },
           '*'
         );
+
         sendResponse();
       });
       break;
@@ -555,7 +542,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           //return true;
         });
       return true;
-      break;
     case 'MOCK_HTTP_USER_ACTION':
       chrome.storage.local.get(['deepMockLevel'], results => {
         window.postMessage(
@@ -567,6 +553,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           },
           '*'
         );
+
       });
       sendResponse();
       break;
@@ -590,11 +577,13 @@ window.addEventListener(
           break;
       }
     } else if (event.data?.action === 'LOG_DATA') {
-      // send message to background
-      chrome.runtime.sendMessage({
-        action: 'LOG_DATA',
-        value: event.data.value
-      }, () => { });
+
+      chrome.storage.local.get(['deepMockLevel'], results => {
+        const loggerEnabled = results.loggerEnabled !== undefined ? results.loggerEnabled : true;
+        if (loggerEnabled) {
+          console.log(prefix, ...event.data.value);
+        }
+      });
     }
   },
   false

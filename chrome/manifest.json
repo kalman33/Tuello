@@ -1,6 +1,6 @@
 {
   "name": "Tuello",
-  "version": "1.1.1.0",
+  "version": "1.1.2.0",
   "description": "Intercept and modify HTTP Requests, Track ressources, search elements and record and replay user's browser actions",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
@@ -23,7 +23,6 @@
   "background": {
     "service_worker": "background.js"
   },
-  
   "content_scripts": [
     {
       "matches": [
@@ -51,9 +50,7 @@
       ]
     }
   ],
-  "action": {
-   
-  },
+  "action": {},
   "icons": {
     "16": "assets/logos/tuello-16x16.png",
     "32": "assets/logos/tuello-32x32.png",

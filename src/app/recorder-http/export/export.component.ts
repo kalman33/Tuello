@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, Inject, NgZone, OnInit } from '@angular/core';
+import { Component, Inject, NgZone } from '@angular/core';
 import { MatButton } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogClose, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatDivider } from '@angular/material/divider';
@@ -13,13 +13,13 @@ import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
 
 @Component({
-    selector: 'mmn-export',
-    templateUrl: './export.component.html',
-    styleUrls: ['./export.component.scss'],
-    animations: [fadeInAnimation],
-    imports: [MatDialogTitle, MatDialogContent, NgClass, ExtendedModule, MatButton, MatIcon, MatDivider, MatDialogActions, MatDialogClose, TranslatePipe]
+  selector: 'mmn-export',
+  templateUrl: './export.component.html',
+  styleUrls: ['./export.component.scss'],
+  animations: [fadeInAnimation],
+  imports: [MatDialogTitle, MatDialogContent, NgClass, ExtendedModule, MatButton, MatIcon, MatDivider, MatDialogActions, MatDialogClose, TranslatePipe]
 })
-export class ExportComponent implements OnInit {
+export class ExportComponent {
   libFileName = 'Tuello-Lib-file.js';
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
@@ -31,11 +31,9 @@ export class ExportComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: any
   ) { }
 
-  ngOnInit() { }
-
   save() {
     const value = formatDate(new Date());
-    const txtBlob = new Blob([ this.replaceDynamicData(JSON.stringify(this.data))], { type: 'text/plain;charset=utf-8' });
+    const txtBlob = new Blob([this.replaceDynamicData(JSON.stringify(this.data))], { type: 'text/plain;charset=utf-8' });
     saveAs(txtBlob, `tuello-http-${value}.json`);
     this.dialogRef.close();
   }

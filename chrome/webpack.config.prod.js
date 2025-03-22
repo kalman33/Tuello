@@ -22,9 +22,9 @@ module.exports = {
       {
         exclude: /node_modules/,
         test: /\.ts?$/,
-        loader: 'ts-loader',
-      },
-    ],
+        loader: 'ts-loader'
+      }
+    ]
   },
   plugins: [
     new CopyWebpackPlugin({
@@ -33,40 +33,26 @@ module.exports = {
           from: './node_modules/jsoneditor/dist/img/jsoneditor-icons.svg',
           to: 'img/.'
         },
-        {  from: './node_modules/jsoneditor/dist/jsoneditor.css',
-            to: '.',
-        },
-        {  from: './chrome/src/popup/popup.html',
-          to: '.',
-        },
-        {  from: './chrome/src/popup/popup.css',
-          to: '.',
-        },
-        {  from: './chrome/assets/comment.css',
-          to: '.',
-        },
-        {  from: './chrome/assets/default.css',
-          to: '.',
-        },
-        {  from: './chrome/assets/tags.css',
-          to: '.',
-        },
-        {  from: './node_modules/simptip/simptip.min.css',
-          to: '.',
-        },
+        { from: './node_modules/jsoneditor/dist/jsoneditor.css', to: '.' },
+        { from: './chrome/src/popup/popup.html', to: '.' },
+        { from: './chrome/src/popup/popup.css', to: '.' },
+        { from: './chrome/assets/comment.css', to: '.' },
+        { from: './chrome/assets/default.css', to: '.' },
+        { from: './chrome/assets/tags.css', to: '.' },
+        { from: './node_modules/simptip/simptip.min.css', to: '.' },
         {
           from: './chrome/manifest.json',
-          to: '.',
+          to: '.'
         },
         {
           from: './chrome/assets/logos/*',
           to: './assets/logos/[name][ext]'
         }
-      ],
+      ]
     }),
-    new optimize.AggressiveMergingPlugin(),
+    new optimize.AggressiveMergingPlugin()
   ],
   resolve: {
-    extensions: ['.ts', '.js'],
-  },
+    extensions: ['.ts', '.js']
+  }
 };

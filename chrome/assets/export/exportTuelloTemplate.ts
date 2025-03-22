@@ -78,25 +78,26 @@
       modifyResponse: (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
 
         if (window['tuelloRecords']) {
-          // this.responseURL
-          const records = window['tuelloRecords'].filter(({ key, response, httpCode }) => compareWithMockLevel(xhr["originalURL"], key));
-          if (records && records.length > 0) {
-            records.forEach(({ key, response, httpCode, delay }) => {
-              if (delay && isOnLoad) {
-                sleep(delay);
+
+          const record = window['tuelloRecords'].find(({ key, response, httpCode }) =>
+            compareWithMockLevel(xhr["originalURL"], key)
+          );
+          if (record) {
+              if (record.delay && isOnLoad) {
+                  sleep(record.delay);
               }
               Object.defineProperty(xhr, 'response', { writable: true });
               Object.defineProperty(xhr, 'responseText', { writable: true });
               Object.defineProperty(xhr, 'status', { writable: true });
-              // @ts-ignore: Ignorer l'erreur TypeScript ici
-              xhr.responseText = JSON.stringify(response);
-              // @ts-ignore: Ignorer l'erreur TypeScript ici
-              xhr.response = response;
-              // @ts-ignore: Ignorer l'erreur TypeScript ici
-              xhr.status = httpCode;
-
-            });
-          }
+              // @ts-expect-error
+              xhr.responseText = JSON.stringify(record.response);
+              // Object.defineProperty(this,'responseText', JSON.stringify(response));
+              // @ts-expect-error
+              xhr.response = record.response;
+              // @ts-expect-error
+              xhr.status = record.httpCode;
+            
+            }
         }
       },
 
@@ -147,16 +148,16 @@
           let txt = undefined;
           let status = undefined;
           if (window['tuelloRecords']) {
-            const records =window['tuelloRecords'].filter(({ key, response, httpCode }) => compareWithMockLevel(args[0], key));
-            if (records && records.length > 0) {
-              records.forEach(({ key, response, httpCode, delay }) => {
-                if (delay) {
-                  sleep(delay);
+            const record = window['tuelloRecords'].tuelloRecords.find(({ key, response, httpCode }) =>
+              compareWithMockLevel(args[0], key)
+            );
+            if (record) {
+                if (record.delay) {
+                  sleep(record.delay);
                 }
-                txt = JSON.stringify(response);
-                status = httpCode;
-              });
-            }
+                txt = JSON.stringify(record.response);
+                status = record.httpCode;
+              }
           }
 
           if (txt !== undefined) {

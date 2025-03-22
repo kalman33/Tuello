@@ -186,9 +186,9 @@ intercepteurHTTPRecorder.interceptXHR = function (req) {
                         }
 
                     } catch (e) {
-                        // response = req.responseText;
+                        response = req.responseText;
                         // error
-                        console.log('Tuello : Problème de parsing de la reponse pour l url : ' + req.responseURL);
+                        logData('- Mock HTTP - Problème non bloquant de parsing de la reponse pour l url : ' + req.responseURL);
                     }
                 }
             }
@@ -215,7 +215,7 @@ intercepteurHTTPTags.interceptXHR = function (req) {
                     } catch (e) {
                         response = req.responseText;
                         // error
-                        console.log('Tuello : Problème de parsing de la reponse', e);
+                        logData('- Mock HTTP - Problème non bloquant de parsing de la reponse', e);
                     }
 
                     const messageHTTPTags = {
@@ -245,17 +245,19 @@ intercepteurHTTPMock.interceptFetch = function (response, ...args) {
         let txt = undefined;
         let status = undefined;
         if ((window as any).tuelloRecords) {
-            const records = (window as any).tuelloRecords.filter(({ key }) =>
+
+            const record = (window as any).tuelloRecords.find(({ key }) =>
                 compareWithMockLevel(response.url, key)
             );
-            if (records && records.length > 0) {
-                records.forEach(({ key, response, httpCode, delay }) => {
-                    if (delay) {
-                        sleep(delay);
-                    }
-                    txt = JSON.stringify(response);
-                    status = httpCode;
-                });
+            if (record) {
+                if (record.delay) {
+                    sleep(record.delay);
+                }
+                txt = JSON.stringify(record.response);
+                status = record.httpCode;
+                logData('- Mock HTTP - Mock de ' + response.url);
+            } else {
+                logData('- Mock HTTP - Mock non trouvé de ' + response.url);
             }
         }
 
@@ -386,7 +388,7 @@ window.addEventListener(
         if (event?.data?.type && event?.data?.type === 'MOCK_HTTP_ACTIVATED') {
             if (event.data.value) {
                 deepMockLevel = event.data.deepMockLevel || 0;
-                (window as any).tuelloRecords = typeof event.data.tuelloRecords === 'string' ? JSON.parse(event.data.tuelloRecords) : event.data.tuelloRecords || {}; 
+                (window as any).tuelloRecords = typeof event.data.tuelloRecords === 'string' ? JSON.parse(event.data.tuelloRecords) : event.data.tuelloRecords || {};
                 manager.activateInterceptor('intercepteurHTTPMock');
             } else {
                 manager.deactivateInterceptor('intercepteurHTTPMock');
@@ -413,7 +415,7 @@ window.addEventListener(
             }
         } else if (event?.data?.type === 'MOCK_HTTP_TUELLO_RECORDS') {
             deepMockLevel = event.data.deepMockLevel || 0;
-            (window as any).tuelloRecords = typeof event.data.tuelloRecords === 'string' ? JSON.parse(event.data.tuelloRecords) : event.data.tuelloRecords || {}; 
+            (window as any).tuelloRecords = typeof event.data.tuelloRecords === 'string' ? JSON.parse(event.data.tuelloRecords) : event.data.tuelloRecords || {};
         }
 
 
@@ -500,25 +502,28 @@ let modifyResponse = (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
 
     if ((window as any).tuelloRecords) {
         // this.responseURL
-        const records = (window as any).tuelloRecords.filter(({ key, response, httpCode }) => compareWithMockLevel(xhr["originalURL"], key));
-        if (records && records.length > 0) {
-            records.forEach(({ key, response, httpCode, delay }) => {
-                if (delay && isOnLoad) {
-                    sleep(delay);
-                }
-                Object.defineProperty(xhr, 'response', { writable: true });
-                Object.defineProperty(xhr, 'responseText', { writable: true });
-                Object.defineProperty(xhr, 'status', { writable: true });
-                // @ts-expect-error
-                xhr.responseText = JSON.stringify(response);
-                // Object.defineProperty(this,'responseText', JSON.stringify(response));
-                // @ts-expect-error
-                xhr.response = response;
-                // @ts-expect-error
-                xhr.status = httpCode;
+        //const records = (window as any).tuelloRecords.filter(({ key, response, httpCode }) => compareWithMockLevel(xhr["originalURL"], key));
+        const record = (window as any).tuelloRecords.find(({ key, response, httpCode }) =>
+            compareWithMockLevel(xhr["originalURL"], key)
+        );
+        if (record) {
+            if (record.delay && isOnLoad) {
+                sleep(record.delay);
+            }
+            Object.defineProperty(xhr, 'response', { writable: true });
+            Object.defineProperty(xhr, 'responseText', { writable: true });
+            Object.defineProperty(xhr, 'status', { writable: true });
+            // @ts-expect-error
+            xhr.responseText = JSON.stringify(record.response);
+            // Object.defineProperty(this,'responseText', JSON.stringify(response));
+            // @ts-expect-error
+            xhr.response = record.response;
+            // @ts-expect-error
+            xhr.status = record.httpCode;
 
-                logData('- Mock HTTP - Mock de ' + xhr["originalURL"]);
-            });
+            logData('- Mock HTTP - Mock de ' + xhr["originalURL"]);
+        } else {
+            logData('- Mock HTTP - Mock non trouvé de ' + xhr["originalURL"]);
         }
     }
 }
