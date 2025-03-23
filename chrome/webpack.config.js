@@ -30,11 +30,6 @@ module.exports = {
   plugins: [
     new CopyWebpackPlugin({
       patterns: [
-        {
-          from: './node_modules/jsoneditor/dist/img/jsoneditor-icons.svg',
-          to: 'img/.'
-        },
-        { from: './node_modules/jsoneditor/dist/jsoneditor.css', to: '.' },
         { from: './chrome/src/popup/popup.html', to: '.' },
         { from: './chrome/src/popup/popup.css', to: '.' },
         { from: './chrome/assets/comment.css', to: '.' },
