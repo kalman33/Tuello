@@ -19,6 +19,36 @@ import Port = chrome.runtime.Port;
 let port;
 let player = null;
 
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  chrome.tabs.get(activeInfo.tabId, (tab) => {
+    if (tab.url.startsWith("chrome://") || tab.url.startsWith("about:") || tab.url.startsWith("edge://")) {
+      chrome.action.setBadgeText({ text: "OFF", tabId: tab.id });
+      chrome.action.setBadgeBackgroundColor({ color: "gray", tabId: tab.id });
+      chrome.action.disable(tab.id);
+    } else {
+      chrome.action.setBadgeText({ text: "", tabId: tab.id }, () => {
+        // Chrome réapplique la couleur par défaut automatiquement
+      });
+      chrome.action.enable(tab.id);
+    }
+  });
+});
+
+// Gérer les changements d'URL sur l'onglet actif
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    if (tab.url.startsWith("chrome://") || tab.url.startsWith("about:") || tab.url.startsWith("edge://")) {
+      chrome.action.setBadgeText({ text: "OFF", tabId: tab.id });
+      chrome.action.setBadgeBackgroundColor({ color: "gray", tabId: tab.id });
+      chrome.action.disable(tab.id);
+    } else {
+      chrome.action.setBadgeText({ text: "", tabId }, () => {
+        // Chrome réapplique la couleur par défaut automatiquement
+      });
+      chrome.action.enable(tab.id);
+    }
+  }
+});
 
 chrome.action.onClicked.addListener(async (tab) => {
   if (tab.url && tab.url.startsWith("http")) {

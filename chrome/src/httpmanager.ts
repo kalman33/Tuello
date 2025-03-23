@@ -121,7 +121,6 @@ XMLHttpRequest.prototype.send = function (data) {
     const response = await originalFetch(...args);
     // Exécuter les intercepteurs et obtenir la réponse modifiée
     const modifiedResponse = await manager.runInterceptorsFetch(response, ...args);
-    // modifiedResponse.json().then(body => console.log('TUELLO BODY', body));
 
     return modifiedResponse;
 };

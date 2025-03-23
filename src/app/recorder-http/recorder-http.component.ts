@@ -11,15 +11,15 @@ import { Router } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import JSON5 from 'json5';
 import { ContextMenuItem, createJSONEditor, JSONContent, JsonEditor, RenderContextMenuContext } from 'vanilla-jsoneditor';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
+import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 import { ExportComponent } from './export/export.component';
 import { TagElement } from './models/TagElement';
 import { RecorderHttpService } from './services/recorder-http.service';
 import { TagsService } from './services/tags.service';
 import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
-import JSON5 from 'json5';
-import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'mmn-recorder-http',
@@ -188,7 +188,6 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
         },
         onChange: () => {
-          console.log("onChange");
           this.updateData();
         },
         onRenderContextMenu: (items: ContextMenuItem[], context: RenderContextMenuContext) => {
@@ -266,14 +265,14 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '350px',
-      data: { message: this.translate.instant('mmn.recorder-http.button.delete.message')  }
+      data: { message: this.translate.instant('mmn.recorder-http.button.delete.message') }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         this.recorderService.reset();
         this.jsonEditorTree.update({ json: {} });
-      } 
+      }
     });
   }
 
@@ -335,7 +334,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       el.select();
       document.execCommand('copy');
       document.body.removeChild(el);
-      this.infoBar.open(this.translate.instant('mmn.recorder-http.button.copied'), '', {duration: 1000});
+      this.infoBar.open(this.translate.instant('mmn.recorder-http.button.copied'), '', { duration: 1000 });
     } catch (e) {
       // @TODO : a compléter
     }

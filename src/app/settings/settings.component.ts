@@ -3,6 +3,7 @@ import { Component, ElementRef, NgZone, OnInit, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms';
 import { MatButton, MatButtonModule } from '@angular/material/button';
 import { MatOption } from '@angular/material/core';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatSelect } from '@angular/material/select';
@@ -18,18 +19,17 @@ import * as enMessages from '../../assets/i18n/en.json';
 import * as frMessages from '../../assets/i18n/fr.json';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ConfigurationService } from '../core/configuration/configuration.service';
+import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
 import { SettingsMenuComponent } from './menus/settings-menu.component';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 
 
 @Component({
-    selector: 'mmn-settings',
-    templateUrl: './settings.component.html',
-    styleUrls: ['./settings.component.scss'],
-    imports: [FlexModule,FormsModule, MatTabGroup, MatTab, MatTabLabel, MatIcon, NgClass, MatDialogModule, MatDialogModule, MatButtonModule, ExtendedModule, MatSlideToggle, MatFormField, MatSelect, MatOption, MatSlider, MatSliderThumb, SettingsMenuComponent, MatButton, TranslatePipe]
+  selector: 'mmn-settings',
+  templateUrl: './settings.component.html',
+  styleUrls: ['./settings.component.scss'],
+  imports: [FlexModule, FormsModule, MatTabGroup, MatTab, MatTabLabel, MatIcon, NgClass, MatDialogModule, MatDialogModule, MatButtonModule, ExtendedModule, MatSlideToggle, MatFormField, MatSelect, MatOption, MatSlider, MatSliderThumb, SettingsMenuComponent, MatButton, TranslatePipe]
 })
 export class SettingsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
@@ -134,8 +134,8 @@ export class SettingsComponent implements OnInit {
   }
 
   toggleVerboseMode(verboseModeValue: boolean) {
-    chrome.storage.local.set({ loggerEnabled: verboseModeValue });
-    
+    chrome.storage.local.set({ verboseMode: verboseModeValue });
+
   }
 
   onLanguageSelect({ value }) {
@@ -162,16 +162,16 @@ export class SettingsComponent implements OnInit {
   clear() {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '350px',
-      data: { message: this.translate.instant('mmn.settings.setup.button.clear.message')  }
+      data: { message: this.translate.instant('mmn.settings.setup.button.clear.message') }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         chrome.storage.local.clear();
         // Logique à exécuter en cas de confirmation
-      } 
+      }
     });
-   
+
   }
 
   public onChange(fileList: any): void {
