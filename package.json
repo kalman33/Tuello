@@ -49,7 +49,7 @@
     "rxjs-pausable": "^1.0.0",
     "simptip": "^1.0.4",
     "tslib": "^2.3.0",
-    "vanilla-jsoneditor": "^2.4.0",
+    "vanilla-jsoneditor": "^3.11.0",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
