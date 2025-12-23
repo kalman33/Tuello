@@ -1,4 +1,25 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
-  "recommendations": ["angular.ng-template"]
+	// See http://go.microsoft.com/fwlink/?LinkId=827846
+	// for the documentation about the extensions.json format
+	"recommendations": [
+		"alefragnani.project-manager",
+		"alphabotsec.vscode-eclipse-keybindings",
+		"angular.ng-template",
+		"christian-kohler.path-intellisense",
+		"cyrilletuzi.angular-schematics",
+		"dbaeumer.vscode-eslint",
+		"esbenp.prettier-vscode",
+		"github.github-vscode-theme",
+		"gruntfuggly.todo-tree",
+		"ms-ceintl.vscode-language-pack-fr",
+		"ms-vscode.extension-test-runner",
+		"pkief.material-icon-theme",
+		"steoates.autoimport",
+		"streetsidesoftware.code-spell-checker",
+		"streetsidesoftware.code-spell-checker-french",
+		"usernamehw.errorlens",
+		"vscode-icons-team.vscode-icons",
+		"yoavbls.pretty-ts-errors",
+		"yzhang.markdown-all-in-one"
+	]
 }
