@@ -30,8 +30,8 @@ interface ExtendedXMLHttpRequest extends XMLHttpRequest {
 
 declare global {
     interface Window {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tuelloRecords?: any;
+        // Type flexible pour supporter le template (string) et l'utilisation normale (array)
+        tuelloRecords?: TuelloRecord[] | string | undefined;
     }
 }
 
@@ -70,6 +70,24 @@ const originalFetch = window.fetch.bind(window);
 let messageForHTTPRecorderQueue: HttpMessage[] = [];
 let messageForHTTPTagsQueue: HttpMessage[] = [];
 let deepMockLevel = 0;
+
+// État pour le mock HTTP - gestion de la race condition
+let tuelloRecordsReady = false;
+let mockUserActivated = false;
+let pendingMockXhrQueue: Array<{
+    xhr: ExtendedXMLHttpRequest;
+    originalCallback: ((this: XMLHttpRequest, ev: Event) => void) | null;
+}> = [];
+let pendingMockFetchQueue: Array<{
+    resolve: (response: Response) => void;
+    response: Response;
+}> = [];
+
+// Promise résolue quand tuelloRecords est chargé
+let tuelloRecordsReadyResolve: (() => void) | null = null;
+const tuelloRecordsReadyPromise = new Promise<void>((resolve) => {
+    tuelloRecordsReadyResolve = resolve;
+});
 
 // ============================================================================
 // Utilitaires
@@ -161,8 +179,67 @@ const compareWithMockLevel = (url1: string, url2: string): boolean => {
     return new RegExp(`^${escapedUrl2}$`).test(normalizedUrl1);
 };
 
-const findMockRecord = (url: string): TuelloRecord | undefined =>
-    window.tuelloRecords?.find(({ key }) => compareWithMockLevel(url, key));
+const findMockRecord = (url: string): TuelloRecord | undefined => {
+    const records = window.tuelloRecords;
+    if (!records || typeof records === 'string') return undefined;
+    return records.find(({ key }: TuelloRecord) => compareWithMockLevel(url, key));
+};
+
+// Traite la queue des XHR en attente de mock
+const processPendingMockXhrQueue = (): void => {
+    logData(`- Mock HTTP - Traitement de ${pendingMockXhrQueue.length} requêtes XHR en attente`);
+
+    while (pendingMockXhrQueue.length > 0) {
+        const pending = pendingMockXhrQueue.shift();
+        if (!pending) continue;
+
+        const { xhr, originalCallback } = pending;
+
+        // Si la requête est terminée, on applique le mock et on re-déclenche le callback
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            modifyXhrResponse(xhr, false);
+            if (originalCallback) {
+                originalCallback.call(xhr, new Event('readystatechange'));
+            }
+        }
+    }
+};
+
+// Traite la queue des fetch en attente de mock
+const processPendingMockFetchQueue = (): void => {
+    logData(`- Mock HTTP - Traitement de ${pendingMockFetchQueue.length} requêtes Fetch en attente`);
+
+    while (pendingMockFetchQueue.length > 0) {
+        const pending = pendingMockFetchQueue.shift();
+        if (!pending) continue;
+
+        const { resolve, response } = pending;
+        const record = findMockRecord(response.url);
+
+        if (record) {
+            if (record.delay) {
+                sleepSync(record.delay);
+            }
+            logData('- Mock HTTP - Mock de ' + response.url);
+            resolve(createMockedResponse(response, record));
+        } else {
+            logData('- Mock HTTP - Mock non trouvé de ' + response.url);
+            resolve(response);
+        }
+    }
+};
+
+// Appelée quand tuelloRecords devient disponible
+const onTuelloRecordsReady = (): void => {
+    if (tuelloRecordsReady) return; // Déjà traité
+
+    tuelloRecordsReady = true;
+    tuelloRecordsReadyResolve?.();
+
+    // Traiter les queues
+    processPendingMockXhrQueue();
+    processPendingMockFetchQueue();
+};
 
 const createMockedResponse = (originalResponse: Response, record: TuelloRecord): Response => {
     const body = JSON.stringify(record.response);
@@ -339,15 +416,49 @@ intercepteurHTTPMock.interceptXHR = function (req: ExtendedXMLHttpRequest): void
 
     req.onreadystatechange = function (this: XMLHttpRequest, ev: Event) {
         if (this.readyState === XMLHttpRequest.DONE) {
+            // Si l'utilisateur n'a pas activé le mock, ne rien faire
+            if (!mockUserActivated) {
+                originalOnReadyStateChange?.call(this, ev);
+                return;
+            }
+
+            // Si tuelloRecords n'est pas encore prêt, mettre en queue
+            if (!tuelloRecordsReady) {
+                pendingMockXhrQueue.push({
+                    xhr: req,
+                    originalCallback: originalOnReadyStateChange
+                });
+                logData('- Mock HTTP - Requête XHR mise en queue (tuelloRecords non prêt): ' + req.originalURL);
+                // Ne pas appeler le callback original maintenant, il sera appelé après le mock
+                return;
+            }
+
+            // tuelloRecords est prêt, appliquer le mock normalement
             modifyXhrResponse(req, false);
         }
         originalOnReadyStateChange?.call(this, ev);
     };
 };
 
-intercepteurHTTPMock.interceptFetch = function (response: Response): Response {
+intercepteurHTTPMock.interceptFetch = function (response: Response): Response | Promise<Response> {
     if (!this.isActive) return response;
 
+    // Si l'utilisateur n'a pas activé le mock, ne rien faire
+    if (!mockUserActivated) {
+        return response;
+    }
+
+    // Si tuelloRecords n'est pas encore prêt, mettre en queue
+    if (!tuelloRecordsReady) {
+        logData('- Mock HTTP - Requête Fetch mise en queue (tuelloRecords non prêt): ' + response.url);
+
+        // Retourner une Promise qui sera résolue quand tuelloRecords sera prêt
+        return new Promise<Response>((resolve) => {
+            pendingMockFetchQueue.push({ resolve, response });
+        });
+    }
+
+    // tuelloRecords est prêt, appliquer le mock normalement
     const record = findMockRecord(response.url);
     if (!record) {
         logData('- Mock HTTP - Mock non trouvé de ' + response.url);
@@ -522,9 +633,21 @@ window.addEventListener('message', (event: MessageEvent) => {
                 window.tuelloRecords = typeof data.tuelloRecords === 'string'
                     ? JSON.parse(data.tuelloRecords)
                     : data.tuelloRecords || [];
+
+                // Marquer que l'utilisateur a activé le mock
+                mockUserActivated = true;
                 manager.activateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);
+
+                // Si on a des records, traiter les requêtes en attente
+                if (window.tuelloRecords && window.tuelloRecords.length > 0) {
+                    onTuelloRecordsReady();
+                }
             } else {
+                mockUserActivated = false;
                 manager.deactivateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);
+                // Vider les queues si le mock est désactivé
+                pendingMockXhrQueue = [];
+                pendingMockFetchQueue = [];
             }
             break;
 
@@ -553,6 +676,11 @@ window.addEventListener('message', (event: MessageEvent) => {
             window.tuelloRecords = typeof data.tuelloRecords === 'string'
                 ? JSON.parse(data.tuelloRecords)
                 : data.tuelloRecords || [];
+
+            // Si on a des records et que le mock est activé, traiter les requêtes en attente
+            if (window.tuelloRecords && window.tuelloRecords.length > 0) {
+                onTuelloRecordsReady();
+            }
             break;
     }
 }, false);
@@ -563,3 +691,4 @@ window.addEventListener('message', (event: MessageEvent) => {
 
 manager.activateInterceptor(INTERCEPTOR_NAMES.HTTP_RECORDER);
 manager.activateInterceptor(INTERCEPTOR_NAMES.HTTP_TAGS);
+manager.activateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);  // Activer le mock dès le départ pour capturer les premières requêtes

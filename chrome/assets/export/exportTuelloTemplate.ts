@@ -78,7 +78,7 @@
       modifyResponse: (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
 
         if (window['tuelloRecords']) {
-
+          // @ts-ignore - tuelloRecords est remplacé dynamiquement par un tableau
           const record = window['tuelloRecords'].find(({ key, response, httpCode }) =>
             compareWithMockLevel(xhr["originalURL"], key)
           );
@@ -148,7 +148,8 @@
           let txt = undefined;
           let status = undefined;
           if (window['tuelloRecords']) {
-            const record = window['tuelloRecords'].tuelloRecords.find(({ key, response, httpCode }) =>
+            // @ts-ignore - tuelloRecords est remplacé dynamiquement par un tableau
+            const record = window['tuelloRecords'].find(({ key, response, httpCode }) =>
               compareWithMockLevel(args[0], key)
             );
             if (record) {
