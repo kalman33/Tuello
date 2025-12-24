@@ -13,24 +13,28 @@ export class TagsService {
 
   constructor() {}
 
-  loadTags() {
+  loadTags(): Promise<void> {
     // recupération des elements
-    chrome.storage.local.get(['tuelloHTTPTags'], results => {
-      this.elements = results['tuelloHTTPTags'];
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['tuelloHTTPTags'], results => {
+        this.elements = results['tuelloHTTPTags'] || [];
+        resolve();
+      });
     });
   }
 
-  addTagElement(element: TagElement) {
+  async addTagElement(element: TagElement) {
+    // S'assurer que les éléments sont chargés
     if (!this.elements) {
-      this.loadTags();
+      await this.loadTags();
     }
-    if (this.elements && !this.elements.find((tag) => tag.httpKey === element.httpKey && tag.jsonKey === element.jsonKey)) {
-      this.elements.push(element);
-    } else {
-      this.elements = [element];
-    }
-    this.updateData();
 
+    // Vérifier si le tag n'existe pas déjà avant de l'ajouter
+    const exists = this.elements.find((tag) => tag.httpKey === element.httpKey && tag.jsonKey === element.jsonKey);
+    if (!exists) {
+      this.elements.push(element);
+      this.updateData();
+    }
   }
 
   updateData() {

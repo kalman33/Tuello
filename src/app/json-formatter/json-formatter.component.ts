@@ -98,19 +98,13 @@ export class JsonFormatterComponent {
 
   /**
    * Permet de copier dans le presse-papier
-   * Cette fonctionnalité sera rajouté dans le cdk en version 9.xs
    */
-  copyToClipboard() {
-    const el = document.createElement('textarea');
+  async copyToClipboard() {
     try {
-      el.value = this.jsonInput;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
+      await navigator.clipboard.writeText(this.jsonInput);
       this.snackBar.open(this.translate.instant('mmn.json-formatter.button.copied'), '', { duration: 1000 });
     } catch (e) {
-      // @TODO : a compléter
+      console.error('Tuello: Erreur lors de la copie dans le presse-papier', e);
     }
   }
 

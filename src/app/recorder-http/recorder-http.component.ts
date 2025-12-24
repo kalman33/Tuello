@@ -52,6 +52,8 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   httpMockActivated: boolean;
   httpRecordActivated: boolean;
   dernierEvenementTampon: number;
+  private debounceTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private chromeMessageListener: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void;
   records;
 
 
@@ -78,15 +80,24 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       this.initJsonEditor();
     });
 
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    this.chromeMessageListener = (message, sender, sendResponse) => {
       if (message.refresh) {
         this.gererRefresh();
       }
       sendResponse();
-    });
+    };
+    chrome.runtime.onMessage.addListener(this.chromeMessageListener);
   }
 
   ngOnDestroy(): void {
+    // Suppression du listener Chrome pour éviter les fuites mémoire
+    if (this.chromeMessageListener) {
+      chrome.runtime.onMessage.removeListener(this.chromeMessageListener);
+    }
+    // Nettoyage du timeout de debounce
+    if (this.debounceTimeoutId) {
+      clearTimeout(this.debounceTimeoutId);
+    }
     if (this.jsonEditorTree) {
       this.jsonEditorTree.destroy();
     }
@@ -108,15 +119,15 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
 
   gererRefresh() {
-    // Mettre à jour le tampon avec le timestamp actuel
-    this.dernierEvenementTampon = Date.now();
+    // Annuler le timeout précédent s'il existe (debounce)
+    if (this.debounceTimeoutId) {
+      clearTimeout(this.debounceTimeoutId);
+    }
 
     // Attendre 300ms avant de traiter l'événement
-    setTimeout(() => {
-      // Vérifier si aucun nouvel événement n'a été déclenché pendant le délai
-      if (Date.now() - this.dernierEvenementTampon >= 300) {
-        this.refresh();
-      }
+    this.debounceTimeoutId = setTimeout(() => {
+      this.refresh();
+      this.debounceTimeoutId = null;
     }, 300);
   }
 
@@ -323,20 +334,15 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
   /**
    * Permet de copier dans le presse-papier
-   * Cette fonctionnalité sera rajouté dans le cdk en version 9.xs
    */
-  copyToClipboard() {
-    const el = document.createElement('textarea');
+  async copyToClipboard() {
     try {
       const jsonData = this.jsonEditorTree.get() as JSONContent;
-      el.value = JSON.stringify(jsonData.json);
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
+      const text = JSON.stringify(jsonData.json);
+      await navigator.clipboard.writeText(text);
       this.infoBar.open(this.translate.instant('mmn.recorder-http.button.copied'), '', { duration: 1000 });
     } catch (e) {
-      // @TODO : a compléter
+      console.error('Tuello: Erreur lors de la copie dans le presse-papier', e);
     }
   }
 

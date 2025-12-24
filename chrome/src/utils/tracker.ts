@@ -57,12 +57,17 @@ export function desactivateRecordTracks() {
   if (performanceObserver) {
     performanceObserver.disconnect();
     performanceObserver = undefined;
-
   }
   document.removeEventListener('click', clickListener);
   removeTracks();
-  bodyObserver.disconnect();
-  resizeObserver.disconnect();
+  if (bodyObserver) {
+    bodyObserver.disconnect();
+    bodyObserver = undefined;
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = undefined;
+  }
 }
 
 async function displayTracks(mutationsList, observer) {
@@ -120,6 +125,7 @@ async function displayTracks(mutationsList, observer) {
           });
         }
       }).catch(() => {
+        // Ignorer silencieusement les erreurs de récupération des tracks
       });
     }, debounceTimer);
 
@@ -184,7 +190,9 @@ function recordListener(list) {
         }
 
         //if (tuelloTrackDataDisplayType === 'body') {
-        findBodyElement(track.url).then((body) => track.body = body).catch(e => { })
+        findBodyElement(track.url).then((body) => track.body = body).catch(() => {
+          // Ignorer si le body n'est pas trouvé
+        })
         //}
 
         if (window.location.href === lastUserAction?.hrefLocation) {

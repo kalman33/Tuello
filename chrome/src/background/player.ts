@@ -86,9 +86,14 @@ export class Player {
         }
       }
       if (!this.pauseCurrentAction) {
+        // Déterminer le délai de la prochaine action de manière sécurisée
+        const nextAction = this.initialActions[this.count];
+        const currentAction = this.initialActions[this.count - 1];
+        const delay = nextAction?.delay ?? currentAction?.delay ?? 0;
+
         this.timeoutId = setTimeout(
           this.treatAction.bind(this),
-          this.initialActions[this.count] ? this.initialActions[this.count].delay : this.initialActions[this.count - 1].delay
+          delay
         );
       }
       

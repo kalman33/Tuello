@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { Event, NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { ChromeExtentionUtilsService } from './core/utils/chrome-extention-utils.service';
 import { PlayerService } from './spy-http/services/player.service';
@@ -18,6 +19,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   title = 'Tuello';
 
   actionsListener;
+  private routerSubscription: Subscription;
 
   constructor(
     private themeService: ThemeService,
@@ -34,11 +36,10 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     });
 
-    this.router.events.pipe(
+    this.routerSubscription = this.router.events.pipe(
       filter((event: Event) => event instanceof NavigationEnd)
     ).subscribe(event => {
       chrome.storage.local.set({ tuelloCurrentRoute: (event as NavigationEnd).url });
-
     });
 
     this.actionsListener = (message, sender, sendResponse) => {
@@ -109,5 +110,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy(): void {
     chrome.runtime.onMessage.removeListener(this.actionsListener);
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
   }
 }

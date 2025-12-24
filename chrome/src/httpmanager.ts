@@ -83,12 +83,6 @@ let pendingMockFetchQueue: Array<{
     response: Response;
 }> = [];
 
-// Promise résolue quand tuelloRecords est chargé
-let tuelloRecordsReadyResolve: (() => void) | null = null;
-const tuelloRecordsReadyPromise = new Promise<void>((resolve) => {
-    tuelloRecordsReadyResolve = resolve;
-});
-
 // ============================================================================
 // Utilitaires
 // ============================================================================
@@ -234,7 +228,6 @@ const onTuelloRecordsReady = (): void => {
     if (tuelloRecordsReady) return; // Déjà traité
 
     tuelloRecordsReady = true;
-    tuelloRecordsReadyResolve?.();
 
     // Traiter les queues
     processPendingMockXhrQueue();

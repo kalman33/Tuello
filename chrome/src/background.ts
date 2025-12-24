@@ -242,7 +242,7 @@ function init() {
         try {
           requestBody = getBodyFromData(details.requestBody?.raw[0]?.bytes);
         } catch (e) {
-
+          // Le parsing du body a échoué - on continue avec requestBody = undefined
         }
         chrome.storage.local.get(['tuelloTracksBody'], items => {
           if (!chrome.runtime.lastError) {

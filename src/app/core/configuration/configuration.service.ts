@@ -7,9 +7,13 @@ export class ConfigurationService {
   constructor(private translate: TranslateService) { }
 
   init(): Promise<any> {
-   this.translate.setDefaultLang('en');
+    this.translate.setDefaultLang('en');
     return new Promise((resolve, reject) => {
       chrome.storage.local.get(['language'], results => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
         if (results['language']) {
           this.translate.use(results['language']);
         }

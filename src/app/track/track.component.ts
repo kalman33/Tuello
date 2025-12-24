@@ -40,6 +40,7 @@ export class TrackComponent implements OnInit, OnDestroy {
   _trackDataDisplayType: string;
   selectedTrackId: string;
   sub;
+  private chromeMessageListener: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => boolean | void;
 
   constructor(
     private translate: TranslateService,
@@ -119,7 +120,7 @@ export class TrackComponent implements OnInit, OnDestroy {
       this.trackDataDisplayType = results['tuelloTrackDataDisplayType'];
     });
 
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    this.chromeMessageListener = (message, sender, sendResponse) => {
       if (message.refreshTrackData) {
         // recupération des enregistrements
         chrome.storage.local.get(['tuelloTracks'], results => {
@@ -130,7 +131,8 @@ export class TrackComponent implements OnInit, OnDestroy {
         sendResponse();
       }
       return true;
-    });
+    };
+    chrome.runtime.onMessage.addListener(this.chromeMessageListener);
   }
 
 
@@ -217,6 +219,10 @@ export class TrackComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.sub.unsubscribe();
+    // Suppression du listener Chrome pour éviter les fuites mémoire
+    if (this.chromeMessageListener) {
+      chrome.runtime.onMessage.removeListener(this.chromeMessageListener);
+    }
   }
 
 

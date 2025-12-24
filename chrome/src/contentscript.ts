@@ -30,6 +30,7 @@ try {
     );
   }
 } catch (error) {
+  // Ignorer les erreurs localStorage/JSON (peut échouer en contexte cross-origin)
 }
 chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], function (result) {
   if (result.tuelloRecords) {
@@ -40,6 +41,7 @@ chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], function (result) {
       });
       localStorage.setItem("TUELLO_RECORDS", jsonData);
     } catch (error) {
+      // Ignorer les erreurs localStorage (peut échouer si quota dépassé ou contexte cross-origin)
     }
     window.postMessage(
       {

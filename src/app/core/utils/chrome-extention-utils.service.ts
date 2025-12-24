@@ -14,13 +14,14 @@ export class ChromeExtentionUtilsService {
       action: 'HIDE'
     }, ()=>{});
     return new Promise((resolve, reject) => {
-      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        chrome.runtime.onMessage.removeListener(message);
+      const listener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
         if (message.action === 'HIDE_OK'){
+          chrome.runtime.onMessage.removeListener(listener);
           resolve('success');
         }
         sendResponse();
-      });
+      };
+      chrome.runtime.onMessage.addListener(listener);
     });
   }
 

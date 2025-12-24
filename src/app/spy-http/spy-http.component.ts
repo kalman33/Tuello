@@ -49,6 +49,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
   uiRecordListener;
   resumerPauseListener;
+  private chromeMessageListener: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void;
 
   jsonContent: string;
 
@@ -76,12 +77,13 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    this.chromeMessageListener = (message, sender, sendResponse) => {
       if (message.action === 'UI_RECORD_CHANGED') {
         this.recorderHistoryService.record = message.value;
       }
       sendResponse();
-    });
+    };
+    chrome.runtime.onMessage.addListener(this.chromeMessageListener);
 
     chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], results => {
       if (results['uiRecordActivated']) {
@@ -330,9 +332,10 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // tslint:disable-next-line: deprecation
-    // chrome.storage.onChanged.removeListener(this.uiRecordListener);
-    //chrome.storage.onChanged.removeListener(this.resumerPauseListener);
+    // Suppression du listener Chrome pour éviter les fuites mémoire
+    if (this.chromeMessageListener) {
+      chrome.runtime.onMessage.removeListener(this.chromeMessageListener);
+    }
     chrome.storage.local.set({
       'tuelloKeyboardShortcut': {
         'screenshot': { 'key': this.screenshot, 'code': getKeyCode(this.screenshot) },

@@ -80,6 +80,12 @@ class Mutex {
   }
 
   unlock(): void {
+    // Protection contre le double unlock
+    if (!this.locked && this.queue.length === 0) {
+      console.warn('Tuello: Tentative de déverrouillage d\'un mutex non verrouillé');
+      return;
+    }
+
     if (this.queue.length > 0) {
       const nextResolve = this.queue.shift();
       if (nextResolve) {

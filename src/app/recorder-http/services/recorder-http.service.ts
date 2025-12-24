@@ -12,9 +12,15 @@ export class RecorderHttpService {
 
   constructor() {}
 
-  public getJsonRecords() {
-    chrome.storage.local.get(['tuelloRecords'], results => {
-      return results['tuelloRecords'];
+  public getJsonRecords(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get(['tuelloRecords'], results => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(results['tuelloRecords']);
+        }
+      });
     });
   }
 

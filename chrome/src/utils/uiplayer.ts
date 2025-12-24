@@ -44,13 +44,13 @@ function input(x, y, value) {
 
 function enterKeypress(x, y) {
   const el = document.elementFromPoint(x, y);
-  var inputs = getParentByTagName(el as HTMLElement, 'form');
-  for (const input of inputs) {
-    if ((input.type.toLowerCase() == "submit")) {
-      input.click();
+  const form = getParentByTagName(el as HTMLElement, 'form');
+  if (form) {
+    const inputs = form.querySelectorAll('input[type="submit"], button[type="submit"]');
+    for (const input of inputs) {
+      (input as HTMLElement).click();
     }
   }
-
 }
 
 export function run(action: IUserAction) {
