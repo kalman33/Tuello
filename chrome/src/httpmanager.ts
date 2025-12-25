@@ -166,11 +166,35 @@ const compareWithMockLevel = (url1: string, url2: string): boolean => {
     normalizedUrl1 = normalizeUrl(normalizedUrl1.replace(/^\//, ''));
     normalizedUrl2 = normalizeUrl(normalizedUrl2.replace(/^\//, ''));
 
+    // Comparaison exacte avec support des wildcards (*)
     const escapedUrl2 = normalizedUrl2
         .replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&')
         .replace(/\*/g, '.*');
 
-    return new RegExp(`^${escapedUrl2}$`).test(normalizedUrl1);
+    if (new RegExp(`^${escapedUrl2}$`).test(normalizedUrl1)) {
+        return true;
+    }
+
+    // Comparaison par suffixe : l'URL actuelle peut avoir moins de segments (contextRoot manquant)
+    // Ex: mock = "global/text1/text2/text3", actuel = "text1/text2/text3" → match
+    const segments1 = normalizedUrl1.split('/').filter(s => s);
+    const segments2 = normalizedUrl2.split('/').filter(s => s);
+
+    // Si l'URL actuelle a moins de segments que le mock, vérifier si c'est un suffixe
+    if (segments1.length < segments2.length) {
+        const mockSuffix = segments2.slice(-segments1.length);
+        return segments1.every((seg, i) => {
+            const mockSeg = mockSuffix[i];
+            // Support des wildcards dans le segment du mock
+            if (mockSeg.includes('*')) {
+                const pattern = mockSeg.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
+                return new RegExp(`^${pattern}$`).test(seg);
+            }
+            return seg === mockSeg;
+        });
+    }
+
+    return false;
 };
 
 const findMockRecord = (url: string): TuelloRecord | undefined => {
