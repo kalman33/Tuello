@@ -71,9 +71,15 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     // recupération des enregistrements
     chrome.storage.local.get(['tuelloRecords'], results => {
       try {
-        this.records = typeof results['tuelloRecords'] === 'string' ? JSON.parse(results['tuelloRecords']) : results['tuelloRecords'] || {};
+        // Parser les records s'ils sont stockés comme une chaîne JSON
+        let records = results['tuelloRecords'];
+        if (typeof records === 'string') {
+          records = JSON.parse(records);
+        }
+        // S'assurer que c'est un tableau (pas un objet)
+        this.records = Array.isArray(records) ? records : [];
       } catch (e) {
-        this.records = {};
+        this.records = [];
       }
 
       // paramétrage du jsoneditor
@@ -109,10 +115,16 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     // recupération des enregistrements
     chrome.storage.local.get(['tuelloRecords'], results => {
       try {
-        this.records = typeof results['tuelloRecords'] === 'string' ? JSON.parse(results['tuelloRecords']) : results['tuelloRecords'] || {}
+        // Parser les records s'ils sont stockés comme une chaîne JSON
+        let records = results['tuelloRecords'];
+        if (typeof records === 'string') {
+          records = JSON.parse(records);
+        }
+        // S'assurer que c'est un tableau (pas un objet)
+        this.records = Array.isArray(records) ? records : [];
         this.jsonEditorTree?.update({ json: this.records });
       } catch (e) {
-        this.jsonEditorTree?.update({ json: {} });
+        this.jsonEditorTree?.update({ json: [] });
       }
     });
   }
@@ -179,7 +191,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     this.jsonEditorTree = createJSONEditor({
       target: document.getElementById('jsonEditorTree'),
       props: {
-        content: { json: {} },
+        content: { json: [] },
         options,
         onRenderMenu: (items, context) => items.filter(item =>
           !item.text && item.type !== 'separator' && item.className !== "jse-transform"
@@ -264,7 +276,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     try {
       this.jsonEditorTree.update({ json: this.records });
     } catch (e) {
-      this.jsonEditorTree.update({ json: {} });
+      this.jsonEditorTree.update({ json: [] });
     }
   }
 
@@ -282,7 +294,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         this.recorderService.reset();
-        this.jsonEditorTree.update({ json: {} });
+        this.jsonEditorTree.update({ json: [] });
       }
     });
   }
@@ -351,9 +363,10 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
    */
   updateData() {
     const jsonData = this.jsonEditorTree.get() as JSONContent;
-    const jsonTxt = JSON.stringify(jsonData.json);
-    if (jsonTxt) {
-      this.recorderService.saveToLocalStorage(jsonTxt);
+    if (jsonData.json) {
+      // Sauvegarder l'objet directement (pas une chaîne JSON) pour que recordHttpListener
+      // puisse correctement vérifier Array.isArray()
+      this.recorderService.saveToLocalStorage(jsonData.json);
       chrome.runtime.sendMessage({
         action: 'MMA_RECORDS_CHANGE'
       }, () => { });

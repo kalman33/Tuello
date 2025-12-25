@@ -7,9 +7,19 @@ export function recordHttpListener(event: MessageEvent) {
       .then(() => {
         chrome.storage.local.get(['tuelloRecords', 'tuelloHTTPOverWrite', 'tuelloHTTPFilter'], (items) => {
           if (!chrome.runtime.lastError) {
-            if (!items.tuelloRecords || !Array.isArray(items.tuelloRecords)) {
-              items.tuelloRecords = [];
+            // Parser les records s'ils sont stockés comme une chaîne JSON
+            let records = items.tuelloRecords;
+            if (typeof records === 'string') {
+              try {
+                records = JSON.parse(records);
+              } catch (e) {
+                records = [];
+              }
             }
+            if (!records || !Array.isArray(records)) {
+              records = [];
+            }
+            items.tuelloRecords = records;
 
             if (!items['tuelloHTTPFilter'] || (items['tuelloHTTPFilter'] && stringContainedInURL(items['tuelloHTTPFilter'], event.data.url))) {
               
