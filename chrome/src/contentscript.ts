@@ -13,6 +13,34 @@ import { displayEffect } from './utils/utils';
 let show = false;
 let clickedElement: string;
 const prefix: string = '[ TUELLO ]';
+let mousedownListenerAdded = false;
+
+/**
+ * Handler pour capturer l'élément cliqué (utilisé pour JSON Viewer)
+ */
+function handleMousedown(event: MouseEvent): void {
+  clickedElement = (event.target as HTMLElement)?.innerHTML || '';
+}
+
+/**
+ * Ajoute le listener mousedown si pas déjà ajouté
+ */
+function addMousedownListener(): void {
+  if (!mousedownListenerAdded) {
+    document.addEventListener("mousedown", handleMousedown, true);
+    mousedownListenerAdded = true;
+  }
+}
+
+/**
+ * Supprime le listener mousedown
+ */
+function removeMousedownListener(): void {
+  if (mousedownListenerAdded) {
+    document.removeEventListener("mousedown", handleMousedown, true);
+    mousedownListenerAdded = false;
+  }
+}
 
 // Récupération des données du localStorage
 try {
@@ -56,9 +84,8 @@ chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], function (result) {
 
 });
 
-document.addEventListener("mousedown", function (event) {
-  clickedElement = event.target['innerHTML'];
-}, true);
+// Ajouter le listener mousedown au chargement
+addMousedownListener();
 
 document.onreadystatechange = () => {
   if (document.readyState === 'interactive') {
@@ -217,6 +244,8 @@ function init() {
 }
 
 function activate() {
+  // Réactiver le listener mousedown (supprimé lors de la désactivation)
+  addMousedownListener();
 
   chrome.storage.local.get(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated'], results => {
     if (!results.disabled) {
@@ -284,6 +313,7 @@ function desactivate() {
   desactivateRecordTracks();
   desactivateSearchElements();
   removeMouseCoordinates();
+  removeMousedownListener();
   chrome.runtime.sendMessage({
     action: 'updateIcon',
     value: 'tuello-stop-32x32.png'

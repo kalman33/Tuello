@@ -19,6 +19,10 @@ import Port = chrome.runtime.Port;
 let port;
 let player = null;
 
+// Cache local pour tuelloTracksBody (évite les appels répétés à chrome.storage pour chaque requête HTTP)
+let tracksBodyCache: Array<{key: string, body: any}> = [];
+const TRACKS_BODY_MAX_SIZE = 10;
+
 chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.get(activeInfo.tabId, (tab) => {
     if (tab.url.startsWith("chrome://") || tab.url.startsWith("about:") || tab.url.startsWith("edge://")) {
@@ -159,79 +163,43 @@ async function dynamicallyInjectContentScripts() {
   }
 }
 
-function init() {
-  dynamicallyInjectContentScripts().then(() => {
-    chrome.storage.local.get(['messages'], results => {
-      chrome.contextMenus.removeAll(function () {
-        if (results.messages) {
-          const msgs = results.messages.default;
-          chrome.contextMenus.create({
-            id: 'sel',
-            title: msgs['mmn.spy-http.tabs.shortcuts.jsonviewer'],
-            contexts: ['all'],
-          }, () => chrome.runtime.lastError); // ignore errors about an existing id
+/**
+ * Crée les menus contextuels avec les traductions appropriées
+ */
+function createContextMenus(msgs?: Record<string, string>): void {
+  const menuItems = [
+    { id: 'sel', defaultTitle: 'JSON VIEWER', msgKey: 'mmn.spy-http.tabs.shortcuts.jsonviewer' },
+    { id: 'id0', defaultTitle: "Screenshot : ALT + MAJ + S", msgKey: 'mmn.spy-http.tabs.shortcuts.screenshot', suffix: " : ALT + MAJ + S" },
+    { id: 'id1', defaultTitle: "Pause : ALT + MAJ + P", msgKey: 'mmn.spy-http.tabs.shortcuts.pause', suffix: " : ALT + MAJ + P" },
+    { id: 'id2', defaultTitle: "Resume : ALT + MAJ + R", msgKey: 'mmn.spy-http.tabs.shortcuts.resume', suffix: " : ALT + MAJ + R" },
+    { id: 'id3', defaultTitle: "Rec. by img :  ALT + MAJ + click / Coord. + ALT + MAJ + I", msgKey: 'mmn.spy-http.tabs.shortcuts.record.by.img', suffix: " :  ALT + MAJ + click / Coord. + ALT + MAJ + I" },
+    { id: 'id4', defaultTitle: "Add comment :  ALT + MAJ + C", msgKey: 'mmn.spy-http.tabs.shortcuts.add.comment', suffix: " :  ALT + MAJ + C" },
+  ];
 
-          chrome.contextMenus.create({
-            id: 'id0',
-            title: msgs['mmn.spy-http.tabs.shortcuts.screenshot'] + " : ALT + MAJ + S",
-            contexts: ["all"],
-          });
-          chrome.contextMenus.create({
-            id: 'id1',
-            title: msgs['mmn.spy-http.tabs.shortcuts.pause'] + " : ALT + MAJ + P",
-            contexts: ["all"],
-          });
-          chrome.contextMenus.create({
-            id: 'id2',
-            title: msgs['mmn.spy-http.tabs.shortcuts.resume'] + " : ALT + MAJ + R",
-            contexts: ["all"],
-          });
-          chrome.contextMenus.create({
-            id: 'id3',
-            title: msgs['mmn.spy-http.tabs.shortcuts.record.by.img'] + " :  ALT + MAJ + click / Coord. + ALT + MAJ + I",
-            contexts: ["all"],
-          });
-          chrome.contextMenus.create({
-            id: 'id4',
-            title: msgs['mmn.spy-http.tabs.shortcuts.add.comment'] + " :  ALT + MAJ + C",
-            contexts: ["all"],
-          });
-        } else {
-          chrome.contextMenus.create({
-            id: 'sel',
-            title: 'JSON VIEWER',
-            contexts: ['all'],
-          }, () => chrome.runtime.lastError); // ignore errors about an existing id
+  for (const item of menuItems) {
+    const title = msgs ? (msgs[item.msgKey] + (item.suffix || '')) : item.defaultTitle;
+    chrome.contextMenus.create({
+      id: item.id,
+      title,
+      contexts: ['all'],
+    }, () => chrome.runtime.lastError); // ignore errors about an existing id
+  }
+}
 
-          chrome.contextMenus.create({
-            id: 'id0',
-            title: "Screenshot : ALT + MAJ + S",
-            contexts: ["all"],
-          });
-          chrome.contextMenus.create({
-            id: 'id1',
-            title: "Pause : ALT + MAJ + P",
-            contexts: ["all"],
-          });
-          chrome.contextMenus.create({
-            id: 'id2',
-            title: "Resume : ALT + MAJ + R",
-            contexts: ["all"],
-          });
-          chrome.contextMenus.create({
-            id: 'id3',
-            title: "Rec. by img :  ALT + MAJ + click / Coord. + ALT + MAJ + I",
-            contexts: ["all"],
-          });
-          chrome.contextMenus.create({
-            id: 'id4',
-            title: "Add comment :  ALT + MAJ + C",
-            contexts: ["all"],
-          });
-        }
-      });
-    });
-  });
+async function init() {
+  // Charger le cache tracksBody depuis chrome.storage au démarrage
+  const cacheItems = await chrome.storage.local.get(['tuelloTracksBody']);
+  if (Array.isArray(cacheItems.tuelloTracksBody)) {
+    tracksBodyCache = cacheItems.tuelloTracksBody;
+  }
+
+  await dynamicallyInjectContentScripts();
+
+  const results = await chrome.storage.local.get(['messages']);
+  await chrome.contextMenus.removeAll();
+
+  const msgs = results.messages?.default;
+  createContextMenus(msgs);
 
 
 
@@ -244,23 +212,19 @@ function init() {
         } catch (e) {
           // Le parsing du body a échoué - on continue avec requestBody = undefined
         }
-        chrome.storage.local.get(['tuelloTracksBody'], items => {
-          if (!chrome.runtime.lastError) {
-            if (!items.tuelloTracksBody || !Array.isArray(items.tuelloTracksBody)) {
-              items.tuelloTracksBody = [];
-            }
 
-            items.tuelloTracksBody.unshift({
-              key: details.url,
-              body: requestBody
-            });
-            if (items.tuelloTracksBody.length > 10) {
-              items.tuelloTracksBody.pop();
-            }
-          }
-
-          chrome.storage.local.set({ tuelloTracksBody: removeDuplicateEntries(items.tuelloTracksBody) });
+        // Utiliser le cache local au lieu d'appeler chrome.storage pour chaque requête
+        tracksBodyCache.unshift({
+          key: details.url,
+          body: requestBody
         });
+        if (tracksBodyCache.length > TRACKS_BODY_MAX_SIZE) {
+          tracksBodyCache.pop();
+        }
+        tracksBodyCache = removeDuplicateEntries(tracksBodyCache);
+
+        // Synchroniser avec chrome.storage de manière asynchrone (debounced)
+        chrome.storage.local.set({ tuelloTracksBody: tracksBodyCache });
       }
     },
     { urls: ["<all_urls>"] },

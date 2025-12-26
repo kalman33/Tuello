@@ -2,7 +2,25 @@ import { Tag } from '../models/Tag';
 import { addcss, stringContainedInURL } from './utils';
 import JsonFind from 'json-find';
 
+const HTTP_CALLS_MAX_SIZE = 100;
 let httpCalls = new Map<string, any>();
+
+/**
+ * Ajoute une entrée dans httpCalls avec limite de taille (LRU simple)
+ */
+function addHttpCall(url: string, response: any): void {
+  // Si la clé existe déjà, on la supprime pour la remettre en fin (plus récent)
+  if (httpCalls.has(url)) {
+    httpCalls.delete(url);
+  } else if (httpCalls.size >= HTTP_CALLS_MAX_SIZE) {
+    // Supprimer le premier élément (le plus ancien)
+    const firstKey = httpCalls.keys().next().value;
+    if (firstKey !== undefined) {
+      httpCalls.delete(firstKey);
+    }
+  }
+  httpCalls.set(url, response);
+}
 let lastExecutionTimer;
 let tagsUnloadListenerAdded = false;
 let tagsListenerAdded = false;
@@ -37,10 +55,10 @@ export function initTagsHandler(tuelloHTTPTags) {
           'message',
           event => {
             if (event?.data?.type === 'ADD_HTTP_CALL_FOR_TAGS') {
-              httpCalls.set(event.data.url, event.data.response);
+              addHttpCall(event.data.url, event.data.response);
               addTagsPanel(tuelloHTTPTags);
             }
-  
+
           }
         );
         tagsUnloadListenerAdded = true;
@@ -69,11 +87,27 @@ function findInJson(data: any, keyString: string) {
 
 }
 
-async function getResponseByPartialUrl(map, partialKey) {
+// Cache du filtre HTTP pour éviter les appels répétés à chrome.storage
+let cachedHTTPFilter: string | null = null;
+let filterCacheTime = 0;
+const FILTER_CACHE_TTL = 5000; // 5 secondes
+
+async function getHTTPFilterCached(): Promise<string | null> {
+  const now = Date.now();
+  if (now - filterCacheTime < FILTER_CACHE_TTL && cachedHTTPFilter !== undefined) {
+    return cachedHTTPFilter;
+  }
   const items = await chrome.storage.local.get(['tuelloHTTPFilter']);
-  for (let [key, value] of map.entries()) {
+  cachedHTTPFilter = items['tuelloHTTPFilter'] || null;
+  filterCacheTime = now;
+  return cachedHTTPFilter;
+}
+
+async function getResponseByPartialUrl(map: Map<string, any>, partialKey: Tag): Promise<any | null> {
+  const httpFilter = await getHTTPFilterCached();
+  for (const [key, value] of map.entries()) {
     // on ne traite que celles qui ne sont pas filtrée ou si le filtre est vide
-    if (!items['tuelloHTTPFilter'] || (items['tuelloHTTPFilter'] && stringContainedInURL(items['tuelloHTTPFilter'], key))) {
+    if (!httpFilter || stringContainedInURL(httpFilter, key)) {
       if (key.includes(partialKey?.httpKey)) {
         return value;
       }
