@@ -50,7 +50,9 @@
       ]
     }
   ],
-  "action": {},
+  "action": {
+    "default_popup": "popup.html"
+  },
   "icons": {
     "16": "assets/logos/tuello-16x16.png",
     "32": "assets/logos/tuello-32x32.png",
