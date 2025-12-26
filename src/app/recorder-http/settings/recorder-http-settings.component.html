@@ -1,21 +1,20 @@
 <div class="container">
-  <div fxFlex="99%">
-    <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
-      <h1 mat-dialog-title>{{ 'mmn.recorder-http.settings.title' | translate }}</h1>
-    </div>
-
-    @if (dataloaded) {
-      <div fxLayout="column" fxLayout.sm="column" fxLayout.xs="column">
-        <mat-checkbox [(ngModel)]="overwrite" class="example-margin">{{ 'mmn.recorder-http.settings.input.overwrite' | translate }}</mat-checkbox>
-        <mat-form-field class="settingsForm">
-          <mat-label>{{ 'mmn.recorder-http.settings.input.filter' | translate }}</mat-label>
-          <input [(ngModel)]="filter" matInput placeholder="Ex: *.fr" />
-        </mat-form-field>
-        <div mat-dialog-actions align="end">
-          <button mat-flat-button (click)="annuler()"><mat-icon>cancel</mat-icon>{{ 'mmn.recorder-http.settings.button.cancel' | translate }}</button>
-          <button cdkFocusInitial mat-flat-button (click)="valider()" class="right"><mat-icon>done</mat-icon>{{ 'mmn.recorder-http.settings.button.ok' | translate }}</button>
+    <div fxFlex="99%">
+        <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
+            <h1 mat-dialog-title>{{ 'mmn.recorder-http.settings.title' | translate }}</h1>
         </div>
-      </div>
-    }
-  </div>
+        @if (dataloaded) {
+            <div fxLayout="column" fxLayout.sm="column" fxLayout.xs="column">
+                <mat-checkbox [(ngModel)]="overwrite" class="example-margin">{{ 'mmn.recorder-http.settings.input.overwrite' | translate }}</mat-checkbox>
+                <mat-form-field class="settingsForm">
+                    <mat-label>{{ 'mmn.recorder-http.settings.input.filter' | translate }}</mat-label>
+                    <input [(ngModel)]="filter" matInput placeholder="Ex: *.fr" />
+                </mat-form-field>
+                <div mat-dialog-actions align="end">
+                    <button mat-flat-button (click)="annuler()"><mat-icon>cancel</mat-icon>{{ 'mmn.recorder-http.settings.button.cancel' | translate }}</button>
+                    <button cdkFocusInitial mat-flat-button (click)="valider()" class="right"><mat-icon>done</mat-icon>{{ 'mmn.recorder-http.settings.button.ok' | translate }}</button>
+                </div>
+            </div>
+        }
+    </div>
 </div>

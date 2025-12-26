@@ -25,68 +25,64 @@ import { TagsService } from '../services/tags.service';
     imports: [FlexModule, FormsModule, MatDialogTitle, MatIconButton, MatIcon, NgClass, ExtendedModule, MatFormField, MatLabel, MatInput, MatTooltip, MatAccordion, MatExpansionPanel, MatExpansionPanelHeader, MatExpansionPanelTitle, TranslatePipe]
 })
 export class AddTagsComponent implements OnInit {
-  routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
+    routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
-  httpKey: string;
-  jsonKey: string;
-  display: string
-  dataLoaded: boolean = false;
+    httpKey: string;
+    jsonKey: string;
+    display: string;
+    dataLoaded: boolean = false;
 
-  constructor(
-    private translate: TranslateService,
-    private router: Router,
-    public tagsService: TagsService,
-    private changeDetectorRef: ChangeDetectorRef
+    constructor(
+        private translate: TranslateService,
+        private router: Router,
+        public tagsService: TagsService,
+        private changeDetectorRef: ChangeDetectorRef
+    ) {}
 
-  ) {
-  }
-
- 
-  async ngOnInit() {
-    this.tagsService.elements = await this.getDataFromChromeStorage();
-    this.dataLoaded = true;
-  }
-
-  getDataFromChromeStorage(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      chrome.storage.local.get(['tuelloHTTPTags'], result => {
-        if (chrome.runtime.lastError) {
-          reject(chrome.runtime.lastError);
-        } else {
-          resolve(result['tuelloHTTPTags']);
-        }
-      });
-    });
-  }
-
-  trackByFn(index:number, item: TagElement) {
-    item.display;
-  }
-    
-  addElement() {
-    if (this.httpKey && this.jsonKey) {
-      const element: TagElement = {
-        httpKey: this.httpKey,
-        jsonKey: this.jsonKey,
-        display: this.display || '?'
-      }
-      this.tagsService.addTagElement(element);
+    async ngOnInit() {
+        this.tagsService.elements = await this.getDataFromChromeStorage();
+        this.dataLoaded = true;
     }
-  }
 
-  public onChange(): void {
-    this.tagsService.updateData();
-  }
+    getDataFromChromeStorage(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            chrome.storage.local.get(['tuelloHTTPTags'], (result) => {
+                if (chrome.runtime.lastError) {
+                    reject(chrome.runtime.lastError);
+                } else {
+                    resolve(result['tuelloHTTPTags']);
+                }
+            });
+        });
+    }
 
-  /**
-   * Suppression d'un element
-   */
-  deleteElement(index: number) {
-    this.tagsService.deleteElement(index);
-  }
+    trackByFn(index: number, item: TagElement) {
+        item.display;
+    }
 
-  back() {
-    this.router.navigateByUrl('/recorder', { skipLocationChange: true });
-  }
+    addElement() {
+        if (this.httpKey && this.jsonKey) {
+            const element: TagElement = {
+                httpKey: this.httpKey,
+                jsonKey: this.jsonKey,
+                display: this.display || '?'
+            };
+            this.tagsService.addTagElement(element);
+        }
+    }
 
+    public onChange(): void {
+        this.tagsService.updateData();
+    }
+
+    /**
+     * Suppression d'un element
+     */
+    deleteElement(index: number) {
+        this.tagsService.deleteElement(index);
+    }
+
+    back() {
+        this.router.navigateByUrl('/recorder', { skipLocationChange: true });
+    }
 }

@@ -1,4 +1,4 @@
-/* To learn more about this file see: https://angular.io/config/tsconfig. */
+/* To learn more about this file see: https://angular.dev/reference/configs/file-structure#tsconfig.json */
 {
   "compileOnSave": false,
   "compilerOptions": {
@@ -14,15 +14,17 @@
     "strictNullChecks": false,
     "strictPropertyInitialization": false,
     "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
     "sourceMap": true,
     "declaration": false,
     "experimentalDecorators": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
-    "module": "es2020",
+    "module": "ES2022",
     "lib": [
-      "es2020",
+      "ES2022",
       "dom"
     ],
     "useDefineForClassFields": false
