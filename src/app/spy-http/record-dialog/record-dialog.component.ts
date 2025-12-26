@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
 import { MatButton } from '@angular/material/button';
@@ -7,6 +7,7 @@ import { MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } fr
 @Component({
     selector: 'mmn-spy-record-dialog',
     templateUrl: './record-dialog.component.html',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     animations: [fadeInAnimation],
     imports: [
         MatDialogTitle,

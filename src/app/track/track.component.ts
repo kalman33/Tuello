@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -27,6 +27,7 @@ import { TrackService } from './services/track.service';
     selector: 'mmn-track',
     templateUrl: './track.component.html',
     styleUrls: ['./track.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, MatRadioGroup, MatRadioButton, MatFormField, MatLabel, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslatePipe]
 })
 export class TrackComponent implements OnInit, OnDestroy {

@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialogTitle } from '@angular/material/dialog';
@@ -21,6 +21,7 @@ import { TagsService } from '../services/tags.service';
     selector: 'mmn-add-tags',
     templateUrl: './add-tags.component.html',
     styleUrls: ['./add-tags.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     animations: [fadeInAnimation],
     imports: [FlexModule, FormsModule, MatDialogTitle, MatIconButton, MatIcon, NgClass, ExtendedModule, MatFormField, MatLabel, MatInput, MatTooltip, MatAccordion, MatExpansionPanel, MatExpansionPanelHeader, MatExpansionPanelTitle, TranslatePipe]
 })

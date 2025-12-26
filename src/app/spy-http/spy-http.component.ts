@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, NgZone, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 
@@ -36,6 +36,7 @@ import { RecorderHistoryService } from './services/recorder-history.service';
     templateUrl: './spy-http.component.html',
     encapsulation: ViewEncapsulation.None,
     styleUrls: ['./spy-http.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTabGroup, MatTab, MatTabLabel, MatList, CdkDropList, MatListItem, ActionComponent, CdkDrag, MatNavList, MatLine, MatFormField, MatLabel, MatInput, MatError, RouterLink, TranslatePipe]
 })
 export class SpyHttpComponent implements OnInit, OnDestroy {

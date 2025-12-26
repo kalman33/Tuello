@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, Input, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
@@ -10,9 +10,11 @@ import { TranslatePipe } from "@ngx-translate/core";
     selector: 'mmn-settings-menu',
     templateUrl: './settings-menu.component.html',
     styleUrls: ['./settings-menu.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FormsModule, MatIcon, MatFormField, MatLabel, MatInput, MatIconButton, TranslatePipe]
 })
 export class SettingsMenuComponent implements OnInit {
+  private cdr = inject(ChangeDetectorRef);
   @Input() index: number;
   label: string;
   menuLabels: string[] = [];
@@ -39,6 +41,7 @@ export class SettingsMenuComponent implements OnInit {
       } else {
         chrome.storage.local.set({ settings: [] });
       }
+      this.cdr.detectChanges();
     });
 
   }

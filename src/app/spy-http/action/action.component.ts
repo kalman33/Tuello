@@ -1,5 +1,5 @@
 import { LowerCasePipe } from '@angular/common';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -14,6 +14,7 @@ import { Action } from '../models/Action';
     selector: 'mmn-action',
     templateUrl: './action.component.html',
     styleUrls: ['./action.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         FlexModule,
         MatTooltip,

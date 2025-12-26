@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { JsonViewerComponent } from '../../core/json-viewer/json-viewer.component';
 import { Track } from '../models/Track';
@@ -12,6 +12,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-track-detail',
     templateUrl: './track-detail.component.html',
     styleUrls: ['./track-detail.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, MatIcon, MatTooltip, MatIconButton]
 })
 export class TrackDetailComponent implements OnInit {

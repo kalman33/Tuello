@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, Inject, NgZone } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject, NgZone } from '@angular/core';
 import { MatButton } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogClose, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatDivider } from '@angular/material/divider';
@@ -16,6 +16,7 @@ import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animation
   selector: 'mmn-export',
   templateUrl: './export.component.html',
   styleUrls: ['./export.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [fadeInAnimation],
   imports: [MatDialogTitle, MatDialogContent, NgClass, ExtendedModule, MatButton, MatIcon, MatDivider, MatDialogActions, MatDialogClose, TranslatePipe]
 })

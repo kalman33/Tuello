@@ -1,6 +1,6 @@
 import { CdkFixedSizeVirtualScroll, CdkVirtualForOf, CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { NgClass } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -22,6 +22,7 @@ import { SearchElement } from './models/SearchElement';
     selector: 'mmn-search-elements',
     templateUrl: './search-elements.component.html',
     styleUrls: ['./search-elements.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatSlideToggle, MatFormField, MatLabel, MatInput, MatIconButton, MatTooltip, MatIcon, MatList, CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf, MatListItem, ElementComponent, TranslatePipe]
 })
 export class SearchElementsComponent implements OnInit {

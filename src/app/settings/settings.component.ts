@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, ElementRef, NgZone, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, NgZone, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButton, MatButtonModule } from '@angular/material/button';
 import { MatOption } from '@angular/material/core';
@@ -29,6 +29,7 @@ import { SettingsMenuComponent } from './menus/settings-menu.component';
   selector: 'mmn-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FlexModule, FormsModule, MatTabGroup, MatTab, MatTabLabel, MatIcon, NgClass, MatDialogModule, MatDialogModule, MatButtonModule, ExtendedModule, MatSlideToggle, MatFormField, MatSelect, MatOption, MatSlider, MatSliderThumb, SettingsMenuComponent, MatButton, TranslatePipe]
 })
 export class SettingsComponent implements OnInit {

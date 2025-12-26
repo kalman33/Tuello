@@ -1,6 +1,6 @@
 import { MediaMatcher } from '@angular/cdk/layout';
 import { NgClass } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatLine } from '@angular/material/core';
@@ -23,6 +23,7 @@ import { RateSupportComponent } from './rate-support/rate-support.component';
     templateUrl: './layout.component.html',
     styleUrls: ['./layout.component.scss'],
     encapsulation: ViewEncapsulation.None,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation],
     imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe]
 })

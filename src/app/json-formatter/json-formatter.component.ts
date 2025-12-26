@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -17,6 +17,7 @@ import { ErrorJsonComponent } from './error/error-json.component';
   selector: 'mmn-json-formatter',
   templateUrl: './json-formatter.component.html',
   styleUrls: ['./json-formatter.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, TranslatePipe]
 })
 export class JsonFormatterComponent {

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
@@ -13,6 +13,7 @@ import { TranslatePipe } from '@ngx-translate/core';
     selector: 'mmn-recorder-http-settings',
     templateUrl: './recorder-http-settings.component.html',
     styleUrls: ['./recorder-http-settings.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, FormsModule, MatDialogTitle, MatCheckbox, MatFormField, MatLabel, MatInput, MatDialogActions, MatButton, MatIcon, TranslatePipe]
 })
 export class RecorderHttpSettingsComponent {

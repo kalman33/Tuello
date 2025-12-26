@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   MatBottomSheetRef
@@ -14,6 +14,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
     selector: 'mmn-rate-support',
     templateUrl: './rate-support.component.html',
     styleUrls: ['./rate-support.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         MatDialogTitle,
         FlexModule,

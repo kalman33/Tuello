@@ -1,5 +1,5 @@
 import { NgClass, SlicePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatCell, MatCellDef, MatColumnDef, MatHeaderCell, MatHeaderCellDef, MatHeaderRow, MatHeaderRowDef, MatRow, MatRowDef, MatTable } from '@angular/material/table';
@@ -15,6 +15,7 @@ import { PlayerService } from '../services/player.service';
     selector: 'mmn-spy-results',
     templateUrl: './results.component.html',
     styleUrls: ['./results.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         FlexModule,
         NgClass,

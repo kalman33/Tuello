@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -8,8 +8,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 @Component({
   selector: 'mmn-confirm-dialog',
   templateUrl: './confirmation-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatDialogModule, MatButtonModule, ExtendedModule, MatIcon, TranslatePipe]
-
 })
 export class ConfirmDialogComponent {
   constructor(

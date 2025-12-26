@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SearchElement } from '../models/SearchElement';
 import { MatIcon } from '@angular/material/icon';
@@ -9,6 +9,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     selector: 'mmn-element',
     templateUrl: './element.component.html',
     styleUrls: ['./element.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, MatIconButton, MatIcon]
 })
 export class ElementComponent {

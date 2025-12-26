@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { Event, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
@@ -13,6 +13,7 @@ import { TrackService } from './track/services/track.service';
     template: `
     <router-outlet></router-outlet>
   `,
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [RouterOutlet]
 })
 export class AppComponent implements OnInit, OnDestroy, AfterViewInit {

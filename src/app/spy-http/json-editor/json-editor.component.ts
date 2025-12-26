@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/material/dialog';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import {TranslatePipe, TranslateDirective} from "@ngx-translate/core";
@@ -8,9 +8,10 @@ import { FormsModule } from '@angular/forms';
 @Component({
     selector: 'mmn-json-editor',
     templateUrl: './json-editor.component.html',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     animations: [fadeInAnimation],
     imports: [
-        FormsModule, 
+        FormsModule,
         MatDialogTitle,
         MatDialogContent,
         MatDialogActions,
