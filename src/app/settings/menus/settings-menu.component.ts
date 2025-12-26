@@ -54,18 +54,18 @@ export class SettingsMenuComponent implements OnInit {
         this.menuLabels[this.index] = '';
         chrome.storage.local.set({ settings: this.menuLabels });
       }
+      this.cdr.detectChanges();
     });
-    
-
   }
 
-  labelChange(label){
+  labelChange(label: string) {
     chrome.storage.local.get(['settings'], results => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
         this.menuLabels[this.index] = label;
         chrome.storage.local.set({ settings: this.menuLabels });
       }
+      this.cdr.detectChanges();
     });
   }
 

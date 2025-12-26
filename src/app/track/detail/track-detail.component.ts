@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { JsonViewerComponent } from '../../core/json-viewer/json-viewer.component';
 import { Track } from '../models/Track';
@@ -15,7 +15,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, MatIcon, MatTooltip, MatIconButton]
 })
-export class TrackDetailComponent implements OnInit {
+export class TrackDetailComponent {
   @Input() track: Track;
   @Input() index: number;
   @Input() dataDisplay: string;
@@ -23,7 +23,21 @@ export class TrackDetailComponent implements OnInit {
 
   constructor(public dialog: MatDialog) { }
 
-  ngOnInit() { }
+  get displayData(): string {
+    let data = this.track?.url?.length > 50 ? this.track?.url?.slice(0, 50) + ' ...' : this.track?.url;
+    if (this.dataDisplay) {
+      if (this.dataDisplayType === 'body') {
+        if (this.track?.body) {
+          data = this.findInJson(this.track.body, this.dataDisplay);
+        }
+      } else {
+        if (this.track?.querystring && this.track?.querystring['' + this.dataDisplay]) {
+          data = `${this.dataDisplay} : ${this.track?.querystring['' + this.dataDisplay]}`;
+        }
+      }
+    }
+    return data;
+  }
 
   previewTrack() {
     const dialogRef = this.dialog.open(JsonViewerComponent, {
@@ -64,25 +78,5 @@ export class TrackDetailComponent implements OnInit {
       result = data;
     }
     return result;
-  
-  }
-
-  /**
-   * Permet d'afficher les données que l'on veut tracer
-   */
-  getDisplayData(): string {
-    let data = this.track?.url.length > 50 ? this.track?.url?.slice(0, 50) + ' ...' : this.track?.url;
-    if (this.dataDisplay) {
-      if (this.dataDisplayType === 'body') {
-        if (this.track?.body) {
-          data = this.findInJson(this.track.body, this.dataDisplay);
-        }
-      } else {
-        if (this.track?.querystring && this.track?.querystring['' + this.dataDisplay]) {
-          data = `${this.dataDisplay} : ${this.track?.querystring['' + this.dataDisplay]}`;
-        }
-      }
-    }
-    return data;
   }
 }

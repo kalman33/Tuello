@@ -90,7 +90,14 @@ export class TrackComponent implements OnInit, OnDestroy {
       this.selectedTrackId = params['trackId'];
     });
 
-    chrome.storage.local.get(['trackPlay'], results => {
+    // Regroupement des appels chrome.storage pour optimisation
+    chrome.storage.local.get([
+      'trackPlay',
+      'tuelloTracks',
+      'tuelloTrackData',
+      'tuelloTrackDataDisplay',
+      'tuelloTrackDataDisplayType'
+    ], results => {
       if (results['trackPlay']) {
         this.trackPlayActivated = results['trackPlay'];
         chrome.runtime.sendMessage({
@@ -98,27 +105,11 @@ export class TrackComponent implements OnInit, OnDestroy {
           value: true
         }, () => { });
       }
-      this.ref.detectChanges();
-    });
-
-    // recupération des enregistrements
-    chrome.storage.local.get(['tuelloTracks'], results => {
       this.tracks = results['tuelloTracks'];
-    });
-
-    // récupération du tracking data
-    chrome.storage.local.get(['tuelloTrackData'], results => {
-      this.trackData = results['tuelloTrackData'];
-    });
-
-    // récupération du tracking data display
-    chrome.storage.local.get(['tuelloTrackDataDisplay'], results => {
-      this.trackDataDisplay = results['tuelloTrackDataDisplay'];
-    });
-
-    // récupération du tracking data display type
-    chrome.storage.local.get(['tuelloTrackDataDisplayType'], results => {
-      this.trackDataDisplayType = results['tuelloTrackDataDisplayType'];
+      this._trackData = results['tuelloTrackData'];
+      this._trackDataDisplay = results['tuelloTrackDataDisplay'];
+      this._trackDataDisplayType = results['tuelloTrackDataDisplayType'];
+      this.ref.detectChanges();
     });
 
     this.chromeMessageListener = (message, sender, sendResponse) => {
@@ -143,15 +134,7 @@ export class TrackComponent implements OnInit, OnDestroy {
   effacerEnregistrements() {
     chrome.storage.local.remove(['tuelloTracks']);
     this.tracks = null;
-    chrome.storage.local.get(['trackPlay'], results => {
-      if (results['trackPlay']) {
-        this.trackPlayActivated = results['trackPlay'];
-        chrome.runtime.sendMessage({
-          action: 'TRACK_PLAY_STATE',
-          value: this.trackPlayActivated
-        }, () => { });
-      }
-    });
+    this.ref.detectChanges();
   }
 
   /** Sortie du champs input */
@@ -204,18 +187,14 @@ export class TrackComponent implements OnInit, OnDestroy {
     saveAs(txtBlob, `tuello.tracks.${value}.json`);
   }
 
-  isSelectedClass(track: Track) {
-    let selected = false;
-    if (this.selectedTrackId && track.hrefLocation === this.trackService.currentHrefLocation && this.trackPlayActivated) {
-      if (this.selectedTrackId.includes('tuelloTrackClick')) {
-        selected = this.selectedTrackId == track.id;
-      } else {
-        selected = (track.type === TrackType.PAGE) ? true : false;
-      }
+  isSelected(track: Track): boolean {
+    if (!this.selectedTrackId || track.hrefLocation !== this.trackService.currentHrefLocation || !this.trackPlayActivated) {
+      return false;
     }
-
-
-    return { selected };
+    if (this.selectedTrackId.includes('tuelloTrackClick')) {
+      return this.selectedTrackId === track.id;
+    }
+    return track.type === TrackType.PAGE;
   }
 
   ngOnDestroy() {

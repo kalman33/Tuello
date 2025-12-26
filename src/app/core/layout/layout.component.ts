@@ -1,6 +1,6 @@
 import { MediaMatcher } from '@angular/cdk/layout';
 import { NgClass } from '@angular/common';
-import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatLine } from '@angular/material/core';
@@ -27,18 +27,16 @@ import { RateSupportComponent } from './rate-support/rate-support.component';
     animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation],
     imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe]
 })
-export class LayoutComponent implements AfterViewInit, OnInit {
+export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   isOpen = false;
   activate = true;
   displayTitle = false;
   title: string;
-  // Indice de l'élément sélectionné
   selectedIndex = 0;
-
   menuLabels: string[] = [];
-
   stateFadeAnimation = 'inactive';
   statesSlideInMenuAnimation = 'inactive';
+  private titleInterval: ReturnType<typeof setInterval> | null = null;
 
   @ViewChild('snav') sidenav: MatSidenav;
 
@@ -58,10 +56,8 @@ export class LayoutComponent implements AfterViewInit, OnInit {
       if (results['selectedMenu']) {
         this.selectedIndex = results['selectedMenu'];
       }
-      //this.sidenav.toggle();
-      //this.isOpen = !this.isOpen;
+      this.changeDetectorRef.detectChanges();
     });
-   
   }
 
   ngAfterViewInit(): void {
@@ -81,16 +77,17 @@ export class LayoutComponent implements AfterViewInit, OnInit {
     });
   }
 
-  /** une fois que l'animation est terminée */
   animationDone($event) {
     this.displayTitle = true;
     let letterCount = 1;
 
-    const timeOutTitle = setInterval(() => {
+    this.titleInterval = setInterval(() => {
       this.title = 'TUELLO'.substring(0, letterCount);
       letterCount++;
+      this.changeDetectorRef.detectChanges();
       if (letterCount === 7) {
-        clearInterval(timeOutTitle);
+        clearInterval(this.titleInterval);
+        this.titleInterval = null;
       }
     }, 100);
   }
@@ -125,9 +122,14 @@ export class LayoutComponent implements AfterViewInit, OnInit {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }
-      //this.sidenav.toggle();
-      //this.isOpen = !this.isOpen;
+      this.changeDetectorRef.detectChanges();
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this.titleInterval) {
+      clearInterval(this.titleInterval);
+    }
   }
 
   // Fonction pour gérer la sélection d'un élément

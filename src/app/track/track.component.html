@@ -35,7 +35,7 @@
     @if (tracks) {
       <mat-list [selectTrack]="selectedTrackId">
         @for (track of tracks; track track.id; let i = $index) {
-          <mat-list-item [ngClass]="isSelectedClass(track)">
+          <mat-list-item [class.selected]="isSelected(track)">
             <mmn-track-detail
               [id]="'list-' + track.id"
               [index]="i"

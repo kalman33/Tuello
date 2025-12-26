@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialogTitle } from '@angular/material/dialog';
@@ -11,7 +11,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { fadeInAnimation } from '../../core/animations/fadeInAnimation';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../../core/animations/route.animations';
 import { TagElement } from '../models/TagElement';
@@ -25,40 +25,34 @@ import { TagsService } from '../services/tags.service';
     animations: [fadeInAnimation],
     imports: [FlexModule, FormsModule, MatDialogTitle, MatIconButton, MatIcon, NgClass, ExtendedModule, MatFormField, MatLabel, MatInput, MatTooltip, MatAccordion, MatExpansionPanel, MatExpansionPanelHeader, MatExpansionPanelTitle, TranslatePipe]
 })
-export class AddTagsComponent implements OnInit {
+export class AddTagsComponent {
+    private cdr = inject(ChangeDetectorRef);
+    private router = inject(Router);
+
     routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
+    tagsService = inject(TagsService);
 
     httpKey: string;
     jsonKey: string;
     display: string;
-    dataLoaded: boolean = false;
+    dataLoaded = false;
 
-    constructor(
-        private translate: TranslateService,
-        private router: Router,
-        public tagsService: TagsService,
-        private changeDetectorRef: ChangeDetectorRef
-    ) {}
-
-    async ngOnInit() {
-        this.tagsService.elements = await this.getDataFromChromeStorage();
-        this.dataLoaded = true;
+    constructor() {
+        this.loadData();
     }
 
-    getDataFromChromeStorage(): Promise<any> {
-        return new Promise((resolve, reject) => {
-            chrome.storage.local.get(['tuelloHTTPTags'], (result) => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                } else {
-                    resolve(result['tuelloHTTPTags']);
-                }
-            });
+    private loadData(): void {
+        chrome.storage.local.get(['tuelloHTTPTags'], (result) => {
+            if (!chrome.runtime.lastError) {
+                this.tagsService.elements = result['tuelloHTTPTags'];
+            }
+            this.dataLoaded = true;
+            this.cdr.detectChanges();
         });
     }
 
-    trackByFn(index: number, item: TagElement) {
-        item.display;
+    trackByFn(index: number, item: TagElement): string {
+        return item.httpKey + item.jsonKey;
     }
 
     addElement() {
