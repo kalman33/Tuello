@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Action } from '../models/Action';
 import { Record } from '../models/Record';
+import { CompressionService } from '../../core/compression/compression.service';
 
 @Injectable({ providedIn: 'root' })
 export class RecorderHistoryService {
@@ -11,6 +12,8 @@ export class RecorderHistoryService {
   private lastAction: Action;
   private last: number;
 
+  constructor(private compressionService: CompressionService) {}
+
   deleteAll() {
     this.record = null;
     this.lastAction = null;
@@ -18,8 +21,7 @@ export class RecorderHistoryService {
     // on previent background pour effacer le record en cours
     chrome.runtime.sendMessage({
       action: 'RECORD_USER_ACTION_DELETE'
-    }, ()=>{});
-
+    }, () => {});
   }
 
   public importJson(json: string) {
@@ -30,19 +32,18 @@ export class RecorderHistoryService {
     this.saveUiRecordToLocalStorage();
   }
 
-  public loadUiRecordFromLocalStorage() {
-    chrome.storage.local.get(['uiRecord'], results => {
-      if (results['uiRecord']) {
-        this.record = results['uiRecord'];
-      }
-    });
+  public async loadUiRecordFromLocalStorage() {
+    const record = await this.compressionService.loadCompressed<Record>('uiRecord');
+    if (record) {
+      this.record = record;
+    }
   }
 
   public saveUiRecordToLocalStorage() {
-    chrome.storage.local.set({ uiRecord: this.record });
+    this.compressionService.saveCompressed('uiRecord', this.record);
   }
 
-  public startRecording(){
+  public startRecording() {
     // on stock l'état dans le storage
     chrome.storage.local.set({ uiRecordActivated: true });
 
@@ -50,12 +51,12 @@ export class RecorderHistoryService {
     chrome.runtime.sendMessage({
       action: 'updateIcon',
       value: 'tuello-rec-32x32.png',
-    }, ()=>{});
+    }, () => {});
 
     // on previent background qui va prevenir contentscript qu'on a démarré le recording
     chrome.runtime.sendMessage({
       action: 'START_UI_RECORDER',
       value: true,
-    }, ()=>{});
+    }, () => {});
   }
 }

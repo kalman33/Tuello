@@ -38,6 +38,13 @@
   "mmn.settings.import.message": "Loading file",
   "mmn.settings.import.error.action": "Error",
   "mmn.settings.import.success.action": "Success",
+  "mmn.settings.compression.title": "Storage Compression",
+  "mmn.settings.compression.key": "Data",
+  "mmn.settings.compression.original": "Original",
+  "mmn.settings.compression.compressed": "Compressed",
+  "mmn.settings.compression.saved": "Saved",
+  "mmn.settings.compression.total": "Total",
+  "mmn.settings.compression.pending": "Pending",
 
   "mmn.recorder-http.button.import": "Import",
   "mmn.recorder-http.button.saveAs": "Save",

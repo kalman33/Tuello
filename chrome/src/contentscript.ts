@@ -9,6 +9,7 @@ import { addTagsPanel, deleteTagsPanel, initTagsHandler } from './utils/tags';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
 import { displayEffect } from './utils/utils';
+import { loadCompressedMultiple } from './utils/compression';
 
 let show = false;
 let clickedElement: string;
@@ -60,7 +61,7 @@ try {
 } catch (error) {
   // Ignorer les erreurs localStorage/JSON (peut échouer en contexte cross-origin)
 }
-chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], function (result) {
+loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel']).then(result => {
   if (result.tuelloRecords) {
     try {
       const jsonData = JSON.stringify({
@@ -81,7 +82,8 @@ chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], function (result) {
       '*'
     );
   }
-
+}).catch(() => {
+  // Ignorer les erreurs de décompression
 });
 
 // Ajouter le listener mousedown au chargement
@@ -247,7 +249,17 @@ function activate() {
   // Réactiver le listener mousedown (supprimé lors de la désactivation)
   addMousedownListener();
 
-  chrome.storage.local.get(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated'], results => {
+  loadCompressedMultiple<{
+    mouseCoordinates?: boolean;
+    tuelloHTTPTags?: unknown;
+    httpRecord?: boolean;
+    httpMock?: boolean;
+    tuelloRecords?: unknown;
+    deepMockLevel?: number;
+    trackPlay?: boolean;
+    disabled?: boolean;
+    searchElementsActivated?: boolean;
+  }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated']).then(results => {
     if (!results.disabled) {
 
       if (results.httpMock) {
@@ -469,7 +481,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'HTTP_MOCK_STATE':
-      chrome.storage.local.get(['tuelloRecords', 'deepMockLevel'], results => {
+      loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel']).then(results => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -484,7 +496,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       break;
     case 'MMA_RECORDS_CHANGE':
-      chrome.storage.local.get(['httpMock', 'deepMockLevel', 'tuelloRecords'], results => {
+      loadCompressedMultiple<{ httpMock?: boolean; deepMockLevel?: number; tuelloRecords?: unknown }>(['httpMock', 'deepMockLevel', 'tuelloRecords']).then(results => {
         if (results.httpMock) {
           window.postMessage(
             {

@@ -425,10 +425,27 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
     private applyImportedData(importedData: any[]) {
         if (this.importMode === 'add') {
-            // Mode ajout : fusionner avec les données existantes
+            // Mode ajout : fusionner avec les données existantes sans doublons
             const currentData = (this.jsonEditorTree.get() as JSONContent).json;
-            const existingRecords = Array.isArray(currentData) ? currentData : [];
-            const mergedData = [...existingRecords, ...importedData];
+            const existingRecords: any[] = Array.isArray(currentData) ? currentData : [];
+
+            // Créer un Map avec les enregistrements existants (clé = key)
+            const recordsMap = new Map<string, any>();
+            for (const record of existingRecords) {
+                if (record.key) {
+                    recordsMap.set(record.key, record);
+                }
+            }
+
+            // Ajouter/Remplacer avec les données importées
+            for (const record of importedData) {
+                if (record.key) {
+                    recordsMap.set(record.key, record);
+                }
+            }
+
+            // Convertir le Map en tableau
+            const mergedData = Array.from(recordsMap.values());
             this.jsonEditorTree.update({ json: mergedData });
         } else {
             // Mode remplacement : remplacer les données existantes

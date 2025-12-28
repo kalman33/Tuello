@@ -97,6 +97,49 @@
             {{ 'mmn.settings.setup.button.clear' | translate }}
           </button>
         </div>
+
+        @if (storageStats.length > 0) {
+          <h2 style="margin-top: 20px;">
+            <mat-icon color="accent" style="vertical-align: middle;">compress</mat-icon>
+            {{ 'mmn.settings.compression.title' | translate }}
+          </h2>
+          <div class="compression-stats">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="text-align: left; border-bottom: 1px solid #ccc;">
+                  <th style="padding: 8px;">{{ 'mmn.settings.compression.key' | translate }}</th>
+                  <th style="padding: 8px;">{{ 'mmn.settings.compression.original' | translate }}</th>
+                  <th style="padding: 8px;">{{ 'mmn.settings.compression.compressed' | translate }}</th>
+                  <th style="padding: 8px;">{{ 'mmn.settings.compression.saved' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (stat of storageStats; track stat.key) {
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 8px;">{{ stat.key }}</td>
+                    <td style="padding: 8px;">{{ stat.originalSize }}</td>
+                    <td style="padding: 8px;">{{ stat.currentSize }}</td>
+                    <td style="padding: 8px;">
+                      @if (stat.isCompressed) {
+                        <span style="color: #4caf50;">-{{ stat.ratio }}%</span>
+                      } @else {
+                        <span style="color: #ff9800;">{{ 'mmn.settings.compression.pending' | translate }}</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr style="font-weight: bold; border-top: 2px solid #ccc;">
+                  <td style="padding: 8px;">{{ 'mmn.settings.compression.total' | translate }}</td>
+                  <td style="padding: 8px;">{{ totalOriginalSize }}</td>
+                  <td style="padding: 8px;">{{ totalCurrentSize }}</td>
+                  <td style="padding: 8px; color: #4caf50;">{{ totalSaved }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        }
       </mat-tab>
     </mat-tab-group>
   </div>

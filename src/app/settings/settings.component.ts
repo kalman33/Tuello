@@ -20,10 +20,19 @@ import * as enMessages from '../../assets/i18n/en.json';
 import * as frMessages from '../../assets/i18n/fr.json';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ConfigurationService } from '../core/configuration/configuration.service';
+import { CompressionService, CompressionStats } from '../core/compression/compression.service';
 import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
 import { SettingsMenuComponent } from './menus/settings-menu.component';
+
+export interface StorageStats {
+    key: string;
+    originalSize: string;
+    currentSize: string;
+    ratio: number;
+    isCompressed: boolean;
+}
 
 @Component({
     selector: 'mmn-settings',
@@ -70,6 +79,12 @@ export class SettingsComponent implements OnInit {
 
     selectedLanguage;
 
+    // Statistiques de compression
+    storageStats: StorageStats[] = [];
+    totalOriginalSize = '';
+    totalCurrentSize = '';
+    totalSaved = '';
+
     private cdr = inject(ChangeDetectorRef);
 
     constructor(
@@ -77,12 +92,42 @@ export class SettingsComponent implements OnInit {
         private translate: TranslateService,
         private snackBar: MatSnackBar,
         private configurationService: ConfigurationService,
+        private compressionService: CompressionService,
         private zone: NgZone,
         private dialog: MatDialog
     ) {}
 
     ngOnInit() {
         this.init();
+        this.loadCompressionStats();
+    }
+
+    async loadCompressionStats() {
+        try {
+            const stats = await this.compressionService.getStorageStats();
+            this.storageStats = [];
+            let totalOriginal = 0;
+            let totalCurrent = 0;
+
+            stats.forEach((stat, key) => {
+                totalOriginal += stat.originalSize;
+                totalCurrent += stat.currentSize;
+                this.storageStats.push({
+                    key,
+                    originalSize: this.compressionService.formatSize(stat.originalSize),
+                    currentSize: this.compressionService.formatSize(stat.currentSize),
+                    ratio: stat.ratio,
+                    isCompressed: stat.ratio > 0
+                });
+            });
+
+            this.totalOriginalSize = this.compressionService.formatSize(totalOriginal);
+            this.totalCurrentSize = this.compressionService.formatSize(totalCurrent);
+            this.totalSaved = this.compressionService.formatSize(totalOriginal - totalCurrent);
+            this.cdr.detectChanges();
+        } catch (error) {
+            console.error('Erreur chargement stats compression:', error);
+        }
     }
 
     init() {

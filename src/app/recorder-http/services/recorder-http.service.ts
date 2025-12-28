@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
+import { CompressionService } from '../../core/compression/compression.service';
 
 /**
  * Permet de stocker les flux json de tous les services
@@ -10,37 +11,25 @@ import { Subject } from 'rxjs';
 export class RecorderHttpService {
   private tuelloRecordsSubject = new Subject();
 
-  constructor() {}
+  constructor(private compressionService: CompressionService) {}
 
   public getJsonRecords(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      chrome.storage.local.get(['tuelloRecords'], results => {
-        if (chrome.runtime.lastError) {
-          reject(chrome.runtime.lastError);
-        } else {
-          resolve(results['tuelloRecords']);
-        }
-      });
-    });
+    return this.compressionService.loadCompressed('tuelloRecords');
   }
 
-  saveToLocalStorage(records) {
-    chrome.storage.local.set({ tuelloRecords: records });
+  saveToLocalStorage(records: any) {
+    this.compressionService.saveCompressed('tuelloRecords', records);
   }
 
   reset() {
     chrome.storage.local.remove(['tuelloRecords']);
   }
 
-
-  getTuelloRecords(){
+  getTuelloRecords() {
     return this.tuelloRecordsSubject.asObservable();
   }
 
   setTuelloRecords(tuelloRecords: any) {
     this.tuelloRecordsSubject.next(tuelloRecords);
   }
-
-
-
 }

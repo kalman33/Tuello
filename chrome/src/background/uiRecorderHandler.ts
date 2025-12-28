@@ -6,6 +6,7 @@ import { HttpReturn } from '../../../src/app/recorder-http/models/http.return';
 import { removeDuplicateEntries } from '../utils/utils';
 import { IFrame } from '../models/IFrame';
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
+import { saveCompressed, loadCompressed } from '../utils/compression';
 
 let lastAction: Action;
 let last;
@@ -290,9 +291,8 @@ export function addHttpUserAction(data: HttpReturn) {
 }
 
 export function loadRecordFromStorage() {
-  chrome.storage.local.get(['uiRecord'], results => {
-    if (results.uiRecord) {
-      const data = results.uiRecord;
+  loadCompressed<Record>('uiRecord').then(data => {
+    if (data) {
       if (!record) {
         record = new Record(data.windowSize);
         record.actions = data.actions;
@@ -303,6 +303,8 @@ export function loadRecordFromStorage() {
     } else {
       last = Date.now();
     }
+  }).catch(() => {
+    last = Date.now();
   });
 }
 
@@ -357,12 +359,10 @@ export function getSrcFromFrameId(tabId, frameId: number): Promise<IFrame> {
 }
 
 function saveUiRecordToLocalStorage() {
-  chrome.storage.local.set({ uiRecord: record });
+  saveCompressed('uiRecord', record).catch(console.error);
 
   chrome.runtime.sendMessage({
     action: 'UI_RECORD_CHANGED',
     value: record
   }, () => { });
-
-
 }
