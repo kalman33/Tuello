@@ -17,6 +17,7 @@ import { ContextMenuItem, createJSONEditor, JSONContent, JsonEditor, RenderConte
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 import { ExportComponent } from './export/export.component';
+import { ImportDialogComponent, ImportMode } from './import-dialog/import-dialog.component';
 import { TagElement } from './models/TagElement';
 import { RecorderHttpService } from './services/recorder-http.service';
 import { TagsService } from './services/tags.service';
@@ -55,6 +56,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     dernierEvenementTampon: number;
     private debounceTimeoutId: ReturnType<typeof setTimeout> | null = null;
     private chromeMessageListener: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void;
+    private importMode: ImportMode = 'replace';
     records;
 
     ngOnInit() {
@@ -410,15 +412,28 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
         const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
         data = this.replaceDynamicData(fixedJsonString);
         const jsonData = JSON5.parse(data);
-        this.jsonEditorTree.update({ json: jsonData });
-        this.updateData();
+        this.applyImportedData(jsonData);
     }
+
     processJsonResult(jsonResult: string) {
         const data = this.replaceDynamicData(jsonResult);
         // Correction : Ajout de guillemets autour des nombres en tant que clés
         const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
         const dataJson = JSON5.parse(fixedJsonString);
-        this.jsonEditorTree.update({ json: dataJson });
+        this.applyImportedData(dataJson);
+    }
+
+    private applyImportedData(importedData: any[]) {
+        if (this.importMode === 'add') {
+            // Mode ajout : fusionner avec les données existantes
+            const currentData = (this.jsonEditorTree.get() as JSONContent).json;
+            const existingRecords = Array.isArray(currentData) ? currentData : [];
+            const mergedData = [...existingRecords, ...importedData];
+            this.jsonEditorTree.update({ json: mergedData });
+        } else {
+            // Mode remplacement : remplacer les données existantes
+            this.jsonEditorTree.update({ json: importedData });
+        }
         this.updateData();
     }
 
@@ -429,8 +444,20 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     }
 
     selectFile() {
-        this.fileInput.nativeElement.click();
-        this.fileInput.nativeElement.value = ''; // permet de permettre le onchange si on reselectionne le meme fichier
+        const dialogRef = this.dialog.open(ImportDialogComponent, {
+            width: '400px'
+        });
+
+        dialogRef
+            .afterClosed()
+            .pipe(take(1))
+            .subscribe((result: ImportMode | undefined) => {
+                if (result) {
+                    this.importMode = result;
+                    this.fileInput.nativeElement.click();
+                    this.fileInput.nativeElement.value = ''; // permet de permettre le onchange si on reselectionne le meme fichier
+                }
+            });
     }
 
     addTags() {

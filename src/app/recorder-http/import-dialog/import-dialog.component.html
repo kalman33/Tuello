@@ -1,0 +1,21 @@
+<h1 mat-dialog-title>{{ 'mmn.recorder-http.import-dialog.title' | translate }}</h1>
+<div mat-dialog-content>
+  <p>{{ 'mmn.recorder-http.import-dialog.content' | translate }}</p>
+
+  <div class="import-options">
+    <button mat-flat-button color="primary" (click)="selectAdd()">
+      <mat-icon>add</mat-icon>
+      {{ 'mmn.recorder-http.import-dialog.button.add' | translate }}
+    </button>
+    <p class="option-description">{{ 'mmn.recorder-http.import-dialog.add.description' | translate }}</p>
+
+    <button mat-flat-button color="warn" (click)="selectReplace()">
+      <mat-icon>sync</mat-icon>
+      {{ 'mmn.recorder-http.import-dialog.button.replace' | translate }}
+    </button>
+    <p class="option-description">{{ 'mmn.recorder-http.import-dialog.replace.description' | translate }}</p>
+  </div>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-flat-button mat-dialog-close>{{ 'mmn.recorder-http.import-dialog.button.cancel' | translate }}</button>
+</div>
