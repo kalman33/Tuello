@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0.0] - 2025-12-28
+
+    Optimisations
+    Ajout de la possibilité de rajouter les mocks lors d'imports dans " Mock & record HTTP"
+
 ## [1.1.2.0] - 2025-03-22
 
     petits correctifs

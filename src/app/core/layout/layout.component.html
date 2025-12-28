@@ -1,102 +1,78 @@
-<div class="navbar-container" >
-
-  <!-- Top navbar -->
-  <mat-toolbar class="navbar" color="primary" [@fadeInAnimation]="stateFadeAnimation" (@fadeInAnimation.done)="animationDone($event)">
-    <div style="cursor: pointer"  class="nav-icon" [ngClass]="{'open' : isOpen}" (click)="snav.toggle(); isOpen = !isOpen; openSideNav();">
-      <div></div>
-    </div>
-    <div class="navbar-brand" >
-      <img src="assets/img/tuello-128x128.png" width="40px" height="40px">
-    </div>
-    <div class="navbar-title">
-      <span class="navbar-spacer">{{title}}</span>
-    </div>
-    <mat-slide-toggle [checked]="activate" class="darkMode" (change)="toggleDesactivate($event)">
-    </mat-slide-toggle>
-
-    @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
-      <button class="toolbar-action" mat-icon-button
-        color="basic"
-        (click)="close()"
-        aria-label="Fermer"><mat-icon>close</mat-icon>
-      </button>
-    }
-  </mat-toolbar>
-
-  <mat-sidenav-container class="navbar-sidenav-container">
-    <!-- Side nav -->
-    <mat-sidenav #snav [mode]="'over'"
-      fixedTopGap="56" class="sidenav"
-      (openedStart)="statesSlideInMenuAnimation = 'active'"
-      (closed)="statesSlideInMenuAnimation = 'inactive'; isOpen= false"
-      >
-
-      <mat-nav-list [@slideInMenuAnimation]="statesSlideInMenuAnimation">
-        <a [class.selected]="selectedIndex === 0" (click)="selectMenuItem(0)" mat-list-item [routerLink]="['/recorder']" [skipLocationChange]="true">
-          <mat-icon color="accent" mat-list-icon>
-            camera
-          </mat-icon>
-          <span mat-line> {{ this.menuLabels[0] ?  this.menuLabels[0] : ('mmn.layout.mockAndRecord' | translate) }}</span>
-        </a>
-        @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
-          <a [class.selected]="selectedIndex === 1" (click)="selectMenuItem(1)" mat-list-item [routerLink]="['/spy']" [skipLocationChange]="true">
-            <mat-icon color="accent" mat-list-icon>
-              queue_play_next
-            </mat-icon>
-            <span mat-line>{{ this.menuLabels[1] ?  this.menuLabels[1] : ('mmn.layout.spyAndReplay' | translate) }} </span>
-          </a>
-        }
-        @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
-          <a [class.selected]="selectedIndex === 2" (click)="selectMenuItem(2)" mat-list-item [routerLink]="['/track']" [skipLocationChange]="true">
-            <mat-icon color="accent" mat-list-icon>
-              search
-            </mat-icon>
-            <span mat-line>{{ this.menuLabels[2] ?  this.menuLabels[2] : ('mmn.layout.trackResources' | translate) }}</span>
-          </a>
-        }
-        @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
-          <a [class.selected]="selectedIndex === 3" (click)="selectMenuItem(3)" mat-list-item [routerLink]="['/search']" [skipLocationChange]="true">
-            <mat-icon color="accent" mat-list-icon>
-              remove_red_eye
-            </mat-icon>
-            <span mat-line> {{ this.menuLabels[3] ?  this.menuLabels[3] : ('mmn.layout.searchElements' | translate) }} </span>
-          </a>
-        }
-        <a [class.selected]="selectedIndex === 4" (click)="selectMenuItem(4)" mat-list-item [routerLink]="['/json-formatter']" [skipLocationChange]="true">
-          <mat-icon color="accent" mat-list-icon>
-            view_timeline
-          </mat-icon>
-          <span mat-line> {{ 'mmn.layout.jsonFormatter' | translate }} </span>
-        </a>
-
-        <a [class.selected]="selectedIndex === 5" (click)="selectMenuItem(5)" mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
-          <mat-icon color="accent" mat-list-icon>
-            settings
-          </mat-icon>
-          <span mat-line> {{ 'mmn.layout.settings' | translate }} </span>
-        </a>
-
-        <div id="push-bottom" >
-          <div>
-            <button [disableRipple]="true" class="no-ripple-color mat-mdc-button" id="rate" mat-raised-button (click)="openRateSupport()">
-              <mat-icon >favorite</mat-icon>
-              <span>{{ 'mmn.layout.rate' | translate }}</span>
-            </button>
-          </div>
-          <div>
-            <mat-icon id="outline" class="v-align-middle">info_outline</mat-icon>
-            <span class="v-align-middle">Version 1.1.2</span>
-          </div>
+<div class="navbar-container">
+    <!-- Top navbar -->
+    <mat-toolbar class="navbar" color="primary" [@fadeInAnimation]="stateFadeAnimation" (@fadeInAnimation.done)="animationDone($event)">
+        <div style="cursor: pointer" class="nav-icon" [ngClass]="{ open: isOpen }" (click)="snav.toggle(); isOpen = !isOpen; openSideNav()">
+            <div></div>
         </div>
-      </mat-nav-list>
-    </mat-sidenav>
+        <div class="navbar-brand">
+            <img src="assets/img/tuello-128x128.png" width="40px" height="40px" />
+        </div>
+        <div class="navbar-title">
+            <span class="navbar-spacer">{{ title }}</span>
+        </div>
+        <mat-slide-toggle [checked]="activate" class="darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
 
-    <!-- Main content -->
-    <mat-sidenav-content class="sidenav-content">
-      <div [@routeAnimations]="o.isActivated">
-        <router-outlet #o="outlet"></router-outlet>
-      </div>
-    </mat-sidenav-content>
-  </mat-sidenav-container>
+        @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+            <button class="toolbar-action" mat-icon-button color="basic" (click)="close()" aria-label="Fermer"><mat-icon>close</mat-icon></button>
+        }
+    </mat-toolbar>
 
+    <mat-sidenav-container class="navbar-sidenav-container">
+        <!-- Side nav -->
+        <mat-sidenav #snav [mode]="'over'" fixedTopGap="56" class="sidenav" (openedStart)="statesSlideInMenuAnimation = 'active'" (closed)="statesSlideInMenuAnimation = 'inactive'; isOpen = false">
+            <mat-nav-list [@slideInMenuAnimation]="statesSlideInMenuAnimation">
+                <a [class.selected]="selectedIndex === 0" (click)="selectMenuItem(0)" mat-list-item [routerLink]="['/recorder']" [skipLocationChange]="true">
+                    <mat-icon color="accent" mat-list-icon> camera </mat-icon>
+                    <span mat-line> {{ this.menuLabels[0] ? this.menuLabels[0] : ('mmn.layout.mockAndRecord' | translate) }}</span>
+                </a>
+                @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+                    <a [class.selected]="selectedIndex === 1" (click)="selectMenuItem(1)" mat-list-item [routerLink]="['/spy']" [skipLocationChange]="true">
+                        <mat-icon color="accent" mat-list-icon> queue_play_next </mat-icon>
+                        <span mat-line>{{ this.menuLabels[1] ? this.menuLabels[1] : ('mmn.layout.spyAndReplay' | translate) }} </span>
+                    </a>
+                }
+                @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+                    <a [class.selected]="selectedIndex === 2" (click)="selectMenuItem(2)" mat-list-item [routerLink]="['/track']" [skipLocationChange]="true">
+                        <mat-icon color="accent" mat-list-icon> search </mat-icon>
+                        <span mat-line>{{ this.menuLabels[2] ? this.menuLabels[2] : ('mmn.layout.trackResources' | translate) }}</span>
+                    </a>
+                }
+                @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+                    <a [class.selected]="selectedIndex === 3" (click)="selectMenuItem(3)" mat-list-item [routerLink]="['/search']" [skipLocationChange]="true">
+                        <mat-icon color="accent" mat-list-icon> remove_red_eye </mat-icon>
+                        <span mat-line> {{ this.menuLabels[3] ? this.menuLabels[3] : ('mmn.layout.searchElements' | translate) }} </span>
+                    </a>
+                }
+                <a [class.selected]="selectedIndex === 4" (click)="selectMenuItem(4)" mat-list-item [routerLink]="['/json-formatter']" [skipLocationChange]="true">
+                    <mat-icon color="accent" mat-list-icon> view_timeline </mat-icon>
+                    <span mat-line> {{ 'mmn.layout.jsonFormatter' | translate }} </span>
+                </a>
+
+                <a [class.selected]="selectedIndex === 5" (click)="selectMenuItem(5)" mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
+                    <mat-icon color="accent" mat-list-icon> settings </mat-icon>
+                    <span mat-line> {{ 'mmn.layout.settings' | translate }} </span>
+                </a>
+
+                <div id="push-bottom">
+                    <div>
+                        <button [disableRipple]="true" class="no-ripple-color mat-mdc-button" id="rate" mat-raised-button (click)="openRateSupport()">
+                            <mat-icon>favorite</mat-icon>
+                            <span>{{ 'mmn.layout.rate' | translate }}</span>
+                        </button>
+                    </div>
+                    <div>
+                        <mat-icon id="outline" class="v-align-middle">info_outline</mat-icon>
+                        <span class="v-align-middle">Version 1.2.0</span>
+                    </div>
+                </div>
+            </mat-nav-list>
+        </mat-sidenav>
+
+        <!-- Main content -->
+        <mat-sidenav-content class="sidenav-content">
+            <div [@routeAnimations]="o.isActivated">
+                <router-outlet #o="outlet"></router-outlet>
+            </div>
+        </mat-sidenav-content>
+    </mat-sidenav-container>
 </div>
