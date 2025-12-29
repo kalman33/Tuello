@@ -1,65 +1,79 @@
+import { loadCompressed, saveCompressed, decompress, compress } from './compression';
 import { removeDuplicateEntries, removeDuplicatesKeepLast, stringContainedInURL } from './utils';
+
+interface MockProfile {
+  id: string;
+  name: string;
+  mocks: any[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface MockProfilesStorage {
+  profiles: MockProfile[];
+  activeProfileId: string;
+}
 
 export function recordHttpListener(event: MessageEvent) {
 
   if (event?.data?.type === 'RECORD_HTTP') {
     mutex.lock()
-      .then(() => {
-        chrome.storage.local.get(['tuelloRecords', 'tuelloHTTPOverWrite', 'tuelloHTTPFilter'], (items) => {
-          if (!chrome.runtime.lastError) {
-            // Parser les records s'ils sont stockés comme une chaîne JSON
-            let records = items.tuelloRecords;
-            if (typeof records === 'string') {
-              try {
-                records = JSON.parse(records);
-              } catch (e) {
-                records = [];
-              }
-            }
-            if (!records || !Array.isArray(records)) {
-              records = [];
-            }
-            items.tuelloRecords = records;
+      .then(async () => {
+        try {
+          // Charger les données avec décompression
+          const [tuelloRecords, tuelloHTTPOverWrite, tuelloHTTPFilter, mockProfilesData] = await Promise.all([
+            loadCompressed<any[]>('tuelloRecords'),
+            new Promise<boolean | undefined>(resolve => {
+              chrome.storage.local.get(['tuelloHTTPOverWrite'], r => resolve(r.tuelloHTTPOverWrite));
+            }),
+            new Promise<string | undefined>(resolve => {
+              chrome.storage.local.get(['tuelloHTTPFilter'], r => resolve(r.tuelloHTTPFilter));
+            }),
+            loadCompressed<MockProfilesStorage>('tuelloMockProfiles')
+          ]);
 
-            if (!items['tuelloHTTPFilter'] || (items['tuelloHTTPFilter'] && stringContainedInURL(items['tuelloHTTPFilter'], event.data.url))) {
-              
-             
-              if (event.data.error) {
-                items.tuelloRecords.unshift({
-                  key: event.data.url,
-                  response: event.data.error,
-                  httpCode: event.data.status,
-                  delay: event.data.delay
-                });
-              } else {
-                items.tuelloRecords.unshift({
-                  key: event.data.url,
-                  response: event.data.response,
-                  httpCode: event.data.status,
-                  delay: event.data.delay
-                });
-              }
-              let data;
-              if (items['tuelloHTTPOverWrite'] === false) {
-                data = { tuelloRecords: removeDuplicatesKeepLast(items.tuelloRecords) };
-              } else {
-                data = { tuelloRecords: removeDuplicateEntries(items.tuelloRecords) };
-                
-              }
-              chrome.storage.local.set(data, () => {
-                chrome.runtime.sendMessage(
-                  { refresh: true },
-                  (response) => { }
-                );
-                mutex.unlock(); // Déverrouiller une fois que le stockage local est mis à jour
-              });
+          let records = tuelloRecords || [];
+
+          if (!tuelloHTTPFilter || stringContainedInURL(tuelloHTTPFilter, event.data.url)) {
+            const newRecord = {
+              key: event.data.url,
+              response: event.data.error || event.data.response,
+              httpCode: event.data.status,
+              delay: event.data.delay
+            };
+
+            records.unshift(newRecord);
+
+            // Appliquer la déduplication
+            if (tuelloHTTPOverWrite === false) {
+              records = removeDuplicatesKeepLast(records);
             } else {
-              mutex.unlock(); // Déverrouiller
+              records = removeDuplicateEntries(records);
             }
-          } else {
-            mutex.unlock(); // Déverrouiller
+
+            // Sauvegarder dans tuelloRecords (compressé)
+            await saveCompressed('tuelloRecords', records);
+
+            // Synchroniser avec le profil actif
+            if (mockProfilesData?.activeProfileId && mockProfilesData?.profiles) {
+              const activeProfile = mockProfilesData.profiles.find(
+                p => p.id === mockProfilesData.activeProfileId
+              );
+              if (activeProfile) {
+                activeProfile.mocks = records;
+                activeProfile.updatedAt = Date.now();
+                await saveCompressed('tuelloMockProfiles', mockProfilesData);
+              }
+            }
+
+            chrome.runtime.sendMessage({ refresh: true }, () => {});
           }
-        });
+
+          mutex.unlock();
+        } catch (error) {
+          console.error('Tuello: Erreur lors de l\'enregistrement HTTP:', error);
+          mutex.unlock();
+        }
       })
       .catch((error) => {
         console.error('Tuello: Erreur lors de l\'acquisition du verrou :', error);

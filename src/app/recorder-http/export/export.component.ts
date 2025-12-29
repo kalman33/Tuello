@@ -76,4 +76,14 @@ export class ExportComponent {
         dataTxt = dataTxt.replace(/"###window.location.origin###/, ' window.location.origin + "');
         return dataTxt;
     }
+
+    async copyToClipboard() {
+        try {
+            const text = JSON.stringify(this.data);
+            await navigator.clipboard.writeText(text);
+            this.snackBar.open(this.translate.instant('mmn.recorder-http.button.copied'), '', { duration: 1000 });
+        } catch (e) {
+            console.error('Tuello: Erreur lors de la copie dans le presse-papier', e);
+        }
+    }
 }

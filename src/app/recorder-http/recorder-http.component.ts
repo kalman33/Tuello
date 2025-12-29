@@ -1,9 +1,11 @@
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButton } from '@angular/material/button';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
+import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltip } from '@angular/material/tooltip';
@@ -18,7 +20,10 @@ import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 import { ExportComponent } from './export/export.component';
 import { ImportDialogComponent, ImportMode } from './import-dialog/import-dialog.component';
+import { MockProfile } from './models/mock-profile';
+import { ProfilesDialogComponent } from './profiles-dialog/profiles-dialog.component';
 import { TagElement } from './models/TagElement';
+import { MockProfilesService } from './services/mock-profiles.service';
 import { RecorderHttpService } from './services/recorder-http.service';
 import { TagsService } from './services/tags.service';
 import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
@@ -29,13 +34,14 @@ import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings
     styleUrls: ['./recorder-http.component.scss'],
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, TranslatePipe]
+    imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIconButton, MatIcon, MatTooltip, MatSlideToggle, MatFormField, MatSelect, MatOption, TranslatePipe]
 })
 export class RecorderHttpComponent implements OnInit, OnDestroy {
     constructor(
         private dialog: MatDialog,
         private infoBar: MatSnackBar,
         private recorderService: RecorderHttpService,
+        private mockProfilesService: MockProfilesService,
         private translate: TranslateService,
         private ref: ChangeDetectorRef,
         private router: Router,
@@ -59,6 +65,10 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     private importMode: ImportMode = 'replace';
     records;
 
+    // Profils
+    profiles: MockProfile[] = [];
+    activeProfileId: string | null = null;
+
     ngOnInit() {
         // Vérifier si body a la classe 'black-theme'
         const hasBlackTheme = document.body.classList.contains('black-theme');
@@ -70,23 +80,8 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
             this.ref.detectChanges();
         });
 
-        // recupération des enregistrements
-        chrome.storage.local.get(['tuelloRecords'], (results) => {
-            try {
-                // Parser les records s'ils sont stockés comme une chaîne JSON
-                let records = results['tuelloRecords'];
-                if (typeof records === 'string') {
-                    records = JSON.parse(records);
-                }
-                // S'assurer que c'est un tableau (pas un objet)
-                this.records = Array.isArray(records) ? records : [];
-            } catch (e) {
-                this.records = [];
-            }
-
-            // paramétrage du jsoneditor
-            this.initJsonEditor();
-        });
+        // Migration et chargement des profils
+        this.initProfiles();
 
         this.chromeMessageListener = (message, sender, sendResponse) => {
             if (message.refresh) {
@@ -280,10 +275,11 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
         dialogRef
             .afterClosed()
             .pipe(take(1))
-            .subscribe((result) => {
+            .subscribe(async (result) => {
                 if (result) {
-                    this.recorderService.reset();
+                    await this.recorderService.reset();
                     this.jsonEditorTree.update({ json: [] });
+                    this.records = [];
                 }
             });
     }
@@ -484,6 +480,74 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     openSettings() {
         const dialogRef = this.dialog.open(RecorderHttpSettingsComponent);
     }
+
+    async initProfiles() {
+        // Migration des anciens mocks si nécessaire
+        await this.mockProfilesService.migrateFromLegacy();
+
+        // Charger les profils
+        this.profiles = await this.mockProfilesService.getProfiles();
+        this.activeProfileId = await this.mockProfilesService.getActiveProfileId();
+
+        // Charger les mocks du profil actif
+        const activeProfile = await this.mockProfilesService.getActiveProfile();
+        this.records = activeProfile?.mocks || [];
+
+        // Initialiser l'éditeur JSON
+        this.initJsonEditor();
+        this.ref.detectChanges();
+    }
+
+    async onProfileChange(profileId: string) {
+        await this.mockProfilesService.setActiveProfile(profileId);
+        this.activeProfileId = profileId;
+
+        // Charger les mocks du nouveau profil
+        const profile = this.profiles.find(p => p.id === profileId);
+        if (profile) {
+            this.records = profile.mocks || [];
+            this.jsonEditorTree.update({ json: this.records });
+
+            // Mettre à jour tuelloRecords pour que httpmanager utilise les nouveaux mocks
+            await this.recorderService.saveToLocalStorage(this.records);
+
+            // Notifier le changement pour httpmanager
+            chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {});
+        }
+        this.ref.detectChanges();
+    }
+
+    openProfilesDialog() {
+        const dialogRef = this.dialog.open(ProfilesDialogComponent, {
+            width: '400px'
+        });
+
+        dialogRef.afterClosed().pipe(take(1)).subscribe(async (result) => {
+            if (result?.action === 'switch') {
+                // Recharger les profils et basculer
+                this.profiles = await this.mockProfilesService.getProfiles();
+                this.activeProfileId = result.profileId;
+
+                const profile = this.profiles.find(p => p.id === result.profileId);
+                if (profile) {
+                    this.records = profile.mocks || [];
+                    this.jsonEditorTree.update({ json: this.records });
+
+                    // Mettre à jour tuelloRecords pour que httpmanager utilise les nouveaux mocks
+                    await this.recorderService.saveToLocalStorage(this.records);
+
+                    // Notifier le changement pour httpmanager
+                    chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {});
+                }
+                this.ref.detectChanges();
+            } else {
+                // Juste recharger la liste des profils
+                this.profiles = await this.mockProfilesService.getProfiles();
+                this.ref.detectChanges();
+            }
+        });
+    }
+
     private extraireFluxJSON(codeJS: string): string | null {
         // Expression régulière pour capturer la déclaration de la variable contenant le flux JSON
         const regex = /window(?:\.tuelloRecords|\['tuelloRecords'\])\s*=\s*(.*?); \/\/#ENDOFJSON#/s;

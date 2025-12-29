@@ -736,9 +736,9 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
                         };
 
                         if (self.userActivation) {
-                            flushQueue(window, messageForHTTPRecorderQueue);
                             sendMessage(window, message);
                         } else {
+                            // Mettre en queue pour une éventuelle activation utilisateur
                             addToQueue(message, messageForHTTPRecorderQueue);
                         }
                     } catch {
@@ -783,9 +783,9 @@ intercepteurHTTPRecorder.interceptFetch = async function (
     const serializedMessage = JSON.parse(JSON.stringify(message));
 
     if (this.userActivation) {
-        flushQueue(window, messageForHTTPRecorderQueue);
         sendMessage(window, serializedMessage);
     } else {
+        // Mettre en queue pour une éventuelle activation utilisateur
         addToQueue(serializedMessage, messageForHTTPRecorderQueue);
     }
 
@@ -898,7 +898,13 @@ window.addEventListener('message', (event: MessageEvent) => {
 
         case MESSAGE_TYPES.RECORD_HTTP_ACTIVATED:
             if (data.value) {
-                flushQueue(window, messageForHTTPRecorderQueue);
+                // Ne flusher la queue que si c'est une activation utilisateur (pas une restauration au chargement)
+                if (!data.isRestore) {
+                    flushQueue(window, messageForHTTPRecorderQueue);
+                } else {
+                    // Vider la queue sans envoyer les messages (restauration depuis le storage)
+                    messageForHTTPRecorderQueue = [];
+                }
                 manager.activateInterceptorByUser(INTERCEPTOR_NAMES.HTTP_RECORDER);
             } else {
                 manager.deactivateInterceptor(INTERCEPTOR_NAMES.HTTP_RECORDER);

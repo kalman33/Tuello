@@ -89,6 +89,14 @@
   "mmn.recorder-http.settings.button.ok": "Ok",
   "mmn.recorder-http.settings.button.cancel": "Cancel",
 
+  "mmn.recorder-http.profiles.title": "Manage Profiles",
+  "mmn.recorder-http.profiles.manage": "Manage mock profiles",
+  "mmn.recorder-http.profiles.create": "New profile",
+  "mmn.recorder-http.profiles.name": "Profile name",
+  "mmn.recorder-http.profiles.rename": "Rename",
+  "mmn.recorder-http.profiles.delete": "Delete",
+  "mmn.recorder-http.profiles.close": "Close",
+
   "mmn.spy-http.button.record": "Record",
   "mmn.spy-http.button.stop": "Stop",
   "mmn.spy-http.button.play": "Play",

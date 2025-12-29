@@ -1,0 +1,64 @@
+<h1 mat-dialog-title>{{ 'mmn.recorder-http.profiles.title' | translate }}</h1>
+
+<div mat-dialog-content>
+    @if (!isCreating) {
+        <button mat-flat-button color="primary" (click)="startCreating()" style="margin-bottom: 16px">
+            <mat-icon>add</mat-icon>
+            {{ 'mmn.recorder-http.profiles.create' | translate }}
+        </button>
+    } @else {
+        <div class="create-profile-form" style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center">
+            <mat-form-field style="flex: 1">
+                <mat-label>{{ 'mmn.recorder-http.profiles.name' | translate }}</mat-label>
+                <input matInput [(ngModel)]="newProfileName" (keyup.enter)="createProfile()" autofocus />
+            </mat-form-field>
+            <button mat-icon-button color="primary" (click)="createProfile()" [disabled]="!newProfileName.trim()">
+                <mat-icon>check</mat-icon>
+            </button>
+            <button mat-icon-button (click)="cancelCreating()">
+                <mat-icon>close</mat-icon>
+            </button>
+        </div>
+    }
+
+    <mat-radio-group [(ngModel)]="activeProfileId">
+        <mat-list>
+            @for (profile of profiles; track profile.id) {
+                <mat-list-item (click)="onProfileSelect(profile.id)" style="cursor: pointer">
+                    @if (editingProfileId === profile.id) {
+                        <div style="display: flex; gap: 8px; align-items: center; width: 100%">
+                            <mat-form-field style="flex: 1">
+                                <input matInput [(ngModel)]="editingName" (keyup.enter)="saveEditing()" (click)="$event.stopPropagation()" autofocus />
+                            </mat-form-field>
+                            <button mat-icon-button color="primary" (click)="saveEditing(); $event.stopPropagation()">
+                                <mat-icon>check</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="cancelEditing(); $event.stopPropagation()">
+                                <mat-icon>close</mat-icon>
+                            </button>
+                        </div>
+                    } @else {
+                        <div class="profile-row">
+                            <mat-radio-button [value]="profile.id"></mat-radio-button>
+                            <span class="profile-name">{{ profile.name }}</span>
+                            <div class="profile-actions">
+                                <button mat-icon-button (click)="startEditing(profile, $event)" matTooltip="{{ 'mmn.recorder-http.profiles.rename' | translate }}">
+                                    <mat-icon>edit</mat-icon>
+                                </button>
+                                @if (profiles.length > 1) {
+                                    <button mat-icon-button color="warn" (click)="deleteProfile(profile, $event)" matTooltip="{{ 'mmn.recorder-http.profiles.delete' | translate }}">
+                                        <mat-icon>delete</mat-icon>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </mat-list-item>
+            }
+        </mat-list>
+    </mat-radio-group>
+</div>
+
+<div mat-dialog-actions align="end">
+    <button mat-flat-button (click)="close()">{{ 'mmn.recorder-http.profiles.close' | translate }}</button>
+</div>

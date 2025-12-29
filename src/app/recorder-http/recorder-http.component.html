@@ -17,13 +17,15 @@
         {{ 'mmn.recorder-http.button.delete' | translate }}
       </button>
 
-      <button mat-flat-button
-              color="primary"
-              (click)="copyToClipboard()"
-              [matTooltip]="'mmn.recorder-http.button.copyToClipboard' | translate"
-              [attr.aria-label]="'mmn.recorder-http.button.copyToClipboard' | translate">
-        <mat-icon>content_copy</mat-icon>
-        {{ 'mmn.recorder-http.button.copy' | translate }}
+      <mat-form-field class="profile-select">
+        <mat-select [value]="activeProfileId" (selectionChange)="onProfileChange($event.value)">
+          @for (profile of profiles; track profile.id) {
+            <mat-option [value]="profile.id">{{ profile.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <button mat-icon-button (click)="openProfilesDialog()" [matTooltip]="'mmn.recorder-http.profiles.manage' | translate">
+        <mat-icon>folder_open</mat-icon>
       </button>
     </div>
     <div class="button-row mtn ptn"  fxLayout="row" fxLayoutAlign="start center" >

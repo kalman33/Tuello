@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [1.2.1.0] - 2025-12-xx
 
     Compression lz4 des données stockées
+    ajout de la gestion des profils dans " Mock & record HTTP"
 
 ## [1.2.0.0] - 2025-12-28
 

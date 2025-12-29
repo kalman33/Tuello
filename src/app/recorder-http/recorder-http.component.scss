@@ -36,6 +36,57 @@
   margin-right: 0px !important;
 }
 
+// Style du dropdown de profils
+.profile-select {
+  width: 140px;
+  margin-left: 8px;
+  margin-right: 4px;
+
+  // Réduire la hauteur du mat-form-field
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    padding: 0 8px !important;
+    height: 36px !important;
+  }
+
+  .mat-mdc-form-field-infix {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    min-height: 36px !important;
+  }
+
+  .mat-mdc-select-trigger {
+    height: 20px;
+  }
+
+  .mat-mdc-select-value {
+    font-size: 13px;
+  }
+}
+
+// Styles globaux pour le panel du dropdown de profils (rendu hors composant)
+.mat-mdc-select-panel {
+  .mat-mdc-option {
+    min-height: 36px !important;
+    font-size: 13px;
+
+    &:hover:not(.mdc-list-item--disabled) {
+      background-color: rgba(var(--mat-sys-primary), 0.08) !important;
+    }
+
+    &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+      background-color: rgba(var(--mat-sys-primary), 0.12) !important;
+    }
+
+    &.mat-mdc-option-active {
+      background-color: rgba(var(--mat-sys-primary), 0.08) !important;
+    }
+  }
+}
+
 
 
 #jsonEditorTree div.jsoneditor-frame input {

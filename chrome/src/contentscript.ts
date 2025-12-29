@@ -278,7 +278,8 @@ function activate() {
         window.postMessage(
           {
             type: 'RECORD_HTTP_ACTIVATED',
-            value: true
+            value: true,
+            isRestore: true  // Restauration depuis le storage, ne pas flusher la queue
           },
           '*'
         );

@@ -8,7 +8,8 @@ export const COMPRESSED_KEYS = [
   'tuelloRecords',
   'uiRecord',
   'tuelloTracks',
-  'tuelloTracksBody'
+  'tuelloTracksBody',
+  'tuelloMockProfiles'
 ];
 
 /**

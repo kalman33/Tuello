@@ -1,0 +1,28 @@
+mat-list-item {
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.mat-mdc-list-item {
+  height: auto !important;
+  min-height: 48px;
+  padding: 8px 0;
+}
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.profile-name {
+  flex: 1;
+}
+
+.profile-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
