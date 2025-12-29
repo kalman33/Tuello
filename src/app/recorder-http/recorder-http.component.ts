@@ -106,22 +106,15 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
         }
     }
 
-    refresh() {
-        // recupération des enregistrements
-        chrome.storage.local.get(['tuelloRecords'], (results) => {
-            try {
-                // Parser les records s'ils sont stockés comme une chaîne JSON
-                let records = results['tuelloRecords'];
-                if (typeof records === 'string') {
-                    records = JSON.parse(records);
-                }
-                // S'assurer que c'est un tableau (pas un objet)
-                this.records = Array.isArray(records) ? records : [];
-                this.jsonEditorTree?.update({ json: this.records });
-            } catch (e) {
-                this.jsonEditorTree?.update({ json: [] });
-            }
-        });
+    async refresh() {
+        // recupération des enregistrements (avec décompression LZ)
+        try {
+            const records = await this.recorderService.getJsonRecords();
+            this.records = Array.isArray(records) ? records : [];
+            this.jsonEditorTree?.update({ json: this.records });
+        } catch (e) {
+            this.jsonEditorTree?.update({ json: [] });
+        }
     }
 
     gererRefresh() {

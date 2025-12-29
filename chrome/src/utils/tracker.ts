@@ -3,6 +3,7 @@ import { TrackType } from '../models/TrackType';
 import JsonFind from 'json-find';
 import { UserAction } from '../models/UserAction';
 import { clickInside, getElementFromXPath, getXPath, isFixedPosition, isVisible, removeURLPort, removeURLPortAndQueryString } from './utils';
+import { loadCompressed, saveCompressed, decompress } from './compression';
 
 let lastUserAction: UserAction;
 let performanceObserver;
@@ -133,16 +134,13 @@ async function displayTracks(mutationsList, observer) {
 }
 
 async function getTuelloTracks() {
-  await new Promise((resolve, reject) => {
-    chrome.storage.local.get(['tuelloTracks'], results => {
-      if (!chrome.runtime.lastError) {
-        tuelloTracks = results['tuelloTracks'] || [];
-        resolve(true);
-      } else {
-        reject(false)
-      }
-    });
-  });
+  try {
+    const tracks = await loadCompressed<any[]>('tuelloTracks');
+    tuelloTracks = tracks || [];
+  } catch {
+    tuelloTracks = [];
+    throw new Error('Erreur lors du chargement des tracks');
+  }
 }
 /**
  const { fetch: originalFetch } = window;
@@ -240,47 +238,43 @@ function clickListener(e) {
 
 }
 
-function appendTrack(track: Track) {
-  chrome.storage.local.get(['tuelloTracks'], items => {
-    if (!items.tuelloTracks) {
-      items.tuelloTracks = [];
-    }
+async function appendTrack(track: Track) {
+  try {
+    const tracks = await loadCompressed<any[]>('tuelloTracks') || [];
 
     if (track.type === TrackType.PAGE) {
       // on ne rajoute le track page que si il n'existe pas deja
-      if (!items.tuelloTracks.find(elt => elt.type === TrackType.PAGE &&
+      if (!tracks.find(elt => elt.type === TrackType.PAGE &&
         elt.hrefLocation == track.hrefLocation &&
         elt.url == track.url)) {
-        items.tuelloTracks.push(track);
+        tracks.push(track);
         displayTrack(track);
       }
     } else {
       // on ne rajoute le track click que si il n'existe pas deja
-      if (!items.tuelloTracks.find(elt => {
+      if (!tracks.find(elt => {
         return elt.type === TrackType.CLICK &&
           elt.hrefLocation == track.hrefLocation &&
           elt.url == track.url &&
           clickInside(elt.htmlCoordinates, track.x, track.y);
       }
       )) {
-
-        items.tuelloTracks.push(track);
+        tracks.push(track);
         displayTrack(track);
       }
     }
-    tuelloTracks = items.tuelloTracks;
-    chrome.storage.local.set({ tuelloTracks: items.tuelloTracks }, () => {
+    tuelloTracks = tracks;
+    await saveCompressed('tuelloTracks', tracks);
 
-      chrome.runtime.sendMessage(
-        {
-          refreshTrackData: true
-        },
-        response => {
-
-        }
-      );
-    });
-  });
+    chrome.runtime.sendMessage(
+      {
+        refreshTrackData: true
+      },
+      response => {}
+    );
+  } catch (e) {
+    console.error('Tuello: Erreur lors de l\'ajout du track', e);
+  }
 }
 
 function displayTrack(track: Track) {
@@ -451,23 +445,18 @@ function viewTracks(trackId: string) {
 
 }
 
-function findBodyElement(url: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get(['tuelloTracksBody'], results => {
-      if (!chrome.runtime.lastError) {
-        const bodies = results['tuelloTracksBody'] || [];
-        const record = bodies.find(({ key, body }) => compareUrl(url, key));
-        if (record) {
-          resolve(record.body);
-        } else {
-          reject(null);
-        }
-      } else {
-        reject(null);
-      }
-    });
-  });
-
+async function findBodyElement(url: string): Promise<any> {
+  try {
+    const bodies = await loadCompressed<any[]>('tuelloTracksBody') || [];
+    const record = bodies.find(({ key, body }) => compareUrl(url, key));
+    if (record) {
+      return record.body;
+    } else {
+      throw new Error('Body non trouvé');
+    }
+  } catch {
+    throw new Error('Erreur lors de la recherche du body');
+  }
 }
 
 

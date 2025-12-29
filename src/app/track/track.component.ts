@@ -16,6 +16,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { saveAs } from 'file-saver';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
+import { CompressionService } from '../core/compression/compression.service';
 import { formatDate } from '../core/utils/date-utils';
 import { TrackDetailComponent } from './detail/track-detail.component';
 import { Track } from './models/Track';
@@ -51,8 +52,9 @@ export class TrackComponent implements OnInit, OnDestroy {
     private ref: ChangeDetectorRef,
     private infoBar: MatSnackBar,
     private route: ActivatedRoute,
-    private router:Router,
-    private trackService: TrackService
+    private router: Router,
+    private trackService: TrackService,
+    private compressionService: CompressionService
   ) { }
 
   get trackData(): string {
@@ -90,10 +92,9 @@ export class TrackComponent implements OnInit, OnDestroy {
       this.selectedTrackId = params['trackId'];
     });
 
-    // Regroupement des appels chrome.storage pour optimisation
+    // Chargement des données non compressées
     chrome.storage.local.get([
       'trackPlay',
-      'tuelloTracks',
       'tuelloTrackData',
       'tuelloTrackDataDisplay',
       'tuelloTrackDataDisplayType'
@@ -105,18 +106,29 @@ export class TrackComponent implements OnInit, OnDestroy {
           value: true
         }, () => { });
       }
-      this.tracks = results['tuelloTracks'];
       this._trackData = results['tuelloTrackData'];
       this._trackDataDisplay = results['tuelloTrackDataDisplay'];
       this._trackDataDisplayType = results['tuelloTrackDataDisplayType'];
       this.ref.detectChanges();
     });
 
+    // Chargement des tracks avec décompression LZ
+    this.compressionService.loadCompressed<any[]>('tuelloTracks').then(tracks => {
+      this.tracks = tracks || [];
+      this.ref.detectChanges();
+    }).catch(() => {
+      this.tracks = [];
+      this.ref.detectChanges();
+    });
+
     this.chromeMessageListener = (message, sender, sendResponse) => {
       if (message.refreshTrackData) {
-        // recupération des enregistrements
-        chrome.storage.local.get(['tuelloTracks'], results => {
-          this.ngZone.run(() => (this.tracks = results['tuelloTracks']));
+        // recupération des enregistrements avec décompression LZ
+        this.compressionService.loadCompressed<any[]>('tuelloTracks').then(tracks => {
+          this.ngZone.run(() => (this.tracks = tracks || []));
+          sendResponse();
+        }).catch(() => {
+          this.ngZone.run(() => (this.tracks = []));
           sendResponse();
         });
       } else {

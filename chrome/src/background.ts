@@ -13,6 +13,7 @@ import {
   setPause
 } from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
+import { loadCompressed, saveCompressed } from './utils/compression';
 import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
 import Port = chrome.runtime.Port;
 
@@ -177,10 +178,14 @@ function createContextMenus(msgs?: Record<string, string>): void {
 }
 
 async function init() {
-  // Charger le cache tracksBody depuis chrome.storage au démarrage
-  const cacheItems = await chrome.storage.local.get(['tuelloTracksBody']);
-  if (Array.isArray(cacheItems.tuelloTracksBody)) {
-    tracksBodyCache = cacheItems.tuelloTracksBody;
+  // Charger le cache tracksBody depuis chrome.storage au démarrage (avec décompression LZ)
+  try {
+    const tracks = await loadCompressed<Array<{key: string, body: any}>>('tuelloTracksBody');
+    if (Array.isArray(tracks)) {
+      tracksBodyCache = tracks;
+    }
+  } catch {
+    tracksBodyCache = [];
   }
 
   await dynamicallyInjectContentScripts();
@@ -213,8 +218,8 @@ async function init() {
         }
         tracksBodyCache = removeDuplicateEntries(tracksBodyCache);
 
-        // Synchroniser avec chrome.storage de manière asynchrone (debounced)
-        chrome.storage.local.set({ tuelloTracksBody: tracksBodyCache });
+        // Synchroniser avec chrome.storage de manière asynchrone (avec compression LZ)
+        saveCompressed('tuelloTracksBody', tracksBodyCache).catch(console.error);
       }
     },
     { urls: ["<all_urls>"] },
