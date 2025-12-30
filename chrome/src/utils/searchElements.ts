@@ -1,233 +1,168 @@
 import { HTML_TAGS } from "../constantes/htmlTags.constantes";
 import { SearchElement } from "../models/SearchElement";
-// import { addcss } from "./utils";
 
 let elementsFound = new Map<string, Element>();
+let intersectionObserver;
 let resizeObserver;
-let mutationObserver;
+
+// Debounce function to limit the rate at which a function gets called.
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
 export function activateSearchElements() {
+    removeAllSearchElements();
+    searchElements();
+    window.addEventListener("resize", debouncedResize);
 
-  removeAllSearchElements();
-
-  //addcss(chrome.runtime.getURL('simptip.min.css'));
-  searchElements();
-
-
-  // on active le listener pour le click souris
-  // document.addEventListener('click', searchElements);
-  window.addEventListener("resize", resize);
-
-  const mutationOptions = {
-    attributes: false,
-    characterData: false,
-    childList: true,
-    subtree: true,
-    attributeOldValue: false,
-    characterDataOldValue: false
-  };
-  let addedNode = false;
-  let removedNode = false;
-  if (!mutationObserver) {
-    mutationObserver = new MutationObserver((mutationsList, observer) => {
-
-      mutationsList.forEach(mutation => {
-        if (mutation.addedNodes) {
-          mutation.addedNodes.forEach(node => {
-            const htmlElt = (node as HTMLElement);
-            if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
-              addedNode = true;
+    // Use IntersectionObserver to only draw outlines for visible elements.
+    intersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const canvasId = `tuelloSearchElement-${entry.target.getAttribute('data-tuello-id')}`;
+            const canvas = document.getElementById(canvasId);
+            if (entry.isIntersecting) {
+                if (!canvas) {
+                    const searchElement = JSON.parse(entry.target.getAttribute('data-tuello-search-element'));
+                    createCanvas(searchElement, entry.target, entry.target.getAttribute('data-tuello-id'));
+                }
+            } else {
+                if (canvas) {
+                    canvas.remove();
+                }
             }
-          });
-        }
-        if (mutation.removedNodes) {
-          mutation.removedNodes.forEach(node => {
-            const htmlElt = (node as HTMLElement);
-            if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
-              removedNode = true;
+        });
+    }, { root: null, threshold: 0.1 });
+
+    // Use ResizeObserver to update canvas position on element resize.
+    resizeObserver = new ResizeObserver(entries => {
+        for (const entry of entries) {
+            const canvasId = `tuelloSearchElement-${entry.target.getAttribute('data-tuello-id')}`;
+            const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+            if (canvas) {
+                const rect = entry.target.getBoundingClientRect();
+                canvas.style.left = `${rect.left}px`;
+                canvas.style.top = `${rect.top}px`;
+                canvas.width = rect.width;
+                canvas.height = rect.height;
             }
-          });
         }
-      });
-      if (addedNode || removedNode) {
-        removeAllSearchElements();
-        searchElements();
-        addedNode = false;
-        removedNode = false;
-      }
     });
-
-    if (document.body instanceof Node) {
-      mutationObserver.observe(document.body, mutationOptions);
-    }
-  }
-
 }
 
-function resize() {
-  //on supprime en premier tous les anciens canvas
-  removeAllSearchElements();
-  searchElements();
-}
+const debouncedResize = debounce(() => {
+    removeAllSearchElements();
+    searchElements();
+}, 250);
 
 export function desactivateSearchElements() {
-  elementsFound = new Map<string, Element>();
-
-  removeAllSearchElements();
-  // document.removeEventListener('click', searchElements);
-  window.removeEventListener('resize', resize);
-
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-  if (mutationObserver) {
-    mutationObserver.disconnect();
-  }
+    elementsFound = new Map<string, Element>();
+    removeAllSearchElements();
+    window.removeEventListener('resize', debouncedResize);
+    if (intersectionObserver) {
+        intersectionObserver.disconnect();
+    }
+    if (resizeObserver) {
+        resizeObserver.disconnect();
+    }
 }
 
 function searchElements() {
-
-  // recupération des elements
-  chrome.storage.local.get(['tuelloElements'], results => {
-    let elements = results['tuelloElements'];
-    if (elements) {
-      elements.forEach(element => {
-        const nodes = findElement(element.name);
-        nodes.forEach((node: Node, index: number) => {
-          const htmlElt = (node as HTMLElement);
-          // on verifie si le canvas de cet élement n'a pas déjà eté rajouté
-          if (!isElementAlreadyExist(htmlElt)) {
-            //htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
-            createCanvas(element, htmlElt, index);
-            observeElement(element, htmlElt, index);
-          }
-
-        });
-      });
-    }
-  });
+    chrome.storage.local.get(['tuelloElements'], results => {
+        const elements = results['tuelloElements'];
+        if (elements) {
+            elements.forEach((element, index) => {
+                const nodes = findElement(element.name);
+                nodes.forEach((node: Node) => {
+                    const htmlElt = (node as HTMLElement);
+                    const uniqueId = `${index}-${Math.random().toString(36).substr(2, 9)}`;
+                    htmlElt.setAttribute('data-tuello-id', uniqueId);
+                    htmlElt.setAttribute('data-tuello-search-element', JSON.stringify(element));
+                    intersectionObserver.observe(htmlElt);
+                    resizeObserver.observe(htmlElt);
+                });
+            });
+        }
+    });
 }
-
-function removeSearchElements() {
-  const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
-  elements.forEach((element) => {
-    const htmlElt = elementsFound.get(element.id);
-    if (!htmlElt || !isVisible(htmlElt)) {
-      element.remove();
-    }
-  });
-}
-
-function isElementAlreadyExist(htmlElt: HTMLElement) {
-  return [...elementsFound].find(([key, value]) => value.isEqualNode(htmlElt))
-}
-
 
 export function removeAllSearchElements() {
-  elementsFound = new Map<string, Element>();
-
-  const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
-  elements.forEach((element) => {
-    element.remove();
-  });
-}
-
-function isVisible(element: Element) {
-  const elt = element as HTMLElement;
-  return !!(elt && (elt.offsetWidth || elt.offsetHeight || elt.getClientRects().length));
+    elementsFound.forEach((element: HTMLElement) => {
+        intersectionObserver.unobserve(element);
+        resizeObserver.unobserve(element);
+    });
+    elementsFound = new Map<string, Element>();
+    const canvases = document.querySelectorAll('[id^="tuelloSearchElement"]');
+    canvases.forEach(canvas => canvas.remove());
 }
 
 export function findElement(element: string): Node[] {
-  if (element.includes('<') || HTML_TAGS.find(e => e === element)) {
-    return Array.from(document.querySelectorAll(element.replace('<', '').replace('>', '')));
-  } else {
-    const elts = document.querySelectorAll('[' + element + ']');
-    if (elts && elts.length > 0) {
-      return Array.from(elts);
+    if (element.includes('<') || HTML_TAGS.find(e => e === element)) {
+        return Array.from(document.querySelectorAll(element.replace(/[<>]/g, '')));
     } else {
-      return findByText(document.body, element);
-    }
-  }
-}
-
-/** recherche des nodes contenant le texte */
-export function findByText(rootElement, text): Node[] {
-  var filter = {
-    acceptNode: function (node) {
-      // look for nodes that are text_nodes and include the following string.
-      if (node.nodeType === document.TEXT_NODE && node.nodeValue.includes(text)) {
-        return NodeFilter.FILTER_ACCEPT;
-      }
-      return NodeFilter.FILTER_REJECT;
-    }
-  }
-  var nodes = [];
-  var walker = document.createTreeWalker(rootElement, NodeFilter.SHOW_TEXT, filter);
-  while (walker.nextNode()) {
-    //give me the element containing the node
-    nodes.push(walker.currentNode.parentNode);
-  }
-  return nodes;
-}
-
-function observeElement(searchElement: SearchElement, htmlElt: HTMLElement, index: number) {
-  if (!resizeObserver) {
-    resizeObserver = new ResizeObserver((entries, observer) => {
-      entries.map((entry) => {
-        let canvas = document.getElementById(`tuelloSearchElement${index}`);
-        if (canvas) {
-          canvas.remove();
+        const elts = document.querySelectorAll(`[${element}]`);
+        if (elts.length > 0) {
+            return Array.from(elts);
+        } else {
+            return findByText(document.body, element);
         }
-        createCanvas(searchElement, entry.target, index);
-      });
-    });
-
-    resizeObserver.observe(htmlElt);
-
-  }
-
+    }
 }
 
-function createCanvas(searchElement: SearchElement, htmlElt: Element, index: number) {
-  const canvas = document.createElement('canvas');
-  canvas.id = "tuelloSearchElement" + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-  elementsFound.set(canvas.id, htmlElt);
-  //Position canvas
-  canvas.title = searchElement.name + " : " + (htmlElt.getAttribute(searchElement.displayAttribute) || "none");
-  canvas.style.position = 'absolute';
-  canvas.style.border = '2px dashed #D12566';
-  canvas.style.left = Math.ceil(htmlElt.getBoundingClientRect().left + window.scrollX) - 2 + 'px';
-  canvas.style.top = Math.ceil(htmlElt.getBoundingClientRect().top + window.scrollY) - 2 + 'px';
-  canvas.width = htmlElt.getBoundingClientRect().width + 2;
-  canvas.height = htmlElt.getBoundingClientRect().height + 2;
-  canvas.style.zIndex = (htmlElt as HTMLElement).style.zIndex;
-  /*if (!htmlElt.classList.contains('simptip-position-top')) {
-    htmlElt.classList.add('simptip-fade');
-    htmlElt.classList.add('simptip-position-top');
-    htmlElt.setAttribute('data-tooltip', searchElement);
-  }*/
-  document.body.appendChild(canvas); //Append canvas to body element
-  canvas.addEventListener('click', copyToClipBoard, true);
-
+export function findByText(rootElement, text): Node[] {
+    const nodes = [];
+    // Use XPath to find text nodes containing the specified text.
+    const iterator = document.evaluate(`//text()[contains(., '${text}')]`, rootElement, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+    let currentNode = iterator.iterateNext();
+    while (currentNode) {
+        nodes.push(currentNode.parentNode);
+        currentNode = iterator.iterateNext();
+    }
+    return nodes;
 }
 
-/**
- * Copie le titre de l'élement clické dans le presse-papiers
- * @param text 
- */
+function createCanvas(searchElement: SearchElement, htmlElt: Element, id: string) {
+    const rect = htmlElt.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return; // Don't create canvas for non-visible elements
+
+    const canvas = document.createElement('canvas');
+    canvas.id = `tuelloSearchElement-${id}`;
+    elementsFound.set(canvas.id, htmlElt);
+    canvas.title = `${searchElement.name} : ${htmlElt.getAttribute(searchElement.displayAttribute) || "none"}`;
+    canvas.style.position = 'fixed'; // Use fixed position to stay in place on scroll
+    canvas.style.border = '2px dashed #D12566';
+    canvas.style.left = `${rect.left}px`;
+    canvas.style.top = `${rect.top}px`;
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    canvas.style.zIndex = '2147483647';
+    canvas.style.pointerEvents = 'none'; // Make canvas click-through
+
+    document.body.appendChild(canvas);
+    // The click listener is now on the element itself.
+    htmlElt.addEventListener('click', copyToClipBoard, true);
+}
+
 function copyToClipBoard(event) {
-  var targetElement = event.target || event.srcElement;
-  // window.navigator['clipboard'].writeText(targetElement.title);
-  const el = document.createElement('textarea');
-  if (el && targetElement?.title) {
-    el.value = targetElement.title;
+    const targetElement = event.currentTarget as HTMLElement;
+    const searchElement = JSON.parse(targetElement.getAttribute('data-tuello-search-element'));
+    const title = `${searchElement.name} : ${targetElement.getAttribute(searchElement.displayAttribute) || "none"}`;
+
+    const el = document.createElement('textarea');
+    el.value = title;
     document.body.appendChild(el);
     el.select();
     document.execCommand('copy');
     document.body.removeChild(el);
-  }
-  if (targetElement.id) {
-    (elementsFound.get(targetElement.id) as HTMLElement).click();
-  }
 
+    // Prevent default action and stop propagation to avoid side effects.
+    event.preventDefault();
+    event.stopPropagation();
 }
