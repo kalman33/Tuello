@@ -1,233 +1,264 @@
-import { HTML_TAGS } from "../constantes/htmlTags.constantes";
-import { SearchElement } from "../models/SearchElement";
-// import { addcss } from "./utils";
+import { HTML_TAGS } from '../constantes/htmlTags.constantes';
 
-let elementsFound = new Map<string, Element>();
-let resizeObserver;
-let mutationObserver;
+const TUELLO_PREFIX = 'tuello-search-';
+const TUELLO_BADGE_ID = 'tuello-count-badge';
+const TUELLO_STYLE_ID = 'tuello-animations';
+const THEME_COLOR = '#D12566';
+
+let elementsFound = new Map<string, HTMLElement>();
+let mutationObserver: MutationObserver | null = null;
+let debounceTimer: number | null = null;
+let isInternalAction = false;
+
+// ==========================================
+// INITIALISATION
+// ==========================================
 
 export function activateSearchElements() {
+  stopObservers();
+  injectStyles(); // Injecte l'animation CSS
+  searchAndDisplay();
 
-  removeAllSearchElements();
+  window.addEventListener('resize', debounceSearch, { passive: true });
+  window.addEventListener('scroll', refreshCanvasPositions, { passive: true });
 
-  //addcss(chrome.runtime.getURL('simptip.min.css'));
-  searchElements();
-
-
-  // on active le listener pour le click souris
-  // document.addEventListener('click', searchElements);
-  window.addEventListener("resize", resize);
-
-  const mutationOptions = {
-    attributes: false,
-    characterData: false,
-    childList: true,
-    subtree: true,
-    attributeOldValue: false,
-    characterDataOldValue: false
-  };
-  let addedNode = false;
-  let removedNode = false;
   if (!mutationObserver) {
-    mutationObserver = new MutationObserver((mutationsList, observer) => {
+    mutationObserver = new MutationObserver((mutations) => {
+      if (isInternalAction) return;
 
-      mutationsList.forEach(mutation => {
-        if (mutation.addedNodes) {
-          mutation.addedNodes.forEach(node => {
-            const htmlElt = (node as HTMLElement);
-            if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
-              addedNode = true;
-            }
-          });
-        }
-        if (mutation.removedNodes) {
-          mutation.removedNodes.forEach(node => {
-            const htmlElt = (node as HTMLElement);
-            if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
-              removedNode = true;
-            }
-          });
-        }
+      const hasExternalChanges = mutations.some((mutation) => {
+        const nodes = [...Array.from(mutation.addedNodes), ...Array.from(mutation.removedNodes)];
+        return nodes.some((node) => node instanceof HTMLElement && !node.id.startsWith(TUELLO_PREFIX) && node.id !== TUELLO_BADGE_ID);
       });
-      if (addedNode || removedNode) {
-        removeAllSearchElements();
-        searchElements();
-        addedNode = false;
-        removedNode = false;
-      }
+
+      if (hasExternalChanges) debounceSearch();
     });
 
-    if (document.body instanceof Node) {
-      mutationObserver.observe(document.body, mutationOptions);
+    if (document.body) {
+      mutationObserver.observe(document.body, { childList: true, subtree: true });
     }
   }
-
 }
 
-function resize() {
-  //on supprime en premier tous les anciens canvas
+function injectStyles() {
+  if (document.getElementById(TUELLO_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = TUELLO_STYLE_ID;
+  style.textContent = `
+    @keyframes tuelloFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .tuello-animate {
+      animation: tuelloFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// ==========================================
+// LOGIQUE DE RECHERCHE
+// ==========================================
+
+function debounceSearch() {
+  if (debounceTimer) window.clearTimeout(debounceTimer);
+  debounceTimer = window.setTimeout(() => searchAndDisplay(), 300);
+}
+
+function searchAndDisplay() {
+  isInternalAction = true;
   removeAllSearchElements();
-  searchElements();
+
+  chrome.storage.local.get(['tuelloElements'], (results) => {
+    const searchConfigs = results['tuelloElements'];
+    if (!searchConfigs || !Array.isArray(searchConfigs)) {
+      updateCountBadge(0);
+      isInternalAction = false;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    let totalFoundCount = 0;
+
+    searchConfigs.forEach((config: any) => {
+      const targetNodes = findElement(config.name);
+      targetNodes.forEach((node, index) => {
+        const htmlElt = node as HTMLElement;
+        if (isVisible(htmlElt)) {
+          const canvas = createCanvasElement(config, htmlElt, index);
+          fragment.appendChild(canvas);
+          totalFoundCount++;
+        }
+      });
+    });
+
+    document.body.appendChild(fragment);
+    updateCountBadge(totalFoundCount);
+    setTimeout(() => {
+      isInternalAction = false;
+    }, 100);
+  });
 }
+
+// ==========================================
+// RENDU & ANIMATION
+// ==========================================
+
+function createCanvasElement(config: any, target: HTMLElement, index: number): HTMLCanvasElement {
+  const rect = target.getBoundingClientRect();
+  const canvas = document.createElement('canvas');
+  const uniqueId = `${TUELLO_PREFIX}${index}-${Math.random().toString(36).substr(2, 5)}`;
+
+  canvas.id = uniqueId;
+  canvas.className = 'tuello-animate'; // Active l'animation CSS
+  elementsFound.set(uniqueId, target);
+
+  Object.assign(canvas.style, {
+    position: 'fixed',
+    zIndex: '2147483646',
+    pointerEvents: 'auto',
+    cursor: 'pointer',
+    border: `2px dashed ${THEME_COLOR}`,
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+    boxSizing: 'border-box',
+    opacity: '0' // Sera géré par l'animation @keyframes
+  });
+
+  const attrValue = target.getAttribute(config.displayAttribute);
+  canvas.title = `${config.name}${attrValue ? ' : ' + attrValue : ''} (Clic pour copier)`;
+
+  canvas.onclick = (e) => {
+    e.stopPropagation();
+    copyToClipBoard(target, config.displayAttribute);
+    target.click();
+  };
+
+  return canvas;
+}
+
+function refreshCanvasPositions() {
+  window.requestAnimationFrame(() => {
+    elementsFound.forEach((target, id) => {
+      const canvas = document.getElementById(id);
+      if (canvas && target && target.isConnected) {
+        const rect = target.getBoundingClientRect();
+        canvas.style.left = `${rect.left}px`;
+        canvas.style.top = `${rect.top}px`;
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+      }
+    });
+  });
+}
+
+function updateCountBadge(count: number) {
+  let badge = document.getElementById(TUELLO_BADGE_ID);
+  if (count === 0) {
+    if (badge) badge.remove();
+    return;
+  }
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = TUELLO_BADGE_ID;
+    badge.className = 'tuello-animate';
+    Object.assign(badge.style, {
+      position: 'fixed',
+      bottom: '20px',
+      right: '20px',
+      backgroundColor: THEME_COLOR,
+      color: 'white',
+      padding: '10px 16px',
+      borderRadius: '30px',
+      zIndex: '2147483647',
+      fontFamily: 'Segoe UI, Roboto, sans-serif',
+      fontSize: '13px',
+      fontWeight: '600',
+      pointerEvents: 'none',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+    });
+    document.body.appendChild(badge);
+  }
+  badge.textContent = `${count} élément(s) détecté(s)`;
+}
+
+// ==========================================
+// NETTOYAGE & UTILITAIRES
+// ==========================================
 
 export function desactivateSearchElements() {
-  elementsFound = new Map<string, Element>();
-
+  stopObservers();
   removeAllSearchElements();
-  // document.removeEventListener('click', searchElements);
-  window.removeEventListener('resize', resize);
-
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-  if (mutationObserver) {
-    mutationObserver.disconnect();
-  }
+  const style = document.getElementById(TUELLO_STYLE_ID);
+  if (style) style.remove();
 }
-
-function searchElements() {
-
-  // recupération des elements
-  chrome.storage.local.get(['tuelloElements'], results => {
-    let elements = results['tuelloElements'];
-    if (elements) {
-      elements.forEach(element => {
-        const nodes = findElement(element.name);
-        nodes.forEach((node: Node, index: number) => {
-          const htmlElt = (node as HTMLElement);
-          // on verifie si le canvas de cet élement n'a pas déjà eté rajouté
-          if (!isElementAlreadyExist(htmlElt)) {
-            //htmlElt.style.backgroundColor = 'rgba(209, 37, 102)';
-            createCanvas(element, htmlElt, index);
-            observeElement(element, htmlElt, index);
-          }
-
-        });
-      });
-    }
-  });
-}
-
-function removeSearchElements() {
-  const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
-  elements.forEach((element) => {
-    const htmlElt = elementsFound.get(element.id);
-    if (!htmlElt || !isVisible(htmlElt)) {
-      element.remove();
-    }
-  });
-}
-
-function isElementAlreadyExist(htmlElt: HTMLElement) {
-  return [...elementsFound].find(([key, value]) => value.isEqualNode(htmlElt))
-}
-
 
 export function removeAllSearchElements() {
-  elementsFound = new Map<string, Element>();
-
-  const elements = document.querySelectorAll('[id^="tuelloSearchElement"]');
-  elements.forEach((element) => {
-    element.remove();
-  });
+  const existing = document.querySelectorAll(`[id^="${TUELLO_PREFIX}"], #${TUELLO_BADGE_ID}`);
+  existing.forEach((el) => el.remove());
+  elementsFound.clear();
 }
 
-function isVisible(element: Element) {
-  const elt = element as HTMLElement;
-  return !!(elt && (elt.offsetWidth || elt.offsetHeight || elt.getClientRects().length));
+function stopObservers() {
+  if (mutationObserver) {
+    mutationObserver.disconnect();
+    mutationObserver = null;
+  }
+  window.removeEventListener('resize', debounceSearch);
+  window.removeEventListener('scroll', refreshCanvasPositions);
+  if (debounceTimer) window.clearTimeout(debounceTimer);
 }
 
-export function findElement(element: string): Node[] {
-  if (element.includes('<') || HTML_TAGS.find(e => e === element)) {
-    return Array.from(document.querySelectorAll(element.replace('<', '').replace('>', '')));
+export function findElement(selector: string): Node[] {
+  let results: Node[] = [];
+  if (selector.includes('<') || HTML_TAGS.includes(selector)) {
+    results = Array.from(document.getElementsByTagName(selector.replace(/[<>]/g, '')));
+  } else if (selector.match(/^[a-zA-Z0-9_-]+$/)) {
+    const byAttr = document.querySelectorAll(`[${selector}]`);
+    results = byAttr.length > 0 ? Array.from(byAttr) : findByTextXPath(document.body, selector);
+  }
+  return results.slice(0, 200);
+}
+
+function findByTextXPath(root: HTMLElement, text: string): Node[] {
+  const nodes: Node[] = [];
+  const escaped = text.replace(/'/g, '&apos;');
+  const xpath = `.//text()[contains(., '${escaped}') and not(ancestor::script) and not(ancestor::style)]`;
+  try {
+    const res = document.evaluate(xpath, root, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (let i = 0; i < res.snapshotLength; i++) {
+      const parent = res.snapshotItem(i)?.parentElement;
+      if (parent) nodes.push(parent);
+    }
+  } catch (e) {
+    return [];
+  }
+  return [...new Set(nodes)];
+}
+
+function isVisible(el: HTMLElement) {
+  return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+}
+
+function copyToClipBoard(target: HTMLElement, attr: string) {
+  const text = target.getAttribute(attr) || target.innerText || '';
+  if (!text) return;
+  const nav = navigator as any;
+  if (nav.clipboard && nav.clipboard.writeText) {
+    nav.clipboard.writeText(text).catch(() => fallbackCopy(text));
   } else {
-    const elts = document.querySelectorAll('[' + element + ']');
-    if (elts && elts.length > 0) {
-      return Array.from(elts);
-    } else {
-      return findByText(document.body, element);
-    }
+    fallbackCopy(text);
   }
 }
 
-/** recherche des nodes contenant le texte */
-export function findByText(rootElement, text): Node[] {
-  var filter = {
-    acceptNode: function (node) {
-      // look for nodes that are text_nodes and include the following string.
-      if (node.nodeType === document.TEXT_NODE && node.nodeValue.includes(text)) {
-        return NodeFilter.FILTER_ACCEPT;
-      }
-      return NodeFilter.FILTER_REJECT;
-    }
-  }
-  var nodes = [];
-  var walker = document.createTreeWalker(rootElement, NodeFilter.SHOW_TEXT, filter);
-  while (walker.nextNode()) {
-    //give me the element containing the node
-    nodes.push(walker.currentNode.parentNode);
-  }
-  return nodes;
-}
-
-function observeElement(searchElement: SearchElement, htmlElt: HTMLElement, index: number) {
-  if (!resizeObserver) {
-    resizeObserver = new ResizeObserver((entries, observer) => {
-      entries.map((entry) => {
-        let canvas = document.getElementById(`tuelloSearchElement${index}`);
-        if (canvas) {
-          canvas.remove();
-        }
-        createCanvas(searchElement, entry.target, index);
-      });
-    });
-
-    resizeObserver.observe(htmlElt);
-
-  }
-
-}
-
-function createCanvas(searchElement: SearchElement, htmlElt: Element, index: number) {
-  const canvas = document.createElement('canvas');
-  canvas.id = "tuelloSearchElement" + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-  elementsFound.set(canvas.id, htmlElt);
-  //Position canvas
-  canvas.title = searchElement.name + " : " + (htmlElt.getAttribute(searchElement.displayAttribute) || "none");
-  canvas.style.position = 'absolute';
-  canvas.style.border = '2px dashed #D12566';
-  canvas.style.left = Math.ceil(htmlElt.getBoundingClientRect().left + window.scrollX) - 2 + 'px';
-  canvas.style.top = Math.ceil(htmlElt.getBoundingClientRect().top + window.scrollY) - 2 + 'px';
-  canvas.width = htmlElt.getBoundingClientRect().width + 2;
-  canvas.height = htmlElt.getBoundingClientRect().height + 2;
-  canvas.style.zIndex = (htmlElt as HTMLElement).style.zIndex;
-  /*if (!htmlElt.classList.contains('simptip-position-top')) {
-    htmlElt.classList.add('simptip-fade');
-    htmlElt.classList.add('simptip-position-top');
-    htmlElt.setAttribute('data-tooltip', searchElement);
-  }*/
-  document.body.appendChild(canvas); //Append canvas to body element
-  canvas.addEventListener('click', copyToClipBoard, true);
-
-}
-
-/**
- * Copie le titre de l'élement clické dans le presse-papiers
- * @param text 
- */
-function copyToClipBoard(event) {
-  var targetElement = event.target || event.srcElement;
-  // window.navigator['clipboard'].writeText(targetElement.title);
-  const el = document.createElement('textarea');
-  if (el && targetElement?.title) {
-    el.value = targetElement.title;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-  }
-  if (targetElement.id) {
-    (elementsFound.get(targetElement.id) as HTMLElement).click();
-  }
-
+function fallbackCopy(text: string) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  Object.assign(textArea.style, { position: 'fixed', left: '-9999px' });
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textArea);
 }
