@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.3.0] - 2025-12-31
+
+    Ajout de l'aide interactive
+    Corrections de la recherche d'éléments
+
 ## [1.2.2.0] - 2025-12-29
 
     Correctifs compression lz4
