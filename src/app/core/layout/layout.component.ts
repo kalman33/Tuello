@@ -9,12 +9,14 @@ import { MatListItem, MatNavList } from '@angular/material/list';
 import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/material/sidenav';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatToolbar } from '@angular/material/toolbar';
+import { MatTooltip } from '@angular/material/tooltip';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { TranslatePipe } from "@ngx-translate/core";
 import { fadeInAnimation } from '../animations/fadeInAnimation';
 import { routeAnimations } from '../animations/route.animations';
 import { slideInMenuAnimation } from '../animations/slideInMenuAnimation';
+import { GuideTourService } from '../guide-tour/guide-tour.service';
 import { ChromeExtentionUtilsService } from '../utils/chrome-extention-utils.service';
 import { RateSupportComponent } from './rate-support/rate-support.component';
 
@@ -25,7 +27,7 @@ import { RateSupportComponent } from './rate-support/rate-support.component';
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
     animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation],
-    imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe]
+    imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe, MatTooltip]
 })
 export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   isOpen = false;
@@ -45,7 +47,8 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
     private media: MediaMatcher,
     public chromeExtentionUtilsService: ChromeExtentionUtilsService,
     private router: Router,
-    private rateSupportSheet: MatBottomSheet
+    private rateSupportSheet: MatBottomSheet,
+    private guideTourService: GuideTourService
   ) {}
 
   ngOnInit(): void {
@@ -141,5 +144,22 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
 
   openRateSupport() {
     this.rateSupportSheet.open(RateSupportComponent);
+  }
+
+  /**
+   * Demarre le tour guide pour la section actuelle
+   */
+  startHelpTour(): void {
+    // Fermer le sidenav
+    this.sidenav.close();
+    this.isOpen = false;
+
+    // Determiner le tour a lancer en fonction de la route actuelle
+    const currentRoute = this.router.url;
+    const tourId = this.guideTourService.getTourIdFromRoute(currentRoute);
+
+    if (tourId) {
+      this.guideTourService.startTour(tourId);
+    }
   }
 }

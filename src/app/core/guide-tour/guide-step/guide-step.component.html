@@ -1,0 +1,48 @@
+<!-- Overlay de fond -->
+<div class="guide-overlay" @guideOverlay (click)="onOverlayClick($event)"></div>
+
+<!-- Tooltip du guide -->
+<div
+  class="guide-step-popup"
+  [ngClass]="positionClass"
+  [ngStyle]="tooltipStyle"
+  @guideTooltip>
+
+  <div class="guide-step-header">
+    <h3>{{ step.titleKey | translate }}</h3>
+    <span class="guide-step-counter">
+      {{ currentIndex + 1 }} {{ 'mmn.guide.step.of' | translate }} {{ totalSteps }}
+    </span>
+  </div>
+
+  <div class="guide-step-content">
+    {{ step.contentKey | translate }}
+  </div>
+
+  <div class="guide-step-actions">
+    <button mat-button color="warn" (click)="onSkip()">
+      {{ 'mmn.guide.button.skip' | translate }}
+    </button>
+
+    <div class="guide-step-nav">
+      @if (currentIndex > 0) {
+        <button mat-button color="primary" (click)="onPrevious()">
+          <mat-icon>chevron_left</mat-icon>
+          {{ 'mmn.guide.button.previous' | translate }}
+        </button>
+      }
+
+      @if (currentIndex < totalSteps - 1) {
+        <button mat-flat-button color="primary" (click)="onNext()">
+          {{ 'mmn.guide.button.next' | translate }}
+          <mat-icon iconPositionEnd>chevron_right</mat-icon>
+        </button>
+      } @else {
+        <button mat-flat-button color="primary" (click)="onNext()">
+          {{ 'mmn.guide.button.finish' | translate }}
+          <mat-icon iconPositionEnd>check</mat-icon>
+        </button>
+      }
+    </div>
+  </div>
+</div>

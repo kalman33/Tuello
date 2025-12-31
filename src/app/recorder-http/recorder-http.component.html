@@ -1,6 +1,6 @@
 <div class="container">
     <div fxFlex="99%">
-        <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+        <div id="guide-recorder-controls" class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
             <button mat-flat-button color="primary" (click)="save()">
                 <mat-icon>save</mat-icon>
                 {{ 'mmn.recorder-http.button.saveAs' | translate }}
@@ -16,7 +16,7 @@
                 {{ 'mmn.recorder-http.button.delete' | translate }}
             </button>
 
-            <mat-form-field class="profile-select">
+            <mat-form-field id="guide-recorder-profiles" class="profile-select">
                 <mat-select [value]="activeProfileId" (selectionChange)="onProfileChange($event.value)">
                     @for (profile of profiles; track profile.id) {
                         <mat-option [value]="profile.id">{{ profile.name }}</mat-option>
@@ -28,8 +28,8 @@
             </button>
         </div>
         <div class="button-row mtn ptn" fxLayout="row" fxLayoutAlign="start center">
-            <mat-slide-toggle [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>
-            <mat-slide-toggle [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
+            <mat-slide-toggle id="guide-recorder-mock" [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>
+            <mat-slide-toggle id="guide-recorder-record" [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
             <button class="noLabel" mat-button (click)="addTags()" [matTooltip]="'mmn.recorder-http.button.addTags.tooltip' | translate" [attr.aria-label]="'mmn.recorder-http.button.addTags.tooltip' | translate">
                 <mat-icon>favorite_border</mat-icon>
             </button>
@@ -38,6 +38,8 @@
             </button>
         </div>
 
-        <div id="jsonEditorTree" [class.jse-theme-dark]="isBlackTheme"></div>
+        <div id="guide-recorder-editor">
+            <div id="jsonEditorTree" [class.jse-theme-dark]="isBlackTheme"></div>
+        </div>
     </div>
 </div>

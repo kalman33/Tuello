@@ -72,6 +72,14 @@
           <mat-slide-toggle [checked]="darkMode" [(ngModel)]="darkMode" class="darkMode" (change)="toggleTheme(darkMode)">
           </mat-slide-toggle>
         </div>
+        <h2>{{ 'mmn.settings.guide.title' | translate }}</h2>
+        <div class="icon-form-field">
+          <mat-icon color="accent">help_outline</mat-icon>
+          <div>{{ 'mmn.settings.guide.reset' | translate }}</div>
+          <button mat-icon-button color="accent" (click)="resetGuide()" style="margin-left: auto;">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
         <h2>{{ 'mmn.settings.customize.menu.title' | translate }}</h2>
         @for (item of [0, 1, 2, 3]; track item) {
           <mmn-settings-menu [index]="item"></mmn-settings-menu>

@@ -2,6 +2,7 @@ import { AfterViewInit, ChangeDetectionStrategy, Component, NgZone, OnDestroy, O
 import { Event, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
+import { GuideTourService } from './core/guide-tour/guide-tour.service';
 import { ChromeExtentionUtilsService } from './core/utils/chrome-extention-utils.service';
 import { PlayerService } from './spy-http/services/player.service';
 import { RecorderHistoryService } from './spy-http/services/recorder-history.service';
@@ -29,7 +30,8 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     private playerService: PlayerService,
     private router: Router,
     private ngZone: NgZone,
-    private trackService: TrackService
+    private trackService: TrackService,
+    private guideTourService: GuideTourService
   ) {
     chrome.storage.local.get(['darkMode'], results => {
       if (results['darkMode']) {
@@ -90,7 +92,25 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
           this.router.navigateByUrl(results['tuelloCurrentRoute'], { skipLocationChange: true });
         });
       }
+      // Initialisation du guide apres le chargement de la route
+      this.initGuide();
     });
+  }
+
+  /**
+   * Initialise le guide interactif pour les nouveaux utilisateurs
+   */
+  private async initGuide(): Promise<void> {
+    await this.guideTourService.init();
+    const isFirstLaunch = await this.guideTourService.checkFirstLaunch();
+    if (isFirstLaunch) {
+      // Attendre un court instant pour que l'UI soit prete
+      setTimeout(() => {
+        this.ngZone.run(() => {
+          this.guideTourService.showWelcomeDialog();
+        });
+      }, 500);
+    }
   }
 
   ngOnInit(): void {

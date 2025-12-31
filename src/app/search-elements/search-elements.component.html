@@ -2,12 +2,12 @@
   <div fxFlex="99">
 
     <div fxLayout="row" fxLayoutAlign="start center" class="button-row" [ngClass]="routeAnimationsElements">
-      <mat-slide-toggle [checked]="searchElementsActivated" [(ngModel)]="searchElementsActivated" (change)="toggleSearchPlay($event)">{{ 'mmn.search.button.play' | translate }}</mat-slide-toggle>
+      <mat-slide-toggle id="guide-search-toggle" [checked]="searchElementsActivated" [(ngModel)]="searchElementsActivated" (change)="toggleSearchPlay($event)">{{ 'mmn.search.button.play' | translate }}</mat-slide-toggle>
     </div>
 
     <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
 
-      <mat-form-field class="search-width">
+      <mat-form-field id="guide-search-input" class="search-width">
         <mat-label>{{ 'mmn.search.input' | translate }}</mat-label>
         <input [(ngModel)]="searchData" matInput placeholder="Ex. <h1>">
       </mat-form-field>
@@ -15,7 +15,7 @@
         <mat-label>{{ 'mmn.search.input.attribute.display' | translate }}</mat-label>
         <input [(ngModel)]="searchAttributeDisplay" matInput placeholder="Ex. name">
       </mat-form-field>
-      <button mat-icon-button color="primary" (click)="addElement()"
+      <button id="guide-search-add" mat-icon-button color="primary" (click)="addElement()"
         matTooltip="{{ 'mmn.search.input.add.tooltip' | translate }}"
         >
         <mat-icon>add_circle_outline</mat-icon>

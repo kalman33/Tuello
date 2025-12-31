@@ -2,7 +2,7 @@
   <div fxFlex="99%">
 
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
-      <button [disabled]="spyActif" mat-flat-button color="primary" (click)="startRecording()">
+      <button id="guide-spy-record" [disabled]="spyActif" mat-flat-button color="primary" (click)="startRecording()">
         <mat-icon>mic</mat-icon>
         {{ 'mmn.spy-http.button.record' | translate }}
       </button>
@@ -10,7 +10,7 @@
         <mat-icon>delete</mat-icon>
         {{ 'mmn.spy-http.button.delete' | translate }}
       </button>
-      <button [disabled]="spyActif || actions?.length <=0" mat-flat-button color="primary" (click)="startPlaying()">
+      <button id="guide-spy-play" [disabled]="spyActif || actions?.length <=0" mat-flat-button color="primary" (click)="startPlaying()">
         <mat-icon>play_circle_outline</mat-icon>
         {{ 'mmn.spy-http.button.play' | translate }}
       </button>
@@ -20,7 +20,7 @@
       </button>
     </div>
 
-    <mat-tab-group #tabGrp>
+    <mat-tab-group #tabGrp id="guide-spy-actions">
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">list</mat-icon>
@@ -66,7 +66,7 @@
           <mat-icon class="tab-icon">help_outline</mat-icon>
           {{ 'mmn.spy-http.tabs.shortcuts' | translate }}
         </ng-template>
-        <mat-list>
+        <mat-list id="guide-spy-shortcuts">
           <mat-list-item fxLayout="row" fxLayoutAlign="space-between center" class="shortcut">
             <div fxFlex="15%" fxLayoutAlign="center center">
               <mat-icon color="accent" mat-list-icon>keyboard</mat-icon>

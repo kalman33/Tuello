@@ -24,6 +24,7 @@ import { CompressionService, CompressionStats } from '../core/compression/compre
 import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
+import { GuideTourService } from '../core/guide-tour/guide-tour.service';
 import { SettingsMenuComponent } from './menus/settings-menu.component';
 
 export interface StorageStats {
@@ -94,7 +95,8 @@ export class SettingsComponent implements OnInit {
         private configurationService: ConfigurationService,
         private compressionService: CompressionService,
         private zone: NgZone,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private guideTourService: GuideTourService
     ) {}
 
     ngOnInit() {
@@ -282,5 +284,17 @@ export class SettingsComponent implements OnInit {
     selectFile() {
         this.fileInput.nativeElement.value = '';
         this.fileInput.nativeElement.click();
+    }
+
+    /**
+     * Reactive le guide de bienvenue pour le prochain demarrage
+     */
+    async resetGuide(): Promise<void> {
+        await this.guideTourService.resetWelcome();
+        this.snackBar.open(
+            this.translate.instant('mmn.settings.guide.reset.success'),
+            '',
+            { duration: 3000 }
+        );
     }
 }

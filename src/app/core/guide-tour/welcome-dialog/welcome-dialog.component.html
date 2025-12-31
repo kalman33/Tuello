@@ -1,0 +1,40 @@
+<div class="welcome-dialog" @welcomeDialog>
+  <!-- Header avec logo et titre -->
+  <div class="welcome-header">
+    <img src="assets/img/tuello-128x128.png" alt="Tuello">
+    <h1>{{ 'mmn.guide.welcome.title' | translate }}</h1>
+    <p>{{ 'mmn.guide.welcome.subtitle' | translate }}</p>
+  </div>
+
+  <!-- Liste des fonctionnalites -->
+  <div class="welcome-features">
+    @for (feature of features; track feature.tourId; let i = $index) {
+      <div class="feature-item">
+        <mat-icon>{{ feature.icon }}</mat-icon>
+        <div class="feature-text">
+          <h4>{{ feature.titleKey | translate }}</h4>
+          <p>{{ feature.descKey | translate }}</p>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Actions -->
+  <div class="welcome-actions">
+    <mat-checkbox
+      class="welcome-checkbox"
+      [(ngModel)]="neverShowAgain"
+      color="primary">
+      {{ 'mmn.guide.welcome.neverShow' | translate }}
+    </mat-checkbox>
+
+    <div class="action-buttons">
+      <button mat-button color="primary" (click)="skip()">
+        {{ 'mmn.guide.welcome.button.skip' | translate }}
+      </button>
+      <button mat-flat-button color="primary" (click)="startTour()">
+        {{ 'mmn.guide.welcome.button.startTour' | translate }}
+      </button>
+    </div>
+  </div>
+</div>

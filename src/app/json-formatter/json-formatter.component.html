@@ -1,12 +1,12 @@
 <div class="container" >
   <div fxFlex="99">
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
-      <button mat-flat-button color="primary" (click)="beautifyJson()">
+      <button id="guide-json-format" mat-flat-button color="primary" (click)="beautifyJson()">
         <mat-icon>view_timeline</mat-icon>
         {{ 'mmn.json-formatter.button.format' | translate }}
       </button>
-    
-      <button mat-flat-button
+
+      <button id="guide-json-copy" mat-flat-button
                 color="primary"
                 (click)="copyToClipboard()"
                 [matTooltip]="'mmn.json-formatter.button.copyToClipboard' | translate"
@@ -21,7 +21,9 @@
         </button>
       </div>
 
-      <textarea id="jsonTextarea" [(ngModel)]="jsonInput" class="zone-saisie" [placeholder]="'mmn.json-formatter.jsoninput.placeholder' | translate"></textarea>
+      <div id="guide-json-input">
+        <textarea id="jsonTextarea" [(ngModel)]="jsonInput" class="zone-saisie" [placeholder]="'mmn.json-formatter.jsoninput.placeholder' | translate"></textarea>
+      </div>
    
   </div>
 </div>

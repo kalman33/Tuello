@@ -12,7 +12,7 @@
       </button>
     </div>
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center">
-      <mat-slide-toggle fxFlex="50%" [checked]="trackPlayActivated" [(ngModel)]="trackPlayActivated" (change)="toggleTrackPlay($event)">{{
+      <mat-slide-toggle id="guide-track-toggle" fxFlex="50%" [checked]="trackPlayActivated" [(ngModel)]="trackPlayActivated" (change)="toggleTrackPlay($event)">{{
         'mmn.track.button.play' | translate
       }}</mat-slide-toggle>
 
@@ -22,7 +22,7 @@
       </mat-radio-group>
     </div>
     <div fxLayout="row" fxLayoutAlign="start center">
-      <mat-form-field fxFlex="50%" class="track-width">
+      <mat-form-field id="guide-track-input" fxFlex="50%" class="track-width">
         <mat-label>{{ 'mmn.track.input' | translate }}</mat-label>
         <input [(ngModel)]="trackData" (focusout)="focusOut()" matInput placeholder="Ex. jquery" />
       </mat-form-field>
@@ -33,7 +33,7 @@
       </mat-form-field>
     </div>
     @if (tracks) {
-      <mat-list [selectTrack]="selectedTrackId">
+      <mat-list id="guide-track-results" [selectTrack]="selectedTrackId">
         @for (track of tracks; track track.id; let i = $index) {
           <mat-list-item [class.selected]="isSelected(track)">
             <mmn-track-detail
