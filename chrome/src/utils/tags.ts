@@ -67,16 +67,41 @@ export function initTagsHandler(tuelloHTTPTags) {
   }
 }
 
+/**
+ * Navigue dans un objet en suivant un chemin de clés (ex: "data.users.0.name")
+ */
+function getValueByPath(obj: any, path: string): any {
+  const keys = path.split('.');
+  let current = obj;
+  for (const key of keys) {
+    if (current === null || current === undefined) return undefined;
+    current = current[key];
+  }
+  return current;
+}
+
 function findInJson(data: any, keyString: string) {
   let result = '';
-  const doc = JsonFind(data);
+
   try {
-    if (keyString.includes(',') || keyString.includes(';')) {
+    // Nouveau format : chemin complet depuis response (ex: "response.data.id")
+    if (keyString.startsWith('response.')) {
+      // Retire le préfixe "response." car data est déjà la réponse
+      const path = keyString.substring('response.'.length);
+      result = getValueByPath(data, path);
+    } else if (keyString === 'response') {
+      // Si on veut la réponse entière
+      result = typeof data === 'object' ? JSON.stringify(data) : data;
+    } else if (keyString.includes(',') || keyString.includes(';')) {
+      // Format multi-clés (ancien format compatible)
+      const doc = JsonFind(data);
       keyString.split(/,|;/).forEach(elt => {
         result += result ? '\u000d' : '';
         result += elt + ' : ' + doc.findValues(elt)[elt];
       });
     } else {
+      // Format simple (ancien format compatible) : recherche par nom de clé
+      const doc = JsonFind(data);
       result = doc.findValues(keyString);
       result = result[keyString];
     }
@@ -84,7 +109,6 @@ function findInJson(data: any, keyString: string) {
     result = data;
   }
   return result;
-
 }
 
 // Cache du filtre HTTP pour éviter les appels répétés à chrome.storage

@@ -194,12 +194,20 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
                     this.updateData();
                 },
                 onRenderContextMenu: (items: ContextMenuItem[], context: RenderContextMenuContext) => {
-                    // On supprime le separator annsi que le bloc couper/copier/coller
+                    // On supprime le separator ainsi que le bloc couper/copier/coller
                     items.splice(1, 2);
 
+                    const path = context.selection?.['path'];
+                    if (!path || path.length < 2) return items;
+
+                    // Vérifie si on est sur 'response' ou sur une clé enfant de 'response'
+                    const isOnResponse = path[path.length - 1] === 'response';
+                    const isInsideResponse = path.includes('response') && path.length > 2;
+
                     let menuClearResponse, menuAddTag;
-                    //
-                    if (context.selection && context.selection['path'] && context.selection['path'][context.selection['path'].length - 1] === 'response') {
+
+                    // Menu "Vider la réponse" : uniquement sur response
+                    if (isOnResponse) {
                         menuClearResponse = {
                             type: 'row',
                             text: this.translate.instant('mmn.jsoneditor.menu.clearResponse'),
@@ -208,13 +216,22 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
                             onClick: () => {
                                 const json = (this.jsonEditorTree.get() as JSONContent).json;
                                 if (json && Array.isArray(json)) {
-                                    const target = json[context.selection['path'][0]][context.selection['path'][1]];
-                                    json[context.selection['path'][0]][context.selection['path'][1]] = Array.isArray(target) ? [] : {};
+                                    const target = json[path[0]][path[1]];
+                                    json[path[0]][path[1]] = Array.isArray(target) ? [] : {};
                                     this.jsonEditorTree.update({ json: json });
                                     this.updateData();
                                 }
                             }
                         };
+                    }
+
+                    // Menu "Ajouter un tag" : sur response ou sur une clé enfant de response
+                    if (isOnResponse || isInsideResponse) {
+                        // Construit le chemin JSON depuis response (ex: "response.data.id" ou juste "response")
+                        const responseIndex = path.indexOf('response');
+                        const jsonKeyPath = path.slice(responseIndex).join('.');
+                        const displayKey = path[path.length - 1];
+
                         menuAddTag = {
                             type: 'row',
                             text: this.translate.instant('mmn.jsoneditor.menu.addTag'),
@@ -223,13 +240,12 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
                             onClick: () => {
                                 const json = (this.jsonEditorTree.get() as JSONContent).json;
                                 if (json && Array.isArray(json)) {
-                                    const api = json[context.selection['path'][0]];
-                                    const jsonKey = context.selection['path'][context.selection['path'].length - 1];
+                                    const api = json[path[0]];
                                     if (api) {
                                         const element: TagElement = {
                                             httpKey: api.key,
-                                            jsonKey: jsonKey,
-                                            display: jsonKey
+                                            jsonKey: jsonKeyPath,
+                                            display: String(displayKey)
                                         };
                                         this.tagsService.addTagElement(element);
                                     }
@@ -237,10 +253,11 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
                             }
                         };
                     }
-                    if (menuClearResponse) {
+
+                    if (menuClearResponse || menuAddTag) {
                         items.push({ type: 'separator' });
-                        items.push(menuClearResponse);
-                        items.push(menuAddTag);
+                        if (menuClearResponse) items.push(menuClearResponse);
+                        if (menuAddTag) items.push(menuAddTag);
                     }
 
                     return items;

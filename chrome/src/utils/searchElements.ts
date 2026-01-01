@@ -20,7 +20,9 @@ export function activateSearchElements() {
   searchAndDisplay();
 
   window.addEventListener('resize', debounceSearch, { passive: true });
-  window.addEventListener('scroll', refreshCanvasPositions, { passive: true });
+  // Utilise capture: true pour intercepter le scroll sur tous les éléments,
+  // y compris les conteneurs scrollables (html/body en height: 100%)
+  document.addEventListener('scroll', refreshCanvasPositions, { passive: true, capture: true });
 
   if (!mutationObserver) {
     mutationObserver = new MutationObserver((mutations) => {
@@ -207,7 +209,7 @@ function stopObservers() {
     mutationObserver = null;
   }
   window.removeEventListener('resize', debounceSearch);
-  window.removeEventListener('scroll', refreshCanvasPositions);
+  document.removeEventListener('scroll', refreshCanvasPositions, { capture: true });
   if (debounceTimer) window.clearTimeout(debounceTimer);
 }
 
