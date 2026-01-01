@@ -360,3 +360,26 @@ body.black-theme .welcome-dialog {
     }
   }
 }
+
+/* ========================================
+   JSON Formatter - vanilla-jsoneditor
+   ======================================== */
+
+/* Cacher le bandeau vert de formatage automatique */
+.jse-message.jse-success {
+  display: none !important;
+}
+
+/* Cacher aussi le bandeau repair si visible */
+.jse-json-repair-component,
+.jse-repair-modal {
+  display: none !important;
+}
+
+/* Styles pour le JSON Formatter en mode sombre */
+body.black-theme #jsonEditorContainer {
+  --jse-background-color: #1e1e1e;
+  --jse-text-color: #d4d4d4;
+  --jse-panel-background: #252526;
+  --jse-panel-color: #d4d4d4;
+}

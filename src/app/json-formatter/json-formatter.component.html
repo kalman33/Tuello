@@ -1,4 +1,4 @@
-<div class="container" >
+<div class="container">
   <div fxFlex="99">
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
       <button id="guide-json-format" mat-flat-button color="primary" (click)="beautifyJson()">
@@ -15,15 +15,15 @@
           {{ 'mmn.json-formatter.button.copy' | translate }}
         </button>
 
-        <button mat-flat-button color="primary" (click)="cleanInputText()" >
+        <button mat-flat-button color="primary" (click)="cleanInputText()">
           <mat-icon>delete</mat-icon>
           {{ 'mmn.json-formatter.button.clean' | translate }}
         </button>
       </div>
 
-      <div id="guide-json-input">
-        <textarea id="jsonTextarea" [(ngModel)]="jsonInput" class="zone-saisie" [placeholder]="'mmn.json-formatter.jsoninput.placeholder' | translate"></textarea>
+      <div id="guide-json-input" class="editor-wrapper">
+        <div id="jsonEditorContainer" class="json-editor-container"></div>
       </div>
-   
+
   </div>
 </div>
