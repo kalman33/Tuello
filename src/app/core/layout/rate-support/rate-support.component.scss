@@ -1,52 +1,207 @@
-.mat-mdc-button {
-  text-align: left !important;
+.rate-support-container {
+  padding: 8px 16px 16px;
+  max-width: 400px;
 }
 
-h2 {
-  margin-bottom: 2px;
-  margin-top: 2px;
+.section {
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
-::ng-deep #rateTitle a span.mdc-button__label {
-  display: flex !important; 
-  align-items: center !important;
-  text-align: left; 
-  width: auto; 
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+
+  mat-icon {
+    color: #eb9b3b;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
 }
 
-::ng-deep .mat-mdc-button .mat-mdc-button-persistent-ripple:hover::before {
-  background-color: transparent !important;
-  opacity: 0 !important;
+.cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-::ng-deep .rateTitle span::before {
-  background-color: transparent !important;
-  opacity: 0 !important;
-}
-
-::ng-deep .rateTitle a:hover {
-  color: #FFB61E !important;
-}
-
-form {
-  margin-top: 5px;
-}
-
-.rateTitle {
-  align-items: flex-start;
-}
-
-.icon-button{
-  background: none;
-  padding: 0;
-  border: 0;
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+  border: 1px solid #e9ecef;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
   cursor: pointer;
+
+  &:hover {
+    transform: translateX(4px);
+    border-color: #eb9b3b;
+    box-shadow: 0 4px 12px rgba(235, 155, 59, 0.15);
+
+    .card-arrow {
+      opacity: 1;
+      transform: translateX(0);
+      color: #eb9b3b;
+    }
+
+    .card-icon {
+      transform: scale(1.05);
+    }
+  }
 }
 
-.icon-button .icon {
-  width: 28px;
+.card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+
+  &.github {
+    background: #24292e;
+    padding: 8px;
+
+    img {
+      width: 24px;
+      height: 24px;
+      filter: invert(1);
+    }
+  }
+
+  &.chrome {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    padding: 6px;
+
+    img {
+      width: 28px;
+      height: 28px;
+    }
+  }
 }
 
-.icon-button span {
-  padding-left: 12px;
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary, #6c757d);
+}
+
+.card-arrow {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.2s ease;
+  color: #adb5bd;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.support-section {
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
+}
+
+.support-text {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: var(--text-secondary, #6c757d);
+  line-height: 1.5;
+}
+
+.donate-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #eb9b3b 0%, #eb9021 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(235, 155, 59, 0.35);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Dark mode support
+:host-context(.dark-theme) {
+  .section-title {
+    color: #e9ecef;
+  }
+
+  .card {
+    background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
+    border-color: #404040;
+
+    &:hover {
+      border-color: #eb9b3b;
+      box-shadow: 0 4px 12px rgba(235, 155, 59, 0.25);
+    }
+  }
+
+  .card-icon.chrome {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .card-title {
+    color: #e9ecef;
+  }
+
+  .card-subtitle {
+    color: #adb5bd;
+  }
+
+  .support-section {
+    border-top-color: #404040;
+  }
+
+  .support-text {
+    color: #adb5bd;
+  }
 }

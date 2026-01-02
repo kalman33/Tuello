@@ -125,10 +125,16 @@ export class TrackComponent implements OnInit, OnDestroy {
       if (message.refreshTrackData) {
         // recupération des enregistrements avec décompression LZ
         this.compressionService.loadCompressed<any[]>('tuelloTracks').then(tracks => {
-          this.ngZone.run(() => (this.tracks = tracks || []));
+          this.ngZone.run(() => {
+            this.tracks = tracks || [];
+            this.ref.detectChanges();
+          });
           sendResponse();
         }).catch(() => {
-          this.ngZone.run(() => (this.tracks = []));
+          this.ngZone.run(() => {
+            this.tracks = [];
+            this.ref.detectChanges();
+          });
           sendResponse();
         });
       } else {

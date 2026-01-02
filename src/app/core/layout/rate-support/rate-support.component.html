@@ -1,33 +1,51 @@
-<h2 mat-dialog-title>{{ 'mmn.layout.rate.title' | translate }}</h2>
-<div fxLayout="column" id="rateTitle" class="rateTitle">
-  <a class="icon-button" [disableRipple]="true" mat-button href="https://github.com/kalman33/Tuello" target="_blank" (click)="openLink($event)">
-    <img src="/assets/img/github-mark.png" class="icon" />
-    <span>{{ 'mmn.layout.rate.github' | translate }}</span>
-  </a>
-  <a
-    class="icon-button"
-    mat-button
-    [disableRipple]="true"
-    href="https://chromewebstore.google.com/detail/tuello/keggceicipngaimacccgmcfbbnmnldoc"
-    target="_blank"
-    (click)="openLink($event)"
-  >
-    <img src="/assets/img/chrome.svg" class="icon" />
-    <span>{{ 'mmn.layout.rate.chrome' | translate }}</span>
-</a>
-</div>
-<h2 mat-dialog-title>{{ 'mmn.layout.support.title' | translate }}</h2>
+<div class="rate-support-container">
+  <!-- Section Évaluation -->
+  <section class="section">
+    <h2 class="section-title">
+      <mat-icon>star_rate</mat-icon>
+      <span>{{ 'mmn.layout.rate.title' | translate }}</span>
+    </h2>
 
-<span>{{ 'mmn.layout.support' | translate }}</span>
-<form id="paypal" action="https://www.paypal.com/donate" (ngSubmit)="faireUnDon()" method="post" target="_blank">
-  <input type="hidden" name="hosted_button_id" value="UZ5W457PXJW26" />
-  <input
-    type="image"
-    [src]="this.translate.instant('mmn.jsoneditor.language') === 'en' ? 'https://www.paypal.com/en_US/i/btn/btn_donate_SM.gif' : 'https://www.paypalobjects.com/fr_FR/FR/i/btn/btn_donate_SM.gif'"
-    style="border: 0"
-    name="submit"
-    title="PayPal - The safer, easier way to pay online!"
-    alt="Bouton Faites un don avec PayPal"
-  />
-  <img alt="" style="border: 0" src="https://www.paypal.com/fr_FR/i/scr/pixel.gif" width="1" height="1" />
-</form>
+    <div class="cards-container">
+      <a class="card" href="https://github.com/kalman33/Tuello" target="_blank" (click)="openLink($event)">
+        <div class="card-icon github">
+          <img src="/assets/img/github-mark.png" alt="GitHub" />
+        </div>
+        <div class="card-content">
+          <span class="card-title">{{ 'mmn.layout.rate.github' | translate }}</span>
+          <span class="card-subtitle">GitHub</span>
+        </div>
+        <mat-icon class="card-arrow">arrow_forward</mat-icon>
+      </a>
+
+      <a class="card" href="https://chromewebstore.google.com/detail/tuello/keggceicipngaimacccgmcfbbnmnldoc" target="_blank" (click)="openLink($event)">
+        <div class="card-icon chrome">
+          <img src="/assets/img/chrome.svg" alt="Chrome" />
+        </div>
+        <div class="card-content">
+          <span class="card-title">{{ 'mmn.layout.rate.chrome' | translate }}</span>
+          <span class="card-subtitle">Chrome Web Store</span>
+        </div>
+        <mat-icon class="card-arrow">arrow_forward</mat-icon>
+      </a>
+    </div>
+  </section>
+
+  <!-- Section Support -->
+  <section class="section support-section">
+    <h2 class="section-title">
+      <mat-icon>favorite</mat-icon>
+      <span>{{ 'mmn.layout.support.title' | translate }}</span>
+    </h2>
+
+    <p class="support-text">{{ 'mmn.layout.support' | translate }}</p>
+
+    <form id="paypal" action="https://www.paypal.com/donate" (ngSubmit)="faireUnDon()" method="post" target="_blank">
+      <input type="hidden" name="hosted_button_id" value="UZ5W457PXJW26" />
+      <button type="submit" class="donate-button">
+        <mat-icon>volunteer_activism</mat-icon>
+        <span>{{ 'mmn.layout.donate' | translate }}</span>
+      </button>
+    </form>
+  </section>
+</div>
