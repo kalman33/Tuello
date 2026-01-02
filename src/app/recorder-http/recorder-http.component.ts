@@ -178,6 +178,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
                 options,
                 onRenderMenu: (items, context) => items.filter((item) => !item.text && item.type !== 'separator' && item.className !== 'jse-transform'),
                 onClassName: function (path, value) {
+                    // Colorer la valeur httpCode elle-même
                     if (path[path.length - 1] === 'httpCode') {
                         if (value.toString().startsWith('5')) {
                             return 'server-error-http-response';
@@ -186,9 +187,23 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
                             return 'client-error-http-response';
                         }
                         return null;
-                    } else {
-                        return null;
                     }
+
+                    // Colorer toute la ligne (entrée du tableau) selon son httpCode
+                    if (path.length === 1 && typeof value === 'object' && value !== null) {
+                        const httpCode = value.httpCode;
+                        if (httpCode !== undefined && httpCode !== null) {
+                            const codeStr = httpCode.toString();
+                            if (codeStr.startsWith('5')) {
+                                return 'http-row-error-5xx';
+                            }
+                            if (codeStr.startsWith('4')) {
+                                return 'http-row-error-4xx';
+                            }
+                        }
+                    }
+
+                    return null;
                 },
                 onChange: () => {
                     this.updateData();

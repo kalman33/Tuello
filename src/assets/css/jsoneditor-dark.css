@@ -1,11 +1,31 @@
+/* Coloration du texte httpCode (thème sombre) */
 .server-error-http-response * {
-	color: rgb(190, 5, 5) !important;
-  }
-  
+  color: #ff6b6b !important;
+}
+
 .client-error-http-response * {
-	color: #e29c45 !important;
-  }
-  
+  color: #ffc078 !important;
+}
+
 .no-error-http-response * {
-	color: grey;
+  color: grey;
+}
+
+/* Coloration du fond de ligne selon le code HTTP (thème sombre) */
+.http-row-error-5xx {
+  background-color: rgba(255, 107, 107, 0.12) !important;
+  border-left: 3px solid #ff6b6b !important;
+}
+
+.http-row-error-5xx:hover {
+  background-color: rgba(255, 107, 107, 0.2) !important;
+}
+
+.http-row-error-4xx {
+  background-color: rgba(255, 192, 120, 0.12) !important;
+  border-left: 3px solid #ffc078 !important;
+}
+
+.http-row-error-4xx:hover {
+  background-color: rgba(255, 192, 120, 0.2) !important;
 }
