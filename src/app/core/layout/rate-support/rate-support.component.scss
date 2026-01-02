@@ -168,8 +168,8 @@
   }
 }
 
-// Dark mode support
-:host-context(.dark-theme) {
+// Dark mode support (classe black-theme utilisée par ThemeService)
+:host-context(.black-theme) {
   .section-title {
     color: #e9ecef;
   }

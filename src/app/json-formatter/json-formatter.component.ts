@@ -74,7 +74,13 @@ export class JsonFormatterComponent implements AfterViewInit, OnDestroy {
     private jsonEditor: JsonEditor | null = null;
     private translationObserver: MutationObserver | null = null;
 
+    /** Indique si le thème sombre est actif */
+    isBlackTheme = false;
+
     ngAfterViewInit(): void {
+        // Détection du thème sombre
+        this.isBlackTheme = document.body.classList.contains('black-theme');
+
         this.initJsonEditor();
         this.initTranslationObserver();
     }
