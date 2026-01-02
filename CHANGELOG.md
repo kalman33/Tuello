@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.4.0] - 2026-01-xx
+
+    Refonte JSON Tools
+    Corrections Track resources
+    Refonte Rate & support us
+
 ## [1.2.3.0] - 2025-12-31
 
     Ajout de l'aide interactive
