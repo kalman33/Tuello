@@ -32,8 +32,7 @@ function mouseup(x: number, y: number, key: number) {
   mouseEvent('mouseup', x, y, key);
 }
 
-function scrollTo(scrollX, scrollY) {
-  console.log("TUELLO", window);
+function scrollTo(scrollX: number, scrollY: number): void {
   window.scrollTo(scrollX, scrollY);
 }
 

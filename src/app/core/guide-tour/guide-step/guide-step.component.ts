@@ -8,6 +8,7 @@ import {
   EventEmitter,
   HostListener,
   Input,
+  NgZone,
   OnDestroy,
   OnInit,
   Output
@@ -17,6 +18,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { GuideTourStep } from '../guide-tour.models';
 import { guideOverlayAnimation, guideTooltipAnimation } from '../guide-tour.animations';
+
+/** Délai d'attente avant d'activer les listeners (pour laisser l'animation se terminer) */
+const ANIMATION_SETTLE_DELAY = 300;
+
+/** Délai de throttle pour les recalculs de position */
+const POSITION_THROTTLE_MS = 100;
 
 @Component({
   selector: 'mmn-guide-step',
@@ -45,12 +52,17 @@ export class GuideStepComponent implements OnInit, AfterViewInit, OnDestroy {
 
   tooltipStyle: { [key: string]: string } = {};
   positionClass = '';
+  isReady = false; // Contrôle l'affichage du tooltip (après calcul de position)
 
   private resizeObserver: ResizeObserver | null = null;
+  private isAnimating = true;
+  private positionThrottleId: number | null = null;
+  private rafId: number | null = null;
 
   constructor(
     private cdr: ChangeDetectorRef,
-    private elementRef: ElementRef
+    private elementRef: ElementRef,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
@@ -58,16 +70,32 @@ export class GuideStepComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.targetElement) {
       this.targetElement.classList.add('guide-highlighted');
     }
+
+    // Calculer la position AVANT l'affichage pour éviter le saut
+    this.calculatePosition();
+
+    // Marquer comme prêt après un court délai pour s'assurer que le DOM est stable
+    // et que la position a été appliquée
+    requestAnimationFrame(() => {
+      this.isReady = true;
+      this.cdr.detectChanges();
+    });
   }
 
   ngAfterViewInit(): void {
-    this.calculatePosition();
+    // Attendre la fin de l'animation avant d'activer les listeners
+    // pour éviter les recalculs pendant l'animation d'entrée
+    setTimeout(() => {
+      this.isAnimating = false;
 
-    // Observer les changements de taille de la fenetre
-    this.resizeObserver = new ResizeObserver(() => {
-      this.calculatePosition();
-    });
-    this.resizeObserver.observe(document.body);
+      // Observer les changements de taille de la fenetre (hors zone Angular pour performance)
+      this.ngZone.runOutsideAngular(() => {
+        this.resizeObserver = new ResizeObserver(() => {
+          this.throttledCalculatePosition();
+        });
+        this.resizeObserver.observe(document.body);
+      });
+    }, ANIMATION_SETTLE_DELAY);
   }
 
   ngOnDestroy(): void {
@@ -80,16 +108,48 @@ export class GuideStepComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
+
+    // Annuler les timers en cours
+    if (this.positionThrottleId !== null) {
+      clearTimeout(this.positionThrottleId);
+    }
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+    }
   }
 
   @HostListener('window:resize')
   onResize(): void {
-    this.calculatePosition();
+    if (!this.isAnimating) {
+      this.throttledCalculatePosition();
+    }
   }
 
   @HostListener('window:scroll')
   onScroll(): void {
-    this.calculatePosition();
+    if (!this.isAnimating) {
+      this.throttledCalculatePosition();
+    }
+  }
+
+  /**
+   * Throttle les recalculs de position pour éviter les saccades
+   */
+  private throttledCalculatePosition(): void {
+    if (this.positionThrottleId !== null) {
+      return; // Déjà en attente
+    }
+
+    this.positionThrottleId = window.setTimeout(() => {
+      this.positionThrottleId = null;
+
+      // Utiliser requestAnimationFrame pour synchroniser avec le rendu
+      this.rafId = requestAnimationFrame(() => {
+        this.ngZone.run(() => {
+          this.calculatePosition();
+        });
+      });
+    }, POSITION_THROTTLE_MS);
   }
 
   onNext(): void {

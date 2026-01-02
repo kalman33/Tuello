@@ -3,11 +3,16 @@
   <textarea id="story" name="story"
             rows="33" cols="50"
             [(ngModel)]="jsonAction"
+            (ngModelChange)="onJsonChange()"
+            [class.error]="jsonError"
   >
   </textarea>
+  @if (jsonError) {
+    <div class="json-error">{{ jsonError }}</div>
+  }
 </mat-dialog-content>
 
 <div mat-dialog-actions align="end">
   <button mat-flat-button (click)="cancel()">{{ 'mmn.spy-http.json-editor.cancel' | translate }}</button>
-  <button cdkFocusInitial mat-flat-button (click)="close()">{{ 'mmn.spy-http.json-editor.save' | translate }}</button>
+  <button cdkFocusInitial mat-flat-button (click)="close()" [disabled]="jsonError">{{ 'mmn.spy-http.json-editor.save' | translate }}</button>
 </div>

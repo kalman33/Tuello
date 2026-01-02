@@ -67,6 +67,8 @@ body.black-theme .segment-key {
   background: rgba(0, 0, 0, 0.6);
   z-index: 9998;
   pointer-events: all;
+  /* Optimisation GPU */
+  will-change: opacity;
 }
 
 /* Element surligne */
@@ -76,6 +78,10 @@ body.black-theme .segment-key {
   box-shadow: 0 0 0 4px #D59F5D, 0 0 20px rgba(213, 159, 93, 0.5) !important;
   border-radius: 4px;
   animation: guide-pulse 2s ease-in-out infinite;
+  /* Optimisation GPU pour animation fluide */
+  will-change: box-shadow;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 @keyframes guide-pulse {
@@ -97,6 +103,12 @@ body.black-theme .segment-key {
   max-width: 320px;
   min-width: 280px;
   z-index: 10000;
+  /* Optimisations GPU pour animations fluides */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 
   .guide-step-header {
     display: flex;

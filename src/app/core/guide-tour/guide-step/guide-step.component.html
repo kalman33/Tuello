@@ -1,12 +1,13 @@
 <!-- Overlay de fond -->
 <div class="guide-overlay" @guideOverlay (click)="onOverlayClick($event)"></div>
 
-<!-- Tooltip du guide -->
-<div
-  class="guide-step-popup"
-  [ngClass]="positionClass"
-  [ngStyle]="tooltipStyle"
-  @guideTooltip>
+<!-- Tooltip du guide - affiché seulement après calcul de position -->
+@if (isReady) {
+  <div
+    class="guide-step-popup"
+    [ngClass]="positionClass"
+    [ngStyle]="tooltipStyle"
+    @guideTooltip>
 
   <div class="guide-step-header">
     <h3>{{ step.titleKey | translate }}</h3>
@@ -45,4 +46,5 @@
       }
     </div>
   </div>
-</div>
+  </div>
+}

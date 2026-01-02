@@ -81,7 +81,7 @@ export function loadCompressed<T>(key: string): Promise<T | null> {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get([key], results => {
       if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
+        reject(new Error(`Erreur lecture storage pour ${key}: ${chrome.runtime.lastError.message}`));
         return;
       }
 
@@ -96,13 +96,25 @@ export function loadCompressed<T>(key: string): Promise<T | null> {
 
         // Migration: si les données n'étaient pas compressées, les recompresser
         if (!isCompressed(data)) {
-          saveCompressed(key, decompressed).catch(console.error);
+          saveCompressed(key, decompressed).catch(err => {
+            // Log mais ne pas bloquer - la migration peut échouer si quota dépassé
+            console.warn(`Migration compression échouée pour ${key}:`, err.message);
+          });
         }
 
         resolve(decompressed);
       } catch (error) {
         console.error(`Erreur décompression pour ${key}:`, error);
-        reject(error);
+        // Tenter de retourner les données brutes en cas d'échec de décompression
+        try {
+          if (typeof data === 'object') {
+            resolve(data as T);
+          } else {
+            reject(new Error(`Données corrompues pour ${key}`));
+          }
+        } catch {
+          reject(error);
+        }
       }
     });
   });
@@ -115,7 +127,7 @@ export function loadCompressedMultiple<T extends Record<string, unknown>>(keys: 
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(keys, results => {
       if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
+        reject(new Error(`Erreur lecture storage multiple: ${chrome.runtime.lastError.message}`));
         return;
       }
 
@@ -130,11 +142,14 @@ export function loadCompressedMultiple<T extends Record<string, unknown>>(keys: 
 
             // Migration: si les données n'étaient pas compressées, les recompresser
             if (COMPRESSED_KEYS.includes(key) && !isCompressed(data)) {
-              saveCompressed(key, decompressed).catch(console.error);
+              saveCompressed(key, decompressed).catch(err => {
+                console.warn(`Migration compression échouée pour ${key}:`, err.message);
+              });
             }
-          } catch {
-            // Si erreur de décompression, garder la valeur originale
-            decompressedResults[key] = data;
+          } catch (err) {
+            // Si erreur de décompression, garder la valeur originale si c'est un objet
+            console.warn(`Erreur décompression pour ${key}, utilisation des données brutes:`, err);
+            decompressedResults[key] = typeof data === 'object' ? data : undefined;
           }
         } else {
           decompressedResults[key] = data;

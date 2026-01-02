@@ -1,8 +1,7 @@
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
-// import { PNG } from 'pngjs/browser';
-// import pixelmatch from "pixelmatch";
-// import { Buffer } from 'buffer';
-// import html2canvas from 'html2canvas';
+import { PNG } from 'pngjs/browser';
+import pixelmatch from "pixelmatch";
+import { Buffer } from 'buffer';
 import domtoimage from 'dom-to-image';
 
 const cache: { [key: string]: HTMLElement | string } = {};
@@ -49,11 +48,11 @@ export function searchImg(action: IUserAction): Promise<(HTMLElement | string)> 
     }
 
     searchInDom(action).then(values => {
-      const imgFinded = values.find(val => val !== 'not founded');
+      const imgFound = values.find(val => val !== 'not found');
 
-      if (imgFinded) {
-        cache[action.value] = imgFinded;
-        return resolve(imgFinded);
+      if (imgFound) {
+        cache[action.value] = imgFound;
+        return resolve(imgFound);
       }
       return reject('Image introuvable');
     });
@@ -68,11 +67,18 @@ function searchInDom(action): Promise<(HTMLElement | string)[]> {
   return Promise.all(promiseArray);
 }
 
-async function compareImages(dataurl1, dataurl2, img): Promise<HTMLElement | string> {
+async function compareImages(dataUrl1: string, dataUrl2: string, img: HTMLElement): Promise<HTMLElement | string> {
   return new Promise((resolve) => {
     try {
-      /**const pngImg1 = PNG.sync.read(Buffer.from(dataurl1.slice('data:image/png;base64,'.length), 'base64'));
-      const pngImg2 = PNG.sync.read(Buffer.from(dataurl2.slice('data:image/png;base64,'.length), 'base64'));
+      const pngImg1 = PNG.sync.read(Buffer.from(dataUrl1.slice('data:image/png;base64,'.length), 'base64'));
+      const pngImg2 = PNG.sync.read(Buffer.from(dataUrl2.slice('data:image/png;base64,'.length), 'base64'));
+
+      // Vérifier que les dimensions correspondent
+      if (pngImg1.width !== pngImg2.width || pngImg1.height !== pngImg2.height) {
+        resolve('not found');
+        return;
+      }
+
       const diffImage = new PNG({ width: pngImg1.width, height: pngImg1.height });
 
       const mismatchedPixels = pixelmatch(
@@ -81,24 +87,21 @@ async function compareImages(dataurl1, dataurl2, img): Promise<HTMLElement | str
         diffImage.data,
         pngImg1.width,
         pngImg1.height,
-        {}
+        { threshold: 0.1 } // Tolérance pour les différences mineures de rendu
       );
 
       const match = 1 - mismatchedPixels / (pngImg1.width * pngImg1.height);
       const misMatchPercentage = 100 - (match * 100);
 
-      if (misMatchPercentage < 0.1) {
+      // Tolérance de 5% pour les variations de rendu (anti-aliasing, compression, etc.)
+      if (misMatchPercentage < 5) {
         resolve(img);
       } else {
-        resolve('not founded');
-      }*/
-     if (dataurl1 === dataurl2) {
-      resolve(img);
-     } else {
-      resolve('not founded');
-     }
+        resolve('not found');
+      }
     } catch (err) {
-      resolve('not founded');
+      console.warn('Erreur comparaison images:', err);
+      resolve('not found');
     }
   });
 }

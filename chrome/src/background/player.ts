@@ -7,6 +7,12 @@ import { PNG } from 'pngjs/browser';
 import pixelmatch from "pixelmatch";
 import { Buffer } from 'buffer';
 
+/** Timeout par défaut pour les actions en ms */
+const ACTION_TIMEOUT_MS = 30000;
+
+/** Délai d'attente avant capture screenshot pour s'assurer du rendu complet */
+const SCREENSHOT_RENDER_DELAY_MS = 300;
+
 
 export class Player {
   yieldActions: Generator<Action>;
@@ -131,19 +137,25 @@ export class Player {
 
   sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions): Promise<any> {
     return new Promise((resolve, reject) => {
+      // Créer un timeout pour éviter de bloquer indéfiniment
+      const timeoutId = setTimeout(() => {
+        console.warn(`Timeout atteint pour l'action: ${userAction.type}`);
+        resolve(false); // On résout avec false plutôt que rejeter pour continuer le replay
+      }, ACTION_TIMEOUT_MS);
 
       if (userAction.type === 'resize') {
         chrome.windows.getCurrent((window) => {
-          let updateInfo = {
+          const updateInfo = {
             width: userAction.htmlCoordinates.width,
             height: userAction.htmlCoordinates.height,
             top: userAction.htmlCoordinates.top,
             left: userAction.htmlCoordinates.left
           };
-          ((updateInfo as any).state = "normal"), chrome.windows.update(window.id, updateInfo,
-            () =>
-              resolve(true)
-          );
+          (updateInfo as any).state = "normal";
+          chrome.windows.update(window.id, updateInfo, () => {
+            clearTimeout(timeoutId);
+            resolve(true);
+          });
         });
       } else {
         chrome.tabs.sendMessage(
@@ -154,8 +166,13 @@ export class Player {
           },
           options,
           (response: any) => {
-        
-            resolve(true);
+            clearTimeout(timeoutId);
+            if (chrome.runtime.lastError) {
+              console.warn('Erreur envoi message:', chrome.runtime.lastError.message);
+              resolve(false);
+            } else {
+              resolve(true);
+            }
           }
         );
       }
@@ -164,44 +181,63 @@ export class Player {
 
   compareImage(action: Action): Promise<any> {
     return new Promise((resolve, reject) => {
-      chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
-        let pngImgData = PNG.sync.read(Buffer.from(action.data.slice('data:image/png;base64,'.length), 'base64'));
-        let pngImgData1 = PNG.sync.read(Buffer.from(imgData.slice('data:image/png;base64,'.length), 'base64'));
-        let diffImage = new PNG({
-          width: pngImgData.width,
-          height: pngImgData.height
+      // Attendre que le rendu soit complet avant de capturer
+      setTimeout(() => {
+        chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
+          if (chrome.runtime.lastError || !imgData) {
+            console.warn('Erreur capture screenshot:', chrome.runtime.lastError?.message);
+            resolve(false);
+            return;
+          }
+
+          try {
+            const pngImgData = PNG.sync.read(Buffer.from(action.data.slice('data:image/png;base64,'.length), 'base64'));
+            const pngImgData1 = PNG.sync.read(Buffer.from(imgData.slice('data:image/png;base64,'.length), 'base64'));
+
+            // Vérifier si les dimensions sont compatibles
+            const width = Math.min(pngImgData.width, pngImgData1.width);
+            const height = Math.min(pngImgData.height, pngImgData1.height);
+
+            const diffImage = new PNG({ width, height });
+
+            // pixelmatch returns the number of mismatched pixels
+            const mismatchedPixels = pixelmatch(
+              pngImgData.data,
+              pngImgData1.data,
+              diffImage.data,
+              width,
+              height,
+              { threshold: 0.1 } // Tolérance pour les différences mineures
+            );
+
+            const match = 1 - mismatchedPixels / (width * height);
+            const misMatchPercentage = (100 - (match * 100)).toFixed(2);
+
+            diffImage.pack();
+            const chunks: Buffer[] = [];
+            diffImage.on('data', (chunk: Buffer) => {
+              chunks.push(chunk);
+            });
+            diffImage.on('end', () => {
+              const result = Buffer.concat(chunks);
+              const data = {
+                misMatchPercentage,
+                imageDataUrl: 'data:image/png;base64,' + result.toString('base64')
+              };
+
+              this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
+              resolve(true);
+            });
+            diffImage.on('error', (err: Error) => {
+              console.warn('Erreur génération diff image:', err);
+              resolve(false);
+            });
+          } catch (err) {
+            console.warn('Erreur comparaison images:', err);
+            resolve(false);
+          }
         });
-
-        // pixelmatch returns the number of mismatched pixels
-        const mismatchedPixels = pixelmatch(
-          pngImgData.data,
-          pngImgData1.data,
-          diffImage.data, // output
-          pngImgData.width,
-          pngImgData.height,
-          {} // options
-        );
-
-        const match = 1 - mismatchedPixels / (pngImgData.width * pngImgData.height);
-        const misMatchPercentage = (100 - (match * 100)).toFixed(2)
-
-        diffImage.pack();
-        var chunks = [];
-        diffImage.on('data', (chunk) => {
-          chunks.push(chunk);
-        });
-        diffImage.on('end', () => {
-          var result = Buffer.concat(chunks);
-          const data = {
-            misMatchPercentage,
-            imageDataUrl: 'data:image/png;base64,' + result.toString('base64')
-          };
-
-          this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
-          resolve(true);
-
-        });
-      });
+      }, SCREENSHOT_RENDER_DELAY_MS);
     });
   }
 }
