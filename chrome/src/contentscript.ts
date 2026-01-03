@@ -212,8 +212,10 @@ function init() {
         iframe.style.setProperty('right', '0', 'important');
         iframe.style.setProperty('z-index', '2147483647', 'important');
         iframe.style.setProperty('transform', 'translateX(570px)', 'important');
-        iframe.style.setProperty('transition', 'all .4s', 'important');
+        iframe.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
+        iframe.style.setProperty('will-change', 'transform', 'important');
         iframe.style.setProperty('box-shadow', '0 0 15px 2px rgba(0,0,0,0.12)', 'important');
+        iframe.style.setProperty('contain', 'strict', 'important');
         iframe.frameBorder = 'none';
         iframe.src = chrome.runtime.getURL('index.html');
 
