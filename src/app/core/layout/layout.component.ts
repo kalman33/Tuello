@@ -10,7 +10,8 @@ import { MatSidenav, MatSidenavContainer, MatSidenavContent } from '@angular/mat
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatToolbar } from '@angular/material/toolbar';
 import { MatTooltip } from '@angular/material/tooltip';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { TranslatePipe } from "@ngx-translate/core";
 import { fadeInAnimation } from '../animations/fadeInAnimation';
@@ -39,6 +40,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   stateFadeAnimation = 'inactive';
   statesSlideInMenuAnimation = 'inactive';
   dockedLeft = false;
+  helpAvailable = true;
   private titleInterval: ReturnType<typeof setInterval> | null = null;
 
   @ViewChild('snav') sidenav: MatSidenav;
@@ -65,6 +67,24 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
       }
       this.changeDetectorRef.detectChanges();
     });
+
+    // Écouter les changements de route pour désactiver l'aide sur certaines pages
+    this.updateHelpAvailability(this.router.url);
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      this.updateHelpAvailability(event.url);
+      this.changeDetectorRef.detectChanges();
+    });
+  }
+
+  /**
+   * Met à jour la disponibilité de l'aide selon la route
+   */
+  private updateHelpAvailability(url: string): void {
+    // Pages sans guide interactif
+    const pagesWithoutHelp = ['/settings'];
+    this.helpAvailable = !pagesWithoutHelp.some(page => url.startsWith(page));
   }
 
   ngAfterViewInit(): void {

@@ -40,6 +40,11 @@
   /* When the sidenav is not fixed, stretch the sidenav container to fill the available space. This
            causes `<mat-sidenav-content>` to act as our scrolling element for desktop layouts. */
   flex: 1;
+  overflow: hidden;
+}
+
+.sidenav-content {
+  overflow: hidden;
 }
 
 .navbar-is-mobile .navbar-sidenav-container {
@@ -184,6 +189,11 @@ a.mat-mdc-list-item [mat-line] {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  &.disabled-help {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 

@@ -2,6 +2,9 @@
   margin-top: 20px;
   margin-left: 15px;
   margin-right: 15px;
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 h1 {
@@ -70,4 +73,22 @@ mat-form-field {
 
 .-tab-icon {
   margin-right: 8px;
+}
+
+// Fix overflow issues on large screens
+.compression-stats {
+  overflow-x: auto;
+  max-width: 100%;
+
+  table {
+    min-width: 300px;
+  }
+}
+
+::ng-deep .mat-mdc-tab-body-content {
+  overflow: hidden !important;
+}
+
+::ng-deep .mat-mdc-tab-group {
+  max-width: 100%;
 }
