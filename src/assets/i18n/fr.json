@@ -6,6 +6,7 @@
   "mmn.layout.jsonFormatter": "Formateur JSON",
   "mmn.layout.settings": "Paramètres",
   "mmn.layout.rate": "Notez et soutenez-nous",
+  "mmn.layout.dock.tooltip": "Changer de côté",
   "mmn.layout.rate.title": "Évaluation et commentaires",
   "mmn.layout.rate.github": "Noter sur GitHub",
   "mmn.layout.rate.chrome": "Évaluer sur Chrome Web Store",

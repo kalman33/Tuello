@@ -15,6 +15,22 @@ let show = false;
 let clickedElement: string;
 const prefix: string = '[ TUELLO ]';
 let mousedownListenerAdded = false;
+let dockedLeft = false;
+
+/**
+ * Applique la position du dock (gauche ou droite)
+ */
+function applyDockPosition(iframe: HTMLIFrameElement, isVisible: boolean) {
+  if (dockedLeft) {
+    iframe.style.setProperty('left', '0', 'important');
+    iframe.style.setProperty('right', 'auto', 'important');
+    iframe.style.setProperty('transform', isVisible ? 'translateX(0)' : 'translateX(-570px)', 'important');
+  } else {
+    iframe.style.setProperty('right', '0', 'important');
+    iframe.style.setProperty('left', 'auto', 'important');
+    iframe.style.setProperty('transform', isVisible ? 'translateX(0)' : 'translateX(570px)', 'important');
+  }
+}
 
 /**
  * Handler pour capturer l'élément cliqué (utilisé pour JSON Viewer)
@@ -209,15 +225,19 @@ function init() {
         iframe.style.setProperty('min-width', '1px', 'important');
         iframe.style.setProperty('position', 'fixed', 'important');
         iframe.style.setProperty('top', '0', 'important');
-        iframe.style.setProperty('right', '0', 'important');
         iframe.style.setProperty('z-index', '2147483647', 'important');
-        iframe.style.setProperty('transform', 'translateX(570px)', 'important');
         iframe.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
         iframe.style.setProperty('will-change', 'transform', 'important');
         iframe.style.setProperty('box-shadow', '0 0 15px 2px rgba(0,0,0,0.12)', 'important');
         iframe.style.setProperty('contain', 'strict', 'important');
         iframe.frameBorder = 'none';
         iframe.src = chrome.runtime.getURL('index.html');
+
+        // Charger la préférence de position
+        chrome.storage.local.get(['tuelloDockedLeft'], results => {
+          dockedLeft = results['tuelloDockedLeft'] || false;
+          applyDockPosition(iframe, false);
+        });
 
         /**iframe.onreadystatechange = () => {
               if ( iframe.readyState == 'complete' ) {
@@ -361,24 +381,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   }
   if (message === 'toggle') {
-    if (document.getElementById('iframeTuello')) {
-      const transform = window.getComputedStyle(document.getElementById('iframeTuello')).transform;
-      if (transform.indexOf('570') >= 0 || transform == 'none') {
-        if (document.getElementById('iframeTuello').style.display === 'none') {
-          document.getElementById('iframeTuello').style.display = '';
+    const iframe = document.getElementById('iframeTuello') as HTMLIFrameElement;
+    if (iframe) {
+      const transform = window.getComputedStyle(iframe).transform;
+      // Vérifier si l'iframe est cachée (570 pour droite, -570 pour gauche)
+      const isHidden = transform.indexOf('570') >= 0 || transform === 'none';
+      if (isHidden) {
+        if (iframe.style.display === 'none') {
+          iframe.style.display = '';
         }
         show = true;
-        document.getElementById('iframeTuello').style.setProperty('transform', 'translateX(0)', 'important');
+        applyDockPosition(iframe, true);
       } else {
         show = false;
-        document.getElementById('iframeTuello').style.setProperty('transform', 'translateX(570px)', 'important');
+        applyDockPosition(iframe, false);
       }
     }
     sendResponse();
   }
   if (message === 'open') {
-    show = true;
-    document.getElementById('iframeTuello').style.setProperty('transform', 'translateX(0)', 'important');
+    const iframe = document.getElementById('iframeTuello') as HTMLIFrameElement;
+    if (iframe) {
+      show = true;
+      applyDockPosition(iframe, true);
+    }
     sendResponse();
   }
   if (message.from === 'background') {
@@ -444,6 +470,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (window.self === window.top) {
         show = true;
         document.getElementById('iframeTuello').style.display = '';
+      }
+      sendResponse();
+      break;
+    case 'TOGGLE_DOCK_POSITION':
+      if (window.self === window.top) {
+        const iframe = document.getElementById('iframeTuello') as HTMLIFrameElement;
+        if (iframe) {
+          dockedLeft = message.value;
+          applyDockPosition(iframe, show);
+        }
       }
       sendResponse();
       break;
@@ -546,9 +582,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'ACTIONS_RESULTS':
       if (window.self === window.top) {
         // SHOW
-        document.getElementById('iframeTuello').style.display = '';
-        document.getElementById('iframeTuello').style.setProperty('transform', 'translateX(0)', 'important');
-        show = true;
+        const iframeResult = document.getElementById('iframeTuello') as HTMLIFrameElement;
+        if (iframeResult) {
+          iframeResult.style.display = '';
+          show = true;
+          applyDockPosition(iframeResult, true);
+        }
 
         chrome.runtime.sendMessage({
           action: 'updateIcon',

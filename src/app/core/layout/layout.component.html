@@ -17,6 +17,9 @@
     </button>
 
     @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+      <button mat-icon-button color="basic" class="toolbar-action" (click)="toggleDockPosition()" [matTooltip]="'mmn.layout.dock.tooltip' | translate" aria-label="Changer position">
+        <mat-icon>{{ dockedLeft ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+      </button>
       <button class="toolbar-action" mat-icon-button color="basic" (click)="close()" aria-label="Fermer"><mat-icon>close</mat-icon></button>
     }
   </mat-toolbar>

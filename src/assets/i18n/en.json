@@ -6,6 +6,7 @@
   "mmn.layout.jsonFormatter": "Beautify JSON",
   "mmn.layout.settings": "Settings",
   "mmn.layout.rate": "Rate and support us",
+  "mmn.layout.dock.tooltip": "Switch side",
   "mmn.layout.rate.title": "Rate and feedback",
   "mmn.layout.rate.github": "Star on github",
   "mmn.layout.rate.chrome": "Rate on Chrome WebStore",

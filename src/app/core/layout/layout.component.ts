@@ -38,6 +38,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   menuLabels: string[] = [];
   stateFadeAnimation = 'inactive';
   statesSlideInMenuAnimation = 'inactive';
+  dockedLeft = false;
   private titleInterval: ReturnType<typeof setInterval> | null = null;
 
   @ViewChild('snav') sidenav: MatSidenav;
@@ -52,12 +53,15 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    chrome.storage.local.get(['settings', 'selectedMenu'], results => {
+    chrome.storage.local.get(['settings', 'selectedMenu', 'tuelloDockedLeft'], results => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }
       if (results['selectedMenu']) {
         this.selectedIndex = results['selectedMenu'];
+      }
+      if (results['tuelloDockedLeft']) {
+        this.dockedLeft = results['tuelloDockedLeft'];
       }
       this.changeDetectorRef.detectChanges();
     });
@@ -161,5 +165,25 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
     if (tourId) {
       this.guideTourService.startTour(tourId);
     }
+  }
+
+  /**
+   * Bascule la position du panneau (gauche/droite)
+   */
+  toggleDockPosition(): void {
+    this.dockedLeft = !this.dockedLeft;
+    chrome.storage.local.set({ tuelloDockedLeft: this.dockedLeft });
+
+    // Envoyer un message au content script pour changer la position
+    chrome.tabs.getCurrent(tab => {
+      if (tab?.id) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'TOGGLE_DOCK_POSITION',
+          value: this.dockedLeft
+        }, { frameId: 0 }, () => {});
+      }
+    });
+
+    this.changeDetectorRef.detectChanges();
   }
 }

@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.4.0] - 2026-01-xx
+## [1.2.5.0] - 2026-01-xx
+
+    possibilité de basculer Tuello à gauche de l'écran
+    Optimisations animation ouverture Tuello & search Elements
+
+## [1.2.4.0] - 2026-01-02
 
     Refonte JSON Tools
     Corrections Track resources
