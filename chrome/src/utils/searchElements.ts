@@ -9,6 +9,8 @@ let elementsFound = new Map<string, HTMLElement>();
 let mutationObserver: MutationObserver | null = null;
 let debounceTimer: number | null = null;
 let isInternalAction = false;
+let scrollRafId: number | null = null;
+let isScrolling = false;
 
 // ==========================================
 // INITIALISATION
@@ -22,7 +24,7 @@ export function activateSearchElements() {
   window.addEventListener('resize', debounceSearch, { passive: true });
   // Utilise capture: true pour intercepter le scroll sur tous les éléments,
   // y compris les conteneurs scrollables (html/body en height: 100%)
-  document.addEventListener('scroll', refreshCanvasPositions, { passive: true, capture: true });
+  document.addEventListener('scroll', throttledRefreshPositions, { passive: true, capture: true });
 
   if (!mutationObserver) {
     mutationObserver = new MutationObserver((mutations) => {
@@ -48,11 +50,15 @@ function injectStyles() {
   style.id = TUELLO_STYLE_ID;
   style.textContent = `
     @keyframes tuelloFadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
     .tuello-animate {
-      animation: tuelloFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      animation: tuelloFadeIn 0.2s ease-out forwards;
+    }
+    .tuello-overlay {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
   `;
   document.head.appendChild(style);
@@ -87,8 +93,8 @@ function searchAndDisplay() {
       targetNodes.forEach((node, index) => {
         const htmlElt = node as HTMLElement;
         if (isVisible(htmlElt)) {
-          const canvas = createCanvasElement(config, htmlElt, index);
-          fragment.appendChild(canvas);
+          const overlay = createOverlayElement(config, htmlElt, index);
+          fragment.appendChild(overlay);
           totalFoundCount++;
         }
       });
@@ -106,53 +112,71 @@ function searchAndDisplay() {
 // RENDU & ANIMATION
 // ==========================================
 
-function createCanvasElement(config: any, target: HTMLElement, index: number): HTMLCanvasElement {
+function createOverlayElement(config: any, target: HTMLElement, index: number): HTMLDivElement {
   const rect = target.getBoundingClientRect();
-  const canvas = document.createElement('canvas');
-  const uniqueId = `${TUELLO_PREFIX}${index}-${Math.random().toString(36).substr(2, 5)}`;
+  const overlay = document.createElement('div');
+  const uniqueId = `${TUELLO_PREFIX}${index}-${Math.random().toString(36).substring(2, 7)}`;
 
-  canvas.id = uniqueId;
-  canvas.className = 'tuello-animate'; // Active l'animation CSS
+  overlay.id = uniqueId;
+  overlay.className = 'tuello-animate tuello-overlay';
   elementsFound.set(uniqueId, target);
 
-  Object.assign(canvas.style, {
+  // Utilise transform au lieu de left/top pour de meilleures performances GPU
+  Object.assign(overlay.style, {
     position: 'fixed',
     zIndex: '2147483646',
     pointerEvents: 'auto',
     cursor: 'pointer',
     border: `2px dashed ${THEME_COLOR}`,
-    left: `${rect.left}px`,
-    top: `${rect.top}px`,
+    left: '0',
+    top: '0',
     width: `${rect.width}px`,
     height: `${rect.height}px`,
+    transform: `translate3d(${rect.left}px, ${rect.top}px, 0)`,
+    willChange: 'transform',
     boxSizing: 'border-box',
-    opacity: '0' // Sera géré par l'animation @keyframes
+    opacity: '0', // Sera géré par l'animation @keyframes
+    contain: 'layout style' // Isolation CSS pour éviter les reflows
   });
 
   const attrValue = target.getAttribute(config.displayAttribute);
-  canvas.title = `${config.name}${attrValue ? ' : ' + attrValue : ''} (Clic pour copier)`;
+  overlay.title = `${config.name}${attrValue ? ' : ' + attrValue : ''} (Clic pour copier)`;
 
-  canvas.onclick = (e) => {
+  overlay.onclick = (e) => {
     e.stopPropagation();
     copyToClipBoard(target, config.displayAttribute);
     target.click();
   };
 
-  return canvas;
+  return overlay;
 }
 
-function refreshCanvasPositions() {
-  window.requestAnimationFrame(() => {
-    elementsFound.forEach((target, id) => {
-      const canvas = document.getElementById(id);
-      if (canvas && target && target.isConnected) {
-        const rect = target.getBoundingClientRect();
-        canvas.style.left = `${rect.left}px`;
-        canvas.style.top = `${rect.top}px`;
-        canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${rect.height}px`;
-      }
-    });
+// Throttle intelligent : limite les mises à jour pendant le scroll
+function throttledRefreshPositions() {
+  if (scrollRafId !== null) return; // Déjà planifié
+
+  scrollRafId = window.requestAnimationFrame(() => {
+    refreshOverlayPositions();
+    scrollRafId = null;
+  });
+}
+
+function refreshOverlayPositions() {
+  // Batch read : lire toutes les positions d'abord
+  const updates: Array<{ overlay: HTMLElement; rect: DOMRect }> = [];
+
+  elementsFound.forEach((target, id) => {
+    const overlay = document.getElementById(id);
+    if (overlay && target && target.isConnected) {
+      updates.push({ overlay, rect: target.getBoundingClientRect() });
+    }
+  });
+
+  // Batch write : appliquer toutes les transformations ensuite
+  updates.forEach(({ overlay, rect }) => {
+    overlay.style.transform = `translate3d(${rect.left}px, ${rect.top}px, 0)`;
+    overlay.style.width = `${rect.width}px`;
+    overlay.style.height = `${rect.height}px`;
   });
 }
 
@@ -209,8 +233,12 @@ function stopObservers() {
     mutationObserver = null;
   }
   window.removeEventListener('resize', debounceSearch);
-  document.removeEventListener('scroll', refreshCanvasPositions, { capture: true });
+  document.removeEventListener('scroll', throttledRefreshPositions, { capture: true });
   if (debounceTimer) window.clearTimeout(debounceTimer);
+  if (scrollRafId !== null) {
+    window.cancelAnimationFrame(scrollRafId);
+    scrollRafId = null;
+  }
 }
 
 export function findElement(selector: string): Node[] {
@@ -244,23 +272,16 @@ function isVisible(el: HTMLElement) {
   return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
 }
 
-function copyToClipBoard(target: HTMLElement, attr: string) {
+async function copyToClipBoard(target: HTMLElement, attr: string) {
   const text = target.getAttribute(attr) || target.innerText || '';
   if (!text) return;
-  const nav = navigator as any;
-  if (nav.clipboard && nav.clipboard.writeText) {
-    nav.clipboard.writeText(text).catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text);
-  }
-}
 
-function fallbackCopy(text: string) {
-  const textArea = document.createElement('textarea');
-  textArea.value = text;
-  Object.assign(textArea.style, { position: 'fixed', left: '-9999px' });
-  document.body.appendChild(textArea);
-  textArea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textArea);
+  const nav = navigator as Navigator;
+  if (nav.clipboard?.writeText) {
+    try {
+      await nav.clipboard.writeText(text);
+    } catch {
+      // Silently fail - clipboard API peut échouer dans certains contextes
+    }
+  }
 }
