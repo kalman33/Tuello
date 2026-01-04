@@ -12,6 +12,18 @@ let isInternalAction = false;
 let scrollRafId: number | null = null;
 let isScrolling = false;
 
+const i18n: Record<string, Record<string, string>> = {
+  en: {
+    'mmn.search.elements.found': 'element(s) found',
+    'mmn.search.click.to.copy': 'Click to copy'
+  },
+  fr: {
+    'mmn.search.elements.found': 'élément(s) détecté(s)',
+    'mmn.search.click.to.copy': 'Clic pour copier'
+  }
+};
+let currentLang = 'fr';
+
 // ==========================================
 // INITIALISATION
 // ==========================================
@@ -19,7 +31,12 @@ let isScrolling = false;
 export function activateSearchElements() {
   stopObservers();
   injectStyles(); // Injecte l'animation CSS
-  searchAndDisplay();
+
+  // Récupère la langue configurée
+  chrome.storage.local.get(['language'], (result) => {
+    currentLang = result['language'] || 'fr';
+    searchAndDisplay();
+  });
 
   window.addEventListener('resize', debounceSearch, { passive: true });
   // Utilise capture: true pour intercepter le scroll sur tous les éléments,
@@ -140,7 +157,8 @@ function createOverlayElement(config: any, target: HTMLElement, index: number): 
   });
 
   const attrValue = target.getAttribute(config.displayAttribute);
-  overlay.title = `${config.name}${attrValue ? ' : ' + attrValue : ''} (Clic pour copier)`;
+  const clickToCopy = i18n[currentLang]?.['mmn.search.click.to.copy'] || i18n['en']['mmn.search.click.to.copy'];
+  overlay.title = `${config.name}${attrValue ? ' : ' + attrValue : ''} (${clickToCopy})`;
 
   overlay.onclick = (e) => {
     e.stopPropagation();
@@ -207,7 +225,8 @@ function updateCountBadge(count: number) {
     });
     document.body.appendChild(badge);
   }
-  badge.textContent = `${count} élément(s) détecté(s)`;
+  const label = i18n[currentLang]?.['mmn.search.elements.found'] || i18n['en']['mmn.search.elements.found'];
+  badge.textContent = `${count} ${label}`;
 }
 
 // ==========================================

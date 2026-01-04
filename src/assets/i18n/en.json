@@ -162,6 +162,7 @@
   "mmn.search.input.attribute.display": "attribute of the element to display",
   "mmn.search.elements.required": "Select at least one Element to look for",
   "mmn.search.input.add.tooltip": "HTML tags (e.g. <h1>), HTML attributes (e.g. aria-labelledby) or text",
+  "mmn.search.elements.found": "element(s) found",
 
   "mmn.json-formatter.button.format": "Format / beautify JSON",
   "mmn.json-formatter.button.copy": "Copy",

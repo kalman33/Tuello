@@ -162,6 +162,7 @@
   "mmn.search.input.attribute.display": "attribut de l’élément à afficher",
   "mmn.search.elements.required": "Renseigner au moins un élément à rechercher",
   "mmn.search.input.add.tooltip": "Renseigner une balise HTML(Ex: <h1>), attributs HTML (ex: aria-labelledby) ou du texte",
+  "mmn.search.elements.found": "élément(s) détecté(s)",
 
   "mmn.json-formatter.button.format": "Formater JSON",
   "mmn.json-formatter.button.copy": "Copier",
