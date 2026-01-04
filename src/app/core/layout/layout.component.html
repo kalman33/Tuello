@@ -12,7 +12,16 @@
     </div>
     <mat-slide-toggle [checked]="activate" class="toggle-slide darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
 
-    <button mat-icon-button [color]="helpAvailable ? 'basic' : ''" class="toolbar-action" [class.disabled-help]="!helpAvailable" (click)="helpAvailable && startHelpTour()" [matTooltip]="'mmn.guide.help.tooltip' | translate" [disabled]="!helpAvailable" aria-label="Aide">
+    <button
+      mat-icon-button
+      [color]="helpAvailable ? 'basic' : ''"
+      class="toolbar-action"
+      [class.disabled-help]="!helpAvailable"
+      (click)="helpAvailable && startHelpTour()"
+      [matTooltip]="'mmn.guide.help.tooltip' | translate"
+      [disabled]="!helpAvailable"
+      aria-label="Aide"
+    >
       <mat-icon>help_outline</mat-icon>
     </button>
 
@@ -69,7 +78,7 @@
           </div>
           <div>
             <mat-icon id="outline" class="v-align-middle">info_outline</mat-icon>
-            <span class="v-align-middle">Version 1.2.4</span>
+            <span class="v-align-middle">Version 1.2.5</span>
           </div>
         </div>
       </mat-nav-list>
