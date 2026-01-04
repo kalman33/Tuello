@@ -1,0 +1,154 @@
+---
+import { t } from '../i18n/translations';
+
+interface Props {
+  lang: 'en' | 'fr';
+}
+
+const { lang } = Astro.props;
+const currentYear = new Date().getFullYear();
+const homeUrl = lang === 'en' ? '/' : '/fr/';
+---
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <a href={homeUrl} class="footer-logo">
+          <img src="/images/tuello-128x128.png" alt="Tuello" class="logo-icon" />
+          <span class="logo-text">Tuello</span>
+        </a>
+        <p class="footer-description">
+          {t(lang, 'footer.description')}
+        </p>
+      </div>
+
+      <div class="footer-links">
+        <div class="footer-column">
+          <h4>{t(lang, 'footer.product')}</h4>
+          <a href="#features">{t(lang, 'nav.features')}</a>
+          <a href="#demo">{t(lang, 'nav.demo')}</a>
+          <a href="#screenshots">{t(lang, 'nav.screenshots')}</a>
+        </div>
+
+        <div class="footer-column">
+          <h4>{t(lang, 'footer.resources')}</h4>
+          <a href="https://github.com/kalman33/Tuello" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/kalman33/Tuello/issues" target="_blank" rel="noopener">{t(lang, 'footer.report')}</a>
+          <a href="https://github.com/kalman33/Tuello/releases" target="_blank" rel="noopener">{t(lang, 'footer.changelog')}</a>
+        </div>
+
+        <div class="footer-column">
+          <h4>{t(lang, 'footer.install')}</h4>
+          <a href="https://chromewebstore.google.com/detail/tuello/keggceicipngaimacccgmcfbbnmnldoc" target="_blank" rel="noopener">{t(lang, 'footer.chrome')}</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; {currentYear} {t(lang, 'footer.copyright')}</p>
+      <p class="footer-made">{t(lang, 'footer.made')} <span class="heart">&#10084;</span> {t(lang, 'footer.for')}</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--color-bg-light);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 60px 0 30px;
+  }
+
+  .footer-content {
+    display: grid;
+    grid-template-columns: 1.5fr 2fr;
+    gap: 60px;
+    margin-bottom: 40px;
+  }
+
+  .footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--color-text);
+    margin-bottom: 16px;
+  }
+
+  .footer-logo:hover {
+    color: var(--color-text);
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+
+  .footer-description {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 300px;
+  }
+
+  .footer-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+
+  .footer-column h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    color: var(--color-text);
+  }
+
+  .footer-column a {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    transition: color 0.3s ease;
+  }
+
+  .footer-column a:hover {
+    color: var(--color-primary);
+  }
+
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .heart {
+    color: #e74c3c;
+  }
+
+  @media (max-width: 768px) {
+    .footer-content {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+
+    .footer-links {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .footer-bottom {
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+  }
+</style>

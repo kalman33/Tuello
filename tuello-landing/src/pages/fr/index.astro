@@ -1,0 +1,25 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/Header.astro';
+import Hero from '../../components/Hero.astro';
+import Features from '../../components/Features.astro';
+import Demo from '../../components/Demo.astro';
+import Screenshots from '../../components/Screenshots.astro';
+import CTA from '../../components/CTA.astro';
+import Footer from '../../components/Footer.astro';
+import { t } from '../../i18n/translations';
+
+const lang = 'fr';
+---
+
+<Layout title={t(lang, 'meta.title')} lang={lang}>
+  <Header lang={lang} />
+  <main>
+    <Hero lang={lang} />
+    <Features lang={lang} />
+    <Demo lang={lang} />
+    <Screenshots lang={lang} />
+    <CTA lang={lang} />
+  </main>
+  <Footer lang={lang} />
+</Layout>

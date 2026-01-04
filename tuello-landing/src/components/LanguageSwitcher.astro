@@ -1,0 +1,38 @@
+---
+interface Props {
+  lang: 'en' | 'fr';
+}
+
+const { lang } = Astro.props;
+const otherLang = lang === 'en' ? 'fr' : 'en';
+const otherLangUrl = lang === 'en' ? '/fr/' : '/';
+const otherLangLabel = lang === 'en' ? 'FR' : 'EN';
+---
+
+<a href={otherLangUrl} class="lang-switch" title={lang === 'en' ? 'Passer en français' : 'Switch to English'}>
+  {otherLangLabel}
+</a>
+
+<style>
+  .lang-switch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(31, 88, 108, 0.15);
+    border: 1px solid rgba(31, 88, 108, 0.3);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .lang-switch:hover {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+  }
+</style>
