@@ -19,10 +19,10 @@ export const translations = {
 
     // Hero
     'hero.badge': 'Free & Open Source Chrome Extension',
-    'hero.title.1': 'Your Ultimate',
-    'hero.title.2': 'Web Dev',
-    'hero.title.3': 'Companion',
-    'hero.subtitle': 'Mock XHR & Fetch requests, track DOM elements, search components, format JSON, and record & replay user actions - all in one powerful Chrome extension.',
+    'hero.title.1': 'Simplify Your',
+    'hero.title.2': 'Web',
+    'hero.title.3': 'Development',
+    'hero.subtitle': 'Mock XHR & Fetch requests, search components, format JSON, track DOM elements, and record & replay user actions - all in one powerful Chrome extension.',
     'hero.cta.chrome': 'Add to Chrome - It\'s Free',
     'hero.cta.github': 'View on GitHub',
     'hero.stats.tools': 'Powerful Tools',
@@ -100,10 +100,10 @@ export const translations = {
 
     // Hero
     'hero.badge': 'Extension Chrome gratuite & open source',
-    'hero.title.1': 'Votre compagnon',
-    'hero.title.2': 'Dev Web',
-    'hero.title.3': 'ultime',
-    'hero.subtitle': 'Interceptez les requêtes XHR & Fetch, traquez les éléments DOM, recherchez des composants, formatez le JSON et enregistrez & rejouez les actions utilisateur - tout en une seule extension.',
+    'hero.title.1': 'Simplifiez vos',
+    'hero.title.2': 'développements',
+    'hero.title.3': 'web',
+    'hero.subtitle': 'Interceptez les requêtes XHR & Fetch, recherchez des composants, formatez le JSON, traquez les éléments DOM et enregistrez & rejouez les actions utilisateur - tout en une seule extension.',
     'hero.cta.chrome': 'Ajouter à Chrome - Gratuit',
     'hero.cta.github': 'Voir sur GitHub',
     'hero.stats.tools': 'Outils puissants',
