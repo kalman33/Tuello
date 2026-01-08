@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.5.0] - 2026-01-xx
+## [1.2.6.0] - 2026-01-09
+
+    optimisation spy and replay navigation
+    correction au niveau de l'export du mock and record HTTP
+    Correction du flash de tuello lors de la navigation
+
+## [1.2.5.0] - 2026-01-03
 
     possibilité de basculer Tuello à gauche de l'écran
     Optimisations animation ouverture Tuello & search Elements
