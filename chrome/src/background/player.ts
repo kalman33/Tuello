@@ -13,15 +13,28 @@ const ACTION_TIMEOUT_MS = 30000;
 /** Délai d'attente avant capture screenshot pour s'assurer du rendu complet */
 const SCREENSHOT_RENDER_DELAY_MS = 300;
 
+/** Dimensions minimales et maximales pour la fenêtre */
+const MIN_WINDOW_SIZE = 100;
+const MAX_WINDOW_SIZE = 10000;
+
+/** Résultat d'une action */
+interface ActionResult {
+  success: boolean;
+  actionIndex: number;
+  actionType: string;
+  error?: string;
+}
 
 export class Player {
   yieldActions: Generator<Action>;
   initialActions: Action[];
-  timeoutId;
+  timeoutId: ReturnType<typeof setTimeout> | null = null;
   pauseCurrentAction = false;
   chromeTabId: number;
   count = 0;
   comparisonResults: ComparisonResult[];
+  actionResults: ActionResult[] = [];
+  private isDestroyed = false;
 
   constructor(actions: Action[], chromeTabId: number, senderResponse: (response?: any) => void) {
     this.initialActions = actions;
@@ -29,81 +42,151 @@ export class Player {
     this.yieldActions = this.iterateGenerator(actions);
   }
 
-  private startTimeout() {
-    if (this.initialActions && this.initialActions[this.count] && this.initialActions[this.count].delay !== undefined && this.initialActions[this.count].delay !== null) {
-      this.timeoutId = setTimeout(this.treatAction.bind(this), this.initialActions[this.count].delay);
+  /**
+   * Nettoie les ressources du player
+   */
+  destroy(): void {
+    this.isDestroyed = true;
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
     }
   }
 
-  async treatAction() {
-    
+  private startTimeout(): void {
+    if (this.isDestroyed) return;
+
+    const currentAction = this.initialActions[this.count];
+    if (currentAction?.delay !== undefined && currentAction?.delay !== null) {
+      this.timeoutId = setTimeout(() => this.treatAction(), currentAction.delay);
+    }
+  }
+
+  async treatAction(): Promise<void> {
+    if (this.isDestroyed) return;
+
     const action = this.yieldActions.next();
+    const currentIndex = this.count;
     this.count++;
-    const userAction = action.value ? action.value.userAction : null;
+
+    const userAction = action.value?.userAction ?? null;
+
     if (action.done) {
-      clearTimeout(this.timeoutId);
-      this.count = 0;
+      this.cleanup();
+      this.sendResults();
+      return;
+    }
 
-      // on envoie un message au content scrip
-      chrome.tabs.sendMessage(this.chromeTabId, {
-        action: 'ACTIONS_RESULTS',
-        value: { comparisonResults: this.comparisonResults }
-      }, {
-        frameId: 0
-      }, () => { });
-    } else {
+    let actionSuccess = true;
+    let actionError: string | undefined;
+
+    try {
       if (action.value.actionType === 'NAVIGATE') {
-        await chrome.tabs.query({ active: true }, async function (tabs) {
-          let currentTab = tabs[0]; // L'onglet courant est le premier (et le seul) élément du tableau renvoyé.
-          let currentTabId = currentTab.id; // L'ID de l'onglet courant.
-
-          // Utiliser chrome.tabs.update avec l'ID de l'onglet courant
-          //await chrome.tabs.update(currentTabId, {url: "https://www.example.com"}, function(tab) {
-          await chrome.tabs.update(currentTabId, { url: userAction.hrefLocation });
-        });
-      }
-      if (action.value.actionType === 'SCREENSHOT') {
+        actionSuccess = await this.handleNavigate(userAction);
+      } else if (action.value.actionType === 'SCREENSHOT') {
         if (!this.comparisonResults) {
           this.comparisonResults = [];
         }
-        await this.compareImage(action.value);
+        actionSuccess = await this.compareImage(action.value);
       } else if (action.value.actionType !== 'COMMENT') {
-        let frame: IFrame;
-
-        // on regarde à quelle iframe (donc au bon content script) on doit envoyer la demande de play
-        if (userAction.frame && userAction.frame.src && userAction.frame.frameId > 0) {
-          await getFrameIdFromSrc(this.chromeTabId, userAction.frame.src).then(async iframe => {
-            frame = iframe;
-            const options = iframe
-              ? {
-                frameId: iframe.frameId
-              }
-              : {};
-            // on envoie un message au bon content scrip
-            await this.sendMessageToContent(userAction, options);
-            
-          });
-        } else {
-            
-          // on envoie un message au bon content scrip
-          await this.sendMessageToContent(userAction, {
-            frameId: 0
-          });
-        }
+        actionSuccess = await this.handleUserAction(userAction);
       }
-      if (!this.pauseCurrentAction) {
-        // Déterminer le délai de la prochaine action de manière sécurisée
-        const nextAction = this.initialActions[this.count];
-        const currentAction = this.initialActions[this.count - 1];
-        const delay = nextAction?.delay ?? currentAction?.delay ?? 0;
-
-        this.timeoutId = setTimeout(
-          this.treatAction.bind(this),
-          delay
-        );
-      }
-      
+    } catch (error) {
+      actionSuccess = false;
+      actionError = error instanceof Error ? error.message : String(error);
+      console.warn(`Erreur action ${action.value.actionType}:`, error);
     }
+
+    // Enregistrer le résultat de l'action
+    this.actionResults.push({
+      success: actionSuccess,
+      actionIndex: currentIndex,
+      actionType: action.value.actionType,
+      error: actionError
+    });
+
+    // Continuer si pas en pause et pas détruit
+    if (!this.pauseCurrentAction && !this.isDestroyed) {
+      this.scheduleNextAction();
+    }
+  }
+
+  private cleanup(): void {
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+    }
+    this.count = 0;
+  }
+
+  private sendResults(): void {
+    // Log des actions échouées pour debug
+    const failedActions = this.actionResults.filter(r => !r.success);
+    if (failedActions.length > 0) {
+      console.warn(`${failedActions.length} action(s) ont échoué:`, failedActions);
+    }
+
+    chrome.tabs.sendMessage(this.chromeTabId, {
+      action: 'ACTIONS_RESULTS',
+      value: {
+        comparisonResults: this.comparisonResults,
+        actionResults: this.actionResults
+      }
+    }, {
+      frameId: 0
+    }, () => {
+      if (chrome.runtime.lastError) {
+        // Ignorer - l'onglet peut être fermé
+      }
+    });
+  }
+
+  private async handleNavigate(userAction: UserAction): Promise<boolean> {
+    return new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (chrome.runtime.lastError || !tabs[0]?.id) {
+          console.warn('Erreur navigation: onglet non trouvé');
+          resolve(false);
+          return;
+        }
+
+        chrome.tabs.update(tabs[0].id, { url: userAction.hrefLocation }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn('Erreur navigation:', chrome.runtime.lastError.message);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+      });
+    });
+  }
+
+  private async handleUserAction(userAction: UserAction): Promise<boolean> {
+    let options: chrome.tabs.MessageSendOptions = { frameId: 0 };
+
+    // Déterminer l'iframe cible
+    if (userAction.frame?.src && userAction.frame.frameId > 0) {
+      try {
+        const iframe = await getFrameIdFromSrc(this.chromeTabId, userAction.frame.src);
+        options = { frameId: iframe.frameId };
+      } catch {
+        // Frame non trouvée, utiliser le frame principal
+        options = { frameId: 0 };
+      }
+    }
+
+    return this.sendMessageToContent(userAction, options);
+  }
+
+  private scheduleNextAction(): void {
+    if (this.isDestroyed) return;
+
+    const nextAction = this.initialActions[this.count];
+    const currentAction = this.initialActions[this.count - 1];
+    const delay = nextAction?.delay ?? currentAction?.delay ?? 0;
+
+    this.timeoutId = setTimeout(() => this.treatAction(), delay);
   }
 
   *iterateGenerator(actions: Action[]) {
@@ -112,7 +195,7 @@ export class Player {
     }
   }
 
-  launchAction(state) {
+  launchAction(state: string): number {
     switch (state) {
       case 'PLAY':
         this.pauseCurrentAction = false;
@@ -120,12 +203,19 @@ export class Player {
         break;
       case 'PAUSE':
         this.pauseCurrentAction = true;
-        clearTimeout(this.timeoutId);
+        if (this.timeoutId) {
+          clearTimeout(this.timeoutId);
+          this.timeoutId = null;
+        }
         break;
       case 'RESET':
         this.pauseCurrentAction = false;
         this.yieldActions = this.iterateGenerator(this.initialActions);
-        clearTimeout(this.timeoutId);
+        this.actionResults = [];
+        if (this.timeoutId) {
+          clearTimeout(this.timeoutId);
+          this.timeoutId = null;
+        }
         break;
       default:
         this.pauseCurrentAction = false;
@@ -135,52 +225,108 @@ export class Player {
     return this.count;
   }
 
-  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions): Promise<any> {
-    return new Promise((resolve, reject) => {
+  /**
+   * Valide les dimensions de la fenêtre
+   */
+  private validateWindowDimensions(dimensions: { width?: number; height?: number; top?: number; left?: number }): boolean {
+    const { width, height, top, left } = dimensions;
+
+    if (width !== undefined && (width < MIN_WINDOW_SIZE || width > MAX_WINDOW_SIZE)) {
+      console.warn(`Largeur invalide: ${width}`);
+      return false;
+    }
+    if (height !== undefined && (height < MIN_WINDOW_SIZE || height > MAX_WINDOW_SIZE)) {
+      console.warn(`Hauteur invalide: ${height}`);
+      return false;
+    }
+    if (top !== undefined && (top < -MAX_WINDOW_SIZE || top > MAX_WINDOW_SIZE)) {
+      console.warn(`Position top invalide: ${top}`);
+      return false;
+    }
+    if (left !== undefined && (left < -MAX_WINDOW_SIZE || left > MAX_WINDOW_SIZE)) {
+      console.warn(`Position left invalide: ${left}`);
+      return false;
+    }
+
+    return true;
+  }
+
+  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions): Promise<boolean> {
+    return new Promise((resolve) => {
       // Créer un timeout pour éviter de bloquer indéfiniment
       const timeoutId = setTimeout(() => {
         console.warn(`Timeout atteint pour l'action: ${userAction.type}`);
-        resolve(false); // On résout avec false plutôt que rejeter pour continuer le replay
+        resolve(false);
       }, ACTION_TIMEOUT_MS);
 
       if (userAction.type === 'resize') {
+        // Valider les dimensions avant de redimensionner
+        if (!this.validateWindowDimensions(userAction.htmlCoordinates)) {
+          clearTimeout(timeoutId);
+          resolve(false);
+          return;
+        }
+
         chrome.windows.getCurrent((window) => {
-          const updateInfo = {
+          if (chrome.runtime.lastError || !window?.id) {
+            clearTimeout(timeoutId);
+            console.warn('Erreur récupération fenêtre:', chrome.runtime.lastError?.message);
+            resolve(false);
+            return;
+          }
+
+          const updateInfo: chrome.windows.UpdateInfo = {
             width: userAction.htmlCoordinates.width,
             height: userAction.htmlCoordinates.height,
             top: userAction.htmlCoordinates.top,
-            left: userAction.htmlCoordinates.left
+            left: userAction.htmlCoordinates.left,
+            state: "normal"
           };
-          (updateInfo as any).state = "normal";
-          chrome.windows.update(window.id, updateInfo, () => {
-            clearTimeout(timeoutId);
-            resolve(true);
-          });
-        });
-      } else {
-        chrome.tabs.sendMessage(
-          this.chromeTabId,
-          {
-            action: 'PLAY_USER_ACTION',
-            value: userAction
-          },
-          options,
-          (response: any) => {
+
+          chrome.windows.update(window.id, updateInfo, (updatedWindow) => {
             clearTimeout(timeoutId);
             if (chrome.runtime.lastError) {
-              console.warn('Erreur envoi message:', chrome.runtime.lastError.message);
+              console.warn('Erreur redimensionnement:', chrome.runtime.lastError.message);
               resolve(false);
             } else {
               resolve(true);
             }
+          });
+        });
+      } else {
+        // Vérifier que l'onglet existe encore
+        chrome.tabs.get(this.chromeTabId, (tab) => {
+          if (chrome.runtime.lastError || !tab) {
+            clearTimeout(timeoutId);
+            console.warn('Onglet fermé ou introuvable:', chrome.runtime.lastError?.message);
+            resolve(false);
+            return;
           }
-        );
+
+          chrome.tabs.sendMessage(
+            this.chromeTabId,
+            {
+              action: 'PLAY_USER_ACTION',
+              value: userAction
+            },
+            options,
+            (response: any) => {
+              clearTimeout(timeoutId);
+              if (chrome.runtime.lastError) {
+                console.warn('Erreur envoi message:', chrome.runtime.lastError.message);
+                resolve(false);
+              } else {
+                resolve(response !== false);
+              }
+            }
+          );
+        });
       }
     });
   }
 
-  compareImage(action: Action): Promise<any> {
-    return new Promise((resolve, reject) => {
+  compareImage(action: Action): Promise<boolean> {
+    return new Promise((resolve) => {
       // Attendre que le rendu soit complet avant de capturer
       setTimeout(() => {
         chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {

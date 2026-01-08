@@ -59,26 +59,68 @@ function removeMousedownListener(): void {
   }
 }
 
+/**
+ * Valide la structure des données tuelloRecords
+ */
+function validateTuelloRecords(data: unknown): data is { tuelloRecords: unknown[]; deepMockLevel?: number } {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  // tuelloRecords doit être un tableau
+  if (!Array.isArray(obj.tuelloRecords)) {
+    return false;
+  }
+
+  // deepMockLevel doit être un nombre ou undefined
+  if (obj.deepMockLevel !== undefined && typeof obj.deepMockLevel !== 'number') {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Parse et valide les données JSON de manière sécurisée
+ */
+function safeParseJson<T>(jsonString: string, validator?: (data: unknown) => data is T): T | null {
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (validator && !validator(parsed)) {
+      console.warn('Tuello: Données JSON invalides, structure incorrecte');
+      return null;
+    }
+    return parsed as T;
+  } catch (error) {
+    console.warn('Tuello: Erreur parsing JSON:', error);
+    return null;
+  }
+}
+
 // Récupération des données du localStorage
 try {
   const jsonData = localStorage.getItem("TUELLO_RECORDS");
   if (jsonData) {
-    window.postMessage(
-      {
-        ...JSON.parse(jsonData),
-        ...{
+    const parsed = safeParseJson(jsonData, validateTuelloRecords);
+    if (parsed) {
+      window.postMessage(
+        {
+          ...parsed,
           type: 'MOCK_HTTP_TUELLO_RECORDS',
           value: true
-        }
-      },
-      '*'
-    );
+        },
+        '*'
+      );
+    }
   }
 } catch (error) {
-  // Ignorer les erreurs localStorage/JSON (peut échouer en contexte cross-origin)
+  // Ignorer les erreurs localStorage (peut échouer en contexte cross-origin)
 }
+
 loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel']).then(result => {
-  if (result.tuelloRecords) {
+  if (result.tuelloRecords && Array.isArray(result.tuelloRecords)) {
     try {
       const jsonData = JSON.stringify({
         tuelloRecords: result.tuelloRecords,

@@ -14,14 +14,25 @@ export class RecorderHistoryService {
 
   constructor(private compressionService: CompressionService) {}
 
-  deleteAll() {
-    this.record = null;
-    this.lastAction = null;
-    this.last = undefined;
-    // on previent background pour effacer le record en cours
-    chrome.runtime.sendMessage({
-      action: 'RECORD_USER_ACTION_DELETE'
-    }, () => {});
+  deleteAll(): Promise<void> {
+    return new Promise((resolve) => {
+      this.record = null;
+      this.lastAction = null;
+      this.last = undefined;
+
+      // Supprimer du storage local et marquer la suppression
+      chrome.storage.local.remove(['uiRecord'], () => {
+        // Marquer la suppression dans le storage (survit au redémarrage du service worker)
+        chrome.storage.local.set({ uiRecordDeleted: true }, () => {
+          // Prévenir le background pour effacer son état interne
+          chrome.runtime.sendMessage({
+            action: 'RECORD_USER_ACTION_DELETE'
+          }, () => {
+            resolve();
+          });
+        });
+      });
+    });
   }
 
   public importJson(json: string) {

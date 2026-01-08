@@ -1,5 +1,5 @@
 import { LowerCasePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -18,7 +18,7 @@ import { Action } from '../models/Action';
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, MatTooltip, MatIcon, MatIconButton, LowerCasePipe, TranslatePipe]
 })
-export class ActionComponent {
+export class ActionComponent implements OnChanges {
     @Input() action: Action;
     @Input() index: number;
 
@@ -28,12 +28,21 @@ export class ActionComponent {
     @Output() preview: EventEmitter<number> = new EventEmitter<number>();
     @Output() decreaseDelay: EventEmitter<number> = new EventEmitter<number>();
 
+    /** Domain extrait de l'URL (calculé une seule fois quand l'action change) */
+    domain: string = '';
+
     constructor(
         public dialog: MatDialog,
         public chromeExtentionUtilsService: ChromeExtentionUtilsService
     ) {}
 
-    get domain(): string {
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['action']) {
+            this.domain = this.extractDomain();
+        }
+    }
+
+    private extractDomain(): string {
         try {
             const url = new URL(this.action?.userAction?.hrefLocation);
             return url.hostname;

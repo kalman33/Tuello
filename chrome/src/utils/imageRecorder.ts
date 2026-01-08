@@ -4,13 +4,22 @@ import pixelmatch from "pixelmatch";
 import { Buffer } from 'buffer';
 import domtoimage from 'dom-to-image';
 
-const cache: { [key: string]: HTMLElement | string } = {};
+/** Cache des images trouvées pour éviter les recherches répétées */
+const cache: Map<string, HTMLElement> = new Map();
 
+/** Seuil de correspondance (5% de différence max) */
+const MATCH_THRESHOLD_PERCENT = 5;
+
+/** Nombre maximum d'éléments à tester avant d'abandonner */
+const MAX_ELEMENTS_TO_TEST = 50;
+
+/**
+ * Convertit un élément HTML en image base64
+ */
 export async function convertElementToBase64(element: HTMLElement): Promise<string> {
   if (element instanceof HTMLImageElement) {
     // Vérification que l'image est complètement chargée
     if (!element.complete) {
-      // Attendre que l'image soit chargée avant de la dessiner
       await new Promise<void>((resolve, reject) => {
         element.onload = () => resolve();
         element.onerror = () => reject(new Error("Erreur lors du chargement de l'image"));
@@ -28,7 +37,7 @@ export async function convertElementToBase64(element: HTMLElement): Promise<stri
     canvas.height = element.naturalHeight;
 
     ctx.drawImage(element as unknown as CanvasImageSource, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/png'); 
+    return canvas.toDataURL('image/png');
   } else {
     // Utilisation de dom-to-image pour les autres éléments HTML
     try {
@@ -39,127 +48,141 @@ export async function convertElementToBase64(element: HTMLElement): Promise<stri
   }
 }
 
+/**
+ * Recherche une image dans le DOM correspondant à l'action
+ * Utilise un cache pour éviter les recherches répétées
+ */
+export async function searchImg(action: IUserAction): Promise<HTMLElement> {
+  // Vérifier le cache
+  const cacheKey = action.value;
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey)!;
+  }
 
-export function searchImg(action: IUserAction): Promise<(HTMLElement | string)> {
-  return new Promise((resolve, reject) => {
-    // Vérifiez si le résultat est déjà dans le cache
-    if (action.value in cache) {
-      return resolve(cache[action.value]);
-    }
+  const result = await searchInDomOptimized(action);
 
-    searchInDom(action).then(values => {
-      const imgFound = values.find(val => val !== 'not found');
+  if (result) {
+    cache.set(cacheKey, result);
+    return result;
+  }
 
-      if (imgFound) {
-        cache[action.value] = imgFound;
-        return resolve(imgFound);
-      }
-      return reject('Image introuvable');
-    });
-  });
+  throw new Error('Image introuvable');
 }
 
-function searchInDom(action): Promise<(HTMLElement | string)[]> {
-  const promiseArray = findElementsBySize(action).map(async img => {
-    const dataUrl = await convertElementToBase64(img);
-    return await compareImages(action.value, dataUrl, img);
-  });
-  return Promise.all(promiseArray);
-}
+/**
+ * Recherche optimisée : s'arrête dès qu'une correspondance est trouvée
+ * au lieu d'attendre toutes les comparaisons
+ */
+async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | null> {
+  const candidates = findElementsBySize(action);
 
-async function compareImages(dataUrl1: string, dataUrl2: string, img: HTMLElement): Promise<HTMLElement | string> {
-  return new Promise((resolve) => {
+  // Limiter le nombre d'éléments à tester pour éviter les blocages
+  const elementsToTest = candidates.slice(0, MAX_ELEMENTS_TO_TEST);
+
+  if (candidates.length > MAX_ELEMENTS_TO_TEST) {
+    console.warn(`Trop d'éléments candidats (${candidates.length}), limité à ${MAX_ELEMENTS_TO_TEST}`);
+  }
+
+  // Tester les éléments séquentiellement et s'arrêter au premier match
+  for (const element of elementsToTest) {
     try {
-      const pngImg1 = PNG.sync.read(Buffer.from(dataUrl1.slice('data:image/png;base64,'.length), 'base64'));
-      const pngImg2 = PNG.sync.read(Buffer.from(dataUrl2.slice('data:image/png;base64,'.length), 'base64'));
+      const dataUrl = await convertElementToBase64(element);
+      const isMatch = await compareImages(action.value, dataUrl);
 
-      // Vérifier que les dimensions correspondent
-      if (pngImg1.width !== pngImg2.width || pngImg1.height !== pngImg2.height) {
-        resolve('not found');
-        return;
+      if (isMatch) {
+        return element;
       }
-
-      const diffImage = new PNG({ width: pngImg1.width, height: pngImg1.height });
-
-      const mismatchedPixels = pixelmatch(
-        pngImg1.data,
-        pngImg2.data,
-        diffImage.data,
-        pngImg1.width,
-        pngImg1.height,
-        { threshold: 0.1 } // Tolérance pour les différences mineures de rendu
-      );
-
-      const match = 1 - mismatchedPixels / (pngImg1.width * pngImg1.height);
-      const misMatchPercentage = 100 - (match * 100);
-
-      // Tolérance de 5% pour les variations de rendu (anti-aliasing, compression, etc.)
-      if (misMatchPercentage < 5) {
-        resolve(img);
-      } else {
-        resolve('not found');
-      }
-    } catch (err) {
-      console.warn('Erreur comparaison images:', err);
-      resolve('not found');
+    } catch (error) {
+      // Ignorer les erreurs de conversion et passer à l'élément suivant
+      console.warn('Erreur conversion élément:', error);
     }
-  });
+  }
+
+  return null;
 }
 
+/**
+ * Compare deux images et retourne true si elles correspondent
+ * (moins de MATCH_THRESHOLD_PERCENT% de différence)
+ */
+async function compareImages(dataUrl1: string, dataUrl2: string): Promise<boolean> {
+  try {
+    const pngImg1 = PNG.sync.read(Buffer.from(dataUrl1.slice('data:image/png;base64,'.length), 'base64'));
+    const pngImg2 = PNG.sync.read(Buffer.from(dataUrl2.slice('data:image/png;base64,'.length), 'base64'));
 
-
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous'; // This is necessary if the image is from a different origin
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load image from ${url}`));
-    img.src = url;
-  });
-}
-
-/** 
-export function findImages(): HTMLElement[] {
-  let images = Array.from(document.images) as HTMLElement[];
-  const elements = document.body.getElementsByTagName("*");
-  Array.from(elements).forEach(el => {
-    const style = window.getComputedStyle(el, null);
-    if (style.backgroundImage !== "none" && style.backgroundImage.startsWith('url(')) {
-      images.push(el as HTMLElement);
+    // Vérifier que les dimensions correspondent
+    if (pngImg1.width !== pngImg2.width || pngImg1.height !== pngImg2.height) {
+      return false;
     }
-  });
-  return images;
-}*/
 
-export function findElementsBySize(action: IUserAction): HTMLElement[] {
-  const elements = document.body.getElementsByTagName("*");
-  return Array.from(elements).filter((element) : element is HTMLElement => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      return element instanceof HTMLElement && action.clientHeight === element.clientHeight && action.clientWidth === element.clientWidth;
-  })
-}
+    const diffImage = new PNG({ width: pngImg1.width, height: pngImg1.height });
 
+    const mismatchedPixels = pixelmatch(
+      pngImg1.data,
+      pngImg2.data,
+      diffImage.data,
+      pngImg1.width,
+      pngImg1.height,
+      { threshold: 0.1 } // Tolérance pour les différences mineures de rendu
+    );
 
-export function findImageHover(): HTMLElement {
-  const elts: NodeListOf<Element> = document.querySelectorAll(":hover");
-  if (elts && elts.length > 0) {
-    if (elts[elts.length - 1].nodeName.toLowerCase() === 'img') {
+    const totalPixels = pngImg1.width * pngImg1.height;
+    const misMatchPercentage = (mismatchedPixels / totalPixels) * 100;
 
-      return (elts[elts.length - 1] as HTMLImageElement);
-    } else {
-      // on commence à rechercher une image en background
-      var eltsArr = Array.from(elts);
-      for (const element of eltsArr.reverse().slice(1)) {
-        if ((element as HTMLElement).style.backgroundImage !== '') {
-
-          return (element as HTMLElement);
-        }
-      };
-      // c'est pas une image
-      return (eltsArr[0] as HTMLElement);
-    }
+    // Tolérance pour les variations de rendu (anti-aliasing, compression, etc.)
+    return misMatchPercentage < MATCH_THRESHOLD_PERCENT;
+  } catch (err) {
+    console.warn('Erreur comparaison images:', err);
+    return false;
   }
 }
 
+/**
+ * Trouve tous les éléments HTML ayant la même taille que l'action
+ */
+export function findElementsBySize(action: IUserAction): HTMLElement[] {
+  const elements = document.body.getElementsByTagName("*");
 
+  return Array.from(elements).filter((element): element is HTMLElement => {
+    return element instanceof HTMLElement &&
+           action.clientHeight === element.clientHeight &&
+           action.clientWidth === element.clientWidth;
+  });
+}
+
+/**
+ * Trouve l'élément image sous le curseur (hover)
+ */
+export function findImageHover(): HTMLElement | null {
+  const hoveredElements = document.querySelectorAll(":hover");
+
+  if (!hoveredElements || hoveredElements.length === 0) {
+    return null;
+  }
+
+  const lastHovered = hoveredElements[hoveredElements.length - 1];
+
+  // Vérifier si c'est une balise img
+  if (lastHovered.nodeName.toLowerCase() === 'img') {
+    return lastHovered as HTMLImageElement;
+  }
+
+  // Chercher un élément avec une image en background
+  const hoveredArray = Array.from(hoveredElements).reverse();
+  for (const element of hoveredArray.slice(1)) {
+    const htmlElement = element as HTMLElement;
+    if (htmlElement.style.backgroundImage !== '') {
+      return htmlElement;
+    }
+  }
+
+  // Retourner le premier élément par défaut
+  return hoveredArray[0] as HTMLElement;
+}
+
+/**
+ * Vide le cache des images
+ */
+export function clearImageCache(): void {
+  cache.clear();
+}
