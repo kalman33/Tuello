@@ -272,10 +272,14 @@ function init() {
         iframe.style.setProperty('will-change', 'transform', 'important');
         iframe.style.setProperty('box-shadow', '0 0 15px 2px rgba(0,0,0,0.12)', 'important');
         iframe.style.setProperty('contain', 'strict', 'important');
+        // Position par défaut cachée à droite (évite le flash lors de la navigation)
+        iframe.style.setProperty('right', '0', 'important');
+        iframe.style.setProperty('left', 'auto', 'important');
+        iframe.style.setProperty('transform', 'translateX(570px)', 'important');
         iframe.frameBorder = 'none';
         iframe.src = chrome.runtime.getURL('index.html');
 
-        // Charger la préférence de position
+        // Charger la préférence de position (peut être à gauche ou droite)
         chrome.storage.local.get(['tuelloDockedLeft'], results => {
           dockedLeft = results['tuelloDockedLeft'] || false;
           applyDockPosition(iframe, false);
