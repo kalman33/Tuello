@@ -14,6 +14,17 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs -I {} sh -c 'npx prettier --write \"{}\" 2>/dev/null || true'"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
