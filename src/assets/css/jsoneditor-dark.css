@@ -27,3 +27,14 @@
 .http-row-error-4xx:hover {
   background-color: rgba(255, 192, 120, 0.2) !important;
 }
+
+/* Style pour les doublons (mocks qui ne seront pas pris en compte) - thème sombre */
+.http-row-duplicate {
+  opacity: 0.5 !important;
+  text-decoration: line-through !important;
+  background-color: rgba(180, 180, 180, 0.12) !important;
+}
+
+.http-row-duplicate:hover {
+  background-color: rgba(180, 180, 180, 0.2) !important;
+}

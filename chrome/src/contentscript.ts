@@ -44,7 +44,7 @@ function handleMousedown(event: MouseEvent): void {
  */
 function addMousedownListener(): void {
   if (!mousedownListenerAdded) {
-    document.addEventListener("mousedown", handleMousedown, true);
+    document.addEventListener('mousedown', handleMousedown, true);
     mousedownListenerAdded = true;
   }
 }
@@ -54,7 +54,7 @@ function addMousedownListener(): void {
  */
 function removeMousedownListener(): void {
   if (mousedownListenerAdded) {
-    document.removeEventListener("mousedown", handleMousedown, true);
+    document.removeEventListener('mousedown', handleMousedown, true);
     mousedownListenerAdded = false;
   }
 }
@@ -101,7 +101,7 @@ function safeParseJson<T>(jsonString: string, validator?: (data: unknown) => dat
 
 // Récupération des données du localStorage
 try {
-  const jsonData = localStorage.getItem("TUELLO_RECORDS");
+  const jsonData = localStorage.getItem('TUELLO_RECORDS');
   if (jsonData) {
     const parsed = safeParseJson(jsonData, validateTuelloRecords);
     if (parsed) {
@@ -119,30 +119,32 @@ try {
   // Ignorer les erreurs localStorage (peut échouer en contexte cross-origin)
 }
 
-loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel']).then(result => {
-  if (result.tuelloRecords && Array.isArray(result.tuelloRecords)) {
-    try {
-      const jsonData = JSON.stringify({
-        tuelloRecords: result.tuelloRecords,
-        deepMockLevel: result.deepMockLevel || 0
-      });
-      localStorage.setItem("TUELLO_RECORDS", jsonData);
-    } catch (error) {
-      // Ignorer les erreurs localStorage (peut échouer si quota dépassé ou contexte cross-origin)
+loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel'])
+  .then((result) => {
+    if (result.tuelloRecords && Array.isArray(result.tuelloRecords)) {
+      try {
+        const jsonData = JSON.stringify({
+          tuelloRecords: result.tuelloRecords,
+          deepMockLevel: result.deepMockLevel || 0
+        });
+        localStorage.setItem('TUELLO_RECORDS', jsonData);
+      } catch (error) {
+        // Ignorer les erreurs localStorage (peut échouer si quota dépassé ou contexte cross-origin)
+      }
+      window.postMessage(
+        {
+          type: 'MOCK_HTTP_TUELLO_RECORDS',
+          value: true,
+          tuelloRecords: result.tuelloRecords,
+          deepMockLevel: result.deepMockLevel || 0
+        },
+        '*'
+      );
     }
-    window.postMessage(
-      {
-        type: 'MOCK_HTTP_TUELLO_RECORDS',
-        value: true,
-        tuelloRecords: result.tuelloRecords,
-        deepMockLevel: result.deepMockLevel || 0
-      },
-      '*'
-    );
-  }
-}).catch(() => {
-  // Ignorer les erreurs de décompression
-});
+  })
+  .catch(() => {
+    // Ignorer les erreurs de décompression
+  });
 
 // Ajouter le listener mousedown au chargement
 addMousedownListener();
@@ -165,7 +167,7 @@ function init() {
       scriptInjected = true;
 
       // Import des styles liés au player
-      var head = document.head || document.getElementsByTagName("head")[0];
+      var head = document.head || document.getElementsByTagName('head')[0];
       if (head) {
         head.insertAdjacentHTML(
           'beforeend',
@@ -246,14 +248,12 @@ function init() {
       // Gestion du UIRecorder
       launchUIRecorderHandler();
 
-
       // ajout du spinner
       const spinner = document.createElement('div');
       spinner.id = 'cover-spin';
       if (document && document.body) {
         document.body.prepend(spinner);
       }
-
 
       let iframe;
 
@@ -268,11 +268,12 @@ function init() {
         iframe.style.setProperty('position', 'fixed', 'important');
         iframe.style.setProperty('top', '0', 'important');
         iframe.style.setProperty('z-index', '2147483647', 'important');
-        iframe.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
+        // Transition désactivée initialement pour éviter le flash lors du positionnement
+        iframe.style.setProperty('transition', 'none', 'important');
         iframe.style.setProperty('will-change', 'transform', 'important');
         iframe.style.setProperty('box-shadow', '0 0 15px 2px rgba(0,0,0,0.12)', 'important');
         iframe.style.setProperty('contain', 'strict', 'important');
-        // Position par défaut cachée à droite (évite le flash lors de la navigation)
+        // Position par défaut cachée à droite
         iframe.style.setProperty('right', '0', 'important');
         iframe.style.setProperty('left', 'auto', 'important');
         iframe.style.setProperty('transform', 'translateX(570px)', 'important');
@@ -280,9 +281,13 @@ function init() {
         iframe.src = chrome.runtime.getURL('index.html');
 
         // Charger la préférence de position (peut être à gauche ou droite)
-        chrome.storage.local.get(['tuelloDockedLeft'], results => {
+        chrome.storage.local.get(['tuelloDockedLeft'], (results) => {
           dockedLeft = results['tuelloDockedLeft'] || false;
           applyDockPosition(iframe, false);
+          // Activer la transition après le positionnement initial
+          requestAnimationFrame(() => {
+            iframe.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
+          });
         });
 
         /**iframe.onreadystatechange = () => {
@@ -290,7 +295,7 @@ function init() {
                 resolve(true);
               }
             }*/
-        iframe.addEventListener('load', event => {
+        iframe.addEventListener('load', (event) => {
           resolve(true);
         });
 
@@ -306,7 +311,6 @@ function init() {
           return true;
         });*/
       }
-
 
       activate();
     }
@@ -327,9 +331,8 @@ function activate() {
     trackPlay?: boolean;
     disabled?: boolean;
     searchElementsActivated?: boolean;
-  }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated']).then(results => {
+  }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated']).then((results) => {
     if (!results.disabled) {
-
       if (results.httpMock) {
         window.postMessage(
           {
@@ -340,14 +343,13 @@ function activate() {
           },
           '*'
         );
-
       }
       if (results.httpRecord) {
         window.postMessage(
           {
             type: 'RECORD_HTTP_ACTIVATED',
             value: true,
-            isRestore: true  // Restauration depuis le storage, ne pas flusher la queue
+            isRestore: true // Restauration depuis le storage, ne pas flusher la queue
           },
           '*'
         );
@@ -360,7 +362,6 @@ function activate() {
       }
       if (results.trackPlay) {
         activateRecordTracks();
-
       }
       if (results['searchElementsActivated']) {
         activateSearchElements();
@@ -395,10 +396,13 @@ function desactivate() {
   desactivateSearchElements();
   removeMouseCoordinates();
   removeMousedownListener();
-  chrome.runtime.sendMessage({
-    action: 'updateIcon',
-    value: 'tuello-stop-32x32.png'
-  }, () => { });
+  chrome.runtime.sendMessage(
+    {
+      action: 'updateIcon',
+      value: 'tuello-stop-32x32.png'
+    },
+    () => {}
+  );
 }
 
 // gestion de l'activation et la désactivation du devtools et du record ui
@@ -424,7 +428,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     }
     sendResponse();
-
   }
   if (message === 'toggle') {
     const iframe = document.getElementById('iframeTuello') as HTMLIFrameElement;
@@ -466,7 +469,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       window.removeEventListener('message', recordHttpListener);
       deleteTagsPanel();
 
-      chrome.storage.local.get(['deepMockLevel'], results => {
+      chrome.storage.local.get(['deepMockLevel'], (results) => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -475,7 +478,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           },
           '*'
         );
-
       });
       sendResponse();
     } else {
@@ -505,9 +507,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.getElementById('iframeTuello').style.display = 'none';
         show = false;
         setTimeout(() => {
-          chrome.runtime.sendMessage({
-            action: 'HIDE_OK'
-          }, () => { });
+          chrome.runtime.sendMessage(
+            {
+              action: 'HIDE_OK'
+            },
+            () => {}
+          );
         }, 1);
       }
       sendResponse();
@@ -535,7 +540,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'START_UI_RECORDER':
-
       launchUIRecorderHandler();
       break;
     case 'MOUSE_COORDINATES':
@@ -566,7 +570,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'HTTP_MOCK_STATE':
-      loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel']).then(results => {
+      loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel']).then((results) => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -581,7 +585,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       break;
     case 'MMA_RECORDS_CHANGE':
-      loadCompressedMultiple<{ httpMock?: boolean; deepMockLevel?: number; tuelloRecords?: unknown }>(['httpMock', 'deepMockLevel', 'tuelloRecords']).then(results => {
+      loadCompressedMultiple<{ httpMock?: boolean; deepMockLevel?: number; tuelloRecords?: unknown }>(['httpMock', 'deepMockLevel', 'tuelloRecords']).then((results) => {
         if (results.httpMock) {
           window.postMessage(
             {
@@ -597,13 +601,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       break;
     case 'MMA_TAGS_CHANGE':
-      chrome.storage.local.get(['tuelloHTTPTags'], results => {
+      chrome.storage.local.get(['tuelloHTTPTags'], (results) => {
         if (results['tuelloHTTPTags']) {
           // On initialise le gestionnaire des tags
           initTagsHandler(results['tuelloHTTPTags']);
           addTagsPanel(results['tuelloHTTPTags']).then(() => {
             sendResponse();
-          })
+          });
         }
       });
       break;
@@ -635,28 +639,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           applyDockPosition(iframeResult, true);
         }
 
-        chrome.runtime.sendMessage({
-          action: 'updateIcon',
-          value: 'tuello-32x32.png'
-        }, () => { });
+        chrome.runtime.sendMessage(
+          {
+            action: 'updateIcon',
+            value: 'tuello-32x32.png'
+          },
+          () => {}
+        );
 
-        chrome.runtime.sendMessage({
-          action: 'FINISH_PLAY_ACTIONS'
-        }, () => { });
+        chrome.runtime.sendMessage(
+          {
+            action: 'FINISH_PLAY_ACTIONS'
+          },
+          () => {}
+        );
 
         // disabled Mock http
-        chrome.runtime.sendMessage({
-          action: 'MOCK_HTTP_USER_ACTION',
-          value: false
-        }, () => { });
+        chrome.runtime.sendMessage(
+          {
+            action: 'MOCK_HTTP_USER_ACTION',
+            value: false
+          },
+          () => {}
+        );
 
         if (message.value && message.value.comparisonResults) {
           // settimeout permet à tuello de s'afficher et permettre d'ecouter ce message
           setTimeout(() => {
-            chrome.runtime.sendMessage({
-              action: 'SHOW_COMPARISON_RESULTS',
-              value: message.value.comparisonResults
-            }, () => { });
+            chrome.runtime.sendMessage(
+              {
+                action: 'SHOW_COMPARISON_RESULTS',
+                value: message.value.comparisonResults
+              },
+              () => {}
+            );
           }, 1);
         }
       }
@@ -669,13 +685,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // return true;
         })
         .catch(() => {
-
           sendResponse();
           //return true;
         });
       return true;
     case 'MOCK_HTTP_USER_ACTION':
-      chrome.storage.local.get(['deepMockLevel'], results => {
+      chrome.storage.local.get(['deepMockLevel'], (results) => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -685,7 +700,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           },
           '*'
         );
-
       });
       sendResponse();
       break;
@@ -698,19 +712,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  */
 window.addEventListener(
   'message',
-  event => {
+  (event) => {
     if (event?.data?.type) {
       switch (event.data.type) {
         case 'VIEW_IMAGE_CLOSED':
           // send message to popup
-          chrome.runtime.sendMessage({
-            action: 'VIEW_IMAGE_CLOSED'
-          }, () => { });
+          chrome.runtime.sendMessage(
+            {
+              action: 'VIEW_IMAGE_CLOSED'
+            },
+            () => {}
+          );
           break;
       }
     } else if (event.data?.action === 'LOG_DATA') {
-
-      chrome.storage.local.get(['deepMockLevel'], results => {
+      chrome.storage.local.get(['deepMockLevel'], (results) => {
         const loggerEnabled = results.loggerEnabled !== undefined ? results.loggerEnabled : true;
         if (loggerEnabled) {
           console.log(prefix, ...event.data.value);
@@ -720,6 +736,3 @@ window.addEventListener(
   },
   false
 );
-
-
-

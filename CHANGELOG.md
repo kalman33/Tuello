@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.7.0] - 2026-01-19
+
+    - gestion des doublons au niveau du mock and record HTTP
+    - gestion des appels CORS dans Tuello au niveau du mock and record HTTP
+    - Correction affichage menu Tuello
+
 ## [1.2.6.0] - 2026-01-09
 
     optimisation spy and replay navigation
