@@ -151,11 +151,26 @@ const tryParseJson = (text: string): unknown => {
   }
 };
 
-const removeURLPortAndProtocol = (url: string): string => {
+const resolveRelativeUrl = (url: string): string => {
+  // Si c'est déjà une URL absolue, la retourner
+  if (url.match(/^https?:\/\//)) {
+    return url;
+  }
+  // Résoudre l'URL relative par rapport à la page courante
   try {
-    const parseURL = new URL(url);
-    parseURL.port = '';
-    return parseURL.toString().replace(/^https?:\/\//, '');
+    return new URL(url, window.location.href).href;
+  } catch {
+    return url;
+  }
+};
+
+const removeURLPortAndProtocol = (url: string): string => {
+  // D'abord résoudre les URLs relatives
+  const resolvedUrl = resolveRelativeUrl(url);
+  try {
+    const parseURL = new URL(resolvedUrl);
+    // Retourner uniquement le pathname (+ search + hash), sans le hostname
+    return parseURL.pathname + parseURL.search + parseURL.hash;
   } catch {
     return url;
   }

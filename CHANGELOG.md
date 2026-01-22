@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [1.2.8.0] - 2026-01-21
 
+    - gestion des headers HTTP au niveau du mock and record HTTP
+    - Correction sur la gestion des problèmes de CORS
+    - Correction du mode verbose
+
 ## [1.2.7.0] - 2026-01-19
 
     - gestion des doublons au niveau du mock and record HTTP
