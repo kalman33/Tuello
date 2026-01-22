@@ -18,31 +18,3 @@ button .right {
 .example-margin {
   margin-bottom: 20px !important;
 }
-
-.headers-section {
-  .headers-title {
-    font-weight: 500;
-    margin-bottom: 5px;
-  }
-
-  .headers-list {
-    max-height: 150px;
-    overflow-y: auto;
-    padding-right: 5px;
-  }
-
-  .header-row {
-    margin-bottom: 0;
-
-    .mat-mdc-form-field {
-      margin-bottom: -10px;
-    }
-  }
-
-  .no-headers-message {
-    color: rgba(0, 0, 0, 0.54);
-    font-style: italic;
-    font-size: 0.9em;
-    margin: 10px 0;
-  }
-}

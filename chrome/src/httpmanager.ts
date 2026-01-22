@@ -9,11 +9,7 @@ interface TuelloRecord {
   response: unknown;
   httpCode: number;
   delay?: number;
-}
-
-interface CustomHeader {
-  name: string;
-  value: string;
+  headers?: Record<string, string>;
 }
 
 interface HttpMessage {
@@ -25,6 +21,7 @@ interface HttpMessage {
   method?: string;
   body?: unknown;
   hrefLocation?: string;
+  headers?: Record<string, string>;
 }
 
 interface ExtendedXMLHttpRequest extends XMLHttpRequest {
@@ -75,7 +72,6 @@ const originalFetch = window.fetch.bind(window);
 let messageForHTTPRecorderQueue: HttpMessage[] = [];
 let messageForHTTPTagsQueue: HttpMessage[] = [];
 let deepMockLevel = 0;
-let customHeaders: CustomHeader[] = [];
 
 // État pour le mock HTTP - gestion de la race condition
 let tuelloRecordsReady = false;
@@ -465,19 +461,18 @@ const processPendingMockXhrQueue = (): void => {
       Object.defineProperty(xhr, 'responseText', { writable: true, value: responseBody });
       Object.defineProperty(xhr, 'response', { writable: true, value: record.response });
 
-      // Ajouter les headers par défaut + custom headers
+      // Utiliser les headers enregistrés du record, avec des valeurs par défaut
       const mockHeaders: Record<string, string> = {
         'content-type': 'application/json',
-        'content-length': new TextEncoder().encode(responseBody).length.toString()
+        'content-length': new TextEncoder().encode(responseBody).length.toString(),
+        ...record.headers
       };
 
-      customHeaders.forEach((h) => {
-        if (h.name && h.value) {
-          mockHeaders[h.name.toLowerCase()] = h.value;
-        }
-      });
-
-      xhr.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] || null;
+      xhr.getResponseHeader = (name: string) => {
+        const lowerName = name.toLowerCase();
+        const key = Object.keys(mockHeaders).find((k) => k.toLowerCase() === lowerName);
+        return key ? mockHeaders[key] : null;
+      };
       xhr.getAllResponseHeaders = () =>
         Object.entries(mockHeaders)
           .map(([key, value]) => `${key}: ${value}`)
@@ -563,24 +558,19 @@ const createMockedResponse = (originalResponse: Response, record: TuelloRecord):
     }
   });
 
-  // Créer les headers avec des valeurs par défaut + custom headers
+  // Créer les headers avec des valeurs par défaut
   const headers = new Headers();
 
   // Ajouter les headers de base par défaut
   headers.set('Content-Type', 'application/json');
   headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
 
-  // Copier les headers de la réponse originale s'il y en a
-  originalResponse.headers.forEach((value, key) => {
-    headers.set(key, value);
-  });
-
-  // Ajouter les custom headers (ils écrasent les valeurs existantes si même nom)
-  customHeaders.forEach((header) => {
-    if (header.name && header.value) {
-      headers.set(header.name, header.value);
-    }
-  });
+  // Ajouter les headers enregistrés du record (ils écrasent les valeurs par défaut)
+  if (record.headers) {
+    Object.entries(record.headers).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
+  }
 
   return new Response(stream, {
     headers,
@@ -734,21 +724,19 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
       Object.defineProperty(this, 'responseText', { writable: true, value: JSON.stringify(record.response) });
       Object.defineProperty(this, 'response', { writable: true, value: record.response });
 
-      // Simuler les headers
+      // Simuler les headers avec les headers enregistrés du record
       const responseBody = JSON.stringify(record.response);
       const mockHeaders: Record<string, string> = {
         'content-type': 'application/json',
-        'content-length': new TextEncoder().encode(responseBody).length.toString()
+        'content-length': new TextEncoder().encode(responseBody).length.toString(),
+        ...record.headers
       };
 
-      // Ajouter les custom headers
-      customHeaders.forEach((h) => {
-        if (h.name && h.value) {
-          mockHeaders[h.name.toLowerCase()] = h.value;
-        }
-      });
-
-      this.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] || null;
+      this.getResponseHeader = (name: string) => {
+        const lowerName = name.toLowerCase();
+        const key = Object.keys(mockHeaders).find((k) => k.toLowerCase() === lowerName);
+        return key ? mockHeaders[key] : null;
+      };
       this.getAllResponseHeaders = () =>
         Object.entries(mockHeaders)
           .map(([key, value]) => `${key}: ${value}`)
@@ -899,6 +887,19 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
         if (!contentType || contentType.includes('json')) {
           try {
             const response = req.responseText ? JSON.parse(req.responseText) : '';
+
+            // Capturer les headers de réponse (en conservant la casse originale)
+            const headers: Record<string, string> = {};
+            const allHeaders = req.getAllResponseHeaders();
+            if (allHeaders) {
+              allHeaders.split('\r\n').forEach((line) => {
+                const parts = line.split(': ');
+                if (parts.length === 2) {
+                  headers[parts[0]] = parts[1];
+                }
+              });
+            }
+
             const message: HttpMessage = {
               type: MESSAGE_TYPES.RECORD_HTTP,
               url,
@@ -906,7 +907,8 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
               response,
               status: req.status,
               method: req.xhrMethod || '',
-              hrefLocation: window.location.href
+              hrefLocation: window.location.href,
+              headers
             };
 
             if (self.userActivation) {
@@ -940,6 +942,12 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
     responseData = error;
   }
 
+  // Capturer les headers de réponse (en conservant la casse originale)
+  const headers: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    headers[key] = value;
+  });
+
   const message: HttpMessage = {
     type: MESSAGE_TYPES.RECORD_HTTP,
     url: response.url,
@@ -948,7 +956,8 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
     method: init?.method || 'GET',
     body: init?.body as unknown,
     hrefLocation: window.location.href,
-    response: responseData
+    response: responseData,
+    headers
   };
 
   const serializedMessage = JSON.parse(JSON.stringify(message));
@@ -1037,7 +1046,6 @@ window.addEventListener(
       case MESSAGE_TYPES.MOCK_HTTP_ACTIVATED:
         if (data.value) {
           deepMockLevel = data.deepMockLevel || 0;
-          customHeaders = Array.isArray(data.customHeaders) ? data.customHeaders : [];
           window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
 
           // Construire l'index pour recherche optimisée
@@ -1055,7 +1063,6 @@ window.addEventListener(
           }
         } else {
           mockUserActivated = false;
-          customHeaders = [];
           manager.deactivateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);
           // Vider les queues et l'index si le mock est désactivé
           pendingMockXhrQueue = [];
@@ -1095,7 +1102,6 @@ window.addEventListener(
 
       case MESSAGE_TYPES.MOCK_HTTP_TUELLO_RECORDS:
         deepMockLevel = data.deepMockLevel || 0;
-        customHeaders = Array.isArray(data.customHeaders) ? data.customHeaders : [];
         window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
 
         // Construire l'index pour recherche optimisée

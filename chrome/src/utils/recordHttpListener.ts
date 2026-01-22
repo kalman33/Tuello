@@ -15,19 +15,19 @@ interface MockProfilesStorage {
 }
 
 export function recordHttpListener(event: MessageEvent) {
-
   if (event?.data?.type === 'RECORD_HTTP') {
-    mutex.lock()
+    mutex
+      .lock()
       .then(async () => {
         try {
           // Charger les données avec décompression
           const [tuelloRecords, tuelloHTTPOverWrite, tuelloHTTPFilter, mockProfilesData] = await Promise.all([
             loadCompressed<any[]>('tuelloRecords'),
-            new Promise<boolean | undefined>(resolve => {
-              chrome.storage.local.get(['tuelloHTTPOverWrite'], r => resolve(r.tuelloHTTPOverWrite));
+            new Promise<boolean | undefined>((resolve) => {
+              chrome.storage.local.get(['tuelloHTTPOverWrite'], (r) => resolve(r.tuelloHTTPOverWrite));
             }),
-            new Promise<string | undefined>(resolve => {
-              chrome.storage.local.get(['tuelloHTTPFilter'], r => resolve(r.tuelloHTTPFilter));
+            new Promise<string | undefined>((resolve) => {
+              chrome.storage.local.get(['tuelloHTTPFilter'], (r) => resolve(r.tuelloHTTPFilter));
             }),
             loadCompressed<MockProfilesStorage>('tuelloMockProfiles')
           ]);
@@ -39,7 +39,8 @@ export function recordHttpListener(event: MessageEvent) {
               key: event.data.url,
               response: event.data.error || event.data.response,
               httpCode: event.data.status,
-              delay: event.data.delay
+              delay: event.data.delay,
+              headers: event.data.headers
             };
 
             records.unshift(newRecord);
@@ -56,9 +57,7 @@ export function recordHttpListener(event: MessageEvent) {
 
             // Synchroniser avec le profil actif
             if (mockProfilesData?.activeProfileId && mockProfilesData?.profiles) {
-              const activeProfile = mockProfilesData.profiles.find(
-                p => p.id === mockProfilesData.activeProfileId
-              );
+              const activeProfile = mockProfilesData.profiles.find((p) => p.id === mockProfilesData.activeProfileId);
               if (activeProfile) {
                 activeProfile.mocks = records;
                 activeProfile.updatedAt = Date.now();
@@ -71,16 +70,15 @@ export function recordHttpListener(event: MessageEvent) {
 
           mutex.unlock();
         } catch (error) {
-          console.error('Tuello: Erreur lors de l\'enregistrement HTTP:', error);
+          console.error("Tuello: Erreur lors de l'enregistrement HTTP:", error);
           mutex.unlock();
         }
       })
       .catch((error) => {
-        console.error('Tuello: Erreur lors de l\'acquisition du verrou :', error);
+        console.error("Tuello: Erreur lors de l'acquisition du verrou :", error);
       });
   }
 }
-
 
 // Définition d'une classe Mutex pour le verrouillage
 class Mutex {
@@ -106,7 +104,7 @@ class Mutex {
   unlock(): void {
     // Protection contre le double unlock
     if (!this.locked && this.queue.length === 0) {
-      console.warn('Tuello: Tentative de déverrouillage d\'un mutex non verrouillé');
+      console.warn("Tuello: Tentative de déverrouillage d'un mutex non verrouillé");
       return;
     }
 
