@@ -1,47 +1,61 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButton } from '@angular/material/button';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
-import { MatDialogActions, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
+import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe } from '@ngx-translate/core';
+import { CustomHeader } from '../models/http.return';
 
 @Component({
-    selector: 'mmn-recorder-http-settings',
-    templateUrl: './recorder-http-settings.component.html',
-    styleUrls: ['./recorder-http-settings.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FlexModule, FormsModule, MatDialogTitle, MatCheckbox, MatFormField, MatLabel, MatInput, MatDialogActions, MatButton, MatIcon, TranslatePipe]
+  selector: 'mmn-recorder-http-settings',
+  templateUrl: './recorder-http-settings.component.html',
+  styleUrls: ['./recorder-http-settings.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FlexModule, FormsModule, MatDialogTitle, MatDialogContent, MatCheckbox, MatFormField, MatLabel, MatInput, MatDialogActions, MatButton, MatIconButton, MatIcon, TranslatePipe]
 })
 export class RecorderHttpSettingsComponent {
-    private cdr = inject(ChangeDetectorRef);
+  private cdr = inject(ChangeDetectorRef);
 
-    filter: string;
-    overwrite = true;
-    dataloaded: boolean;
+  filter: string;
+  overwrite = true;
+  dataloaded: boolean;
+  customHeaders: CustomHeader[] = [];
 
-    constructor(public dialogRef: MatDialogRef<RecorderHttpSettingsComponent>) {
-        // recupération des elements
-        chrome.storage.local.get(['tuelloHTTPFilter', 'tuelloHTTPOverWrite'], (results) => {
-            this.dataloaded = true;
-            this.filter = results['tuelloHTTPFilter'];
+  constructor(public dialogRef: MatDialogRef<RecorderHttpSettingsComponent>) {
+    // recupération des elements
+    chrome.storage.local.get(['tuelloHTTPFilter', 'tuelloHTTPOverWrite', 'tuelloHTTPCustomHeaders'], (results) => {
+      this.dataloaded = true;
+      this.filter = results['tuelloHTTPFilter'];
+      this.overwrite = results['tuelloHTTPOverWrite'] === false ? false : true;
+      this.customHeaders = results['tuelloHTTPCustomHeaders'] || [];
+      this.cdr.detectChanges();
+    });
+  }
 
-            this.overwrite = results['tuelloHTTPOverWrite'] === false ? false : true;
-            this.cdr.detectChanges();
-        });
-    }
+  addHeader(): void {
+    this.customHeaders.push({ name: '', value: '' });
+  }
 
-    annuler(): void {
-        this.dialogRef.close();
-    }
+  removeHeader(index: number): void {
+    this.customHeaders.splice(index, 1);
+  }
 
-    valider(): void {
-        chrome.storage.local.set({ tuelloHTTPFilter: this.filter });
-        chrome.storage.local.set({ tuelloHTTPOverWrite: this.overwrite });
+  annuler(): void {
+    this.dialogRef.close();
+  }
 
-        this.dialogRef.close();
-    }
+  valider(): void {
+    // Filtrer les headers vides
+    const validHeaders = this.customHeaders.filter((h) => h.name.trim() !== '');
+
+    chrome.storage.local.set({ tuelloHTTPFilter: this.filter });
+    chrome.storage.local.set({ tuelloHTTPOverWrite: this.overwrite });
+    chrome.storage.local.set({ tuelloHTTPCustomHeaders: validHeaders });
+
+    this.dialogRef.close();
+  }
 }

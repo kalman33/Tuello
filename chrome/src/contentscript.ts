@@ -119,7 +119,7 @@ try {
   // Ignorer les erreurs localStorage (peut échouer en contexte cross-origin)
 }
 
-loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel'])
+loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number; tuelloHTTPCustomHeaders?: Array<{ name: string; value: string }> }>(['tuelloRecords', 'deepMockLevel', 'tuelloHTTPCustomHeaders'])
   .then((result) => {
     if (result.tuelloRecords && Array.isArray(result.tuelloRecords)) {
       try {
@@ -136,7 +136,8 @@ loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tu
           type: 'MOCK_HTTP_TUELLO_RECORDS',
           value: true,
           tuelloRecords: result.tuelloRecords,
-          deepMockLevel: result.deepMockLevel || 0
+          deepMockLevel: result.deepMockLevel || 0,
+          customHeaders: result.tuelloHTTPCustomHeaders || []
         },
         '*'
       );
@@ -331,7 +332,8 @@ function activate() {
     trackPlay?: boolean;
     disabled?: boolean;
     searchElementsActivated?: boolean;
-  }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated']).then((results) => {
+    tuelloHTTPCustomHeaders?: Array<{ name: string; value: string }>;
+  }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated', 'tuelloHTTPCustomHeaders']).then((results) => {
     if (!results.disabled) {
       if (results.httpMock) {
         window.postMessage(
@@ -339,7 +341,8 @@ function activate() {
             type: 'MOCK_HTTP_ACTIVATED',
             value: true,
             tuelloRecords: results.tuelloRecords,
-            deepMockLevel: results.deepMockLevel || 0
+            deepMockLevel: results.deepMockLevel || 0,
+            customHeaders: results.tuelloHTTPCustomHeaders || []
           },
           '*'
         );
@@ -570,13 +573,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'HTTP_MOCK_STATE':
-      loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel']).then((results) => {
+      loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number; tuelloHTTPCustomHeaders?: Array<{ name: string; value: string }> }>(['tuelloRecords', 'deepMockLevel', 'tuelloHTTPCustomHeaders']).then((results) => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
             value: message.value,
             tuelloRecords: results.tuelloRecords,
-            deepMockLevel: results.deepMockLevel || 0
+            deepMockLevel: results.deepMockLevel || 0,
+            customHeaders: results.tuelloHTTPCustomHeaders || []
           },
           '*'
         );
@@ -585,20 +589,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       break;
     case 'MMA_RECORDS_CHANGE':
-      loadCompressedMultiple<{ httpMock?: boolean; deepMockLevel?: number; tuelloRecords?: unknown }>(['httpMock', 'deepMockLevel', 'tuelloRecords']).then((results) => {
-        if (results.httpMock) {
-          window.postMessage(
-            {
-              type: 'MOCK_HTTP_ACTIVATED',
-              value: true,
-              tuelloRecords: results.tuelloRecords,
-              deepMockLevel: results.deepMockLevel || 0
-            },
-            '*'
-          );
+      loadCompressedMultiple<{ httpMock?: boolean; deepMockLevel?: number; tuelloRecords?: unknown; tuelloHTTPCustomHeaders?: Array<{ name: string; value: string }> }>(['httpMock', 'deepMockLevel', 'tuelloRecords', 'tuelloHTTPCustomHeaders']).then(
+        (results) => {
+          if (results.httpMock) {
+            window.postMessage(
+              {
+                type: 'MOCK_HTTP_ACTIVATED',
+                value: true,
+                tuelloRecords: results.tuelloRecords,
+                deepMockLevel: results.deepMockLevel || 0,
+                customHeaders: results.tuelloHTTPCustomHeaders || []
+              },
+              '*'
+            );
+          }
+          sendResponse();
         }
-        sendResponse();
-      });
+      );
       break;
     case 'MMA_TAGS_CHANGE':
       chrome.storage.local.get(['tuelloHTTPTags'], (results) => {
@@ -690,13 +697,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       return true;
     case 'MOCK_HTTP_USER_ACTION':
-      chrome.storage.local.get(['deepMockLevel'], (results) => {
+      chrome.storage.local.get(['deepMockLevel', 'tuelloHTTPCustomHeaders'], (results) => {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
             value: message.value,
             tuelloRecords: message.data,
-            deepMockLevel: results.deepMockLevel || 0
+            deepMockLevel: results.deepMockLevel || 0,
+            customHeaders: results.tuelloHTTPCustomHeaders || []
           },
           '*'
         );
@@ -726,9 +734,8 @@ window.addEventListener(
           break;
       }
     } else if (event.data?.action === 'LOG_DATA') {
-      chrome.storage.local.get(['deepMockLevel'], (results) => {
-        const loggerEnabled = results.loggerEnabled !== undefined ? results.loggerEnabled : true;
-        if (loggerEnabled) {
+      chrome.storage.local.get(['verboseMode'], (results) => {
+        if (results.verboseMode) {
           console.log(prefix, ...event.data.value);
         }
       });

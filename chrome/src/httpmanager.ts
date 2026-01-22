@@ -11,6 +11,11 @@ interface TuelloRecord {
   delay?: number;
 }
 
+interface CustomHeader {
+  name: string;
+  value: string;
+}
+
 interface HttpMessage {
   type: string;
   url: string;
@@ -70,6 +75,7 @@ const originalFetch = window.fetch.bind(window);
 let messageForHTTPRecorderQueue: HttpMessage[] = [];
 let messageForHTTPTagsQueue: HttpMessage[] = [];
 let deepMockLevel = 0;
+let customHeaders: CustomHeader[] = [];
 
 // État pour le mock HTTP - gestion de la race condition
 let tuelloRecordsReady = false;
@@ -77,10 +83,12 @@ let mockUserActivated = false;
 let pendingMockXhrQueue: Array<{
   xhr: ExtendedXMLHttpRequest;
   originalCallback: ((this: XMLHttpRequest, ev: Event) => void) | null;
+  body?: Document | XMLHttpRequestBodyInit | null;
 }> = [];
 let pendingMockFetchQueue: Array<{
   resolve: (response: Response) => void;
   url: string;
+  args: Parameters<typeof fetch>;
 }> = [];
 
 // ============================================================================
@@ -427,7 +435,7 @@ const processPendingMockXhrQueue = (): void => {
     const pending = pendingMockXhrQueue.shift();
     if (!pending) continue;
 
-    const { xhr, originalCallback } = pending;
+    const { xhr, originalCallback, body } = pending;
     const url = xhr.originalURL || '';
     const record = findMockRecord(url);
 
@@ -436,24 +444,49 @@ const processPendingMockXhrQueue = (): void => {
         sleepSync(record.delay);
       }
 
+      const responseBody = JSON.stringify(record.response);
       Object.defineProperty(xhr, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
       Object.defineProperty(xhr, 'status', { writable: true, value: record.httpCode });
-      Object.defineProperty(xhr, 'responseText', { writable: true, value: JSON.stringify(record.response) });
+      Object.defineProperty(xhr, 'responseText', { writable: true, value: responseBody });
       Object.defineProperty(xhr, 'response', { writable: true, value: record.response });
 
+      // Ajouter les headers par défaut + custom headers
+      const mockHeaders: Record<string, string> = {
+        'content-type': 'application/json',
+        'content-length': new TextEncoder().encode(responseBody).length.toString()
+      };
+
+      customHeaders.forEach((h) => {
+        if (h.name && h.value) {
+          mockHeaders[h.name.toLowerCase()] = h.value;
+        }
+      });
+
+      xhr.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] || null;
+      xhr.getAllResponseHeaders = () =>
+        Object.entries(mockHeaders)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\r\n');
+
       logData('- Mock HTTP - Mock de ' + url);
+
+      if (originalCallback) {
+        originalCallback.call(xhr, new Event('readystatechange'));
+      }
     } else {
-      // Pas de mock trouvé - simuler une erreur 404
-      Object.defineProperty(xhr, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
-      Object.defineProperty(xhr, 'status', { writable: true, value: 404 });
-      Object.defineProperty(xhr, 'responseText', { writable: true, value: JSON.stringify({ error: 'Mock not found', url }) });
-      Object.defineProperty(xhr, 'response', { writable: true, value: { error: 'Mock not found', url } });
+      // Pas de mock trouvé - laisser passer la requête normalement
+      logData('- Mock HTTP - Pas de mock pour ' + url + ' - Requête envoyée normalement');
 
-      logData('- Mock HTTP - Mock non trouvé de ' + url + ' - Retour erreur simulée');
-    }
+      // Restaurer le callback original
+      if (originalCallback) {
+        xhr.onreadystatechange = originalCallback;
+      }
 
-    if (originalCallback) {
-      originalCallback.call(xhr, new Event('readystatechange'));
+      // Exécuter les intercepteurs (recorder, tags, etc.)
+      xhr.interceptorManager?.runInterceptorsXHR(xhr);
+
+      // Envoyer la requête originale
+      originalSend.call(xhr, body);
     }
   }
 };
@@ -466,7 +499,7 @@ const processPendingMockFetchQueue = (): void => {
     const pending = pendingMockFetchQueue.shift();
     if (!pending) continue;
 
-    const { resolve, url } = pending;
+    const { resolve, url, args } = pending;
     const record = findMockRecord(url);
 
     if (record) {
@@ -476,15 +509,21 @@ const processPendingMockFetchQueue = (): void => {
       logData('- Mock HTTP - Mock de ' + url);
       resolve(createMockedResponse(new Response(), record));
     } else {
-      // Pas de mock trouvé - retourner une erreur plutôt que de faire l'appel CORS
-      logData('- Mock HTTP - Mock non trouvé de ' + url + ' - Retour erreur simulée');
-      resolve(
-        new Response(JSON.stringify({ error: 'Mock not found', url }), {
-          status: 404,
-          statusText: 'Mock Not Found',
-          headers: { 'Content-Type': 'application/json' }
-        })
-      );
+      // Pas de mock trouvé - laisser passer la requête normalement
+      logData('- Mock HTTP - Pas de mock pour ' + url + ' - Requête envoyée normalement');
+      originalFetch(...args)
+        .then((response) => manager.runInterceptorsFetch(response, ...args))
+        .then(resolve)
+        .catch(() => {
+          // En cas d'erreur (ex: CORS), retourner une réponse d'erreur
+          resolve(
+            new Response(JSON.stringify({ error: 'Fetch failed', url }), {
+              status: 0,
+              statusText: 'Network Error',
+              headers: { 'Content-Type': 'application/json' }
+            })
+          );
+        });
     }
   }
 };
@@ -509,8 +548,27 @@ const createMockedResponse = (originalResponse: Response, record: TuelloRecord):
     }
   });
 
+  // Créer les headers avec des valeurs par défaut + custom headers
+  const headers = new Headers();
+
+  // Ajouter les headers de base par défaut
+  headers.set('Content-Type', 'application/json');
+  headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
+
+  // Copier les headers de la réponse originale s'il y en a
+  originalResponse.headers.forEach((value, key) => {
+    headers.set(key, value);
+  });
+
+  // Ajouter les custom headers (ils écrasent les valeurs existantes si même nom)
+  customHeaders.forEach((header) => {
+    if (header.name && header.value) {
+      headers.set(header.name, header.value);
+    }
+  });
+
   return new Response(stream, {
-    headers: originalResponse.headers,
+    headers,
     status: record.httpCode,
     statusText: record.httpCode === 200 ? 'OK' : 'Not Found'
   });
@@ -635,70 +693,65 @@ XMLHttpRequest.prototype.open = function (this: ExtendedXMLHttpRequest, method: 
 XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
   const url = this.originalURL || '';
 
-  // 1. Si le mode mock est activé, on intercepte TOUT pour vérification
+  // Si le mode mock est activé
   if (mockUserActivated) {
-    // Fonction interne pour traiter le mock ou libérer l'appel
-    const handleRequest = () => {
-      const record = findMockRecord(url);
-      if (record) {
-        logData(`- Mock HTTP (XHR Bypass) - Court-circuit CORS pour : ${url}`);
-
-        if (record.delay) sleepSync(record.delay);
-
-        Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
-        Object.defineProperty(this, 'status', { writable: true, value: record.httpCode });
-        Object.defineProperty(this, 'responseText', { writable: true, value: JSON.stringify(record.response) });
-        Object.defineProperty(this, 'response', { writable: true, value: record.response });
-
-        // On simule les headers pour éviter des erreurs de parsing dans l'app
-        const originalGetHeader = this.getResponseHeader;
-        this.getResponseHeader = (name: string) => {
-          if (name.toLowerCase() === 'content-type') return 'application/json';
-          return originalGetHeader.call(this, name);
-        };
-
-        setTimeout(() => {
-          this.dispatchEvent(new Event('readystatechange'));
-          this.dispatchEvent(new Event('load'));
-          this.dispatchEvent(new Event('loadend'));
-        }, 0);
-      } else {
-        // Pas de mock trouvé - simuler une erreur 404 plutôt que de faire l'appel CORS
-        logData(`- Mock HTTP (XHR Bypass) - Mock non trouvé, simulation 404 pour : ${url}`);
-
-        Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
-        Object.defineProperty(this, 'status', { writable: true, value: 404 });
-        Object.defineProperty(this, 'responseText', { writable: true, value: JSON.stringify({ error: 'Mock not found', url }) });
-        Object.defineProperty(this, 'response', { writable: true, value: { error: 'Mock not found', url } });
-
-        const originalGetHeader = this.getResponseHeader;
-        this.getResponseHeader = (name: string) => {
-          if (name.toLowerCase() === 'content-type') return 'application/json';
-          return originalGetHeader.call(this, name);
-        };
-
-        setTimeout(() => {
-          this.dispatchEvent(new Event('readystatechange'));
-          this.dispatchEvent(new Event('load'));
-          this.dispatchEvent(new Event('loadend'));
-        }, 0);
-      }
-    };
-
-    // Si les records ne sont pas encore là, on attend au lieu de laisser passer l'appel
+    // Si les records ne sont pas encore prêts, on met en queue
     if (!tuelloRecordsReady) {
       logData(`- Mock HTTP - Attente des records avant envoi XHR : ${url}`);
       pendingMockXhrQueue.push({
         xhr: this,
-        originalCallback: this.onreadystatechange // On stocke pour plus tard
+        originalCallback: this.onreadystatechange,
+        body
       });
       return;
     }
 
-    return handleRequest();
+    // Records prêts, chercher le mock
+    const record = findMockRecord(url);
+    if (record) {
+      // Mock trouvé - intercepter la requête
+      logData(`- Mock HTTP (XHR) - Mock trouvé pour : ${url}`);
+
+      if (record.delay) sleepSync(record.delay);
+
+      Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
+      Object.defineProperty(this, 'status', { writable: true, value: record.httpCode });
+      Object.defineProperty(this, 'responseText', { writable: true, value: JSON.stringify(record.response) });
+      Object.defineProperty(this, 'response', { writable: true, value: record.response });
+
+      // Simuler les headers
+      const responseBody = JSON.stringify(record.response);
+      const mockHeaders: Record<string, string> = {
+        'content-type': 'application/json',
+        'content-length': new TextEncoder().encode(responseBody).length.toString()
+      };
+
+      // Ajouter les custom headers
+      customHeaders.forEach((h) => {
+        if (h.name && h.value) {
+          mockHeaders[h.name.toLowerCase()] = h.value;
+        }
+      });
+
+      this.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] || null;
+      this.getAllResponseHeaders = () =>
+        Object.entries(mockHeaders)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\r\n');
+
+      setTimeout(() => {
+        this.dispatchEvent(new Event('readystatechange'));
+        this.dispatchEvent(new Event('load'));
+        this.dispatchEvent(new Event('loadend'));
+      }, 0);
+      return; // Ne pas envoyer la requête réelle
+    }
+
+    // Pas de mock trouvé - on laisse passer la requête normalement
+    logData(`- Mock HTTP (XHR) - Pas de mock pour : ${url}, requête normale`);
   }
 
-  // Comportement normal si mock non activé
+  // Comportement normal (mock non activé ou pas de mock trouvé)
   this.interceptorManager?.runInterceptorsXHR(this);
   return originalSend.call(this, body);
 };
@@ -718,7 +771,8 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
       return new Promise((resolve) => {
         pendingMockFetchQueue.push({
           resolve: (res) => resolve(res),
-          url // Stocker l'URL pour pouvoir trouver le mock plus tard
+          url,
+          args // Stocker les arguments pour pouvoir envoyer la requête plus tard si pas de mock
         });
       });
     }
@@ -792,14 +846,11 @@ intercepteurHTTPMock.interceptFetch = function (response: Response): Response | 
 
   const url = response.url;
 
-  // Si tuelloRecords n'est pas encore prêt, mettre en queue
+  // Si tuelloRecords n'est pas encore prêt, retourner la réponse originale
+  // (la requête a déjà été faite, pas de sens de bloquer)
   if (!tuelloRecordsReady) {
-    logData('- Mock HTTP - Requête Fetch mise en queue (tuelloRecords non prêt): ' + url);
-
-    // Retourner une Promise qui sera résolue quand tuelloRecords sera prêt
-    return new Promise<Response>((resolve) => {
-      pendingMockFetchQueue.push({ resolve, url });
-    });
+    logData('- Mock HTTP - Records non prêts, retour réponse originale pour: ' + url);
+    return response;
   }
 
   // tuelloRecords est prêt, appliquer le mock normalement
@@ -971,6 +1022,7 @@ window.addEventListener(
       case MESSAGE_TYPES.MOCK_HTTP_ACTIVATED:
         if (data.value) {
           deepMockLevel = data.deepMockLevel || 0;
+          customHeaders = Array.isArray(data.customHeaders) ? data.customHeaders : [];
           window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
 
           // Construire l'index pour recherche optimisée
@@ -988,6 +1040,7 @@ window.addEventListener(
           }
         } else {
           mockUserActivated = false;
+          customHeaders = [];
           manager.deactivateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);
           // Vider les queues et l'index si le mock est désactivé
           pendingMockXhrQueue = [];
@@ -1027,6 +1080,7 @@ window.addEventListener(
 
       case MESSAGE_TYPES.MOCK_HTTP_TUELLO_RECORDS:
         deepMockLevel = data.deepMockLevel || 0;
+        customHeaders = Array.isArray(data.customHeaders) ? data.customHeaders : [];
         window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
 
         // Construire l'index pour recherche optimisée

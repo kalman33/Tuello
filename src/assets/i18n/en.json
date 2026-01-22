@@ -90,6 +90,11 @@
   "mmn.recorder-http.settings.input.filter": "Filter on registered urls",
   "mmn.recorder-http.settings.button.ok": "Ok",
   "mmn.recorder-http.settings.button.cancel": "Cancel",
+  "mmn.recorder-http.settings.headers.title": "Custom HTTP Headers",
+  "mmn.recorder-http.settings.headers.add": "Add a header",
+  "mmn.recorder-http.settings.headers.name": "Header name",
+  "mmn.recorder-http.settings.headers.value": "Value",
+  "mmn.recorder-http.settings.headers.empty": "No custom headers. Click + to add one.",
 
   "mmn.recorder-http.profiles.title": "Manage Profiles",
   "mmn.recorder-http.profiles.manage": "Manage mock profiles",
@@ -152,7 +157,7 @@
   "mmn.track.input": "Data to track",
   "mmn.track.input.required": "Data to track is required",
   "mmn.track.input.data.display": "Data to display",
-   
+
   "mmn.record.placeholder": "Add comment",
   "mmn.record.button.submit": "Submit",
 
@@ -256,7 +261,3 @@
   "mmn.settings.guide.reset": "Re-enable welcome guide",
   "mmn.settings.guide.reset.success": "Guide will be shown on next startup"
 }
-
-
-
-

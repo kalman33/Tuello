@@ -94,6 +94,11 @@
   "mmn.recorder-http.settings.input.filter": "Filtre sur les urls enregistrés",
   "mmn.recorder-http.settings.button.ok": "Valider",
   "mmn.recorder-http.settings.button.cancel": "Annuler",
+  "mmn.recorder-http.settings.headers.title": "Headers HTTP personnalisés",
+  "mmn.recorder-http.settings.headers.add": "Ajouter un header",
+  "mmn.recorder-http.settings.headers.name": "Nom du header",
+  "mmn.recorder-http.settings.headers.value": "Valeur",
+  "mmn.recorder-http.settings.headers.empty": "Aucun header personnalisé. Cliquez sur + pour en ajouter.",
 
   "mmn.recorder-http.profiles.title": "Gestion des profils",
   "mmn.recorder-http.profiles.manage": "Gérer les profils de mocks",

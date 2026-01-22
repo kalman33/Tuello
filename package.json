@@ -1,6 +1,6 @@
 {
   "name": "tuello",
-  "version": "1.2.7.0",
+  "version": "1.2.8.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

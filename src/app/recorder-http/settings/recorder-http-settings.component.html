@@ -1,20 +1,48 @@
-<div class="container">
-    <div fxFlex="99%">
-        <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
-            <h1 mat-dialog-title>{{ 'mmn.recorder-http.settings.title' | translate }}</h1>
+<div class="settings-dialog">
+  <h1 mat-dialog-title>{{ 'mmn.recorder-http.settings.title' | translate }}</h1>
+
+  @if (dataloaded) {
+    <div mat-dialog-content>
+      <mat-checkbox [(ngModel)]="overwrite" class="example-margin">{{ 'mmn.recorder-http.settings.input.overwrite' | translate }}</mat-checkbox>
+      <mat-form-field class="settingsForm full-width">
+        <mat-label>{{ 'mmn.recorder-http.settings.input.filter' | translate }}</mat-label>
+        <input [(ngModel)]="filter" matInput placeholder="Ex: *.fr" />
+      </mat-form-field>
+
+      <!-- Section Headers HTTP personnalisés -->
+      <div class="headers-section">
+        <div fxLayout="row" fxLayoutAlign="space-between center" class="headers-title">
+          <span>{{ 'mmn.recorder-http.settings.headers.title' | translate }}</span>
+          <button mat-icon-button color="primary" (click)="addHeader()" title="{{ 'mmn.recorder-http.settings.headers.add' | translate }}">
+            <mat-icon>add_circle</mat-icon>
+          </button>
         </div>
-        @if (dataloaded) {
-            <div fxLayout="column" fxLayout.sm="column" fxLayout.xs="column">
-                <mat-checkbox [(ngModel)]="overwrite" class="example-margin">{{ 'mmn.recorder-http.settings.input.overwrite' | translate }}</mat-checkbox>
-                <mat-form-field class="settingsForm">
-                    <mat-label>{{ 'mmn.recorder-http.settings.input.filter' | translate }}</mat-label>
-                    <input [(ngModel)]="filter" matInput placeholder="Ex: *.fr" />
-                </mat-form-field>
-                <div mat-dialog-actions align="end">
-                    <button mat-flat-button (click)="annuler()"><mat-icon>cancel</mat-icon>{{ 'mmn.recorder-http.settings.button.cancel' | translate }}</button>
-                    <button cdkFocusInitial mat-flat-button (click)="valider()" class="right"><mat-icon>done</mat-icon>{{ 'mmn.recorder-http.settings.button.ok' | translate }}</button>
-                </div>
+        <div class="headers-list">
+          @for (header of customHeaders; track $index) {
+            <div fxLayout="row" fxLayoutGap="8px" fxLayoutAlign="start center" class="header-row">
+              <mat-form-field fxFlex="45">
+                <mat-label>{{ 'mmn.recorder-http.settings.headers.name' | translate }}</mat-label>
+                <input [(ngModel)]="header.name" matInput placeholder="Content-Type" />
+              </mat-form-field>
+              <mat-form-field fxFlex="45">
+                <mat-label>{{ 'mmn.recorder-http.settings.headers.value' | translate }}</mat-label>
+                <input [(ngModel)]="header.value" matInput placeholder="application/json" />
+              </mat-form-field>
+              <button mat-icon-button color="warn" (click)="removeHeader($index)">
+                <mat-icon>delete</mat-icon>
+              </button>
             </div>
-        }
+          }
+          @if (customHeaders.length === 0) {
+            <p class="no-headers-message">{{ 'mmn.recorder-http.settings.headers.empty' | translate }}</p>
+          }
+        </div>
+      </div>
     </div>
+
+    <div mat-dialog-actions align="end">
+      <button mat-flat-button (click)="annuler()"><mat-icon>cancel</mat-icon>{{ 'mmn.recorder-http.settings.button.cancel' | translate }}</button>
+      <button cdkFocusInitial mat-flat-button (click)="valider()" class="right"><mat-icon>done</mat-icon>{{ 'mmn.recorder-http.settings.button.ok' | translate }}</button>
+    </div>
+  }
 </div>
