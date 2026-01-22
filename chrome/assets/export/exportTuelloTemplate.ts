@@ -12,6 +12,7 @@
       response: unknown;
       httpCode: number;
       delay?: number;
+      headers?: Record<string, string>;
     }
 
     interface NormalizedRecord {
@@ -74,7 +75,7 @@
 
     const sleep = (ms: number): void => {
       const stop = new Date().getTime() + ms;
-      while (new Date().getTime() < stop) { }
+      while (new Date().getTime() < stop) {}
     };
 
     // ============================================================================
@@ -94,14 +95,14 @@
       }
 
       normalized = normalizeUrl(normalized.replace(/^\//, ''));
-      const segments = normalized.split('/').filter(s => s);
+      const segments = normalized.split('/').filter((s) => s);
 
       return { normalized, segments };
     };
 
     const getSuffixKey = (segments: string[], count: number = 3): string => {
       const suffix = segments.slice(-count);
-      return suffix.map(s => s.includes('*') ? '__WILDCARD__' : s).join('/');
+      return suffix.map((s) => (s.includes('*') ? '__WILDCARD__' : s)).join('/');
     };
 
     // ============================================================================
@@ -190,17 +191,15 @@
       normalizedUrl2 = normalizeUrl(normalizedUrl2.replace(/^\//, ''));
 
       // Comparaison exacte avec support des wildcards (*)
-      const escapedUrl2 = normalizedUrl2
-        .replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&')
-        .replace(/\*/g, '.*');
+      const escapedUrl2 = normalizedUrl2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
 
       if (new RegExp(`^${escapedUrl2}$`).test(normalizedUrl1)) {
         return true;
       }
 
       // Comparaison par suffixe : l'URL actuelle peut avoir moins de segments
-      const segments1 = normalizedUrl1.split('/').filter(s => s);
-      const segments2 = normalizedUrl2.split('/').filter(s => s);
+      const segments1 = normalizedUrl1.split('/').filter((s) => s);
+      const segments2 = normalizedUrl2.split('/').filter((s) => s);
 
       if (segments1.length < segments2.length) {
         const mockSuffix = segments2.slice(-segments1.length);
@@ -267,9 +266,7 @@
 
       // 4. Vérifier les wildcards
       for (const wildcardRecord of mockWildcardRecords) {
-        const escapedPattern = wildcardRecord.normalizedKey
-          .replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&')
-          .replace(/\*/g, '.*');
+        const escapedPattern = wildcardRecord.normalizedKey.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
 
         if (new RegExp(`^${escapedPattern}$`).test(normalized)) {
           addToCache(cacheKey, wildcardRecord.record);
@@ -336,20 +333,38 @@
       originalOpenXHR: window.XMLHttpRequest.prototype.open,
 
       modifyResponse: (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
-        const record = findMockRecord(xhr["originalURL"]);
+        const record = findMockRecord(xhr['originalURL']);
         if (record) {
           if (record.delay && isOnLoad) {
             sleep(record.delay);
           }
+          const responseBody = JSON.stringify(record.response);
           Object.defineProperty(xhr, 'response', { writable: true });
           Object.defineProperty(xhr, 'responseText', { writable: true });
           Object.defineProperty(xhr, 'status', { writable: true });
           // @ts-expect-error
-          xhr.responseText = JSON.stringify(record.response);
+          xhr.responseText = responseBody;
           // @ts-expect-error
           xhr.response = record.response;
           // @ts-expect-error
           xhr.status = record.httpCode;
+
+          // Simuler les headers avec les headers enregistrés du record
+          const mockHeaders: Record<string, string> = {
+            'content-type': 'application/json',
+            'content-length': new TextEncoder().encode(responseBody).length.toString(),
+            ...record.headers
+          };
+
+          xhr.getResponseHeader = (name: string) => {
+            const lowerName = name.toLowerCase();
+            const key = Object.keys(mockHeaders).find((k) => k.toLowerCase() === lowerName);
+            return key ? mockHeaders[key] : null;
+          };
+          xhr.getAllResponseHeaders = () =>
+            Object.entries(mockHeaders)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join('\r\n');
         }
       },
 
@@ -365,7 +380,7 @@
           if (realOnReadyStateChange) {
             realOnReadyStateChange.apply(this, arguments as any);
           }
-        }
+        };
         return mockHttp.originalSendXHR.apply(this, arguments as any);
       },
 
@@ -382,7 +397,7 @@
           // ignore
         }
 
-        this["originalURL"] = url;
+        this['originalURL'] = url;
         return mockHttp.originalOpenXHR.apply(this, arguments as any);
       },
 
@@ -396,18 +411,30 @@
               sleep(record.delay);
             }
 
-            const txt = JSON.stringify(record.response);
+            const body = JSON.stringify(record.response);
             const stream = new ReadableStream({
               start(controller) {
-                controller.enqueue(new TextEncoder().encode(txt));
+                controller.enqueue(new TextEncoder().encode(body));
                 controller.close();
               }
             });
 
+            // Créer les headers avec des valeurs par défaut
+            const headers = new Headers();
+            headers.set('Content-Type', 'application/json');
+            headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
+
+            // Ajouter les headers enregistrés du record (ils écrasent les valeurs par défaut)
+            if (record.headers) {
+              Object.entries(record.headers).forEach(([key, value]) => {
+                headers.set(key, value);
+              });
+            }
+
             const newResponse = new Response(stream, {
-              headers: response.headers,
+              headers,
               status: record.httpCode,
-              statusText: record.httpCode === 200 ? 'OK' : 'Error',
+              statusText: record.httpCode === 200 ? 'OK' : 'Error'
             });
 
             const proxy = new Proxy(newResponse, {
@@ -437,7 +464,7 @@
 
           return response;
         });
-      },
+      }
     };
 
     // ============================================================================
