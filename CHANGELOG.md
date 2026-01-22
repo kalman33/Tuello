@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.9.0] - 2026-01-21
+
 ## [1.2.8.0] - 2026-01-21
 
     - gestion des headers HTTP au niveau du mock and record HTTP

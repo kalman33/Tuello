@@ -72,6 +72,46 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   // Indices des doublons
   private duplicateIndices = new Set<number>();
 
+  /**
+   * Retourne le handler onClassName. Utilise une arrow function pour capturer `this`.
+   */
+  private onClassNameHandler = (path: (string | number)[], value: any): string | undefined => {
+    // Détecter si c'est une entrée dupliquée (au niveau racine du tableau)
+    if (path.length === 1 && typeof value === 'object' && value !== null) {
+      const index = typeof path[0] === 'number' ? path[0] : parseInt(path[0] as string, 10);
+      if (!isNaN(index) && this.duplicateIndices.has(index)) {
+        return 'http-row-duplicate';
+      }
+    }
+
+    // Colorer la valeur httpCode elle-même
+    if (path[path.length - 1] === 'httpCode') {
+      if (value.toString().startsWith('5')) {
+        return 'server-error-http-response';
+      }
+      if (value.toString().startsWith('4')) {
+        return 'client-error-http-response';
+      }
+      return undefined;
+    }
+
+    // Colorer toute la ligne (entrée du tableau) selon son httpCode
+    if (path.length === 1 && typeof value === 'object' && value !== null) {
+      const httpCode = value.httpCode;
+      if (httpCode !== undefined && httpCode !== null) {
+        const codeStr = httpCode.toString();
+        if (codeStr.startsWith('5')) {
+          return 'http-row-error-5xx';
+        }
+        if (codeStr.startsWith('4')) {
+          return 'http-row-error-4xx';
+        }
+      }
+    }
+
+    return undefined;
+  };
+
   ngOnInit() {
     // Vérifier si body a la classe 'black-theme'
     const hasBlackTheme = document.body.classList.contains('black-theme');
@@ -217,42 +257,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
         content: { json: [] },
         options,
         onRenderMenu: (items, context) => items.filter((item) => !item.text && item.type !== 'separator' && item.className !== 'jse-transform'),
-        onClassName: (path, value) => {
-          // Détecter si c'est une entrée dupliquée (au niveau racine du tableau)
-          if (path.length === 1 && typeof value === 'object' && value !== null) {
-            const index = typeof path[0] === 'number' ? path[0] : parseInt(path[0] as string, 10);
-            if (!isNaN(index) && this.duplicateIndices.has(index)) {
-              return 'http-row-duplicate';
-            }
-          }
-
-          // Colorer la valeur httpCode elle-même
-          if (path[path.length - 1] === 'httpCode') {
-            if (value.toString().startsWith('5')) {
-              return 'server-error-http-response';
-            }
-            if (value.toString().startsWith('4')) {
-              return 'client-error-http-response';
-            }
-            return null;
-          }
-
-          // Colorer toute la ligne (entrée du tableau) selon son httpCode
-          if (path.length === 1 && typeof value === 'object' && value !== null) {
-            const httpCode = value.httpCode;
-            if (httpCode !== undefined && httpCode !== null) {
-              const codeStr = httpCode.toString();
-              if (codeStr.startsWith('5')) {
-                return 'http-row-error-5xx';
-              }
-              if (codeStr.startsWith('4')) {
-                return 'http-row-error-4xx';
-              }
-            }
-          }
-
-          return null;
-        },
+        onClassName: this.onClassNameHandler,
         onChange: () => {
           this.updateData();
         },
@@ -441,7 +446,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       this.detectDuplicates(jsonData.json);
       // Force un re-render complet pour que onClassName soit rappelé sur tous les éléments
       // Le spread operator seul ne suffit pas car vanilla-jsoneditor compare les données
-      this.forceRefreshEditor(jsonData.json);
+      this.forceRefreshEditor();
       // Sauvegarder l'objet directement (pas une chaîne JSON) pour que recordHttpListener
       // puisse correctement vérifier Array.isArray()
       this.recorderService.saveToLocalStorage(jsonData.json);
@@ -462,17 +467,16 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Force un re-render complet de l'éditeur JSON en vidant puis restaurant les données.
-   * Nécessaire pour que onClassName soit rappelé sur tous les éléments (y compris collapsed).
+   * Force le recalcul des classes CSS sans perdre l'état d'expansion.
+   * Combine updateProps avec refresh() pour garantir le recalcul.
    */
-  private forceRefreshEditor(data: any) {
-    // Vider l'éditeur puis remettre les données dans le prochain microtask
-    // Cela force vanilla-jsoneditor à recalculer onClassName pour tous les éléments
-    this.jsonEditorTree.update({ json: [] });
-    queueMicrotask(() => {
-      this.jsonEditorTree.update({ json: Array.isArray(data) ? [...data] : data });
-      this.ref.detectChanges();
+  private forceRefreshEditor() {
+    // 1. Passer une nouvelle référence de fonction onClassName
+    this.jsonEditorTree.updateProps({
+      onClassName: (path: (string | number)[], value: any) => this.onClassNameHandler(path, value)
     });
+    // 2. Forcer le refresh pour que les classes soient recalculées
+    this.jsonEditorTree.refresh();
   }
 
   save() {
