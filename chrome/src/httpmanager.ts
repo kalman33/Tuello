@@ -27,6 +27,7 @@ interface HttpMessage {
 interface ExtendedXMLHttpRequest extends XMLHttpRequest {
   originalURL?: string;
   xhrMethod?: string;
+  xhrBody?: Document | XMLHttpRequestBodyInit | null;
   interceptorManager?: InterceptorManager;
 }
 
@@ -117,12 +118,31 @@ let mockIndexVersion = 0;
 
 const isExcludedUrl = (url: string): boolean => EXCLUDED_URL_PATTERNS.some((pattern) => url.includes(pattern));
 
-const sleepSync = (ms: number): void => {
-  const stop = Date.now() + ms;
-  while (Date.now() < stop) {
-    /* busy wait */
-  }
+const sleepAsync = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const HTTP_STATUS_TEXT: Record<number, string> = {
+  200: 'OK',
+  201: 'Created',
+  202: 'Accepted',
+  204: 'No Content',
+  301: 'Moved Permanently',
+  302: 'Found',
+  304: 'Not Modified',
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  405: 'Method Not Allowed',
+  409: 'Conflict',
+  422: 'Unprocessable Entity',
+  429: 'Too Many Requests',
+  500: 'Internal Server Error',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+  504: 'Gateway Timeout'
 };
+
+const getStatusText = (code: number): string => HTTP_STATUS_TEXT[code] || '';
 
 const sendMessage = (targetWindow: Window | null, message: HttpMessage): void => {
   targetWindow?.postMessage(message, '*');
@@ -451,37 +471,44 @@ const processPendingMockXhrQueue = (): void => {
     const record = findMockRecord(url);
 
     if (record) {
+      const applyMock = (): void => {
+        const responseBody = JSON.stringify(record.response);
+        Object.defineProperty(xhr, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
+        Object.defineProperty(xhr, 'status', { writable: true, value: record.httpCode });
+        Object.defineProperty(xhr, 'responseText', { writable: true, value: responseBody });
+        Object.defineProperty(xhr, 'response', { writable: true, value: record.response });
+
+        // Utiliser les headers enregistrés du record, avec des valeurs par défaut
+        const mockHeaders: Record<string, string> = {
+          'content-type': 'application/json',
+          'content-length': new TextEncoder().encode(responseBody).length.toString(),
+          ...record.headers
+        };
+
+        xhr.getResponseHeader = (name: string) => {
+          const lowerName = name.toLowerCase();
+          const key = Object.keys(mockHeaders).find((k) => k.toLowerCase() === lowerName);
+          return key ? mockHeaders[key] : null;
+        };
+        xhr.getAllResponseHeaders = () =>
+          Object.entries(mockHeaders)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('\r\n');
+
+        logData('- Mock HTTP - Mock de ' + url);
+
+        if (originalCallback) {
+          originalCallback.call(xhr, new Event('readystatechange'));
+        }
+        xhr.dispatchEvent(new Event('readystatechange'));
+        xhr.dispatchEvent(new Event('load'));
+        xhr.dispatchEvent(new Event('loadend'));
+      };
+
       if (record.delay) {
-        sleepSync(record.delay);
-      }
-
-      const responseBody = JSON.stringify(record.response);
-      Object.defineProperty(xhr, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
-      Object.defineProperty(xhr, 'status', { writable: true, value: record.httpCode });
-      Object.defineProperty(xhr, 'responseText', { writable: true, value: responseBody });
-      Object.defineProperty(xhr, 'response', { writable: true, value: record.response });
-
-      // Utiliser les headers enregistrés du record, avec des valeurs par défaut
-      const mockHeaders: Record<string, string> = {
-        'content-type': 'application/json',
-        'content-length': new TextEncoder().encode(responseBody).length.toString(),
-        ...record.headers
-      };
-
-      xhr.getResponseHeader = (name: string) => {
-        const lowerName = name.toLowerCase();
-        const key = Object.keys(mockHeaders).find((k) => k.toLowerCase() === lowerName);
-        return key ? mockHeaders[key] : null;
-      };
-      xhr.getAllResponseHeaders = () =>
-        Object.entries(mockHeaders)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('\r\n');
-
-      logData('- Mock HTTP - Mock de ' + url);
-
-      if (originalCallback) {
-        originalCallback.call(xhr, new Event('readystatechange'));
+        setTimeout(applyMock, record.delay);
+      } else {
+        applyMock();
       }
     } else {
       // Pas de mock trouvé - laisser passer la requête normalement
@@ -513,11 +540,12 @@ const processPendingMockFetchQueue = (): void => {
     const record = findMockRecord(url);
 
     if (record) {
-      if (record.delay) {
-        sleepSync(record.delay);
-      }
       logData('- Mock HTTP - Mock de ' + url);
-      resolve(createMockedResponse(new Response(), record));
+      if (record.delay) {
+        setTimeout(() => resolve(createMockedResponse(new Response(), record)), record.delay);
+      } else {
+        resolve(createMockedResponse(new Response(), record));
+      }
     } else {
       // Pas de mock trouvé - laisser passer la requête normalement
       logData('- Mock HTTP - Pas de mock pour ' + url + ' - Requête envoyée normalement');
@@ -575,30 +603,8 @@ const createMockedResponse = (originalResponse: Response, record: TuelloRecord):
   return new Response(stream, {
     headers,
     status: record.httpCode,
-    statusText: record.httpCode === 200 ? 'OK' : 'Not Found'
+    statusText: getStatusText(record.httpCode)
   });
-};
-
-const modifyXhrResponse = (xhr: ExtendedXMLHttpRequest, applyDelay: boolean = false): void => {
-  const record = findMockRecord(xhr.originalURL || '');
-  if (!record) {
-    logData('- Mock HTTP - Mock non trouvé de ' + xhr.originalURL);
-    return;
-  }
-
-  if (record.delay && applyDelay) {
-    sleepSync(record.delay);
-  }
-
-  Object.defineProperty(xhr, 'response', { writable: true });
-  Object.defineProperty(xhr, 'responseText', { writable: true });
-  Object.defineProperty(xhr, 'status', { writable: true });
-
-  (xhr as any).responseText = JSON.stringify(record.response);
-  (xhr as any).response = record.response;
-  (xhr as any).status = record.httpCode;
-
-  logData('- Mock HTTP - Mock de ' + xhr.originalURL);
 };
 
 // ============================================================================
@@ -697,6 +703,7 @@ XMLHttpRequest.prototype.open = function (this: ExtendedXMLHttpRequest, method: 
 
 XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
   const url = this.originalURL || '';
+  this.xhrBody = body;
 
   // Si le mode mock est activé
   if (mockUserActivated) {
@@ -716,8 +723,6 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
     if (record) {
       // Mock trouvé - intercepter la requête
       logData(`- Mock HTTP (XHR) - Mock trouvé pour : ${url}`);
-
-      if (record.delay) sleepSync(record.delay);
 
       Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
       Object.defineProperty(this, 'status', { writable: true, value: record.httpCode });
@@ -746,7 +751,7 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
         this.dispatchEvent(new Event('readystatechange'));
         this.dispatchEvent(new Event('load'));
         this.dispatchEvent(new Event('loadend'));
-      }, 0);
+      }, record.delay || 0);
       return; // Ne pas envoyer la requête réelle
     }
 
@@ -783,7 +788,7 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const record = findMockRecord(url);
     if (record) {
       logData('- Mock HTTP (Fetch Bypass) - Blocage CORS réussi pour ' + url);
-      if (record.delay) sleepSync(record.delay);
+      if (record.delay) await sleepAsync(record.delay);
       return createMockedResponse(new Response(), record);
     }
   }
@@ -807,39 +812,13 @@ manager.addInterceptor(intercepteurHTTPMock);
 manager.addInterceptor(intercepteurHTTPTags);
 
 // --- Mock Interceptor ---
+// Note : Le mocking XHR est géré entièrement dans send() et processPendingMockXhrQueue().
+// L'intercepteur mock XHR n'est plus nécessaire car :
+// - Si mock activé + records prêts : send() intercepte et retourne sans envoyer
+// - Si mock activé + records pas prêts : send() met en queue, processPendingMockXhrQueue traite ensuite
+// Seul le mock fetch intercepteur reste utile comme filet de sécurité.
 
-intercepteurHTTPMock.interceptXHR = function (req: ExtendedXMLHttpRequest): void {
-  if (!this.isActive) return;
-
-  const originalOnReadyStateChange = req.onreadystatechange;
-
-  req.onreadystatechange = function (this: XMLHttpRequest, ev: Event) {
-    if (this.readyState === XMLHttpRequest.DONE) {
-      // Si l'utilisateur n'a pas activé le mock, ne rien faire
-      if (!mockUserActivated) {
-        originalOnReadyStateChange?.call(this, ev);
-        return;
-      }
-
-      // Si tuelloRecords n'est pas encore prêt, mettre en queue
-      if (!tuelloRecordsReady) {
-        pendingMockXhrQueue.push({
-          xhr: req,
-          originalCallback: originalOnReadyStateChange
-        });
-        logData('- Mock HTTP - Requête XHR mise en queue (tuelloRecords non prêt): ' + req.originalURL);
-        // Ne pas appeler le callback original maintenant, il sera appelé après le mock
-        return;
-      }
-
-      // tuelloRecords est prêt, appliquer le mock normalement
-      modifyXhrResponse(req, false);
-    }
-    originalOnReadyStateChange?.call(this, ev);
-  };
-};
-
-intercepteurHTTPMock.interceptFetch = function (response: Response): Response | Promise<Response> {
+intercepteurHTTPMock.interceptFetch = async function (response: Response): Promise<Response> {
   if (!this.isActive) return response;
 
   // Si l'utilisateur n'a pas activé le mock, ne rien faire
@@ -864,7 +843,7 @@ intercepteurHTTPMock.interceptFetch = function (response: Response): Response | 
   }
 
   if (record.delay) {
-    sleepSync(record.delay);
+    await sleepAsync(record.delay);
   }
 
   logData('- Mock HTTP - Mock de ' + url);
@@ -877,54 +856,63 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
   if (!this.isActive) return;
 
   const self = this;
-  const originalOnReadyStateChange = req.onreadystatechange;
 
-  req.onreadystatechange = function (this: XMLHttpRequest, ev: Event) {
-    if (this.readyState === XMLHttpRequest.DONE) {
-      const url = req.responseURL;
-      if (url && typeof url === 'string' && !isExcludedUrl(url)) {
-        const contentType = req.getResponseHeader('Content-Type');
-        if (!contentType || contentType.includes('json')) {
-          try {
-            const response = req.responseText ? JSON.parse(req.responseText) : '';
+  // Utiliser addEventListener au lieu de wrapper onreadystatechange
+  // pour capturer les requêtes même quand l'app utilise addEventListener
+  req.addEventListener('loadend', function () {
+    const url = req.responseURL;
+    if (url && typeof url === 'string' && !isExcludedUrl(url)) {
+      const contentType = req.getResponseHeader('Content-Type');
+      if (!contentType || contentType.includes('json')) {
+        try {
+          const response = req.responseText ? JSON.parse(req.responseText) : '';
 
-            // Capturer les headers de réponse (en conservant la casse originale)
-            const headers: Record<string, string> = {};
-            const allHeaders = req.getAllResponseHeaders();
-            if (allHeaders) {
-              allHeaders.split('\r\n').forEach((line) => {
-                const parts = line.split(': ');
-                if (parts.length === 2) {
-                  headers[parts[0]] = parts[1];
-                }
-              });
-            }
-
-            const message: HttpMessage = {
-              type: MESSAGE_TYPES.RECORD_HTTP,
-              url,
-              delay: 0,
-              response,
-              status: req.status,
-              method: req.xhrMethod || '',
-              hrefLocation: window.location.href,
-              headers
-            };
-
-            if (self.userActivation) {
-              sendMessage(window, message);
-            } else {
-              // Mettre en queue pour une éventuelle activation utilisateur
-              addToQueue(message, messageForHTTPRecorderQueue);
-            }
-          } catch {
-            logData('- Mock HTTP - Problème non bloquant de parsing de la reponse pour l url : ' + url);
+          // Capturer les headers de réponse (en conservant la casse originale)
+          const headers: Record<string, string> = {};
+          const allHeaders = req.getAllResponseHeaders();
+          if (allHeaders) {
+            allHeaders.split('\r\n').forEach((line) => {
+              const idx = line.indexOf(': ');
+              if (idx > 0) {
+                headers[line.substring(0, idx)] = line.substring(idx + 2);
+              }
+            });
           }
+
+          // Tenter de parser le body si c'est du JSON string
+          let parsedBody: unknown = req.xhrBody;
+          if (typeof req.xhrBody === 'string') {
+            try {
+              parsedBody = JSON.parse(req.xhrBody);
+            } catch {
+              // Garder le body tel quel s'il n'est pas du JSON
+            }
+          }
+
+          const message: HttpMessage = {
+            type: MESSAGE_TYPES.RECORD_HTTP,
+            url,
+            delay: 0,
+            response,
+            status: req.status,
+            method: req.xhrMethod || '',
+            body: parsedBody,
+            hrefLocation: window.location.href,
+            headers
+          };
+
+          if (self.userActivation) {
+            sendMessage(window, message);
+          } else {
+            // Mettre en queue pour une éventuelle activation utilisateur
+            addToQueue(message, messageForHTTPRecorderQueue);
+          }
+        } catch {
+          logData('- Mock HTTP - Problème non bloquant de parsing de la reponse pour l url : ' + url);
         }
       }
     }
-    originalOnReadyStateChange?.call(this, ev);
-  };
+  });
 };
 
 intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ...args: unknown[]): Promise<Response> {
@@ -934,12 +922,15 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
   if (!input || typeof input !== 'string') return response;
 
   const init = args[1] as RequestInit | undefined;
+  const contentType = response.headers.get('Content-Type');
+  if (contentType && !contentType.includes('json')) return response;
+
   let responseData: unknown;
 
   try {
     responseData = await response.clone().json();
-  } catch (error) {
-    responseData = error;
+  } catch {
+    return response;
   }
 
   // Capturer les headers de réponse (en conservant la casse originale)
@@ -978,29 +969,26 @@ intercepteurHTTPTags.interceptXHR = function (req: ExtendedXMLHttpRequest): void
   if (!this.isActive) return;
 
   const self = this;
-  const originalOnReadyStateChange = req.onreadystatechange;
 
-  req.onreadystatechange = function (this: XMLHttpRequest, ev: Event) {
-    if (this.readyState === XMLHttpRequest.DONE) {
-      const url = req.responseURL;
-      if (url && typeof url === 'string' && !isExcludedUrl(url)) {
-        const response = tryParseJson(req.responseText);
-        const message: HttpMessage = {
-          type: MESSAGE_TYPES.ADD_HTTP_CALL_FOR_TAGS,
-          url,
-          response
-        };
+  // Utiliser addEventListener au lieu de wrapper onreadystatechange
+  req.addEventListener('loadend', function () {
+    const url = req.responseURL;
+    if (url && typeof url === 'string' && !isExcludedUrl(url)) {
+      const response = tryParseJson(req.responseText);
+      const message: HttpMessage = {
+        type: MESSAGE_TYPES.ADD_HTTP_CALL_FOR_TAGS,
+        url,
+        response
+      };
 
-        if (self.userActivation) {
-          flushQueue(window.top, messageForHTTPTagsQueue);
-          sendMessage(window.top, message);
-        } else {
-          addToQueue(message, messageForHTTPTagsQueue);
-        }
+      if (self.userActivation) {
+        flushQueue(window.top, messageForHTTPTagsQueue);
+        sendMessage(window.top, message);
+      } else {
+        addToQueue(message, messageForHTTPTagsQueue);
       }
     }
-    originalOnReadyStateChange?.call(this, ev);
-  };
+  });
 };
 
 intercepteurHTTPTags.interceptFetch = async function (response: Response): Promise<Response> {
