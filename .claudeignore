@@ -1,0 +1,40 @@
+# Dépendances et OS
+
+node_modules/
+webview-ui/node_modules/
+.git/
+.DS_Store
+Thumbs.db
+
+# Build VS Code Extension
+
+out/
+dist/
+\*.vsix
+
+# Build Angular Webview
+
+.angular/
+\*.log
+
+# Fichiers de verrouillage (TRÈS gourmands en tokens)
+
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Assets et médias (Claude n'en a pas besoin pour coder)
+
+src/assets/
+chrome/assets/
+**/\*.png
+**/_.jpg
+\*\*/_.jpeg
+**/\*.gif
+**/_.svg
+\*\*/_.ico
+
+# Tests et Couverture
+
+coverage/
+.nyc_output/
