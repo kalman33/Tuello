@@ -552,12 +552,13 @@ const processPendingMockFetchQueue = (): void => {
       originalFetch(...args)
         .then((response) => manager.runInterceptorsFetch(response, ...args))
         .then(resolve)
-        .catch(() => {
-          // En cas d'erreur (ex: CORS), retourner une réponse d'erreur
+        .catch((error) => {
+          // En cas d'erreur (ex: CORS), retourner une réponse 404
+          logData(`- Tuello HTTP - Erreur fetch en queue (probablement CORS) pour ${url} : ${error}`);
           resolve(
-            new Response(JSON.stringify({ error: 'Fetch failed', url }), {
-              status: 0,
-              statusText: 'Network Error',
+            new Response(JSON.stringify({ error: 'Request failed (CORS)', url }), {
+              status: 404,
+              statusText: 'Not Found',
               headers: { 'Content-Type': 'application/json' }
             })
           );
@@ -761,6 +762,14 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
 
   // Comportement normal (mock non activé ou pas de mock trouvé)
   this.interceptorManager?.runInterceptorsXHR(this);
+
+  // Capturer les erreurs CORS sur XHR pour retourner une 404
+  this.addEventListener('error', () => {
+    logData(`- Tuello HTTP - Erreur XHR (probablement CORS) pour ${url}`);
+    Object.defineProperty(this, 'status', { writable: true, value: 404 });
+    Object.defineProperty(this, 'statusText', { writable: true, value: 'Not Found' });
+  });
+
   return originalSend.call(this, body);
 };
 
@@ -795,8 +804,18 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
 
   // Si on arrive ici, c'est que soit le mock est désactivé,
   // soit l'URL n'est vraiment pas dans la liste des mocks.
-  const response = await originalFetch(...args);
-  return manager.runInterceptorsFetch(response, ...args);
+  try {
+    const response = await originalFetch(...args);
+    return manager.runInterceptorsFetch(response, ...args);
+  } catch (error) {
+    // En cas d'erreur (ex: CORS), retourner une réponse 404
+    logData(`- Tuello HTTP - Erreur fetch (probablement CORS) pour ${url} : ${error}`);
+    return new Response(JSON.stringify({ error: 'Request failed (CORS)', url }), {
+      status: 404,
+      statusText: 'Not Found',
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 };
 
 // ============================================================================
