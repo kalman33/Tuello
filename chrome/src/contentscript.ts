@@ -280,16 +280,6 @@ function init() {
         iframe.frameBorder = 'none';
         iframe.src = chrome.runtime.getURL('index.html');
 
-        // Charger la préférence de position (peut être à gauche ou droite)
-        chrome.storage.local.get(['tuelloDockedLeft'], (results) => {
-          dockedLeft = results['tuelloDockedLeft'] || false;
-          applyDockPosition(iframe, false);
-          // Activer la transition après le positionnement initial
-          requestAnimationFrame(() => {
-            iframe.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
-          });
-        });
-
         /**iframe.onreadystatechange = () => {
               if ( iframe.readyState == 'complete' ) {
                 resolve(true);
@@ -299,7 +289,17 @@ function init() {
           resolve(true);
         });
 
-        document.body.appendChild(iframe);
+        // Charger la préférence de position AVANT d'insérer l'iframe dans le DOM
+        // pour éviter le flash (l'iframe est ajouté directement avec la bonne position)
+        chrome.storage.local.get(['tuelloDockedLeft'], (results) => {
+          dockedLeft = results['tuelloDockedLeft'] || false;
+          applyDockPosition(iframe, false);
+          document.body.appendChild(iframe);
+          // Activer la transition après le positionnement initial
+          requestAnimationFrame(() => {
+            iframe.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
+          });
+        });
 
         /** 
         chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

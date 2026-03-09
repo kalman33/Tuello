@@ -439,7 +439,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   /**
    * Permet de mettre à jour les données si le json est valide
    */
-  updateData() {
+  async updateData() {
     const jsonData = this.jsonEditorTree.get() as JSONContent;
     if (jsonData.json) {
       // Détecter les doublons après modification
@@ -449,7 +449,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       this.forceRefreshEditor();
       // Sauvegarder l'objet directement (pas une chaîne JSON) pour que recordHttpListener
       // puisse correctement vérifier Array.isArray()
-      this.recorderService.saveToLocalStorage(jsonData.json);
+      await this.recorderService.saveToLocalStorage(jsonData.json);
       chrome.runtime.sendMessage(
         {
           action: 'MMA_RECORDS_CHANGE'
