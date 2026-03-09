@@ -59,7 +59,6 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
   httpMockActivated: boolean;
   httpRecordActivated: boolean;
-  dernierEvenementTampon: number;
   private debounceTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private chromeMessageListener: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void;
   private importMode: ImportMode = 'replace';
@@ -114,8 +113,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Vérifier si body a la classe 'black-theme'
-    const hasBlackTheme = document.body.classList.contains('black-theme');
-    this.isBlackTheme = hasBlackTheme;
+    this.isBlackTheme = document.body.classList.contains('black-theme');
 
     chrome.storage.local.get(['httpMock', 'httpRecord'], (results) => {
       this.httpRecordActivated = results['httpRecord'];
@@ -167,6 +165,8 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   /**
    * Détecte les doublons dans les mocks basés sur la clé 'key'.
    * Les doublons sont tous les mocks avec la même clé sauf le dernier (qui sera utilisé).
+   * Optimisé en une seule passe : on collecte tous les indices par clé, puis on marque
+   * tous sauf le dernier comme doublons.
    */
   private detectDuplicates(records: any) {
     this.duplicateIndices.clear();
@@ -175,26 +175,27 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Map pour stocker le dernier indice de chaque clé
-    const lastIndexByKey = new Map<string, number>();
-
-    // Première passe : identifier le dernier indice pour chaque clé
+    // Collecte tous les indices pour chaque clé en une seule passe
+    const indicesByKey = new Map<string, number[]>();
     records.forEach((record, index) => {
       if (record && record.key) {
-        lastIndexByKey.set(record.key, index);
-      }
-    });
-
-    // Deuxième passe : marquer tous les indices sauf le dernier comme doublons
-    records.forEach((record, index) => {
-      if (record && record.key) {
-        const lastIndex = lastIndexByKey.get(record.key);
-        // Si ce n'est pas le dernier indice pour cette clé, c'est un doublon
-        if (lastIndex !== undefined && index !== lastIndex) {
-          this.duplicateIndices.add(index);
+        const indices = indicesByKey.get(record.key);
+        if (indices) {
+          indices.push(index);
+        } else {
+          indicesByKey.set(record.key, [index]);
         }
       }
     });
+
+    // Marque tous les indices sauf le dernier de chaque groupe
+    for (const indices of indicesByKey.values()) {
+      if (indices.length > 1) {
+        for (let i = 0; i < indices.length - 1; i++) {
+          this.duplicateIndices.add(indices[i]);
+        }
+      }
+    }
   }
 
   gererRefresh() {
@@ -214,33 +215,6 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
    * initialisation du jsoneditor
    */
   private initJsonEditor() {
-    const clearResponse = this.translate.instant('mmn.jsoneditor.menu.clearResponse');
-    const clearResponseTitle = this.translate.instant('mmn.jsoneditor.menu.clearResponse.title');
-
-    //   onValidationError: errors => {
-    //     errors.forEach(error => {
-    //       switch (error.type) {
-    //         case 'validation': // schema validation error
-    //           this.infoBar.open('Format json invalide', '', {
-    //             duration: 2000,
-    //             verticalPosition: 'bottom',
-    //           });
-    //           break;
-    //         case 'customValidation': // custom validation error
-    //           this.infoBar.open('Format json invalide', '', {
-    //             duration: 2000,
-    //             verticalPosition: 'bottom',
-    //           });
-    //           break;
-    //         case 'error': // json parse error
-    //           this.infoBar.open('Json invalide', '', {
-    //             duration: 2000,
-    //             verticalPosition: 'bottom',
-    //           });
-    //           break;
-    //       }
-    //     });
-
     let options = {
       mode: 'tree', // Modes disponibles : "tree", "text", "view"
       indentation: 2, // Indentation pour le mode code
@@ -377,21 +351,17 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       chrome.storage.local.set({ httpRecord: false });
     }
     chrome.storage.local.set({ httpMock: this.httpMockActivated });
-    chrome.runtime.sendMessage(
-      {
-        action: 'HTTP_MOCK_STATE',
-        value: this.httpMockActivated
-      },
-      () => {}
-    );
+    chrome.runtime.sendMessage({ action: 'HTTP_MOCK_STATE', value: this.httpMockActivated }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('Tuello:', chrome.runtime.lastError.message);
+      }
+    });
     if (this.httpMockActivated) {
-      chrome.runtime.sendMessage(
-        {
-          action: 'HTTP_RECORD_STATE',
-          value: false
-        },
-        () => {}
-      );
+      chrome.runtime.sendMessage({ action: 'HTTP_RECORD_STATE', value: false }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('Tuello:', chrome.runtime.lastError.message);
+        }
+      });
     }
   }
 
@@ -404,21 +374,17 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       chrome.storage.local.set({ httpMock: false });
     }
     chrome.storage.local.set({ httpRecord: this.httpRecordActivated });
-    chrome.runtime.sendMessage(
-      {
-        action: 'HTTP_RECORD_STATE',
-        value: this.httpRecordActivated
-      },
-      () => {}
-    );
+    chrome.runtime.sendMessage({ action: 'HTTP_RECORD_STATE', value: this.httpRecordActivated }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('Tuello:', chrome.runtime.lastError.message);
+      }
+    });
     if (this.httpRecordActivated) {
-      chrome.runtime.sendMessage(
-        {
-          action: 'HTTP_MOCK_STATE',
-          value: false
-        },
-        () => {}
-      );
+      chrome.runtime.sendMessage({ action: 'HTTP_MOCK_STATE', value: false }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('Tuello:', chrome.runtime.lastError.message);
+        }
+      });
     }
   }
 
@@ -450,12 +416,11 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       // Sauvegarder l'objet directement (pas une chaîne JSON) pour que recordHttpListener
       // puisse correctement vérifier Array.isArray()
       await this.recorderService.saveToLocalStorage(jsonData.json);
-      chrome.runtime.sendMessage(
-        {
-          action: 'MMA_RECORDS_CHANGE'
-        },
-        () => {}
-      );
+      chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('Tuello:', chrome.runtime.lastError.message);
+        }
+      });
       this.ref.detectChanges();
     } else {
       this.infoBar.open('Json invalide', '', {
@@ -471,23 +436,23 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
    * Combine updateProps avec refresh() pour garantir le recalcul.
    */
   private forceRefreshEditor() {
-    // 1. Passer une nouvelle référence de fonction onClassName
-    this.jsonEditorTree.updateProps({
-      onClassName: (path: (string | number)[], value: any) => this.onClassNameHandler(path, value)
-    });
-    // 2. Forcer le refresh pour que les classes soient recalculées
+    // Passer directement la référence de la méthode pour forcer la mise à jour de la prop
+    this.jsonEditorTree.updateProps({ onClassName: this.onClassNameHandler });
+    // Forcer le refresh pour que les classes soient recalculées
     this.jsonEditorTree.refresh();
   }
 
   save() {
     const jsonData = this.jsonEditorTree.get() as JSONContent;
-    const dialogRef = this.dialog.open(ExportComponent, {
-      data: jsonData.json
-    });
+    this.dialog.open(ExportComponent, { data: jsonData.json });
   }
 
   public onChange(fileList: any): void {
     const file = fileList.target.files[0];
+    // Bug fix : annuler si l'utilisateur ferme la boîte de dialogue sans choisir
+    if (!file) {
+      return;
+    }
     const extension = file?.name?.split('.')?.pop()?.toLowerCase();
     const fileReader: FileReader = new FileReader();
     let jsonResult;
@@ -507,10 +472,16 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     };
     fileReader.readAsText(file);
   }
+
   processNonJsonResult(jsonResult: string) {
-    let data = this.extraireFluxJSON(jsonResult);
-    const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
-    data = this.replaceDynamicData(fixedJsonString);
+    const extracted = this.extraireFluxJSON(jsonResult);
+    // Bug fix : abandonner si le format du fichier ne correspond pas
+    if (!extracted) {
+      this.infoBar.open('Tuello: Format de fichier non reconnu', '', { duration: 2000, verticalPosition: 'top' });
+      return;
+    }
+    const fixedJsonString = extracted.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
+    const data = this.replaceDynamicData(fixedJsonString);
     const jsonData = JSON5.parse(data);
     this.applyImportedData(jsonData);
   }
@@ -577,8 +548,9 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       .subscribe((result: ImportMode | undefined) => {
         if (result) {
           this.importMode = result;
+          // Réinitialiser avant le clic pour autoriser la re-sélection du même fichier
+          this.fileInput.nativeElement.value = '';
           this.fileInput.nativeElement.click();
-          this.fileInput.nativeElement.value = ''; // permet de permettre le onchange si on reselectionne le meme fichier
         }
       });
   }
@@ -588,7 +560,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   }
 
   openSettings() {
-    const dialogRef = this.dialog.open(RecorderHttpSettingsComponent);
+    this.dialog.open(RecorderHttpSettingsComponent);
   }
 
   async initProfiles() {
@@ -612,20 +584,9 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     await this.mockProfilesService.setActiveProfile(profileId);
     this.activeProfileId = profileId;
 
-    // Charger les mocks du nouveau profil
     const profile = this.profiles.find((p) => p.id === profileId);
     if (profile) {
-      this.records = profile.mocks || [];
-      this.detectDuplicates(this.records);
-      // Passer une copie du tableau pour forcer le re-render complet
-      this.jsonEditorTree.update({ json: [...this.records] });
-      this.ref.detectChanges();
-
-      // Mettre à jour tuelloRecords pour que httpmanager utilise les nouveaux mocks
-      await this.recorderService.saveToLocalStorage(this.records);
-
-      // Notifier le changement pour httpmanager
-      chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {});
+      await this.applyProfile(profile);
     }
   }
 
@@ -645,24 +606,36 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
 
           const profile = this.profiles.find((p) => p.id === result.profileId);
           if (profile) {
-            this.records = profile.mocks || [];
-            this.detectDuplicates(this.records);
-            // Passer une copie du tableau pour forcer le re-render complet
-            this.jsonEditorTree.update({ json: [...this.records] });
-            this.ref.detectChanges();
-
-            // Mettre à jour tuelloRecords pour que httpmanager utilise les nouveaux mocks
-            await this.recorderService.saveToLocalStorage(this.records);
-
-            // Notifier le changement pour httpmanager
-            chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {});
+            await this.applyProfile(profile);
           }
         } else {
-          // Juste recharger la liste des profils
+          // Recharger la liste des profils et synchroniser l'id actif
           this.profiles = await this.mockProfilesService.getProfiles();
+          this.activeProfileId = await this.mockProfilesService.getActiveProfileId();
           this.ref.detectChanges();
         }
       });
+  }
+
+  /**
+   * Charge les mocks d'un profil dans l'éditeur et synchronise le stockage.
+   */
+  private async applyProfile(profile: MockProfile): Promise<void> {
+    this.records = profile.mocks || [];
+    this.detectDuplicates(this.records);
+    // Passer une copie du tableau pour forcer le re-render complet
+    this.jsonEditorTree.update({ json: [...this.records] });
+    this.ref.detectChanges();
+
+    // Mettre à jour tuelloRecords pour que httpmanager utilise les nouveaux mocks
+    await this.recorderService.saveToLocalStorage(this.records);
+
+    // Notifier le changement pour httpmanager
+    chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('Tuello:', chrome.runtime.lastError.message);
+      }
+    });
   }
 
   private extraireFluxJSON(codeJS: string): string | null {
