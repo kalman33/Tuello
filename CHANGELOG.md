@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.11.0] - 2026-03-09
+
+    - Corrections/Optimisation au niveau du mock and record HTTP
+
 ## [1.2.10.0] - 2026-02-10
 
     - Correction gestion CORS
