@@ -105,12 +105,30 @@ let mockIndexExact: Map<string, TuelloRecord> = new Map();
 let mockIndexSuffix: Map<string, NormalizedRecord[]> = new Map();
 // Liste des mocks avec wildcards (doivent être testés par regex)
 let mockWildcardRecords: NormalizedRecord[] = [];
-// Cache LRU des recherches récentes
+// Cache LRU des recherches récentes (utilise l'ordre d'insertion de Map pour O(1))
 const CACHE_MAX_SIZE = 500;
 let mockSearchCache: Map<string, TuelloRecord | null> = new Map();
-let mockSearchCacheOrder: string[] = [];
 // Version de l'index pour invalider le cache
 let mockIndexVersion = 0;
+
+// Cache des expressions régulières compilées (évite la recompilation à chaque requête)
+const regexCache = new Map<string, RegExp>();
+const REGEX_CACHE_MAX_SIZE = 1000;
+
+const getCachedRegex = (pattern: string): RegExp => {
+  let regex = regexCache.get(pattern);
+  if (!regex) {
+    if (regexCache.size >= REGEX_CACHE_MAX_SIZE) {
+      // Supprimer la plus ancienne entrée
+      const oldest = regexCache.keys().next().value;
+      if (oldest !== undefined) regexCache.delete(oldest);
+    }
+    const escaped = pattern.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
+    regex = new RegExp(`^${escaped}$`);
+    regexCache.set(pattern, regex);
+  }
+  return regex;
+};
 
 // ============================================================================
 // Utilitaires
@@ -145,7 +163,7 @@ const HTTP_STATUS_TEXT: Record<number, string> = {
 const getStatusText = (code: number): string => HTTP_STATUS_TEXT[code] || '';
 
 const sendMessage = (targetWindow: Window | null, message: HttpMessage): void => {
-  targetWindow?.postMessage(message, '*');
+  targetWindow?.postMessage(message, window.location.origin);
 };
 
 const addToQueue = (message: HttpMessage, queue: HttpMessage[]): void => {
@@ -254,7 +272,6 @@ const buildMockIndex = (records: TuelloRecord[]): void => {
   mockIndexSuffix.clear();
   mockWildcardRecords = [];
   mockSearchCache.clear();
-  mockSearchCacheOrder = [];
   mockIndexVersion++;
 
   for (const record of records) {
@@ -292,25 +309,19 @@ const buildMockIndex = (records: TuelloRecord[]): void => {
 };
 
 /**
- * Ajoute un résultat au cache LRU
+ * Ajoute un résultat au cache LRU.
+ * Utilise l'ordre d'insertion natif de Map pour un LRU en O(1) :
+ * delete() + set() déplace l'entrée en fin de map (la plus récente).
+ * keys().next() retourne toujours la plus ancienne.
  */
 const addToCache = (key: string, result: TuelloRecord | null): void => {
   if (mockSearchCache.has(key)) {
-    // Déplacer en fin de liste (plus récent)
-    const idx = mockSearchCacheOrder.indexOf(key);
-    if (idx > -1) {
-      mockSearchCacheOrder.splice(idx, 1);
-    }
-  } else if (mockSearchCacheOrder.length >= CACHE_MAX_SIZE) {
-    // Supprimer le plus ancien
-    const oldest = mockSearchCacheOrder.shift();
-    if (oldest) {
-      mockSearchCache.delete(oldest);
-    }
+    mockSearchCache.delete(key); // Supprimer pour réinsérer en fin (plus récent)
+  } else if (mockSearchCache.size >= CACHE_MAX_SIZE) {
+    const oldest = mockSearchCache.keys().next().value;
+    if (oldest !== undefined) mockSearchCache.delete(oldest);
   }
-
   mockSearchCache.set(key, result);
-  mockSearchCacheOrder.push(key);
 };
 
 /**
@@ -347,8 +358,7 @@ const findMockRecordOptimized = (url: string): TuelloRecord | undefined => {
           const isMatch = segments.every((seg, idx) => {
             const mockSeg = mockSuffix[idx];
             if (mockSeg.includes('*')) {
-              const pattern = mockSeg.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-              return new RegExp(`^${pattern}$`).test(seg);
+              return getCachedRegex(mockSeg).test(seg);
             }
             return seg === mockSeg;
           });
@@ -362,31 +372,12 @@ const findMockRecordOptimized = (url: string): TuelloRecord | undefined => {
     }
   }
 
-  // 4. Vérifier les wildcards (plus lent, mais nécessaire)
+  // 4. Vérifier les wildcards par regex complète (plus lent, mais nécessaire).
+  // La vérification par suffixe a déjà été faite à l'étape 3 via l'index.
   for (const wildcardRecord of mockWildcardRecords) {
-    const escapedPattern = wildcardRecord.normalizedKey.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-
-    if (new RegExp(`^${escapedPattern}$`).test(normalized)) {
+    if (getCachedRegex(wildcardRecord.normalizedKey).test(normalized)) {
       addToCache(cacheKey, wildcardRecord.record);
       return wildcardRecord.record;
-    }
-
-    // Vérifier aussi par suffixe pour les wildcards
-    if (wildcardRecord.segments.length > segments.length) {
-      const mockSuffix = wildcardRecord.segments.slice(-segments.length);
-      const isMatch = segments.every((seg, idx) => {
-        const mockSeg = mockSuffix[idx];
-        if (mockSeg.includes('*')) {
-          const pattern = mockSeg.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-          return new RegExp(`^${pattern}$`).test(seg);
-        }
-        return seg === mockSeg;
-      });
-
-      if (isMatch) {
-        addToCache(cacheKey, wildcardRecord.record);
-        return wildcardRecord.record;
-      }
     }
   }
 
@@ -417,9 +408,7 @@ const compareWithMockLevel = (url1: string, url2: string): boolean => {
   normalizedUrl2 = normalizeUrl(normalizedUrl2.replace(/^\//, ''));
 
   // Comparaison exacte avec support des wildcards (*)
-  const escapedUrl2 = normalizedUrl2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-
-  if (new RegExp(`^${escapedUrl2}$`).test(normalizedUrl1)) {
+  if (getCachedRegex(normalizedUrl2).test(normalizedUrl1)) {
     return true;
   }
 
@@ -435,8 +424,7 @@ const compareWithMockLevel = (url1: string, url2: string): boolean => {
       const mockSeg = mockSuffix[i];
       // Support des wildcards dans le segment du mock
       if (mockSeg.includes('*')) {
-        const pattern = mockSeg.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-        return new RegExp(`^${pattern}$`).test(seg);
+        return getCachedRegex(mockSeg).test(seg);
       }
       return seg === mockSeg;
     });
@@ -1053,7 +1041,12 @@ window.addEventListener(
       case MESSAGE_TYPES.MOCK_HTTP_ACTIVATED:
         if (data.value) {
           deepMockLevel = data.deepMockLevel || 0;
-          window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
+          try {
+            window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
+          } catch (e) {
+            console.error('Tuello: tuelloRecords malformé dans MOCK_HTTP_ACTIVATED', e);
+            window.tuelloRecords = [];
+          }
 
           // Construire l'index pour recherche optimisée
           if (Array.isArray(window.tuelloRecords) && window.tuelloRecords.length > 0) {
@@ -1109,7 +1102,12 @@ window.addEventListener(
 
       case MESSAGE_TYPES.MOCK_HTTP_TUELLO_RECORDS:
         deepMockLevel = data.deepMockLevel || 0;
-        window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
+        try {
+          window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
+        } catch (e) {
+          console.error('Tuello: tuelloRecords malformé dans MOCK_HTTP_TUELLO_RECORDS', e);
+          window.tuelloRecords = [];
+        }
 
         // Construire l'index pour recherche optimisée
         if (Array.isArray(window.tuelloRecords) && window.tuelloRecords.length > 0) {

@@ -1,4 +1,5 @@
 import { HTML_TAGS } from '../constantes/htmlTags.constantes';
+import { DEBOUNCE_DELAY_MS } from './constants';
 
 const TUELLO_PREFIX = 'tuello-search-';
 const TUELLO_BADGE_ID = 'tuello-count-badge';
@@ -87,7 +88,7 @@ function injectStyles() {
 
 function debounceSearch() {
   if (debounceTimer) window.clearTimeout(debounceTimer);
-  debounceTimer = window.setTimeout(() => searchAndDisplay(), 300);
+  debounceTimer = window.setTimeout(() => searchAndDisplay(), DEBOUNCE_DELAY_MS);
 }
 
 function searchAndDisplay() {

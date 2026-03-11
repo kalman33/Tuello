@@ -482,16 +482,32 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     }
     const fixedJsonString = extracted.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
     const data = this.replaceDynamicData(fixedJsonString);
-    const jsonData = JSON5.parse(data);
-    this.applyImportedData(jsonData);
+    // Déférer le parsing JSON5 (potentiellement bloquant sur gros fichiers)
+    // pour ne pas geler l'UI thread.
+    setTimeout(() => {
+      try {
+        const jsonData = JSON5.parse(data);
+        this.applyImportedData(jsonData);
+      } catch (e) {
+        this.infoBar.open('Tuello: Erreur de parsing JSON', '', { duration: 2000, verticalPosition: 'top' });
+      }
+    }, 0);
   }
 
   processJsonResult(jsonResult: string) {
     const data = this.replaceDynamicData(jsonResult);
     // Correction : Ajout de guillemets autour des nombres en tant que clés
     const fixedJsonString = data.replace(/(\{|,)\s*(\d+)\s*:/g, '$1 "$2":');
-    const dataJson = JSON5.parse(fixedJsonString);
-    this.applyImportedData(dataJson);
+    // Déférer le parsing JSON5 (potentiellement bloquant sur gros fichiers)
+    // pour ne pas geler l'UI thread.
+    setTimeout(() => {
+      try {
+        const dataJson = JSON5.parse(fixedJsonString);
+        this.applyImportedData(dataJson);
+      } catch (e) {
+        this.infoBar.open('Tuello: Erreur de parsing JSON', '', { duration: 2000, verticalPosition: 'top' });
+      }
+    }, 0);
   }
 
   private applyImportedData(importedData: any[]) {

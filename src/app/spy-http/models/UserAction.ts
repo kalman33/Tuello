@@ -1,4 +1,4 @@
-import {IFrame} from './IFrame';
+import { IFrame } from './IFrame';
 
 export interface ICoordinates {
   top: number;
@@ -19,8 +19,8 @@ export interface IUserAction {
   value?: string;
   imageType?: ImageType;
   htmlCoordinates?: ICoordinates;
-  clientWidth: number;
-  clientHeight: number;
+  clientWidth?: number;
+  clientHeight?: number;
 }
 
 export enum ImageType {

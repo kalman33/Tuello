@@ -1,6 +1,6 @@
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 import { PNG } from 'pngjs/browser';
-import pixelmatch from "pixelmatch";
+import pixelmatch from 'pixelmatch';
 import { Buffer } from 'buffer';
 import domtoimage from 'dom-to-image';
 
@@ -74,6 +74,8 @@ export async function searchImg(action: IUserAction): Promise<HTMLElement> {
  * au lieu d'attendre toutes les comparaisons
  */
 async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | null> {
+  // Vider le cache avant chaque recherche pour éviter des références DOM périmées
+  clearImageCache();
   const candidates = findElementsBySize(action);
 
   // Limiter le nombre d'éléments à tester pour éviter les blocages
@@ -115,12 +117,12 @@ async function compareImages(dataUrl1: string, dataUrl2: string): Promise<boolea
       return false;
     }
 
-    const diffImage = new PNG({ width: pngImg1.width, height: pngImg1.height });
-
+    // Passer null comme buffer de sortie : on n'a besoin que du nombre de pixels différents,
+    // pas de l'image diff. Évite l'allocation d'un PNG (~1.9 MB pour 800×600).
     const mismatchedPixels = pixelmatch(
       pngImg1.data,
       pngImg2.data,
-      diffImage.data,
+      null,
       pngImg1.width,
       pngImg1.height,
       { threshold: 0.1 } // Tolérance pour les différences mineures de rendu
@@ -141,12 +143,10 @@ async function compareImages(dataUrl1: string, dataUrl2: string): Promise<boolea
  * Trouve tous les éléments HTML ayant la même taille que l'action
  */
 export function findElementsBySize(action: IUserAction): HTMLElement[] {
-  const elements = document.body.getElementsByTagName("*");
+  const elements = document.body.getElementsByTagName('*');
 
   return Array.from(elements).filter((element): element is HTMLElement => {
-    return element instanceof HTMLElement &&
-           action.clientHeight === element.clientHeight &&
-           action.clientWidth === element.clientWidth;
+    return element instanceof HTMLElement && action.clientHeight === element.clientHeight && action.clientWidth === element.clientWidth;
   });
 }
 
@@ -154,7 +154,7 @@ export function findElementsBySize(action: IUserAction): HTMLElement[] {
  * Trouve l'élément image sous le curseur (hover)
  */
 export function findImageHover(): HTMLElement | null {
-  const hoveredElements = document.querySelectorAll(":hover");
+  const hoveredElements = document.querySelectorAll(':hover');
 
   if (!hoveredElements || hoveredElements.length === 0) {
     return null;

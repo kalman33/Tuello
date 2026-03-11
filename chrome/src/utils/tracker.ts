@@ -4,6 +4,7 @@ import JsonFind from 'json-find';
 import { UserAction } from '../models/UserAction';
 import { clickInside, getElementFromXPath, getXPath, isFixedPosition, isVisible, removeURLPort, removeURLPortAndQueryString } from './utils';
 import { loadCompressed, saveCompressed, decompress } from './compression';
+import { DEBOUNCE_DELAY_MS } from './constants';
 
 let lastUserAction: UserAction;
 let performanceObserver;
@@ -13,26 +14,24 @@ let tuelloTracks;
 let bodyObserver;
 let resizeObserver;
 let timer;
-const debounceTimer = 300;
 
+// Seuls childList et subtree sont nécessaires : displayTracks n'utilise que
+// addedNodes/deletedNodes, pas les changements d'attributs ou de texte.
+// Retirer attributes et characterData réduit significativement le nombre
+// de callbacks déclenchés sur les pages dynamiques.
 const mutationOptions = {
-  attributes: true,
-  characterData: true,
   childList: true,
-  subtree: true,
-  attributeOldValue: false,
-  characterDataOldValue: false
+  subtree: true
 };
 
 export function activateRecordTracks() {
-
   displayTracks(null, null);
 
   // on observe les événements de mesure des performances de type resource
   if (!performanceObserver) {
     // @ts-ignore
     performanceObserver = new PerformanceObserver(recordListener);
-    performanceObserver.observe({ type: "resource", buffered: true });
+    performanceObserver.observe({ type: 'resource', buffered: true });
     // on active le listener pour le click souris
     document.removeEventListener('click', clickListener);
     document.addEventListener('click', clickListener);
@@ -48,10 +47,7 @@ export function activateRecordTracks() {
     }
     resizeObserver = new ResizeObserver(displayTracks);
     resizeObserver.observe(document.body);
-
   }
-
-
 }
 
 export function desactivateRecordTracks() {
@@ -71,28 +67,36 @@ export function desactivateRecordTracks() {
   }
 }
 
+function isNonTuelloNode(node: Node): boolean {
+  if (!(node instanceof HTMLElement)) return false;
+  const { id, className } = node;
+  return (!id || !id.includes('tuello')) && (!className || typeof className !== 'string' || !className.includes('tuello'));
+}
+
 async function displayTracks(mutationsList, observer) {
   let modifiedNode = false;
   if (mutationsList) {
-    mutationsList.forEach(mutation => {
+    // Utilise des boucles for...of avec label pour sortir dès la première mutation non-tuello
+    outer: for (const mutation of mutationsList) {
       if (mutation.addedNodes) {
-        mutation.addedNodes.forEach(node => {
-          const htmlElt = (node as HTMLElement);
-          if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
+        for (const node of mutation.addedNodes) {
+          if (isNonTuelloNode(node)) {
             modifiedNode = true;
+            break outer;
           }
-        });
+        }
       } else if (mutation.deletedNodes) {
-        mutation.deletedNodes.forEach(node => {
-          const htmlElt = (node as HTMLElement);
-          if ((!htmlElt.id || typeof htmlElt.id !== 'string' || !htmlElt.id.includes('tuello')) && (!htmlElt.className || typeof htmlElt.className !== 'string' || !htmlElt.className.includes('tuello'))) {
+        for (const node of mutation.deletedNodes) {
+          if (isNonTuelloNode(node)) {
             modifiedNode = true;
+            break outer;
           }
-        });
+        }
       } else {
         modifiedNode = true;
+        break;
       }
-    });
+    }
   } else {
     modifiedNode = true;
   }
@@ -103,33 +107,32 @@ async function displayTracks(mutationsList, observer) {
       clearTimeout(timer);
     }
     timer = setTimeout(() => {
-
       removeTracks();
-      getTuelloTracks().then(() => {
-        const tracks = tuelloTracks.filter(item => {
-          // on ne garde que les tracks de cette page
-          if (item.hrefLocation === window.location.href) {
-            if (item.type === TrackType.CLICK) {
-              return isVisible(item.element);
+      getTuelloTracks()
+        .then(() => {
+          const tracks = tuelloTracks.filter((item) => {
+            // on ne garde que les tracks de cette page
+            if (item.hrefLocation === window.location.href) {
+              if (item.type === TrackType.CLICK) {
+                return isVisible(item.element);
+              } else {
+                return true;
+              }
             } else {
-              return true;
+              return false;
             }
-          } else {
-            return false;
-          }
-        });
-
-
-        if (tracks && tracks.length > 0) {
-          tracks.forEach(track => {
-            displayTrack(track);
           });
-        }
-      }).catch(() => {
-        // Ignorer silencieusement les erreurs de récupération des tracks
-      });
-    }, debounceTimer);
 
+          if (tracks && tracks.length > 0) {
+            tracks.forEach((track) => {
+              displayTrack(track);
+            });
+          }
+        })
+        .catch(() => {
+          // Ignorer silencieusement les erreurs de récupération des tracks
+        });
+    }, DEBOUNCE_DELAY_MS);
   }
 }
 
@@ -156,60 +159,64 @@ window.fetch = async (...args) => {
 function recordListener(list) {
   if (chrome && chrome.storage && chrome.storage.local) {
     // récupération du tracking data
-    chrome.storage.local.get(['tuelloTrackData', 'tuelloTrackDataDisplayType'], results => {
+    chrome.storage.local.get(['tuelloTrackData', 'tuelloTrackDataDisplayType'], (results) => {
       let trackData = results['tuelloTrackData'];
       const tuelloTrackDataDisplayType = results['tuelloTrackDataDisplayType'];
-      list.getEntries().filter(entry => {
-        return entry.name.includes(trackData);
-      }).forEach(entry => {
-        // on track
-        const track = new Track();
-        track.x = lastUserAction?.x;
-        track.y = lastUserAction?.y;
-
-        track.hrefLocation = window.location.href;
-
-        const url = new URL(entry.name)
-
-        // initiatorType: "xmlhttprequest"
-        if (url.search) {
-          track.url = url.href.replace(url.search, "");
-          track.querystring = decodeURI(url.search.substring(1))
-            .split('&')
-            .reduce((result, current) => {
-              const [key, value] = current.split('=');
-
-              result[key] = value;
-
-              return result
-            }, {})
-        } else {
-          track.url = url.href;
-        }
-
-        //if (tuelloTrackDataDisplayType === 'body') {
-        findBodyElement(track.url).then((body) => track.body = body).catch(() => {
-          // Ignorer si le body n'est pas trouvé
+      list
+        .getEntries()
+        .filter((entry) => {
+          return entry.name.includes(trackData);
         })
-        //}
+        .forEach((entry) => {
+          // on track
+          const track = new Track();
+          track.x = lastUserAction?.x;
+          track.y = lastUserAction?.y;
 
-        if (window.location.href === lastUserAction?.hrefLocation) {
-          // on est sur le meme href : c'est un track click
-          track.type = TrackType.CLICK;
-          track.element = getXPath(lastUserAction.element);
-          track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-          track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute'
+          track.hrefLocation = window.location.href;
 
-        } else {
-          // c'est un track page page
-          track.type = TrackType.PAGE;
-          track.parentPosition = 'fixed';
-          track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
-        }
-        track.htmlCoordinates = lastUserAction?.htmlCoordinates;
+          const url = new URL(entry.name);
 
-        appendTrack(track);
-      });
+          // initiatorType: "xmlhttprequest"
+          if (url.search) {
+            track.url = url.href.replace(url.search, '');
+            track.querystring = decodeURI(url.search.substring(1))
+              .split('&')
+              .reduce((result, current) => {
+                const [key, value] = current.split('=');
+
+                result[key] = value;
+
+                return result;
+              }, {});
+          } else {
+            track.url = url.href;
+          }
+
+          //if (tuelloTrackDataDisplayType === 'body') {
+          findBodyElement(track.url)
+            .then((body) => (track.body = body))
+            .catch(() => {
+              // Ignorer si le body n'est pas trouvé
+            });
+          //}
+
+          if (window.location.href === lastUserAction?.hrefLocation) {
+            // on est sur le meme href : c'est un track click
+            track.type = TrackType.CLICK;
+            track.element = getXPath(lastUserAction.element);
+            track.id = 'tuelloTrackClick' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+            track.parentPosition = isFixedPosition(getElementFromXPath(track.element)) ? 'fixed' : 'absolute';
+          } else {
+            // c'est un track page page
+            track.type = TrackType.PAGE;
+            track.parentPosition = 'fixed';
+            track.id = 'tuelloTrackPage' + Math.floor(Math.random() * Math.floor(Math.random() * Date.now()));
+          }
+          track.htmlCoordinates = lastUserAction?.htmlCoordinates;
+
+          appendTrack(track);
+        });
     });
   }
 }
@@ -231,34 +238,28 @@ function clickListener(e) {
       left: rect.left + window.scrollX,
       width: rect.width,
       height: rect.height
-    }
+    };
     lastUserAction.element = target;
   }
-
-
 }
 
 async function appendTrack(track: Track) {
   try {
-    const tracks = await loadCompressed<any[]>('tuelloTracks') || [];
+    const tracks = (await loadCompressed<any[]>('tuelloTracks')) || [];
 
     if (track.type === TrackType.PAGE) {
       // on ne rajoute le track page que si il n'existe pas deja
-      if (!tracks.find(elt => elt.type === TrackType.PAGE &&
-        elt.hrefLocation == track.hrefLocation &&
-        elt.url == track.url)) {
+      if (!tracks.find((elt) => elt.type === TrackType.PAGE && elt.hrefLocation == track.hrefLocation && elt.url == track.url)) {
         tracks.push(track);
         displayTrack(track);
       }
     } else {
       // on ne rajoute le track click que si il n'existe pas deja
-      if (!tracks.find(elt => {
-        return elt.type === TrackType.CLICK &&
-          elt.hrefLocation == track.hrefLocation &&
-          elt.url == track.url &&
-          clickInside(elt.htmlCoordinates, track.x, track.y);
-      }
-      )) {
+      if (
+        !tracks.find((elt) => {
+          return elt.type === TrackType.CLICK && elt.hrefLocation == track.hrefLocation && elt.url == track.url && clickInside(elt.htmlCoordinates, track.x, track.y);
+        })
+      ) {
         tracks.push(track);
         displayTrack(track);
       }
@@ -270,17 +271,15 @@ async function appendTrack(track: Track) {
       {
         refreshTrackData: true
       },
-      response => {}
+      (response) => {}
     );
   } catch (e) {
-    console.error('Tuello: Erreur lors de l\'ajout du track', e);
+    console.error("Tuello: Erreur lors de l'ajout du track", e);
   }
 }
 
 function displayTrack(track: Track) {
-
   if (track.type === TrackType.PAGE) {
-
     if (!document.getElementById(track.id)) {
       const trackDiv = document.createElement('div');
       // trackDiv.style.pointerEvents = 'none';
@@ -300,18 +299,16 @@ function displayTrack(track: Track) {
       trackDiv.style.fontSize = '12px';
       trackDiv.style.textAlign = 'center';
       trackDiv.style.font = 'bold italic large Palatino, serif';
-      const text = document.createTextNode("p");
+      const text = document.createTextNode('p');
       trackDiv.appendChild(text);
       trackDiv.onclick = (e) => {
         viewTracks(track.id);
         e.stopPropagation();
-      }
-      getDisplayData(track).then(data => trackDiv.title = data);
+      };
+      getDisplayData(track).then((data) => (trackDiv.title = data));
       document.body.appendChild(trackDiv);
     }
-
   } else {
-
     if (!document.getElementById(track.id)) {
       let div = document.createElement('div');
 
@@ -333,7 +330,7 @@ function displayTrack(track: Track) {
       div.style.border = '3px solid #D12566';
       div.style.textAlign = 'center';
       div.style.font = 'bold italic large Palatino, serif';
-      const text = document.createTextNode("c");
+      const text = document.createTextNode('c');
       div.appendChild(text);
       div.style.position = 'absolute';
       div.onclick = () => viewTracks(track.id);
@@ -345,16 +342,14 @@ function displayTrack(track: Track) {
         div.style.left = track.htmlCoordinates.width + 'px';
         div.style.top = '0';
         parentDiv = document.createElement('div');
-        parentDiv.id = track.id
+        parentDiv.id = track.id;
         parentDiv.style.position = 'absolute';
         trackElement.insertAdjacentElement('afterend', parentDiv);
         parentDiv.appendChild(div);
-
       } else {
-        div.id = track.id
+        div.id = track.id;
         document.body.append(div);
       }
-
 
       if (track.htmlCoordinates) {
         const elt = track.parentPosition === 'fixed' ? parentDiv : div;
@@ -369,7 +364,7 @@ function displayTrack(track: Track) {
               elementList[i].classList.add('tuello-white-texte');
             }
           }
-        }
+        };
 
         // mouse out : on supprime le background color
         elt.onmouseout = (event) => {
@@ -378,17 +373,17 @@ function displayTrack(track: Track) {
           for (var i = 0; i < elementList.length; i++) {
             elementList[i].classList.remove('tuello-white-texte');
           }
-        }
+        };
 
-        getDisplayData(track).then(data => elt.title = data);
+        getDisplayData(track).then((data) => (elt.title = data));
       }
     }
   }
 }
 
 /**
-   * Permet d'afficher les données que l'on veut tracer
-   */
+ * Permet d'afficher les données que l'on veut tracer
+ */
 async function getDisplayData(track: Track) {
   const results = await chrome.storage.local.get(['tuelloTrackDataDisplay', 'tuelloTrackDataDisplayType']);
   const dataDisplayType = results.tuelloTrackDataDisplayType;
@@ -413,7 +408,7 @@ function findInJson(data: any, keyString: string) {
   const doc = JsonFind(data);
   try {
     if (keyString.includes(',') || keyString.includes(';')) {
-      keyString.split(/,|;/).forEach(elt => {
+      keyString.split(/,|;/).forEach((elt) => {
         result += result ? '\u000d' : '';
         result += elt + ' : ' + doc.findValues(elt)[elt];
       });
@@ -425,29 +420,31 @@ function findInJson(data: any, keyString: string) {
     result = data;
   }
   return result;
-
 }
 
-
 function viewTracks(trackId: string) {
-  chrome.runtime.sendMessage({
-    action: 'ACTIVATE'
-  },
-    response => {
-      chrome.runtime.sendMessage({
-        action: 'TRACK_VIEW',
-        value: {
-          trackId: trackId ? trackId : 0,
-          currentHrefLocation: window.location.href
-        }
-      }, () => { })
-    })
-
+  chrome.runtime.sendMessage(
+    {
+      action: 'ACTIVATE'
+    },
+    (response) => {
+      chrome.runtime.sendMessage(
+        {
+          action: 'TRACK_VIEW',
+          value: {
+            trackId: trackId ? trackId : 0,
+            currentHrefLocation: window.location.href
+          }
+        },
+        () => {}
+      );
+    }
+  );
 }
 
 async function findBodyElement(url: string): Promise<any> {
   try {
-    const bodies = await loadCompressed<any[]>('tuelloTracksBody') || [];
+    const bodies = (await loadCompressed<any[]>('tuelloTracksBody')) || [];
     const record = bodies.find(({ key, body }) => compareUrl(url, key));
     if (record) {
       return record.body;
@@ -459,7 +456,6 @@ async function findBodyElement(url: string): Promise<any> {
   }
 }
 
-
 export function removeTracks() {
   const tracks = document.querySelectorAll('div[id^="tuelloTrack"]');
   tracks.forEach(function (track) {
@@ -467,9 +463,16 @@ export function removeTracks() {
   });
 }
 
+const compareUrlRegexCache = new Map<string, RegExp>();
+
 function compareUrl(url1: string, url2: string): boolean {
   url1 = removeURLPortAndQueryString(url1);
   url2 = removeURLPortAndQueryString(url2);
-  return new RegExp('^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$').test(url1);
+  let regex = compareUrlRegexCache.get(url2);
+  if (!regex) {
+    const pattern = '^' + url2.replaceAll(/([.+?^=!:${}()|\[\]\/\\])/g, '\\$1').replaceAll('*', '(.*)') + '$';
+    regex = new RegExp(pattern);
+    compareUrlRegexCache.set(url2, regex);
+  }
+  return regex.test(url1);
 }
-

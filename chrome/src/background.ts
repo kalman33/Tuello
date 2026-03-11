@@ -1,17 +1,5 @@
 import { Player } from './background/player';
-import {
-  addComment,
-  addHttpUserAction,
-  addNavigate,
-  addRecordByImage,
-  addRecordWindowSize,
-  addScreenShot,
-  addUserAction,
-  deleteRecord,
-  initRecord,
-  loadRecordFromStorage,
-  setPause
-} from './background/uiRecorderHandler';
+import { addComment, addHttpUserAction, addNavigate, addRecordByImage, addRecordWindowSize, addScreenShot, addUserAction, deleteRecord, initRecord, loadRecordFromStorage, setPause } from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
 import { loadCompressed, saveCompressed } from './utils/compression';
 import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
@@ -21,17 +9,17 @@ let port;
 let player = null;
 
 // Cache local pour tuelloTracksBody (évite les appels répétés à chrome.storage pour chaque requête HTTP)
-let tracksBodyCache: Array<{key: string, body: any}> = [];
+let tracksBodyCache: Array<{ key: string; body: any }> = [];
 const TRACKS_BODY_MAX_SIZE = 10;
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.get(activeInfo.tabId, (tab) => {
-    if (tab.url.startsWith("chrome://") || tab.url.startsWith("about:") || tab.url.startsWith("edge://")) {
-      chrome.action.setBadgeText({ text: "OFF", tabId: tab.id });
-      chrome.action.setBadgeBackgroundColor({ color: "gray", tabId: tab.id });
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('about:') || tab.url.startsWith('edge://')) {
+      chrome.action.setBadgeText({ text: 'OFF', tabId: tab.id });
+      chrome.action.setBadgeBackgroundColor({ color: 'gray', tabId: tab.id });
       chrome.action.disable(tab.id);
     } else {
-      chrome.action.setBadgeText({ text: "", tabId: tab.id }, () => {
+      chrome.action.setBadgeText({ text: '', tabId: tab.id }, () => {
         // Chrome réapplique la couleur par défaut automatiquement
       });
       chrome.action.enable(tab.id);
@@ -42,12 +30,12 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 // Gérer les changements d'URL sur l'onglet actif
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url) {
-    if (tab.url.startsWith("chrome://") || tab.url.startsWith("about:") || tab.url.startsWith("edge://")) {
-      chrome.action.setBadgeText({ text: "OFF", tabId: tab.id });
-      chrome.action.setBadgeBackgroundColor({ color: "gray", tabId: tab.id });
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('about:') || tab.url.startsWith('edge://')) {
+      chrome.action.setBadgeText({ text: 'OFF', tabId: tab.id });
+      chrome.action.setBadgeBackgroundColor({ color: 'gray', tabId: tab.id });
       chrome.action.disable(tab.id);
     } else {
-      chrome.action.setBadgeText({ text: "", tabId }, () => {
+      chrome.action.setBadgeText({ text: '', tabId }, () => {
         // Chrome réapplique la couleur par défaut automatiquement
       });
       chrome.action.enable(tab.id);
@@ -59,14 +47,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // La gestion des pages non-http (chrome://, about://, edge://) est faite via chrome.action.disable()
 // dans les listeners onActivated et onUpdated ci-dessus
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   (self as any).process = {
     versions: {
-      node: "test"
+      node: 'test'
     }
   };
 });
-
 
 // // Listener pour les mises à jour des onglets (changement d'URL, rafraîchissement, etc.)
 // chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -94,10 +81,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       {
         frameId: 0
       },
-      () => {
-      });
+      () => {}
+    );
   }
-
 });
 
 /** 
@@ -135,16 +121,20 @@ function test(tab)  {
 };
 */
 
-
 async function dynamicallyInjectContentScripts() {
-  const contentScriptsToInject = [{
-    id: 'hook',
-    matches: ['<all_urls>'],
-    js: ['httpmanager.js'],
-    runAt: 'document_start',
-    allFrames: true,
-    world: 'MAIN'
-  }]
+  const contentScriptsToInject = [
+    {
+      id: 'hook',
+      matches: ['<all_urls>'],
+      js: ['httpmanager.js'],
+      runAt: 'document_start',
+      allFrames: true,
+      // SECURITE: MAIN world requis pour intercepter window.fetch/XMLHttpRequest.
+      // La migration vers ISOLATED world casserait l'interception HTTP (fonctionnalité centrale).
+      // Atténuation : les données injectées sont validées avant envoi (validateTuelloRecords).
+      world: 'MAIN'
+    }
+  ];
 
   try {
     // @ts-ignore
@@ -160,27 +150,30 @@ async function dynamicallyInjectContentScripts() {
 function createContextMenus(msgs?: Record<string, string>): void {
   const menuItems = [
     { id: 'sel', defaultTitle: 'JSON VIEWER', msgKey: 'mmn.spy-http.tabs.shortcuts.jsonviewer' },
-    { id: 'id0', defaultTitle: "Screenshot : ALT + MAJ + S", msgKey: 'mmn.spy-http.tabs.shortcuts.screenshot', suffix: " : ALT + MAJ + S" },
-    { id: 'id1', defaultTitle: "Pause : ALT + MAJ + P", msgKey: 'mmn.spy-http.tabs.shortcuts.pause', suffix: " : ALT + MAJ + P" },
-    { id: 'id2', defaultTitle: "Resume : ALT + MAJ + R", msgKey: 'mmn.spy-http.tabs.shortcuts.resume', suffix: " : ALT + MAJ + R" },
-    { id: 'id3', defaultTitle: "Rec. by img :  ALT + MAJ + click / Coord. + ALT + MAJ + I", msgKey: 'mmn.spy-http.tabs.shortcuts.record.by.img', suffix: " :  ALT + MAJ + click / Coord. + ALT + MAJ + I" },
-    { id: 'id4', defaultTitle: "Add comment :  ALT + MAJ + C", msgKey: 'mmn.spy-http.tabs.shortcuts.add.comment', suffix: " :  ALT + MAJ + C" },
+    { id: 'id0', defaultTitle: 'Screenshot : ALT + MAJ + S', msgKey: 'mmn.spy-http.tabs.shortcuts.screenshot', suffix: ' : ALT + MAJ + S' },
+    { id: 'id1', defaultTitle: 'Pause : ALT + MAJ + P', msgKey: 'mmn.spy-http.tabs.shortcuts.pause', suffix: ' : ALT + MAJ + P' },
+    { id: 'id2', defaultTitle: 'Resume : ALT + MAJ + R', msgKey: 'mmn.spy-http.tabs.shortcuts.resume', suffix: ' : ALT + MAJ + R' },
+    { id: 'id3', defaultTitle: 'Rec. by img :  ALT + MAJ + click / Coord. + ALT + MAJ + I', msgKey: 'mmn.spy-http.tabs.shortcuts.record.by.img', suffix: ' :  ALT + MAJ + click / Coord. + ALT + MAJ + I' },
+    { id: 'id4', defaultTitle: 'Add comment :  ALT + MAJ + C', msgKey: 'mmn.spy-http.tabs.shortcuts.add.comment', suffix: ' :  ALT + MAJ + C' }
   ];
 
   for (const item of menuItems) {
-    const title = msgs ? (msgs[item.msgKey] + (item.suffix || '')) : item.defaultTitle;
-    chrome.contextMenus.create({
-      id: item.id,
-      title,
-      contexts: ['all'],
-    }, () => chrome.runtime.lastError); // ignore errors about an existing id
+    const title = msgs ? msgs[item.msgKey] + (item.suffix || '') : item.defaultTitle;
+    chrome.contextMenus.create(
+      {
+        id: item.id,
+        title,
+        contexts: ['all']
+      },
+      () => chrome.runtime.lastError
+    ); // ignore errors about an existing id
   }
 }
 
 async function init() {
   // Charger le cache tracksBody depuis chrome.storage au démarrage (avec décompression LZ)
   try {
-    const tracks = await loadCompressed<Array<{key: string, body: any}>>('tuelloTracksBody');
+    const tracks = await loadCompressed<Array<{ key: string; body: any }>>('tuelloTracksBody');
     if (Array.isArray(tracks)) {
       tracksBodyCache = tracks;
     }
@@ -195,8 +188,6 @@ async function init() {
 
   const msgs = results.messages?.default;
   createContextMenus(msgs);
-
-
 
   chrome.webRequest.onBeforeRequest.addListener(
     (details) => {
@@ -222,15 +213,13 @@ async function init() {
         saveCompressed('tuelloTracksBody', tracksBodyCache).catch(console.error);
       }
     },
-    { urls: ["<all_urls>"] },
-    ["requestBody"]
+    { urls: ['<all_urls>'] },
+    ['requestBody']
   );
 }
 
-
-
 // listerner pour le pause et le resume du recorder (les commandes sont déclarées dans le manifest)
-chrome.commands.onCommand.addListener(command => {
+chrome.commands.onCommand.addListener((command) => {
   switch (command) {
     case 'PAUSE':
       let pausedActionNumber;
@@ -247,11 +236,14 @@ chrome.commands.onCommand.addListener(command => {
           },
           () => {
             // message au content script
-            chrome.tabs.sendMessage(tabs[0].id, {
-              action: 'ACTIONS_PAUSED',
-              value: pausedActionNumber
-            },
-              () => { });
+            chrome.tabs.sendMessage(
+              tabs[0].id,
+              {
+                action: 'ACTIONS_PAUSED',
+                value: pausedActionNumber
+              },
+              () => {}
+            );
           }
         );
       });
@@ -280,17 +272,19 @@ chrome.commands.onCommand.addListener(command => {
 
 chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
   switch (msg.action) {
-
     case 'updateIcon':
       chrome.action.setIcon({ path: `/assets/logos/${msg.value}` });
 
       break;
-    case "DEACTIVATE":
+    case 'DEACTIVATE':
       // on envoie un message au content scrip
-      chrome.tabs.sendMessage(sender.tab.id, {
-        action: 'DEACTIVATE'
-      },
-        () => { });
+      chrome.tabs.sendMessage(
+        sender.tab.id,
+        {
+          action: 'DEACTIVATE'
+        },
+        () => {}
+      );
       break;
     case 'FINISH_PLAY_ACTIONS':
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page
@@ -320,7 +314,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
             const activeTab = tabs[0];
             const url = activeTab?.url;
             const action = new UserAction(null);
-            action.type = "navigation";
+            action.type = 'navigation';
             action.hrefLocation = url;
             addNavigate(action, tabs[0].id, 0);
           }
@@ -334,7 +328,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
             action: 'START_UI_RECORDER',
             value: msg.value
           },
-          () => { }
+          () => {}
         );
       } else {
         port.postMessage({
@@ -355,7 +349,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: 0
           },
-          () => { }
+          () => {}
         );
       } else {
         port.postMessage({
@@ -368,11 +362,14 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'MOUSE_COORDINATES':
       // on envoie un message au content scrip
       if (sender && sender.tab && sender.tab.id >= 0) {
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'MOUSE_COORDINATES',
-          value: msg.value
-        },
-          () => { });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'MOUSE_COORDINATES',
+            value: msg.value
+          },
+          () => {}
+        );
       } else {
         port.postMessage({
           action: 'MOUSE_COORDINATES',
@@ -393,7 +390,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: 0
           },
-          () => { }
+          () => {}
         );
       }
       break;
@@ -401,37 +398,40 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'HTTP_MOCK_STATE':
       if (sender && sender.tab && sender.tab.id >= 0) {
         // on envoie un message au content scrip
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'HTTP_MOCK_STATE',
-          value: msg.value
-        },
-          () => { });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'HTTP_MOCK_STATE',
+            value: msg.value
+          },
+          () => {}
+        );
       }
       break;
     case 'UPDATE_MENU':
       if (sender && sender.tab && sender.tab.id >= 0) {
-        chrome.storage.local.get(['messages'], results => {
+        chrome.storage.local.get(['messages'], (results) => {
           if (results.messages) {
             const msgs = results.messages.default;
             chrome.contextMenus.update('id0', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.screenshot'] + " : ALT + MAJ + S",
-              contexts: ["all"],
+              title: msgs['mmn.spy-http.tabs.shortcuts.screenshot'] + ' : ALT + MAJ + S',
+              contexts: ['all']
             });
             chrome.contextMenus.update('id1', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.pause'] + " : ALT + MAJ + P",
-              contexts: ["all"],
+              title: msgs['mmn.spy-http.tabs.shortcuts.pause'] + ' : ALT + MAJ + P',
+              contexts: ['all']
             });
             chrome.contextMenus.update('id2', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.resume'] + " : ALT + MAJ + R",
-              contexts: ["all"],
+              title: msgs['mmn.spy-http.tabs.shortcuts.resume'] + ' : ALT + MAJ + R',
+              contexts: ['all']
             });
             chrome.contextMenus.update('id3', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.record.by.img'] + " :  ALT + MAJ + click / Coord. + ALT + MAJ + I",
-              contexts: ["all"],
+              title: msgs['mmn.spy-http.tabs.shortcuts.record.by.img'] + ' :  ALT + MAJ + click / Coord. + ALT + MAJ + I',
+              contexts: ['all']
             });
             chrome.contextMenus.update('id4', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.add.comment'] + " :  ALT + MAJ + C",
-              contexts: ["all"],
+              title: msgs['mmn.spy-http.tabs.shortcuts.add.comment'] + ' :  ALT + MAJ + C',
+              contexts: ['all']
             });
           }
         });
@@ -440,34 +440,42 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'HTTP_RECORD_STATE':
       if (sender && sender.tab && sender.tab.id >= 0) {
         // on envoie un message au content scrip
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'HTTP_RECORD_STATE',
-          value: msg.value
-        },
-          () => { });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'HTTP_RECORD_STATE',
+            value: msg.value
+          },
+          () => {}
+        );
       }
       break;
     case 'MMA_RECORDS_CHANGE':
       if (sender && sender.tab && sender.tab.id >= 0) {
         // on envoie un message au content scrip
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'MMA_RECORDS_CHANGE'
-        },
-          () => { });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'MMA_RECORDS_CHANGE'
+          },
+          () => {}
+        );
       }
       break;
     case 'MMA_TAGS_CHANGE':
       if (sender && sender.tab && sender.tab.id >= 0) {
         // on envoie un message au content scrip
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'MMA_TAGS_CHANGE'
-        },
-          () => { });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'MMA_TAGS_CHANGE'
+          },
+          () => {}
+        );
       }
       break;
     case 'TRACK_PLAY_STATE':
       if (sender && sender.tab && sender.tab.id >= 0) {
-
         /** 
         if (msg.value) {
           chrome.webRequest.onBeforeRequest.addListener(
@@ -507,23 +515,27 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         */
 
         // on envoie un message au content scrip
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'TRACK_PLAY_STATE',
-          value: msg.value
-        },
-          () => { });
-
-
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'TRACK_PLAY_STATE',
+            value: msg.value
+          },
+          () => {}
+        );
       }
       break;
     case 'SEARCH_ELEMENTS_ACTIVATED':
       if (sender && sender.tab && sender.tab.id >= 0) {
         // on envoie un message au content scrip
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'SEARCH_ELEMENTS_ACTIVATED',
-          value: msg.value
-        },
-          () => { });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'SEARCH_ELEMENTS_ACTIVATED',
+            value: msg.value
+          },
+          () => {}
+        );
       }
       break;
     case 'VIEW_CLICK_ACTION':
@@ -539,7 +551,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: action.frame && action.frame.frameId ? action.frame.frameId : 0
           },
-          () => { }
+          () => {}
         );
       }
       break;
@@ -554,7 +566,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           {
             frameId: 0
           },
-          () => { }
+          () => {}
         );
       }
       break;
@@ -574,11 +586,14 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           },
           () => {
             // message au content script
-            chrome.tabs.sendMessage(tabs[0].id, {
-              action: 'ACTIONS_PAUSED',
-              value: pausedActionNumber
-            },
-              () => { });
+            chrome.tabs.sendMessage(
+              tabs[0].id,
+              {
+                action: 'ACTIONS_PAUSED',
+                value: pausedActionNumber
+              },
+              () => {}
+            );
           }
         );
       });
@@ -588,12 +603,12 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         {
           tabId: sender.tab.id
         },
-        frames => {
+        (frames) => {
           for (const iframe of frames) {
             const options = iframe
               ? {
-                frameId: iframe.frameId
-              }
+                  frameId: iframe.frameId
+                }
               : {};
             // on envoie un message au bon content scrip
             chrome.tabs.sendMessage(
@@ -607,7 +622,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                 }
               },
               options,
-              () => { }
+              () => {}
             );
           }
         }
@@ -617,16 +632,19 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'toggle':
       if (sender && sender.tab && sender.tab.id >= 0) {
         // on envoie un message au content scrip
-        chrome.tabs.sendMessage(sender.tab.id, 'toggle', {
-          frameId: 0
-        },
-          () => { });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          'toggle',
+          {
+            frameId: 0
+          },
+          () => {}
+        );
       }
       break;
 
     // @TODO A inclure dans le play des actions
     case 'PLAY_USER_ACTION_INIT':
-
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page
       chrome.webNavigation.onCompleted.addListener(onCompletedPlayer);
       chrome.webNavigation.onBeforeNavigate.addListener(onbeforePlayer);
@@ -635,12 +653,12 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         {
           tabId: sender.tab.id
         },
-        frames => {
+        (frames) => {
           for (const iframe of frames) {
             const options = iframe
               ? {
-                frameId: iframe.frameId
-              }
+                  frameId: iframe.frameId
+                }
               : {};
             // on envoie un message au bon content scrip
             chrome.tabs.sendMessage(
@@ -650,7 +668,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                 value: false
               },
               options,
-              () => { }
+              () => {}
             );
             chrome.tabs.sendMessage(
               sender.tab.id,
@@ -663,7 +681,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                 }
               },
               options,
-              () => { }
+              () => {}
             );
           }
         }
@@ -680,23 +698,28 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'MOCK_HTTP_USER_ACTION':
       if (sender && sender.tab && sender.tab.id >= 0) {
         // on envoie un message au content scrip
-        chrome.tabs.sendMessage(sender.tab.id, {
-          action: 'MOCK_HTTP_USER_ACTION',
-          value: msg.value,
-          data: msg.data
-        },
-          () => { });
+        chrome.tabs.sendMessage(
+          sender.tab.id,
+          {
+            action: 'MOCK_HTTP_USER_ACTION',
+            value: msg.value,
+            data: msg.data
+          },
+          () => {}
+        );
       } else {
-        port.postMessage({
-          action: 'MOCK_HTTP_USER_ACTION',
-          value: msg.value,
-          data: msg.data
-        },
-          () => { });
+        port.postMessage(
+          {
+            action: 'MOCK_HTTP_USER_ACTION',
+            value: msg.value,
+            data: msg.data
+          },
+          () => {}
+        );
       }
       break;
     case 'ACTIVATE':
-      chrome.tabs.query({ active: true }, tabs => {
+      chrome.tabs.query({ active: true }, (tabs) => {
         chrome.tabs.sendMessage(
           tabs[0].id,
           {
@@ -713,7 +736,6 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
                 frameId: 0
               },
               () => {
-
                 senderResponse();
                 return true;
               }
@@ -729,7 +751,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       senderResponse();
       break;
     case 'SCREENSHOT_ACTION':
-      addScreenShot(sender.tab.id, msg.value).then(ret => senderResponse());
+      addScreenShot(sender.tab.id, msg.value).then((ret) => senderResponse());
       break;
     case 'COMMENT_ACTION':
       addComment(msg.value);
@@ -752,7 +774,6 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
   return true;
 });
 
-
 /**
  * fonction exécutée avant une navigation ou une navigation d'une iframe
  * permet de désactiver le player
@@ -764,7 +785,6 @@ function onbeforePlayer(details) {
       pausedActionNumber = player.launchAction('PAUSE');
     }
   }
-
 }
 
 /**
@@ -775,10 +795,6 @@ function onCompletedPlayer(details) {
   if (details.frameId === 0) {
     if (player !== null) {
       player.launchAction('PLAY');
-
     }
   }
 }
-
-
-

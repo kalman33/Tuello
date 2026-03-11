@@ -13,29 +13,30 @@ let screenshotKeyboardShortcut;
 let captureImageKeyboardShortcut;
 let commentKeyboardShortcut;
 
-
 export function launchUIRecorderHandler() {
-  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], results => {
+  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results) => {
     if (results.uiRecordActivated) {
       if (results.tuelloKeyboardShortcut) {
-        screenshotKeyboardShortcut = results['tuelloKeyboardShortcut']?.screenshot || {key: 'S', code: 'KeyS'}
-        captureImageKeyboardShortcut = results['tuelloKeyboardShortcut']?.captureImage ||  {key: 'I', code: 'KeyI'}
-        commentKeyboardShortcut = results['tuelloKeyboardShortcut']?.comment?.key  ||  {key: 'C', code: 'KeyC'}
+        screenshotKeyboardShortcut = results['tuelloKeyboardShortcut']?.screenshot || { key: 'S', code: 'KeyS' };
+        captureImageKeyboardShortcut = results['tuelloKeyboardShortcut']?.captureImage || { key: 'I', code: 'KeyI' };
+        commentKeyboardShortcut = results['tuelloKeyboardShortcut']?.comment?.key || { key: 'C', code: 'KeyC' };
       } else {
-        screenshotKeyboardShortcut = {key: 'S', code: 'KeyS'}
-        captureImageKeyboardShortcut = {key: 'I', code: 'KeyI'}
-        commentKeyboardShortcut = {key: 'C', code: 'KeyC'}
-
+        screenshotKeyboardShortcut = { key: 'S', code: 'KeyS' };
+        captureImageKeyboardShortcut = { key: 'I', code: 'KeyI' };
+        commentKeyboardShortcut = { key: 'C', code: 'KeyC' };
       }
       // on previent background qu'on a démarré le recording
-      chrome.runtime.sendMessage({
-        action: 'LOAD_UI_RECORDERS',
-        value: true
-      }, ()=> {});
+      chrome.runtime.sendMessage(
+        {
+          action: 'LOAD_UI_RECORDERS',
+          value: true
+        },
+        () => {}
+      );
 
       // On active le recorder http
       httpRecordUI(true);
-      
+
       // si on est en devtools, on valorise l'index de l'iframe ou -1 si on est en top
       if (window['TuelloFrameIndex'] !== undefined) {
         frame = {
@@ -44,21 +45,27 @@ export function launchUIRecorderHandler() {
       }
 
       if (window.self === window.top) {
-        chrome.runtime.sendMessage({
-          action: 'RECORD_WINDOW_SIZE'
-        }, ()=> {});
+        chrome.runtime.sendMessage(
+          {
+            action: 'RECORD_WINDOW_SIZE'
+          },
+          () => {}
+        );
       }
       // on crée un event de scroll si l'utilisateur n'est pas en haut de la page
       if ((window as any).scrollX !== 0 || (window as any).scrollY !== 0) {
-        chrome.runtime.sendMessage({
-          action: 'RECORD_USER_ACTION',
-          value: {
-            scrollX: (window as any).scrollX,
-            scrollY: (window as any).scrollY,
-            type: 'scroll',
-            frame
-          }
-        },() => {});
+        chrome.runtime.sendMessage(
+          {
+            action: 'RECORD_USER_ACTION',
+            value: {
+              scrollX: (window as any).scrollX,
+              scrollY: (window as any).scrollY,
+              type: 'scroll',
+              frame
+            }
+          },
+          () => {}
+        );
       }
       addListeners();
     } else {
@@ -70,13 +77,12 @@ export function launchUIRecorderHandler() {
 
 // permet d'activer le recording d'ui pour la partie http
 function httpRecordUI(activation: boolean) {
-
   window.postMessage(
     {
       type: 'RECORD_HTTP_ACTIVATED',
       value: activation
     },
-    '*'
+    window.location.origin
   );
   if (activation) {
     window.addEventListener('message', recordHttpUserActionListener);
@@ -109,43 +115,44 @@ function addListeners() {
 }
 
 function listener(e) {
- 
   if (e.shiftKey && e.altKey) {
     recordImage(false);
   } else if (e.x !== 0 && e.y !== 0) {
     const useraction = new UserAction(e);
     useraction.frame = frame;
-    chrome.runtime.sendMessage({
-      action: 'RECORD_USER_ACTION',
-      value: useraction
-    },() => {});
+    chrome.runtime.sendMessage(
+      {
+        action: 'RECORD_USER_ACTION',
+        value: useraction
+      },
+      () => {}
+    );
   }
 }
 
 function keyboardListener(e) {
-
-  
-
   if (e.altKey && e.shiftKey && (e.key === screenshotKeyboardShortcut.key || e.code === screenshotKeyboardShortcut.code)) {
-    const isPopupVisible =
-            document.getElementById('iframeTuello') && document.getElementById('iframeTuello').style.display !== 'none' ? true : false;
-          chrome.runtime.sendMessage(
-            {
-              action: 'SCREENSHOT_ACTION',
-              value: isPopupVisible
-            },
-            response => {
-              lightbox.open({ content: 'Capture OK', autocCloseMs: 800 });
-            }
-          );
+    const isPopupVisible = document.getElementById('iframeTuello') && document.getElementById('iframeTuello').style.display !== 'none' ? true : false;
+    chrome.runtime.sendMessage(
+      {
+        action: 'SCREENSHOT_ACTION',
+        value: isPopupVisible
+      },
+      (response) => {
+        lightbox.open({ content: 'Capture OK', autocCloseMs: 800 });
+      }
+    );
 
     return false;
   } else if (e.altKey && e.shiftKey && (e.key === commentKeyboardShortcut.key || e.code === commentKeyboardShortcut.code)) {
-    chrome.runtime.sendMessage({
-      action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
-      value: true
-    }, ()=> {});
-    chrome.storage.local.get(['messages'], results => {
+    chrome.runtime.sendMessage(
+      {
+        action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
+        value: true
+      },
+      () => {}
+    );
+    chrome.storage.local.get(['messages'], (results) => {
       let placeholder = 'Add comment';
       let submitButton = 'Submit';
 
@@ -175,17 +182,20 @@ function keyboardListener(e) {
       formButtonFieldset.appendChild(formButton);
       formElt.appendChild(formButtonFieldset);
 
-      lightbox.open({ content: formElt }).then(comment => {
+      lightbox.open({ content: formElt }).then((comment) => {
         chrome.runtime.sendMessage(
           {
             action: 'COMMENT_ACTION',
             value: comment
           },
           () => {
-            chrome.runtime.sendMessage({
-              action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
-              value: false
-            }, ()=> {});
+            chrome.runtime.sendMessage(
+              {
+                action: 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION',
+                value: false
+              },
+              () => {}
+            );
           }
         );
       });
@@ -202,10 +212,13 @@ function keyboardListener(e) {
     action.x = Math.ceil(rect.left + window.scrollX);
     action.y = Math.ceil(rect.top + window.scrollY);
     action.frame = frame;
-    chrome.runtime.sendMessage({
-      action: 'RECORD_USER_ACTION',
-      value: action
-    },() => {});
+    chrome.runtime.sendMessage(
+      {
+        action: 'RECORD_USER_ACTION',
+        value: action
+      },
+      () => {}
+    );
   }
 }
 
@@ -218,12 +231,14 @@ function mousedownListener(e) {
     useraction.y = e.pageY;
     useraction.hrefLocation = window.location.href;
     useraction.frame = frame;
-    chrome.runtime.sendMessage({
-      action: 'RECORD_USER_ACTION',
-      value: useraction
-    },() => {});
+    chrome.runtime.sendMessage(
+      {
+        action: 'RECORD_USER_ACTION',
+        value: useraction
+      },
+      () => {}
+    );
   }
-
 }
 
 function resizeListener() {
@@ -231,14 +246,16 @@ function resizeListener() {
   useraction.type = 'resize';
   useraction.hrefLocation = window.location.href;
   useraction.frame = frame;
-  chrome.runtime.sendMessage({
-    action: 'RECORD_USER_ACTION',
-    value: useraction
-  },() => {});
+  chrome.runtime.sendMessage(
+    {
+      action: 'RECORD_USER_ACTION',
+      value: useraction
+    },
+    () => {}
+  );
 }
 
 function recordImage(withClick: boolean) {
-
   // if (elt && elt.length > 0 && elt[elt.length - 1].nodeName.toLowerCase() === 'img') {
   const elt = findImageHover();
   if (elt) {
@@ -246,34 +263,33 @@ function recordImage(withClick: boolean) {
     document.getElementById('cover-spin')?.style?.setProperty('display', 'block', 'important');
 
     // Record by img
-    convertElementToBase64((elt as HTMLElement)).then(base64Img => {
-      const action = new UserAction(null);
-      action.type = 'recordByImg';
-      action.value = base64Img;
-      action.frame = frame;
-      action.clientHeight = elt.clientHeight,
-      action.clientWidth = elt.clientWidth
-      action.imageType = elt instanceof HTMLImageElement ? ImageType.IMG : ImageType.BACKGROUND;
-      chrome.runtime.sendMessage(
-        {
-          action: 'RECORD_BY_IMAGE_ACTION',
-          value: action
-        },
-        response => {
-          lightbox.open({ content: 'Capture Img OK', autocCloseMs: 800 });
+    convertElementToBase64(elt as HTMLElement)
+      .then((base64Img) => {
+        const action = new UserAction(null);
+        action.type = 'recordByImg';
+        action.value = base64Img;
+        action.frame = frame;
+        ((action.clientHeight = elt.clientHeight), (action.clientWidth = elt.clientWidth));
+        action.imageType = elt instanceof HTMLImageElement ? ImageType.IMG : ImageType.BACKGROUND;
+        chrome.runtime.sendMessage(
+          {
+            action: 'RECORD_BY_IMAGE_ACTION',
+            value: action
+          },
+          (response) => {
+            lightbox.open({ content: 'Capture Img OK', autocCloseMs: 800 });
+          }
+        );
+        document.getElementById('cover-spin')?.style?.setProperty('display', 'none', 'important');
+        // TODO : voir pour enlever ce settimeout
+        if (withClick) {
+          setTimeout(() => {
+            elt.click();
+          }, 200);
         }
-      );
-      document.getElementById('cover-spin').style.setProperty('display', 'none', 'important');
-      // TODO : voir pour enlever ce settimeout 
-      if (withClick) {
-        setTimeout(() => {
-          elt.click();
-        }, 200);
-      }
-    }).catch(() => {
-      document.getElementById('cover-spin').style.setProperty('display', 'none', 'important');
-    })
+      })
+      .catch(() => {
+        document.getElementById('cover-spin')?.style?.setProperty('display', 'none', 'important');
+      });
   }
 }
-
-

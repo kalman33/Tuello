@@ -111,6 +111,7 @@ class Mutex {
     if (this.queue.length > 0) {
       const nextResolve = this.queue.shift();
       if (nextResolve) {
+        this.locked = true; // Maintenir le verrou pour le prochain acquéreur
         nextResolve();
       }
     } else {

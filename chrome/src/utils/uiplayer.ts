@@ -22,25 +22,13 @@ function getElementAtAbsolutePosition(x: number, y: number): Element | null {
 }
 
 function mouseEvent(event: string, x: number, y: number, key: number) {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    console.warn(`Tuello: Coordonnées invalides pour l'événement ${event}: x=${x}, y=${y}`);
+    return;
+  }
   const ev = document.createEvent('MouseEvent');
   const el = getElementAtAbsolutePosition(x, y);
-  ev.initMouseEvent(
-    event,
-    true /* bubble */,
-    true /* cancelable */,
-    window,
-    null,
-    x,
-    y,
-    x,
-    y /* coordinates */,
-    false,
-    false,
-    false,
-    false /* modifier keys */,
-    key,
-    null
-  );
+  ev.initMouseEvent(event, true /* bubble */, true /* cancelable */, window, null, x, y, x, y /* coordinates */, false, false, false, false /* modifier keys */, key, null);
   if (el) {
     el.dispatchEvent(ev);
   }
@@ -106,7 +94,7 @@ export function run(action: IUserAction) {
         break;
       case 'recordByImg':
         searchImg(action)
-          .then(img => {
+          .then((img) => {
             if (img instanceof HTMLElement) {
               const offset = getOffset(img);
               displayEffect(img.offsetWidth / 2 + offset.left, img.offsetHeight / 2 + offset.top).then(() => {
@@ -117,10 +105,13 @@ export function run(action: IUserAction) {
               resolve(false);
             }
           })
-          .catch(err => {
-            chrome.runtime.sendMessage({
-              action: 'PLAY_ACTION_ERROR'
-            }, () => reject(false));
+          .catch((err) => {
+            chrome.runtime.sendMessage(
+              {
+                action: 'PLAY_ACTION_ERROR'
+              },
+              () => reject(false)
+            );
           });
         break;
       default:

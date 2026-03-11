@@ -25,7 +25,6 @@ let lastExecutionTimer;
 let tagsUnloadListenerAdded = false;
 let tagsListenerAdded = false;
 
-
 export function initTagsHandler(tuelloHTTPTags) {
   if (tuelloHTTPTags && tuelloHTTPTags.length > 0) {
     window.postMessage(
@@ -33,7 +32,7 @@ export function initTagsHandler(tuelloHTTPTags) {
         type: 'RECORD_HTTP_CALL_FOR_TAGS',
         value: true
       },
-      '*'
+      window.location.origin
     );
     if (!tagsUnloadListenerAdded) {
       window.addEventListener('beforeunload', (event) => {
@@ -44,23 +43,18 @@ export function initTagsHandler(tuelloHTTPTags) {
       });
       tagsUnloadListenerAdded = true;
     }
-   
-    if (!tagsListenerAdded) {
 
+    if (!tagsListenerAdded) {
     }
     // on ecoute les postMessage si on est en fenetre mère
     if (!tagsListenerAdded) {
       if (window.top === window) {
-        window.addEventListener(
-          'message',
-          event => {
-            if (event?.data?.type === 'ADD_HTTP_CALL_FOR_TAGS') {
-              addHttpCall(event.data.url, event.data.response);
-              addTagsPanel(tuelloHTTPTags);
-            }
-
+        window.addEventListener('message', (event) => {
+          if (event?.data?.type === 'ADD_HTTP_CALL_FOR_TAGS') {
+            addHttpCall(event.data.url, event.data.response);
+            addTagsPanel(tuelloHTTPTags);
           }
-        );
+        });
         tagsUnloadListenerAdded = true;
       }
     }
@@ -95,7 +89,7 @@ function findInJson(data: any, keyString: string) {
     } else if (keyString.includes(',') || keyString.includes(';')) {
       // Format multi-clés (ancien format compatible)
       const doc = JsonFind(data);
-      keyString.split(/,|;/).forEach(elt => {
+      keyString.split(/,|;/).forEach((elt) => {
         result += result ? '\u000d' : '';
         result += elt + ' : ' + doc.findValues(elt)[elt];
       });
@@ -180,43 +174,41 @@ async function findTagInHttpCalls(tag: Tag) {
 }
 
 async function displayTags(tags: Tag[]) {
-
   // Annuler la dernière exécution en attente
   clearTimeout(lastExecutionTimer);
   // Définir une nouvelle exécution à déclencher dans 300 ms
   lastExecutionTimer = setTimeout(async () => {
-
     let display = false;
 
     // CONTENT
     const contentDiv = document.createElement('div');
-    contentDiv.className = "tuello-content";
+    contentDiv.className = 'tuello-content';
 
     // DATAs
     let content;
     for (const tag of tags) {
       if (tag.jsonKeyValue) {
         content = document.createElement('div');
-        content.innerHTML = `${tag.display}:  ${tag.jsonKeyValue}`;
+        content.textContent = `${tag.display}:  ${tag.jsonKeyValue}`;
         contentDiv.appendChild(content);
         display = true;
       }
     }
     if (display) {
       addcss(chrome.runtime.getURL('tags.css'));
-      const storageData = await (chrome.storage.local.get(['tuelloTagsPosition']));
+      const storageData = await chrome.storage.local.get(['tuelloTagsPosition']);
       const position = storageData['tuelloTagsPosition'] || 'right';
       deleteTagsPanel();
 
       //TAG
       const tagDiv = document.createElement('div');
-      tagDiv.id = "tuelloTags"
-      tagDiv.className = "tuello-tag " + position;
+      tagDiv.id = 'tuelloTags';
+      tagDiv.className = 'tuello-tag ' + position;
       tagDiv.addEventListener('click', toggleTagPosition);
 
       // FRONT
       const frontDiv = document.createElement('div');
-      frontDiv.className = "tuello-front";
+      frontDiv.className = 'tuello-front';
 
       tagDiv.appendChild(frontDiv);
       frontDiv.appendChild(contentDiv);
@@ -228,16 +220,15 @@ async function displayTags(tags: Tag[]) {
 
 // Définir la fonction du clic de l'événement
 async function toggleTagPosition(event) {
-
   const tagDiv = event.currentTarget;
   let rightState = tagDiv.classList.contains('right');
   if (rightState) {
     tagDiv.classList.remove('right');
     tagDiv.classList.add('left');
-    await chrome.storage.local.set({ 'tuelloTagsPosition': 'left' });
+    await chrome.storage.local.set({ tuelloTagsPosition: 'left' });
   } else {
     tagDiv.classList.remove('left');
     tagDiv.classList.add('right');
-    await chrome.storage.local.set({ 'tuelloTagsPosition': 'right' });
+    await chrome.storage.local.set({ tuelloTagsPosition: 'right' });
   }
 }

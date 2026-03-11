@@ -10,6 +10,7 @@ import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
 import { displayEffect } from './utils/utils';
 import { loadCompressedMultiple } from './utils/compression';
+import { IFRAME_OFFSET_PX, IFRAME_WIDTH_PX } from './utils/constants';
 
 let show = false;
 let clickedElement: string;
@@ -24,11 +25,11 @@ function applyDockPosition(iframe: HTMLIFrameElement, isVisible: boolean) {
   if (dockedLeft) {
     iframe.style.setProperty('left', '0', 'important');
     iframe.style.setProperty('right', 'auto', 'important');
-    iframe.style.setProperty('transform', isVisible ? 'translateX(0)' : 'translateX(-570px)', 'important');
+    iframe.style.setProperty('transform', isVisible ? 'translateX(0)' : `translateX(-${IFRAME_OFFSET_PX}px)`, 'important');
   } else {
     iframe.style.setProperty('right', '0', 'important');
     iframe.style.setProperty('left', 'auto', 'important');
-    iframe.style.setProperty('transform', isVisible ? 'translateX(0)' : 'translateX(570px)', 'important');
+    iframe.style.setProperty('transform', isVisible ? 'translateX(0)' : `translateX(${IFRAME_OFFSET_PX}px)`, 'important');
   }
 }
 
@@ -111,7 +112,7 @@ try {
           type: 'MOCK_HTTP_TUELLO_RECORDS',
           value: true
         },
-        '*'
+        window.location.origin
       );
     }
   }
@@ -138,7 +139,7 @@ loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tu
           tuelloRecords: result.tuelloRecords,
           deepMockLevel: result.deepMockLevel || 0
         },
-        '*'
+        window.location.origin
       );
     }
   })
@@ -263,7 +264,7 @@ function init() {
         iframe = document.createElement('iframe');
         iframe.id = 'iframeTuello';
         iframe.style.setProperty('height', '100%', 'important');
-        iframe.style.setProperty('width', '550px', 'important');
+        iframe.style.setProperty('width', `${IFRAME_WIDTH_PX}px`, 'important');
         iframe.style.setProperty('min-width', '1px', 'important');
         iframe.style.setProperty('position', 'fixed', 'important');
         iframe.style.setProperty('top', '0', 'important');
@@ -276,7 +277,7 @@ function init() {
         // Position par défaut cachée à droite
         iframe.style.setProperty('right', '0', 'important');
         iframe.style.setProperty('left', 'auto', 'important');
-        iframe.style.setProperty('transform', 'translateX(570px)', 'important');
+        iframe.style.setProperty('transform', `translateX(${IFRAME_OFFSET_PX}px)`, 'important');
         iframe.frameBorder = 'none';
         iframe.src = chrome.runtime.getURL('index.html');
 
@@ -433,8 +434,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const iframe = document.getElementById('iframeTuello') as HTMLIFrameElement;
     if (iframe) {
       const transform = window.getComputedStyle(iframe).transform;
-      // Vérifier si l'iframe est cachée (570 pour droite, -570 pour gauche)
-      const isHidden = transform.indexOf('570') >= 0 || transform === 'none';
+      // Vérifier si l'iframe est cachée (IFRAME_OFFSET_PX pour droite, -IFRAME_OFFSET_PX pour gauche)
+      const isHidden = transform.indexOf(String(IFRAME_OFFSET_PX)) >= 0 || transform === 'none';
       if (isHidden) {
         if (iframe.style.display === 'none') {
           iframe.style.display = '';
@@ -491,7 +492,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'ACTIVATE':
       init().then(() => {
         if (window.self === window.top) {
-          document.getElementById('iframeTuello').style.display = '';
+          const iframeActivate = document.getElementById('iframeTuello');
+          if (iframeActivate) iframeActivate.style.display = '';
         }
         sendResponse();
       });
@@ -504,7 +506,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
     case 'HIDE':
       if (window.self === window.top) {
-        document.getElementById('iframeTuello').style.display = 'none';
+        const iframeHide = document.getElementById('iframeTuello');
+        if (iframeHide) iframeHide.style.display = 'none';
         show = false;
         setTimeout(() => {
           chrome.runtime.sendMessage(
@@ -520,7 +523,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'SHOW':
       if (window.self === window.top) {
         show = true;
-        document.getElementById('iframeTuello').style.display = '';
+        const iframeShow = document.getElementById('iframeTuello');
+        if (iframeShow) iframeShow.style.display = '';
       }
       sendResponse();
       break;

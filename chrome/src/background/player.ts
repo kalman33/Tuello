@@ -4,7 +4,7 @@ import { IFrame } from '../models/IFrame';
 import { getFrameIdFromSrc } from './uiRecorderHandler';
 import { UserAction } from '../models/UserAction';
 import { PNG } from 'pngjs/browser';
-import pixelmatch from "pixelmatch";
+import pixelmatch from 'pixelmatch';
 import { Buffer } from 'buffer';
 
 /** Timeout par défaut pour les actions en ms */
@@ -32,7 +32,7 @@ export class Player {
   pauseCurrentAction = false;
   chromeTabId: number;
   count = 0;
-  comparisonResults: ComparisonResult[];
+  comparisonResults: ComparisonResult[] = [];
   actionResults: ActionResult[] = [];
   private isDestroyed = false;
 
@@ -121,24 +121,29 @@ export class Player {
 
   private sendResults(): void {
     // Log des actions échouées pour debug
-    const failedActions = this.actionResults.filter(r => !r.success);
+    const failedActions = this.actionResults.filter((r) => !r.success);
     if (failedActions.length > 0) {
       console.warn(`${failedActions.length} action(s) ont échoué:`, failedActions);
     }
 
-    chrome.tabs.sendMessage(this.chromeTabId, {
-      action: 'ACTIONS_RESULTS',
-      value: {
-        comparisonResults: this.comparisonResults,
-        actionResults: this.actionResults
+    chrome.tabs.sendMessage(
+      this.chromeTabId,
+      {
+        action: 'ACTIONS_RESULTS',
+        value: {
+          comparisonResults: this.comparisonResults,
+          actionResults: this.actionResults
+        }
+      },
+      {
+        frameId: 0
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          // Ignorer - l'onglet peut être fermé
+        }
       }
-    }, {
-      frameId: 0
-    }, () => {
-      if (chrome.runtime.lastError) {
-        // Ignorer - l'onglet peut être fermé
-      }
-    });
+    );
   }
 
   private async handleNavigate(userAction: UserAction): Promise<boolean> {
@@ -280,7 +285,7 @@ export class Player {
             height: userAction.htmlCoordinates.height,
             top: userAction.htmlCoordinates.top,
             left: userAction.htmlCoordinates.left,
-            state: "normal"
+            state: 'normal'
           };
 
           chrome.windows.update(window.id, updateInfo, (updatedWindow) => {
@@ -329,7 +334,7 @@ export class Player {
     return new Promise((resolve) => {
       // Attendre que le rendu soit complet avant de capturer
       setTimeout(() => {
-        chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: "png" }, imgData => {
+        chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: 'png' }, (imgData) => {
           if (chrome.runtime.lastError || !imgData) {
             console.warn('Erreur capture screenshot:', chrome.runtime.lastError?.message);
             resolve(false);
@@ -357,7 +362,7 @@ export class Player {
             );
 
             const match = 1 - mismatchedPixels / (width * height);
-            const misMatchPercentage = (100 - (match * 100)).toFixed(2);
+            const misMatchPercentage = (100 - match * 100).toFixed(2);
 
             diffImage.pack();
             const chunks: Buffer[] = [];
