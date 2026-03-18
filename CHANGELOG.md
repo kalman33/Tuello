@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.14.0] - 2026-03-18
+
+    - Corrections/Optimisation au niveau du mock and record HTTP
+
 ## [1.2.13.0] - 2026-03-10
 
     - Corrections packaging

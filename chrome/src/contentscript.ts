@@ -101,9 +101,24 @@ function safeParseJson<T>(jsonString: string, validator?: (data: unknown) => dat
 }
 
 // Récupération des données du localStorage
+// Si httpMock était actif lors de la dernière session, on envoie MOCK_HTTP_ACTIVATED
+// immédiatement (synchrone) pour éviter la race condition avec les requêtes XHR au démarrage.
 try {
   const jsonData = localStorage.getItem('TUELLO_RECORDS');
-  if (jsonData) {
+  const httpMockActive = localStorage.getItem('TUELLO_HTTP_MOCK') === 'true';
+  if (jsonData && httpMockActive) {
+    const parsed = safeParseJson(jsonData, validateTuelloRecords);
+    if (parsed) {
+      window.postMessage(
+        {
+          ...parsed,
+          type: 'MOCK_HTTP_ACTIVATED',
+          value: true
+        },
+        window.location.origin
+      );
+    }
+  } else if (jsonData) {
     const parsed = safeParseJson(jsonData, validateTuelloRecords);
     if (parsed) {
       window.postMessage(
@@ -334,6 +349,12 @@ function activate() {
     searchElementsActivated?: boolean;
   }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated']).then((results) => {
     if (!results.disabled) {
+      // Mettre à jour le cache localStorage pour la prochaine session
+      try {
+        localStorage.setItem('TUELLO_HTTP_MOCK', results.httpMock ? 'true' : 'false');
+      } catch {
+        // Ignorer les erreurs localStorage
+      }
       if (results.httpMock) {
         window.postMessage(
           {
@@ -575,6 +596,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'HTTP_MOCK_STATE':
       loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel']).then((results) => {
+        try {
+          localStorage.setItem('TUELLO_HTTP_MOCK', message.value ? 'true' : 'false');
+        } catch {
+          // Ignorer les erreurs localStorage
+        }
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -695,6 +721,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     case 'MOCK_HTTP_USER_ACTION':
       chrome.storage.local.get(['deepMockLevel'], (results) => {
+        try {
+          localStorage.setItem('TUELLO_HTTP_MOCK', message.value ? 'true' : 'false');
+        } catch {
+          // Ignorer les erreurs localStorage
+        }
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
