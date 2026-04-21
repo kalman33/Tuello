@@ -162,6 +162,44 @@ const HTTP_STATUS_TEXT: Record<number, string> = {
 
 const getStatusText = (code: number): string => HTTP_STATUS_TEXT[code] || '';
 
+// Clone la réponse du mock pour éviter que l'application consommatrice ne mute
+// l'objet stocké dans le record (sinon les appels suivants renvoient la version modifiée).
+const cloneMockResponse = (response: unknown): unknown => {
+  if (response === null || response === undefined) return response;
+  try {
+    return structuredClone(response);
+  } catch {
+    try {
+      return JSON.parse(JSON.stringify(response));
+    } catch {
+      return response;
+    }
+  }
+};
+
+// Extrait l'URL d'un input fetch qui peut être une string, un URL ou un Request.
+const extractFetchUrl = (input: unknown): string => {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.href;
+  if (input instanceof Request) return input.url;
+  return '';
+};
+
+// Fusionne les headers par défaut avec ceux du record en normalisant la casse
+// (sinon on peut se retrouver avec "Content-Type" et "content-type" dupliqués).
+const buildMockHeaders = (responseBody: string, recordHeaders?: Record<string, string>): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    'content-length': new TextEncoder().encode(responseBody).length.toString()
+  };
+  if (recordHeaders) {
+    for (const [key, value] of Object.entries(recordHeaders)) {
+      headers[key.toLowerCase()] = value;
+    }
+  }
+  return headers;
+};
+
 const sendMessage = (targetWindow: Window | null, message: HttpMessage): void => {
   targetWindow?.postMessage(message, window.location.origin);
 };
@@ -463,21 +501,14 @@ const processPendingMockXhrQueue = (): void => {
         const responseBody = JSON.stringify(record.response);
         Object.defineProperty(xhr, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
         Object.defineProperty(xhr, 'status', { writable: true, value: record.httpCode });
+        Object.defineProperty(xhr, 'statusText', { writable: true, value: getStatusText(record.httpCode) });
         Object.defineProperty(xhr, 'responseText', { writable: true, value: responseBody });
-        Object.defineProperty(xhr, 'response', { writable: true, value: record.response });
+        Object.defineProperty(xhr, 'response', { writable: true, value: cloneMockResponse(record.response) });
+        Object.defineProperty(xhr, 'responseURL', { writable: true, value: url });
 
-        // Utiliser les headers enregistrés du record, avec des valeurs par défaut
-        const mockHeaders: Record<string, string> = {
-          'content-type': 'application/json',
-          'content-length': new TextEncoder().encode(responseBody).length.toString(),
-          ...record.headers
-        };
+        const mockHeaders = buildMockHeaders(responseBody, record.headers);
 
-        xhr.getResponseHeader = (name: string) => {
-          const lowerName = name.toLowerCase();
-          const key = Object.keys(mockHeaders).find((k) => k.toLowerCase() === lowerName);
-          return key ? mockHeaders[key] : null;
-        };
+        xhr.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] ?? null;
         xhr.getAllResponseHeaders = () =>
           Object.entries(mockHeaders)
             .map(([key, value]) => `${key}: ${value}`)
@@ -485,9 +516,8 @@ const processPendingMockXhrQueue = (): void => {
 
         logData('- Mock HTTP - Mock de ' + url);
 
-        if (originalCallback) {
-          originalCallback.call(xhr, new Event('readystatechange'));
-        }
+        // dispatchEvent('readystatechange') déclenche déjà le handler xhr.onreadystatechange
+        // — ne pas appeler originalCallback manuellement, sinon il est invoqué 2 fois.
         xhr.dispatchEvent(new Event('readystatechange'));
         xhr.dispatchEvent(new Event('load'));
         xhr.dispatchEvent(new Event('loadend'));
@@ -713,24 +743,17 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
       // Mock trouvé - intercepter la requête
       logData(`- Mock HTTP (XHR) - Mock trouvé pour : ${url}`);
 
+      const responseBody = JSON.stringify(record.response);
       Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
       Object.defineProperty(this, 'status', { writable: true, value: record.httpCode });
-      Object.defineProperty(this, 'responseText', { writable: true, value: JSON.stringify(record.response) });
-      Object.defineProperty(this, 'response', { writable: true, value: record.response });
+      Object.defineProperty(this, 'statusText', { writable: true, value: getStatusText(record.httpCode) });
+      Object.defineProperty(this, 'responseText', { writable: true, value: responseBody });
+      Object.defineProperty(this, 'response', { writable: true, value: cloneMockResponse(record.response) });
+      Object.defineProperty(this, 'responseURL', { writable: true, value: url });
 
-      // Simuler les headers avec les headers enregistrés du record
-      const responseBody = JSON.stringify(record.response);
-      const mockHeaders: Record<string, string> = {
-        'content-type': 'application/json',
-        'content-length': new TextEncoder().encode(responseBody).length.toString(),
-        ...record.headers
-      };
+      const mockHeaders = buildMockHeaders(responseBody, record.headers);
 
-      this.getResponseHeader = (name: string) => {
-        const lowerName = name.toLowerCase();
-        const key = Object.keys(mockHeaders).find((k) => k.toLowerCase() === lowerName);
-        return key ? mockHeaders[key] : null;
-      };
+      this.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] ?? null;
       this.getAllResponseHeaders = () =>
         Object.entries(mockHeaders)
           .map(([key, value]) => `${key}: ${value}`)
@@ -752,11 +775,16 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
   this.interceptorManager?.runInterceptorsXHR(this);
 
   // Capturer les erreurs CORS sur XHR pour retourner une 404
-  this.addEventListener('error', () => {
-    logData(`- Tuello HTTP - Erreur XHR (probablement CORS) pour ${url}`);
-    Object.defineProperty(this, 'status', { writable: true, value: 404 });
-    Object.defineProperty(this, 'statusText', { writable: true, value: 'Not Found' });
-  });
+  // { once: true } évite l'accumulation de listeners si le XHR est réutilisé
+  this.addEventListener(
+    'error',
+    () => {
+      logData(`- Tuello HTTP - Erreur XHR (probablement CORS) pour ${url}`);
+      Object.defineProperty(this, 'status', { writable: true, value: 404 });
+      Object.defineProperty(this, 'statusText', { writable: true, value: 'Not Found' });
+    },
+    { once: true }
+  );
 
   return originalSend.call(this, body);
 };
@@ -767,7 +795,7 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
 
 window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
   const input = args[0];
-  const url = typeof input === 'string' ? input : (input as Request).url;
+  const url = extractFetchUrl(input);
 
   if (mockUserActivated) {
     // Si les records ne sont pas prêts, on crée une promesse qui attend
@@ -926,7 +954,10 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
   if (!this.isActive) return response;
 
   const input = args[0];
-  if (!input || typeof input !== 'string') return response;
+  if (!input) return response;
+  // Supporte string, URL et Request (Angular HttpClient utilise des Request objects)
+  const requestUrl = extractFetchUrl(input);
+  if (!requestUrl) return response;
 
   const init = args[1] as RequestInit | undefined;
   const contentType = response.headers.get('Content-Type');
@@ -946,12 +977,15 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
     headers[key] = value;
   });
 
+  // La méthode peut venir de init (fetch(url, init)) ou du Request
+  const method = init?.method || (input instanceof Request ? input.method : undefined) || 'GET';
+
   const message: HttpMessage = {
     type: MESSAGE_TYPES.RECORD_HTTP,
-    url: response.url,
+    url: response.url || requestUrl,
     delay: 0,
     status: response.status,
-    method: init?.method || 'GET',
+    method,
     body: init?.body as unknown,
     hrefLocation: window.location.href,
     response: responseData,
@@ -1064,9 +1098,42 @@ window.addEventListener(
         } else {
           mockUserActivated = false;
           manager.deactivateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);
-          // Vider les queues et l'index si le mock est désactivé
+
+          // Drainer les queues plutôt que de les abandonner : les promesses fetch
+          // seraient jamais résolues et les XHR jamais envoyés -> blocage de l'app.
+          const drainedXhr = pendingMockXhrQueue;
+          const drainedFetch = pendingMockFetchQueue;
           pendingMockXhrQueue = [];
           pendingMockFetchQueue = [];
+
+          for (const pending of drainedXhr) {
+            const { xhr, originalCallback, body } = pending;
+            if (originalCallback) xhr.onreadystatechange = originalCallback;
+            xhr.interceptorManager?.runInterceptorsXHR(xhr);
+            try {
+              originalSend.call(xhr, body);
+            } catch (e) {
+              logData(`- Mock HTTP - Erreur en envoyant XHR drainé: ${e}`);
+            }
+          }
+
+          for (const pending of drainedFetch) {
+            const { resolve, url: pendingUrl, args: pendingArgs } = pending;
+            originalFetch(...pendingArgs)
+              .then((response) => manager.runInterceptorsFetch(response, ...pendingArgs))
+              .then(resolve)
+              .catch((error) => {
+                logData(`- Mock HTTP - Erreur fetch drainé pour ${pendingUrl}: ${error}`);
+                resolve(
+                  new Response(JSON.stringify({ error: 'Request failed', url: pendingUrl }), {
+                    status: 404,
+                    statusText: 'Not Found',
+                    headers: { 'Content-Type': 'application/json' }
+                  })
+                );
+              });
+          }
+
           mockIndexExact.clear();
           mockIndexSuffix.clear();
           mockWildcardRecords = [];

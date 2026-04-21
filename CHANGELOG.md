@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.15.0] - 2026-04-22
+
+    - Mock HTTP : clonage de la réponse mockée pour éviter que l'application consommatrice mute l'objet stocké dans le record (corrige le cas où revenir sur un écran renvoyait une version modifiée au lieu du mock d'origine)
+    - Mock HTTP (XHR) : suppression du double déclenchement de `onreadystatechange` pour les requêtes placées en queue
+    - Mock HTTP (XHR) : ajout des propriétés `responseURL` et `statusText` sur les requêtes mockées
+    - Mock HTTP : les queues de requêtes en attente (XHR et fetch) sont désormais drainées vers le réseau lors de la désactivation du mock (évite les promesses fetch jamais résolues et les XHR bloqués)
+    - Mock HTTP (fetch) : support des `URL` objects et `Request` objects en entrée de `fetch()` (corrige un crash)
+    - Record HTTP (fetch) : l'intercepteur recorder capture maintenant les requêtes appelées avec un `Request` ou un `URL` (notamment Angular HttpClient en mode `withFetch()`)
+    - Mock HTTP : normalisation de la casse des headers pour éviter les doublons `Content-Type` / `content-type`
+    - Mock HTTP (XHR) : listener `error` ajouté avec `{ once: true }` pour éviter l'accumulation sur XHR réutilisés
+
 ## [1.2.14.0] - 2026-03-18
 
     - Corrections/Optimisation au niveau du mock and record HTTP
