@@ -23,36 +23,123 @@
     }
 
     // ============================================================================
+    // Constantes
+    // ============================================================================
+
+    const HTTP_STATUS_TEXT: Record<number, string> = {
+      200: 'OK',
+      201: 'Created',
+      202: 'Accepted',
+      204: 'No Content',
+      301: 'Moved Permanently',
+      302: 'Found',
+      304: 'Not Modified',
+      400: 'Bad Request',
+      401: 'Unauthorized',
+      403: 'Forbidden',
+      404: 'Not Found',
+      405: 'Method Not Allowed',
+      409: 'Conflict',
+      422: 'Unprocessable Entity',
+      429: 'Too Many Requests',
+      500: 'Internal Server Error',
+      502: 'Bad Gateway',
+      503: 'Service Unavailable',
+      504: 'Gateway Timeout'
+    };
+
+    const getStatusText = (code: number): string => HTTP_STATUS_TEXT[code] || '';
+
+    // ============================================================================
     // Index optimisé pour recherche rapide
     // ============================================================================
 
-    // Index pour recherche exacte O(1)
     const mockIndexExact: Map<string, TuelloRecord> = new Map();
-    // Index par suffixe (derniers 3 segments)
     const mockIndexSuffix: Map<string, NormalizedRecord[]> = new Map();
-    // Liste des mocks avec wildcards
     let mockWildcardRecords: NormalizedRecord[] = [];
-    // Cache LRU des recherches récentes
     const CACHE_MAX_SIZE = 500;
     const mockSearchCache: Map<string, TuelloRecord | null> = new Map();
-    const mockSearchCacheOrder: string[] = [];
+
+    // Cache des regex compilées (évite la recompilation à chaque requête)
+    const regexCache = new Map<string, RegExp>();
+    const REGEX_CACHE_MAX_SIZE = 1000;
+
+    const getCachedRegex = (pattern: string): RegExp => {
+      let regex = regexCache.get(pattern);
+      if (!regex) {
+        if (regexCache.size >= REGEX_CACHE_MAX_SIZE) {
+          const oldest = regexCache.keys().next().value;
+          if (oldest !== undefined) regexCache.delete(oldest);
+        }
+        const escaped = pattern.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
+        regex = new RegExp(`^${escaped}$`);
+        regexCache.set(pattern, regex);
+      }
+      return regex;
+    };
 
     // ============================================================================
     // Utilitaires
     // ============================================================================
 
-    function removeURLPortAndProtocol(url: string): string {
-      let ret = '';
+    // Clone la réponse du mock pour éviter que l'application consommatrice ne mute
+    // l'objet stocké dans le record (sinon les appels suivants renvoient la version modifiée).
+    const cloneMockResponse = (response: unknown): unknown => {
+      if (response === null || response === undefined) return response;
       try {
-        let parseURL = new URL(url);
-        parseURL.port = '';
-        ret = parseURL.toString();
-        ret = ret.replace(/^https?:\/\//, '');
-      } catch (e) {
-        ret = url;
+        return structuredClone(response);
+      } catch {
+        try {
+          return JSON.parse(JSON.stringify(response));
+        } catch {
+          return response;
+        }
       }
-      return ret;
-    }
+    };
+
+    // Extrait l'URL d'un input fetch qui peut être une string, un URL ou un Request.
+    const extractFetchUrl = (input: unknown): string => {
+      if (typeof input === 'string') return input;
+      if (input instanceof URL) return input.href;
+      if (input instanceof Request) return input.url;
+      return '';
+    };
+
+    // Fusionne les headers par défaut avec ceux du record en normalisant la casse
+    // (sinon on peut se retrouver avec "Content-Type" et "content-type" dupliqués).
+    const buildMockHeaders = (responseBody: string, recordHeaders?: Record<string, string>): Record<string, string> => {
+      const headers: Record<string, string> = {
+        'content-type': 'application/json',
+        'content-length': new TextEncoder().encode(responseBody).length.toString()
+      };
+      if (recordHeaders) {
+        for (const [key, value] of Object.entries(recordHeaders)) {
+          headers[key.toLowerCase()] = value;
+        }
+      }
+      return headers;
+    };
+
+    const resolveRelativeUrl = (url: string): string => {
+      if (url.match(/^https?:\/\//)) {
+        return url;
+      }
+      try {
+        return new URL(url, window.location.href).href;
+      } catch {
+        return url;
+      }
+    };
+
+    const removeURLPortAndProtocol = (url: string): string => {
+      const resolvedUrl = resolveRelativeUrl(url);
+      try {
+        const parseURL = new URL(resolvedUrl);
+        return parseURL.pathname + parseURL.search + parseURL.hash;
+      } catch {
+        return url;
+      }
+    };
 
     const normalizeUrl = (url: string): string => {
       if (!url.includes('..')) {
@@ -71,11 +158,6 @@
       }
 
       return stack.join('/');
-    };
-
-    const sleep = (ms: number): void => {
-      const stop = new Date().getTime() + ms;
-      while (new Date().getTime() < stop) {}
     };
 
     // ============================================================================
@@ -114,7 +196,6 @@
       mockIndexSuffix.clear();
       mockWildcardRecords = [];
       mockSearchCache.clear();
-      mockSearchCacheOrder.length = 0;
 
       for (const record of records) {
         const { normalized, segments } = normalizeUrlForIndex(record.key);
@@ -133,7 +214,6 @@
           mockIndexExact.set(normalized, record);
         }
 
-        // Index par suffixe (1, 2 et 3 derniers segments)
         for (let i = 1; i <= Math.min(3, segments.length); i++) {
           const suffixKey = getSuffixKey(segments, i);
           if (!mockIndexSuffix.has(suffixKey)) {
@@ -145,28 +225,21 @@
     };
 
     // ============================================================================
-    // Cache LRU
+    // Cache LRU (basé sur l'ordre d'insertion de Map, O(1))
     // ============================================================================
 
     const addToCache = (key: string, result: TuelloRecord | null): void => {
       if (mockSearchCache.has(key)) {
-        const idx = mockSearchCacheOrder.indexOf(key);
-        if (idx > -1) {
-          mockSearchCacheOrder.splice(idx, 1);
-        }
-      } else if (mockSearchCacheOrder.length >= CACHE_MAX_SIZE) {
-        const oldest = mockSearchCacheOrder.shift();
-        if (oldest) {
-          mockSearchCache.delete(oldest);
-        }
+        mockSearchCache.delete(key); // Réinsérer en fin (plus récent)
+      } else if (mockSearchCache.size >= CACHE_MAX_SIZE) {
+        const oldest = mockSearchCache.keys().next().value;
+        if (oldest !== undefined) mockSearchCache.delete(oldest);
       }
-
       mockSearchCache.set(key, result);
-      mockSearchCacheOrder.push(key);
     };
 
     // ============================================================================
-    // Comparaison avec support suffixe et wildcards
+    // Comparaison avec support suffixe et wildcards (fallback)
     // ============================================================================
 
     const compareWithMockLevel = (url1: string, url2: string): boolean => {
@@ -190,14 +263,10 @@
       normalizedUrl1 = normalizeUrl(normalizedUrl1.replace(/^\//, ''));
       normalizedUrl2 = normalizeUrl(normalizedUrl2.replace(/^\//, ''));
 
-      // Comparaison exacte avec support des wildcards (*)
-      const escapedUrl2 = normalizedUrl2.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-
-      if (new RegExp(`^${escapedUrl2}$`).test(normalizedUrl1)) {
+      if (getCachedRegex(normalizedUrl2).test(normalizedUrl1)) {
         return true;
       }
 
-      // Comparaison par suffixe : l'URL actuelle peut avoir moins de segments
       const segments1 = normalizedUrl1.split('/').filter((s) => s);
       const segments2 = normalizedUrl2.split('/').filter((s) => s);
 
@@ -206,8 +275,7 @@
         return segments1.every((seg, i) => {
           const mockSeg = mockSuffix[i];
           if (mockSeg.includes('*')) {
-            const pattern = mockSeg.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-            return new RegExp(`^${pattern}$`).test(seg);
+            return getCachedRegex(mockSeg).test(seg);
           }
           return seg === mockSeg;
         });
@@ -224,20 +292,17 @@
       const { normalized, segments } = normalizeUrlForIndex(url);
       const cacheKey = normalized;
 
-      // 1. Vérifier le cache
       if (mockSearchCache.has(cacheKey)) {
         const cached = mockSearchCache.get(cacheKey);
         return cached ?? undefined;
       }
 
-      // 2. Recherche exacte O(1)
       const exactMatch = mockIndexExact.get(normalized);
       if (exactMatch) {
         addToCache(cacheKey, exactMatch);
         return exactMatch;
       }
 
-      // 3. Recherche par suffixe
       for (let i = Math.min(3, segments.length); i >= 1; i--) {
         const suffixKey = getSuffixKey(segments, i);
         const candidates = mockIndexSuffix.get(suffixKey);
@@ -249,8 +314,7 @@
               const isMatch = segments.every((seg, idx) => {
                 const mockSeg = mockSuffix[idx];
                 if (mockSeg.includes('*')) {
-                  const pattern = mockSeg.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-                  return new RegExp(`^${pattern}$`).test(seg);
+                  return getCachedRegex(mockSeg).test(seg);
                 }
                 return seg === mockSeg;
               });
@@ -264,218 +328,141 @@
         }
       }
 
-      // 4. Vérifier les wildcards
       for (const wildcardRecord of mockWildcardRecords) {
-        const escapedPattern = wildcardRecord.normalizedKey.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-
-        if (new RegExp(`^${escapedPattern}$`).test(normalized)) {
+        if (getCachedRegex(wildcardRecord.normalizedKey).test(normalized)) {
           addToCache(cacheKey, wildcardRecord.record);
           return wildcardRecord.record;
         }
-
-        if (wildcardRecord.segments.length > segments.length) {
-          const mockSuffix = wildcardRecord.segments.slice(-segments.length);
-          const isMatch = segments.every((seg, idx) => {
-            const mockSeg = mockSuffix[idx];
-            if (mockSeg.includes('*')) {
-              const pattern = mockSeg.replace(/[.+?^=!:${}()|[\]\\/]/g, '\\$&').replace(/\*/g, '.*');
-              return new RegExp(`^${pattern}$`).test(seg);
-            }
-            return seg === mockSeg;
-          });
-
-          if (isMatch) {
-            addToCache(cacheKey, wildcardRecord.record);
-            return wildcardRecord.record;
-          }
-        }
       }
 
-      // Pas de match trouvé
       addToCache(cacheKey, null);
       return undefined;
     };
-
-    // ============================================================================
-    // Fonction de recherche principale
-    // ============================================================================
 
     const findMockRecord = (url: string): TuelloRecord | undefined => {
       const records = window['tuelloRecords'] as TuelloRecord[] | string | undefined;
       if (!records || typeof records === 'string') return undefined;
 
-      // Utiliser la recherche optimisée si l'index est disponible
       if (mockIndexExact.size > 0 || mockWildcardRecords.length > 0) {
         return findMockRecordOptimized(url);
       }
 
-      // Fallback sur la recherche linéaire
       return records.find(({ key }) => compareWithMockLevel(url, key));
     };
+
+    // ============================================================================
+    // Construction de la Response mockée (fetch)
+    // ============================================================================
+
+    const createMockedResponse = (record: TuelloRecord): Response => {
+      const body = JSON.stringify(record.response);
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(body));
+          controller.close();
+        }
+      });
+
+      const headers = new Headers();
+      headers.set('Content-Type', 'application/json');
+      headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
+
+      if (record.headers) {
+        Object.entries(record.headers).forEach(([key, value]) => {
+          headers.set(key, value);
+        });
+      }
+
+      return new Response(stream, {
+        headers,
+        status: record.httpCode,
+        statusText: getStatusText(record.httpCode)
+      });
+    };
+
+    // ============================================================================
+    // Sauvegarde des méthodes originales
+    // ============================================================================
+
+    const originalOpen = window.XMLHttpRequest.prototype.open;
+    const originalSend = window.XMLHttpRequest.prototype.send;
+    const originalFetch = window.fetch.bind(window);
 
     // ============================================================================
     // Initialisation de l'index au chargement
     // ============================================================================
 
-    const initIndex = (): void => {
-      const records = window['tuelloRecords'];
-      if (records && typeof records !== 'string' && Array.isArray(records) && records.length > 0) {
-        buildMockIndex(records as TuelloRecord[]);
+    const initialRecords = window['tuelloRecords'] as unknown;
+    if (Array.isArray(initialRecords) && initialRecords.length > 0) {
+      buildMockIndex(initialRecords as TuelloRecord[]);
+    }
+
+    // ============================================================================
+    // Surcharge XMLHttpRequest
+    // ============================================================================
+
+    (window as any).XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, method: string, url: string | URL, ...args: any[]): void {
+      this['originalURL'] = url.toString();
+      this['xhrMethod'] = method;
+      return originalOpen.apply(this, [method, url, ...args] as any);
+    };
+
+    (window as any).XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
+      const url = this['originalURL'] || '';
+      const record = findMockRecord(url);
+
+      if (record) {
+        const responseBody = JSON.stringify(record.response);
+        Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
+        Object.defineProperty(this, 'status', { writable: true, value: record.httpCode });
+        Object.defineProperty(this, 'statusText', { writable: true, value: getStatusText(record.httpCode) });
+        Object.defineProperty(this, 'responseText', { writable: true, value: responseBody });
+        Object.defineProperty(this, 'response', { writable: true, value: cloneMockResponse(record.response) });
+        Object.defineProperty(this, 'responseURL', { writable: true, value: url });
+
+        const mockHeaders = buildMockHeaders(responseBody, record.headers);
+
+        this.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] ?? null;
+        this.getAllResponseHeaders = () =>
+          Object.entries(mockHeaders)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('\r\n');
+
+        setTimeout(() => {
+          this.dispatchEvent(new Event('readystatechange'));
+          this.dispatchEvent(new Event('load'));
+          this.dispatchEvent(new Event('loadend'));
+        }, record.delay || 0);
+        return;
       }
+
+      return originalSend.call(this, body);
     };
 
     // ============================================================================
-    // Mock HTTP
+    // Surcharge Fetch
     // ============================================================================
 
-    let mockHttp = {
-      originalSendXHR: window.XMLHttpRequest.prototype.send,
-      originalOpenXHR: window.XMLHttpRequest.prototype.open,
+    (window as any).fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
+      const url = extractFetchUrl(args[0]);
+      const record = findMockRecord(url);
 
-      modifyResponse: (isOnLoad: boolean = false, xhr: XMLHttpRequest) => {
-        const record = findMockRecord(xhr['originalURL']);
-        if (record) {
-          if (record.delay && isOnLoad) {
-            sleep(record.delay);
-          }
-          const responseBody = JSON.stringify(record.response);
-          Object.defineProperty(xhr, 'response', { writable: true });
-          Object.defineProperty(xhr, 'responseText', { writable: true });
-          Object.defineProperty(xhr, 'status', { writable: true });
-          // @ts-expect-error
-          xhr.responseText = responseBody;
-          // @ts-expect-error
-          xhr.response = record.response;
-          // @ts-expect-error
-          xhr.status = record.httpCode;
-
-          // Simuler les headers avec les headers enregistrés du record
-          const mockHeaders: Record<string, string> = {
-            'content-type': 'application/json',
-            'content-length': new TextEncoder().encode(responseBody).length.toString(),
-            ...record.headers
-          };
-
-          xhr.getResponseHeader = (name: string) => {
-            const lowerName = name.toLowerCase();
-            const key = Object.keys(mockHeaders).find((k) => k.toLowerCase() === lowerName);
-            return key ? mockHeaders[key] : null;
-          };
-          xhr.getAllResponseHeaders = () =>
-            Object.entries(mockHeaders)
-              .map(([key, value]) => `${key}: ${value}`)
-              .join('\r\n');
+      if (record) {
+        if (record.delay) {
+          await new Promise((resolve) => setTimeout(resolve, record.delay));
         }
-      },
+        return createMockedResponse(record);
+      }
 
-      sendXHR: function (this: XMLHttpRequest) {
-        const self = this;
-        const realOnReadyStateChange = self.onreadystatechange;
-
-        self.onreadystatechange = function () {
-          if (self.readyState === 4) {
-            mockHttp.modifyResponse(false, self);
-          }
-
-          if (realOnReadyStateChange) {
-            realOnReadyStateChange.apply(this, arguments as any);
-          }
-        };
-        return mockHttp.originalSendXHR.apply(this, arguments as any);
-      },
-
-      openXHR: function (method, url) {
-        // Permet de palier le problème de CORS : on bascule sur le même serveur
-        try {
-          const urlObj = new URL(url);
-          urlObj.port = '';
-          urlObj.password = '';
-          urlObj.username = '';
-          const currentURL = new URL(window.location.href);
-          url = urlObj.toString().replace(urlObj.origin, currentURL.origin);
-        } catch (e) {
-          // ignore
-        }
-
-        this['originalURL'] = url;
-        return mockHttp.originalOpenXHR.apply(this, arguments as any);
-      },
-
-      originalFetch: window.fetch.bind(window),
-      mockFetch: function (...args) {
-        return mockHttp.originalFetch(...args).then((response) => {
-          const record = findMockRecord(args[0]);
-
-          if (record) {
-            if (record.delay) {
-              sleep(record.delay);
-            }
-
-            const body = JSON.stringify(record.response);
-            const stream = new ReadableStream({
-              start(controller) {
-                controller.enqueue(new TextEncoder().encode(body));
-                controller.close();
-              }
-            });
-
-            // Créer les headers avec des valeurs par défaut
-            const headers = new Headers();
-            headers.set('Content-Type', 'application/json');
-            headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
-
-            // Ajouter les headers enregistrés du record (ils écrasent les valeurs par défaut)
-            if (record.headers) {
-              Object.entries(record.headers).forEach(([key, value]) => {
-                headers.set(key, value);
-              });
-            }
-
-            const newResponse = new Response(stream, {
-              headers,
-              status: record.httpCode,
-              statusText: record.httpCode === 200 ? 'OK' : 'Error'
-            });
-
-            const proxy = new Proxy(newResponse, {
-              get: function (target, name) {
-                switch (name) {
-                  case 'ok':
-                  case 'redirected':
-                  case 'type':
-                  case 'url':
-                  case 'useFinalURL':
-                  case 'body':
-                  case 'bodyUsed':
-                    return response[name];
-                }
-                return target[name];
-              }
-            });
-
-            for (let key in proxy) {
-              if (typeof proxy[key] === 'function') {
-                proxy[key] = proxy[key].bind(newResponse);
-              }
-            }
-
-            return proxy;
-          }
-
-          return response;
+      try {
+        return await originalFetch(...args);
+      } catch (error) {
+        return new Response(JSON.stringify({ error: 'Request failed (CORS)', url }), {
+          status: 404,
+          statusText: 'Not Found',
+          headers: { 'Content-Type': 'application/json' }
         });
       }
     };
-
-    // ============================================================================
-    // Activation
-    // ============================================================================
-
-    // Construire l'index au chargement
-    initIndex();
-
-    (window as any).XMLHttpRequest.prototype.open = mockHttp.openXHR;
-    (window as any).XMLHttpRequest.prototype.send = mockHttp.sendXHR;
-    (window as any).fetch = mockHttp.mockFetch;
   }
 })['tuello']();

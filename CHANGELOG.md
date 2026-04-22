@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.16.0] - 2026-04-23
+
+    - Export "Lib" (exportTuelloTemplate) : mise à niveau complète alignée sur le moteur de mock HTTP de l'extension
+
 ## [1.2.15.0] - 2026-04-22
 
     - Mock HTTP : clonage de la réponse mockée pour éviter que l'application consommatrice mute l'objet stocké dans le record (corrige le cas où revenir sur un écran renvoyait une version modifiée au lieu du mock d'origine)
