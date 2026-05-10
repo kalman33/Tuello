@@ -71,6 +71,10 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   // Indices des doublons
   private duplicateIndices = new Set<number>();
 
+  // Observer pour personnaliser les labels des nœuds collapsés
+  private customLabelObserver: MutationObserver | null = null;
+  private labelDebounceId: ReturnType<typeof setTimeout> | null = null;
+
   /**
    * Retourne le handler onClassName. Utilise une arrow function pour capturer `this`.
    */
@@ -141,6 +145,12 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     // Nettoyage du timeout de debounce
     if (this.debounceTimeoutId) {
       clearTimeout(this.debounceTimeoutId);
+    }
+    if (this.customLabelObserver) {
+      this.customLabelObserver.disconnect();
+    }
+    if (this.labelDebounceId) {
+      clearTimeout(this.labelDebounceId);
     }
     if (this.jsonEditorTree) {
       this.jsonEditorTree.destroy();
@@ -317,6 +327,8 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       this.jsonEditorTree.update({ json: [] });
       this.ref.detectChanges();
     }
+
+    this.setupCollapsedLabelsObserver();
   }
 
   /**
@@ -408,6 +420,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   async updateData() {
     const jsonData = this.jsonEditorTree.get() as JSONContent;
     if (jsonData.json) {
+      this.records = jsonData.json;
       // Détecter les doublons après modification
       this.detectDuplicates(jsonData.json);
       // Force un re-render complet pour que onClassName soit rappelé sur tous les éléments
@@ -440,6 +453,88 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     this.jsonEditorTree.updateProps({ onClassName: this.onClassNameHandler });
     // Forcer le refresh pour que les classes soient recalculées
     this.jsonEditorTree.refresh();
+  }
+
+  /**
+   * Met en place un MutationObserver pour remplacer le texte "N props" des nœuds
+   * collapsés de niveau 1 (éléments directs du tableau racine) par l'index et l'URL
+   * abrégée : ex. "4\n(.../api/books)"
+   */
+  private setupCollapsedLabelsObserver() {
+    const container = document.getElementById('jsonEditorTree');
+    if (!container) return;
+
+    if (this.customLabelObserver) {
+      this.customLabelObserver.disconnect();
+    }
+
+    this.customLabelObserver = new MutationObserver(() => {
+      if (this.labelDebounceId) clearTimeout(this.labelDebounceId);
+      this.labelDebounceId = setTimeout(() => {
+        this.updateCollapsedLabels();
+        this.labelDebounceId = null;
+      }, 60);
+    });
+
+    this.customLabelObserver.observe(container, { childList: true, subtree: true });
+    this.updateCollapsedLabels();
+  }
+
+  /**
+   * Parcourt les boutons "N props" visibles dans le JSON editor et remplace leur
+   * texte par "INDEX\n(URL abrégée)" pour les éléments de niveau 1 (racine).
+   */
+  private updateCollapsedLabels() {
+    if (!this.records || !Array.isArray(this.records)) return;
+
+    const container = document.getElementById('jsonEditorTree');
+    if (!container) return;
+
+    const metaButtons = container.querySelectorAll<HTMLButtonElement>('.jse-meta button');
+    metaButtons.forEach((button) => {
+      const nodeEl = button.closest<HTMLElement>('.jse-json-node');
+      if (!nodeEl) return;
+
+      // --level est posé en style inline par vanilla-jsoneditor (pas besoin de getComputedStyle)
+      if (parseInt(nodeEl.style.getPropertyValue('--level'), 10) !== 1) return;
+
+      const indexEl = nodeEl.querySelector<HTMLElement>('.jse-index');
+      if (!indexEl) return;
+
+      const index = parseInt(indexEl.textContent?.trim() ?? '', 10);
+      if (isNaN(index) || index < 0 || index >= this.records.length) return;
+
+      const record = this.records[index];
+      if (!record?.key) return;
+
+      const label = this.formatKeyLabel(record.key);
+      // Guard : évite de déclencher une mutation DOM (et donc une boucle infinie)
+      // si le texte est déjà correct
+      if (button.textContent !== label) {
+        button.textContent = label;
+      }
+    });
+  }
+
+  /**
+   * Extrait les deux derniers segments du chemin d'une URL et les préfixe par "...".
+   * Ex: "http://localhost:3000/api/books" → ".../api/books"
+   *     "http://example.com/api/v1/items" → ".../v1/items"
+   */
+  private formatKeyLabel(key: string): string {
+    try {
+      const cleanKey = key.replace(/^###window\.location\.origin###\s*/, '');
+      const fullKey = cleanKey.startsWith('http') ? cleanKey : `http://x${cleanKey}`;
+      const pathname = new URL(fullKey).pathname;
+      const segments = pathname.split('/').filter((s) => s.length > 0);
+      if (segments.length === 0) return '...';
+      if (segments.length <= 2) return `.../${segments.join('/')}`;
+      return `.../${segments.slice(-2).join('/')}`;
+    } catch {
+      const parts = key.split('/').filter((s) => s.length > 0);
+      if (parts.length <= 2) return `.../${parts.join('/')}`;
+      return `.../${parts.slice(-2).join('/')}`;
+    }
   }
 
   save() {
