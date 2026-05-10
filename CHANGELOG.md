@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.17.0] - 2026-05-10
+
+    - Recorder HTTP : affichage de la key dans la liste des enregistrements
+
 ## [1.2.16.0] - 2026-04-23
 
     - Export "Lib" (exportTuelloTemplate) : mise à niveau complète alignée sur le moteur de mock HTTP de l'extension
