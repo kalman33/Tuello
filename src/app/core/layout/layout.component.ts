@@ -13,7 +13,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
-import { TranslatePipe } from "@ngx-translate/core";
+import { TranslatePipe } from '@ngx-translate/core';
 import { fadeInAnimation } from '../animations/fadeInAnimation';
 import { routeAnimations } from '../animations/route.animations';
 import { slideInMenuAnimation } from '../animations/slideInMenuAnimation';
@@ -22,13 +22,13 @@ import { ChromeExtentionUtilsService } from '../utils/chrome-extention-utils.ser
 import { RateSupportComponent } from './rate-support/rate-support.component';
 
 @Component({
-    selector: 'mmn-layout',
-    templateUrl: './layout.component.html',
-    styleUrls: ['./layout.component.scss'],
-    encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation],
-    imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe, MatTooltip]
+  selector: 'mmn-layout',
+  templateUrl: './layout.component.html',
+  styleUrls: ['./layout.component.scss'],
+  encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [routeAnimations, fadeInAnimation, slideInMenuAnimation],
+  imports: [MatToolbar, NgClass, ExtendedModule, MatSlideToggle, MatIconButton, MatIcon, MatSidenavContainer, MatSidenav, MatNavList, MatListItem, RouterLink, MatLine, MatButton, MatSidenavContent, RouterOutlet, TranslatePipe, MatTooltip]
 })
 export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   isOpen = false;
@@ -55,7 +55,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    chrome.storage.local.get(['settings', 'selectedMenu', 'tuelloDockedLeft'], results => {
+    chrome.storage.local.get(['settings', 'selectedMenu', 'tuelloDockedLeft'], (results) => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }
@@ -70,9 +70,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
 
     // Écouter les changements de route pour désactiver l'aide sur certaines pages
     this.updateHelpAvailability(this.router.url);
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: NavigationEnd) => {
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event: NavigationEnd) => {
       this.updateHelpAvailability(event.url);
       this.changeDetectorRef.detectChanges();
     });
@@ -84,7 +82,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   private updateHelpAvailability(url: string): void {
     // Pages sans guide interactif
     const pagesWithoutHelp = ['/settings'];
-    this.helpAvailable = !pagesWithoutHelp.some(page => url.startsWith(page));
+    this.helpAvailable = !pagesWithoutHelp.some((page) => url.startsWith(page));
   }
 
   ngAfterViewInit(): void {
@@ -96,15 +94,24 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
    * Permet de fermer le plugin
    */
   close() {
-    // this.router.navigate(['/spy/results']);
-    chrome.tabs.getCurrent(tab => {
-      chrome.tabs.sendMessage(tab.id, 'toggle', {
-        frameId: 0
-      }, ()=>{});
+    if (this.chromeExtentionUtilsService.isStandaloneTab) {
+      window.close();
+      return;
+    }
+    chrome.tabs.getCurrent((tab) => {
+      chrome.tabs.sendMessage(
+        tab.id,
+        'toggle',
+        {
+          frameId: 0
+        },
+        () => {}
+      );
     });
   }
 
   animationDone($event) {
+    if ($event.toState !== 'active') return;
     this.displayTitle = true;
     let letterCount = 1;
 
@@ -123,19 +130,30 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
     if (this.activate) {
       chrome.storage.local.set({ disabled: true });
       // on previent background
-      chrome.runtime.sendMessage({
-        action: 'updateIcon',
-        value: 'tuello-stop-32x32.png'
-      }, ()=> {});
-      chrome.tabs.getCurrent(tab => {
-        chrome.tabs.sendMessage(tab.id, 'toggle', {
-          frameId: 0
-        }, ()=>{});
+      chrome.runtime.sendMessage(
+        {
+          action: 'updateIcon',
+          value: 'tuello-stop-32x32.png'
+        },
+        () => {}
+      );
+      chrome.tabs.getCurrent((tab) => {
+        chrome.tabs.sendMessage(
+          tab.id,
+          'toggle',
+          {
+            frameId: 0
+          },
+          () => {}
+        );
       });
       // on previent background
-      chrome.runtime.sendMessage({
-        action: 'DEACTIVATE',
-      }, ()=> {});
+      chrome.runtime.sendMessage(
+        {
+          action: 'DEACTIVATE'
+        },
+        () => {}
+      );
       e.source.checked = true;
       this.activate = true;
     } else {
@@ -143,9 +161,9 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
       this.activate = !this.activate;
     }
   }
-  
+
   openSideNav() {
-    chrome.storage.local.get(['settings', 'selectedMenu'], results => {
+    chrome.storage.local.get(['settings', 'selectedMenu'], (results) => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }
@@ -162,8 +180,11 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   // Fonction pour gérer la sélection d'un élément
   selectMenuItem(index: number): void {
     this.selectedIndex = index;
-    chrome.storage.local.set({ selectedMenu : index});
-   
+    chrome.storage.local.set({ selectedMenu: index });
+  }
+
+  openMosaic() {
+    chrome.tabs.create({ url: chrome.runtime.getURL('mosaic/mosaic.html') });
   }
 
   openRateSupport() {
@@ -195,12 +216,17 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
     chrome.storage.local.set({ tuelloDockedLeft: this.dockedLeft });
 
     // Envoyer un message au content script pour changer la position
-    chrome.tabs.getCurrent(tab => {
+    chrome.tabs.getCurrent((tab) => {
       if (tab?.id) {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'TOGGLE_DOCK_POSITION',
-          value: this.dockedLeft
-        }, { frameId: 0 }, () => {});
+        chrome.tabs.sendMessage(
+          tab.id,
+          {
+            action: 'TOGGLE_DOCK_POSITION',
+            value: this.dockedLeft
+          },
+          { frameId: 0 },
+          () => {}
+        );
       }
     });
 

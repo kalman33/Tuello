@@ -2,13 +2,7 @@ import { Injectable, ApplicationRef, ComponentRef, createComponent, EnvironmentI
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable } from 'rxjs';
-import {
-  GuideTourState,
-  GuideTour,
-  GuideTourStep,
-  GUIDE_TOURS,
-  WelcomeDialogResult
-} from './guide-tour.models';
+import { GuideTourState, GuideTour, GuideTourStep, GUIDE_TOURS, WelcomeDialogResult } from './guide-tour.models';
 import { WelcomeDialogComponent } from './welcome-dialog/welcome-dialog.component';
 import { GuideStepComponent } from './guide-step/guide-step.component';
 
@@ -97,14 +91,14 @@ export class GuideTourService {
    * Délai utilitaire
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
    * Démarre un tour spécifique
    */
   async startTour(tourId: string): Promise<void> {
-    const tour = GUIDE_TOURS.find(t => t.id === tourId);
+    const tour = GUIDE_TOURS.find((t) => t.id === tourId);
     if (!tour) {
       console.warn(`Tour "${tourId}" non trouvé`);
       return;
@@ -246,6 +240,8 @@ export class GuideTourService {
       return 'search';
     } else if (route.includes('/json-formatter')) {
       return 'json';
+    } else if (route.includes('/mosaic')) {
+      return 'mosaic';
     }
     return null;
   }
@@ -262,7 +258,7 @@ export class GuideTourService {
     if (!tour) return;
 
     // Attendre que l'élément soit disponible avec retry
-    this.waitForElement(step.targetSelector, 10, 100).then(targetElement => {
+    this.waitForElement(step.targetSelector, 10, 100).then((targetElement) => {
       if (!targetElement) {
         console.warn(`Élément cible "${step.targetSelector}" non trouvé après plusieurs tentatives`);
         return;
@@ -329,7 +325,7 @@ export class GuideTourService {
     }
 
     // Retirer la classe de surlignage de tous les éléments
-    document.querySelectorAll('.guide-highlighted').forEach(el => {
+    document.querySelectorAll('.guide-highlighted').forEach((el) => {
       el.classList.remove('guide-highlighted');
     });
   }

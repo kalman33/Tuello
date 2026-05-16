@@ -1,0 +1,32 @@
+.grid-container {
+  min-height: 200px;
+}
+
+.tiles-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 8px 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #9e9e9e;
+
+  .empty-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+  }
+
+  p {
+    font-size: 14px;
+  }
+}

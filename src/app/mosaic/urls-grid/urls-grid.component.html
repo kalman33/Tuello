@@ -1,0 +1,14 @@
+<div class="grid-container">
+  @if (urls.length === 0) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">link</mat-icon>
+      <p>{{ 'mmn.mosaic.empty.urls' | translate }}</p>
+    </div>
+  } @else {
+    <div cdkDropList cdkDropListOrientation="mixed" class="tiles-list" (cdkDropListDropped)="drop($event)">
+      @for (url of displayUrls; track url.id) {
+        <mmn-mosaic-tile cdkDrag [item]="url" type="url" [editable]="false"></mmn-mosaic-tile>
+      }
+    </div>
+  }
+</div>

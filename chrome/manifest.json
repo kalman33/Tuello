@@ -21,7 +21,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["comment.css", "default.css", "tags.css", "simptip.min.css", "httpmanager.js", "index.html"],
+      "resources": ["comment.css", "default.css", "tags.css", "simptip.min.css", "httpmanager.js", "index.html", "mosaic.html"],
       "matches": ["<all_urls>"]
     }
   ],

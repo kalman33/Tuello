@@ -1,0 +1,19 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.mosaic-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+  background: #f5f5f5;
+}
+
+:host-context(.black-theme) {
+  .mosaic-content {
+    background: #303030;
+  }
+}

@@ -235,23 +235,9 @@ a.mat-mdc-list-item [mat-line] {
   font-weight: bolder;
   font-family: system-ui;
   letter-spacing: 0.3em;
-  overflow: hidden; /* Ensures the content is not revealed until the animation */
-  border-right: 0.15em solid orange; /* The typwriter cursor */
-  white-space: nowrap; /* Keeps the content on a single line */
-  margin: 0 auto; /* Gives that scrolling effect as the typing happens */
-  animation:
-    typing 3.5s steps(40, end),
-    blink-caret 0.75s step-end infinite;
-}
-
-/* The typing effect */
-@keyframes typing {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
+  border-right: 0.15em solid orange; /* curseur typewriter */
+  white-space: nowrap;
+  animation: blink-caret 0.75s step-end infinite;
 }
 
 /* The typewriter cursor effect */
@@ -304,4 +290,33 @@ button#rate mat-icon {
 #rate span::before {
   background-color: transparent !important;
   opacity: 0 !important;
+}
+
+/* =============================================
+   Mode plein écran (onglet standalone)
+   ============================================= */
+.standalone {
+  mat-sidenav {
+    min-width: 240px !important;
+  }
+
+  #push-bottom {
+    position: relative !important;
+    bottom: auto !important;
+    margin-top: 16px;
+    padding: 0 16px !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+    padding-top: 12px !important;
+  }
+
+  button.mat-mdc-raised-button {
+    height: auto !important;
+    line-height: normal !important;
+    padding: 6px 8px !important;
+    white-space: normal !important;
+  }
+
+  .sidenav-content {
+    overflow-y: auto !important;
+  }
 }

@@ -1,4 +1,4 @@
-<div class="navbar-container">
+<div class="navbar-container" [class.standalone]="chromeExtentionUtilsService.isStandaloneTab">
   <!-- Top navbar -->
   <mat-toolbar class="navbar" color="primary" [@fadeInAnimation]="stateFadeAnimation" (@fadeInAnimation.done)="animationDone($event)">
     <div style="cursor: pointer" class="nav-icon" [ngClass]="{ open: isOpen }" (click)="snav.toggle(); isOpen = !isOpen; openSideNav()">
@@ -10,7 +10,9 @@
     <div class="navbar-title">
       <span class="navbar-spacer">{{ title }}</span>
     </div>
-    <mat-slide-toggle [checked]="activate" class="toggle-slide darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
+    @if (!chromeExtentionUtilsService.isStandaloneTab) {
+      <mat-slide-toggle [checked]="activate" class="toggle-slide darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
+    }
 
     <button
       mat-icon-button
@@ -25,11 +27,18 @@
       <mat-icon>help_outline</mat-icon>
     </button>
 
-    @if (!this.chromeExtentionUtilsService.devtoolsOpened) {
+    <button mat-icon-button color="basic" class="toolbar-action" (click)="openMosaic()" [matTooltip]="'mmn.layout.mosaic.tooltip' | translate" aria-label="Ouvrir la mosaïque">
+      <mat-icon>grid_view</mat-icon>
+    </button>
+
+    @if (!this.chromeExtentionUtilsService.devtoolsOpened && !this.chromeExtentionUtilsService.isStandaloneTab) {
       <button mat-icon-button color="basic" class="toolbar-action" (click)="toggleDockPosition()" [matTooltip]="'mmn.layout.dock.tooltip' | translate" aria-label="Changer position">
         <mat-icon>{{ dockedLeft ? 'chevron_right' : 'chevron_left' }}</mat-icon>
       </button>
       <button class="toolbar-action" mat-icon-button color="basic" (click)="close()" aria-label="Fermer"><mat-icon>close</mat-icon></button>
+    }
+    @if (this.chromeExtentionUtilsService.isStandaloneTab) {
+      <button class="toolbar-action" mat-icon-button color="basic" (click)="close()" [matTooltip]="'mmn.layout.close.tooltip' | translate" aria-label="Fermer l'onglet"><mat-icon>close</mat-icon></button>
     }
   </mat-toolbar>
 
@@ -67,6 +76,11 @@
         <a [class.selected]="selectedIndex === 5" (click)="selectMenuItem(5)" mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon> settings </mat-icon>
           <span mat-line> {{ 'mmn.layout.settings' | translate }} </span>
+        </a>
+
+        <a [class.selected]="selectedIndex === 6" (click)="selectMenuItem(6)" mat-list-item [routerLink]="['/mosaic']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon> grid_view </mat-icon>
+          <span mat-line> {{ 'mmn.layout.mosaic' | translate }} </span>
         </a>
 
         <div id="push-bottom">

@@ -238,6 +238,44 @@ export const GUIDE_TOURS: GuideTour[] = [
         order: 3
       }
     ]
+  },
+  {
+    id: 'mosaic',
+    titleKey: 'mmn.guide.mosaic.title',
+    steps: [
+      {
+        id: 'mosaic-startup',
+        targetSelector: '#guide-mosaic-startup',
+        titleKey: 'mmn.guide.mosaic.step1.title',
+        contentKey: 'mmn.guide.mosaic.step1.content',
+        position: 'bottom',
+        order: 1
+      },
+      {
+        id: 'mosaic-actions',
+        targetSelector: '#guide-mosaic-actions',
+        titleKey: 'mmn.guide.mosaic.step2.title',
+        contentKey: 'mmn.guide.mosaic.step2.content',
+        position: 'bottom',
+        order: 2
+      },
+      {
+        id: 'mosaic-sites',
+        targetSelector: '#guide-mosaic-sites',
+        titleKey: 'mmn.guide.mosaic.step3.title',
+        contentKey: 'mmn.guide.mosaic.step3.content',
+        position: 'bottom',
+        order: 3
+      },
+      {
+        id: 'mosaic-categories',
+        targetSelector: '#guide-mosaic-categories',
+        titleKey: 'mmn.guide.mosaic.step4.title',
+        contentKey: 'mmn.guide.mosaic.step4.content',
+        position: 'top',
+        order: 4
+      }
+    ]
   }
 ];
 

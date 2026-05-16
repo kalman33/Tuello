@@ -3,28 +3,31 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: 'recorder',
-    loadChildren: () => import('./recorder-http/recorder-http-routes').then(m => m.routes)
-
+    loadChildren: () => import('./recorder-http/recorder-http-routes').then((m) => m.routes)
   },
   {
     path: 'settings',
-    loadChildren: () => import('./settings/settings-routes').then(m => m.routes)
+    loadChildren: () => import('./settings/settings-routes').then((m) => m.routes)
   },
   {
     path: 'json-formatter',
-    loadChildren: () => import('./json-formatter/json-formatter-routes').then(m => m.routes)
+    loadChildren: () => import('./json-formatter/json-formatter-routes').then((m) => m.routes)
   },
   {
     path: 'spy',
-    loadChildren: () => import('./spy-http/spy-http-routes').then(m => m.routes)
+    loadChildren: () => import('./spy-http/spy-http-routes').then((m) => m.routes)
   },
   {
     path: 'track',
-    loadChildren: () => import('./track/track-routes').then(m => m.routes)
+    loadChildren: () => import('./track/track-routes').then((m) => m.routes)
   },
   {
     path: 'search',
-    loadChildren: () => import('./search-elements/search-elements-routes').then(m => m.routes)
+    loadChildren: () => import('./search-elements/search-elements-routes').then((m) => m.routes)
+  },
+  {
+    path: 'mosaic',
+    loadChildren: () => import('./mosaic-manager/mosaic-manager-routes').then((m) => m.routes)
   },
   {
     path: '**',
@@ -32,4 +35,3 @@ export const routes: Routes = [
     pathMatch: 'full'
   }
 ];
-

@@ -73,6 +73,14 @@ chrome.runtime.onInstalled.addListener(() => {
   init();
 });
 
+chrome.runtime.onStartup.addListener(async () => {
+  const result = await chrome.storage.local.get(['mosaicConfig']);
+  const config = result['mosaicConfig'];
+  if (config?.openOnStartup) {
+    chrome.tabs.create({ url: chrome.runtime.getURL('mosaic/mosaic.html') });
+  }
+});
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'sel') {
     chrome.tabs.sendMessage(
@@ -769,6 +777,40 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       break;
     case 'RECORD_USER_ACTION_DELETE':
       deleteRecord().then(() => senderResponse());
+      return true;
+    case 'MOSAIC_OPEN_AND_CAPTURE':
+      (async () => {
+        const { url, urlId, mosaicTabId } = msg;
+        let createdTabId: number | null = null;
+        try {
+          const createdTab = await chrome.tabs.create({ url, active: true });
+          createdTabId = createdTab.id;
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              chrome.tabs.onUpdated.removeListener(listener);
+              reject(new Error('Timeout'));
+            }, 12000);
+            const listener = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+              if (tabId === createdTabId && changeInfo.status === 'complete') {
+                clearTimeout(timeout);
+                chrome.tabs.onUpdated.removeListener(listener);
+                resolve();
+              }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+          });
+          const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'jpeg', quality: 70 });
+          await chrome.storage.local.set({ [`mosaic_screenshot_${urlId}`]: dataUrl });
+          await chrome.tabs.remove(createdTabId);
+          await chrome.tabs.update(mosaicTabId, { active: true });
+          chrome.tabs.sendMessage(mosaicTabId, { action: 'MOSAIC_SCREENSHOT_CAPTURED', urlId, success: true }, () => {});
+          senderResponse({ success: true });
+        } catch (e) {
+          if (createdTabId) chrome.tabs.remove(createdTabId).catch(() => {});
+          chrome.tabs.sendMessage(mosaicTabId, { action: 'MOSAIC_SCREENSHOT_CAPTURED', urlId, success: false }, () => {});
+          senderResponse({ success: false });
+        }
+      })();
       return true;
   }
   return true;

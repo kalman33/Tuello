@@ -1,0 +1,15 @@
+<mat-toolbar>
+  @if (showBack) {
+    <button mat-icon-button [matTooltip]="'mmn.mosaic.back' | translate" (click)="backClick.emit()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+  }
+
+  <span class="toolbar-title">
+    <mat-icon class="logo-icon">grid_view</mat-icon>
+    Mosaic
+    @if (showBack && categoryName) {
+      <span class="breadcrumb">/ {{ categoryName }}</span>
+    }
+  </span>
+</mat-toolbar>

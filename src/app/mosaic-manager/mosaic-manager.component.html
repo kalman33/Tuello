@@ -1,0 +1,112 @@
+<div class="mosaic-manager">
+  <!-- Actions principales -->
+  <div class="manager-header">
+    <mat-slide-toggle id="guide-mosaic-startup" [checked]="openOnStartup" (change)="toggleStartup($event.checked)" color="accent">
+      {{ 'mmn.mosaic.settings.startup' | translate }}
+    </mat-slide-toggle>
+    <div id="guide-mosaic-actions" class="header-buttons">
+      <button mat-icon-button [matTooltip]="'mmn.mosaic.manager.open' | translate" (click)="openMosaic()">
+        <mat-icon>open_in_new</mat-icon>
+      </button>
+      <button mat-icon-button [matTooltip]="'mmn.mosaic.importexport.title' | translate" (click)="openImportExport()">
+        <mat-icon>import_export</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- URLs directes -->
+  <div id="guide-mosaic-sites" class="section">
+    <div class="section-header">
+      <span class="section-title">{{ 'mmn.mosaic.manager.sites' | translate }}</span>
+      <button mat-icon-button [matTooltip]="'mmn.mosaic.url.add' | translate" (click)="addRootUrl()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+
+    @if (rootUrls.length === 0) {
+      <p class="empty-msg">{{ 'mmn.mosaic.manager.sites.empty' | translate }}</p>
+    } @else {
+      <mat-list>
+        @for (url of rootUrls; track url.id) {
+          <mat-list-item>
+            <mat-icon matListItemIcon>link</mat-icon>
+            <span matListItemTitle>{{ url.title }}</span>
+            <span matListItemLine class="url-line">{{ url.url }}</span>
+            <div matListItemMeta class="item-actions">
+              <button mat-icon-button (click)="editRootUrl(url)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="deleteRootUrl(url.id)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </mat-list-item>
+        }
+      </mat-list>
+    }
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Catégories -->
+  <div id="guide-mosaic-categories" class="section">
+    <div class="section-header">
+      <span class="section-title">{{ 'mmn.mosaic.manager.categories' | translate }}</span>
+      <button mat-icon-button [matTooltip]="'mmn.mosaic.category.add' | translate" (click)="addCategory()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+
+    @if (categories.length === 0) {
+      <p class="empty-msg">{{ 'mmn.mosaic.empty.categories' | translate }}</p>
+    } @else {
+      <mat-accordion>
+        @for (category of categories; track category.id) {
+          <mat-expansion-panel>
+            <mat-expansion-panel-header>
+              <mat-panel-title class="category-header">
+                <mat-icon class="folder-icon">folder</mat-icon>
+                <span class="category-name">{{ category.name }}</span>
+                <span class="url-count">({{ category.urls.length }})</span>
+                <span class="header-spacer"></span>
+                <button mat-icon-button class="header-action" (click)="$event.stopPropagation(); editCategory(category)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button color="warn" class="header-action" (click)="$event.stopPropagation(); deleteCategory(category.id)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <mat-list>
+              @for (url of category.urls; track url.id) {
+                <mat-list-item>
+                  <mat-icon matListItemIcon>link</mat-icon>
+                  <span matListItemTitle>{{ url.title }}</span>
+                  <span matListItemLine class="url-line">{{ url.url }}</span>
+                  <div matListItemMeta class="item-actions">
+                    <button mat-icon-button (click)="editCategoryUrl(category.id, url)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deleteCategoryUrl(category.id, url.id)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </mat-list-item>
+              }
+            </mat-list>
+
+            <div class="add-url-row">
+              <button mat-stroked-button (click)="addUrlToCategory(category.id)">
+                <mat-icon>add</mat-icon>
+                {{ 'mmn.mosaic.url.add' | translate }}
+              </button>
+            </div>
+          </mat-expansion-panel>
+        }
+      </mat-accordion>
+    }
+  </div>
+</div>

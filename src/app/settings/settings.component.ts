@@ -25,276 +25,288 @@ import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
 import { GuideTourService } from '../core/guide-tour/guide-tour.service';
+import { MosaicStorageService } from '../mosaic/services/mosaic-storage.service';
 import { SettingsMenuComponent } from './menus/settings-menu.component';
 
 export interface StorageStats {
-    key: string;
-    originalSize: string;
-    currentSize: string;
-    ratio: number;
-    isCompressed: boolean;
+  key: string;
+  originalSize: string;
+  currentSize: string;
+  ratio: number;
+  isCompressed: boolean;
 }
 
 @Component({
-    selector: 'mmn-settings',
-    templateUrl: './settings.component.html',
-    styleUrls: ['./settings.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [
-        FlexModule,
-        FormsModule,
-        MatTabGroup,
-        MatTab,
-        MatTabLabel,
-        MatIcon,
-        NgClass,
-        MatDialogModule,
-        MatDialogModule,
-        MatButtonModule,
-        ExtendedModule,
-        MatSlideToggle,
-        MatFormField,
-        MatSelect,
-        MatOption,
-        MatSlider,
-        MatSliderThumb,
-        SettingsMenuComponent,
-        MatButton,
-        TranslatePipe
-    ]
+  selector: 'mmn-settings',
+  templateUrl: './settings.component.html',
+  styleUrls: ['./settings.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    FlexModule,
+    FormsModule,
+    MatTabGroup,
+    MatTab,
+    MatTabLabel,
+    MatIcon,
+    NgClass,
+    MatDialogModule,
+    MatDialogModule,
+    MatButtonModule,
+    ExtendedModule,
+    MatSlideToggle,
+    MatFormField,
+    MatSelect,
+    MatOption,
+    MatSlider,
+    MatSliderThumb,
+    SettingsMenuComponent,
+    MatButton,
+    TranslatePipe
+  ]
 })
 export class SettingsComponent implements OnInit {
-    routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
-    darkMode: boolean;
-    deepMockLevel = 0;
-    mouseCoordinates: boolean;
-    desactivate = false;
-    verboseMode: boolean;
-    languages = [
-        { value: 'en', label: 'en' },
-        { value: 'fr', label: 'fr' }
-    ];
+  routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
+  darkMode: boolean;
+  deepMockLevel = 0;
+  mouseCoordinates: boolean;
+  desactivate = false;
+  verboseMode: boolean;
+  languages = [
+    { value: 'en', label: 'en' },
+    { value: 'fr', label: 'fr' }
+  ];
 
-    @ViewChild('fileInput') fileInput: ElementRef;
-    jsonContent;
+  @ViewChild('fileInput') fileInput: ElementRef;
+  jsonContent;
 
-    selectedLanguage;
+  selectedLanguage;
 
-    // Statistiques de compression
-    storageStats: StorageStats[] = [];
-    totalOriginalSize = '';
-    totalCurrentSize = '';
-    totalSaved = '';
+  // Statistiques de compression
+  storageStats: StorageStats[] = [];
+  totalOriginalSize = '';
+  totalCurrentSize = '';
+  totalSaved = '';
 
-    private cdr = inject(ChangeDetectorRef);
+  mosaicOpenOnStartup = false;
 
-    constructor(
-        private themeService: ThemeService,
-        private translate: TranslateService,
-        private snackBar: MatSnackBar,
-        private configurationService: ConfigurationService,
-        private compressionService: CompressionService,
-        private zone: NgZone,
-        private dialog: MatDialog,
-        private guideTourService: GuideTourService
-    ) {}
+  private cdr = inject(ChangeDetectorRef);
+  private mosaicStorageService = inject(MosaicStorageService);
 
-    ngOnInit() {
-        this.init();
-        this.loadCompressionStats();
-    }
+  constructor(
+    private themeService: ThemeService,
+    private translate: TranslateService,
+    private snackBar: MatSnackBar,
+    private configurationService: ConfigurationService,
+    private compressionService: CompressionService,
+    private zone: NgZone,
+    private dialog: MatDialog,
+    private guideTourService: GuideTourService
+  ) {}
 
-    async loadCompressionStats() {
-        try {
-            const stats = await this.compressionService.getStorageStats();
-            this.storageStats = [];
-            let totalOriginal = 0;
-            let totalCurrent = 0;
+  ngOnInit() {
+    this.init();
+    this.loadCompressionStats();
+    this.mosaicStorageService.loadConfig().then((config) => {
+      this.mosaicOpenOnStartup = config.openOnStartup;
+      this.cdr.detectChanges();
+    });
+  }
 
-            stats.forEach((stat, key) => {
-                totalOriginal += stat.originalSize;
-                totalCurrent += stat.currentSize;
-                this.storageStats.push({
-                    key,
-                    originalSize: this.compressionService.formatSize(stat.originalSize),
-                    currentSize: this.compressionService.formatSize(stat.currentSize),
-                    ratio: stat.ratio,
-                    isCompressed: stat.ratio > 0
-                });
-            });
+  toggleMosaicStartup(value: boolean) {
+    this.mosaicStorageService.toggleOpenOnStartup(value);
+  }
 
-            this.totalOriginalSize = this.compressionService.formatSize(totalOriginal);
-            this.totalCurrentSize = this.compressionService.formatSize(totalCurrent);
-            this.totalSaved = this.compressionService.formatSize(totalOriginal - totalCurrent);
-            this.cdr.detectChanges();
-        } catch (error) {
-            console.error('Erreur chargement stats compression:', error);
-        }
-    }
+  openMosaic() {
+    chrome.tabs.create({ url: 'chrome://newtab/' });
+  }
 
-    init() {
-        chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode'], (results) => {
-            if (results['language']) {
-                this.selectedLanguage = results['language'];
-            }
-            if (results['darkMode']) {
-                this.darkMode = results['darkMode'];
+  async loadCompressionStats() {
+    try {
+      const stats = await this.compressionService.getStorageStats();
+      this.storageStats = [];
+      let totalOriginal = 0;
+      let totalCurrent = 0;
 
-                if (this.darkMode) {
-                    // positionne le mode dark
-                    this.toggleTheme(this.darkMode);
-                }
-            }
-
-            if (results['mouseCoordinates']) {
-                this.mouseCoordinates = results['mouseCoordinates'];
-            }
-
-            if (results['verboseMode']) {
-                this.verboseMode = results['verboseMode'];
-            }
-
-            if (results['deepMockLevel']) {
-                this.deepMockLevel = results['deepMockLevel'];
-            }
-            this.cdr.detectChanges();
+      stats.forEach((stat, key) => {
+        totalOriginal += stat.originalSize;
+        totalCurrent += stat.currentSize;
+        this.storageStats.push({
+          key,
+          originalSize: this.compressionService.formatSize(stat.originalSize),
+          currentSize: this.compressionService.formatSize(stat.currentSize),
+          ratio: stat.ratio,
+          isCompressed: stat.ratio > 0
         });
-    }
+      });
 
-    /**
-     * Permet de basculer de thème
-     */
-    toggleTheme(darkModevalue: boolean) {
-        chrome.storage.local.set({ darkMode: darkModevalue });
-        this.themeService.toggleTheme(darkModevalue);
+      this.totalOriginalSize = this.compressionService.formatSize(totalOriginal);
+      this.totalCurrentSize = this.compressionService.formatSize(totalCurrent);
+      this.totalSaved = this.compressionService.formatSize(totalOriginal - totalCurrent);
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Erreur chargement stats compression:', error);
     }
+  }
 
-    updateDeepMockLevel(event) {
-        chrome.storage.local.set({ deepMockLevel: event.value });
-        this.deepMockLevel = event.value;
-    }
+  init() {
+    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode'], (results) => {
+      if (results['language']) {
+        this.selectedLanguage = results['language'];
+      }
+      if (results['darkMode']) {
+        this.darkMode = results['darkMode'];
 
-    toggleMouseCoordinatesOption(mouseCoordinatesValue: boolean) {
-        chrome.storage.local.set({ mouseCoordinates: mouseCoordinatesValue });
-        // on previent background qui va prevenir contentscript qu'on a modifié le mouseCoordinates
-        chrome.runtime.sendMessage(
-            {
-                action: 'MOUSE_COORDINATES',
-                value: mouseCoordinatesValue
-            },
-            () => {}
-        );
-    }
-
-    toggleDesactivate(e) {
-        if (!this.desactivate) {
-            chrome.storage.local.set({ disabled: true });
-            // on previent background
-            chrome.runtime.sendMessage(
-                {
-                    action: 'updateIcon',
-                    value: 'tuello-stop-32x32.png'
-                },
-                () => {}
-            );
-            chrome.tabs.getCurrent((tab) => {
-                chrome.tabs.sendMessage(
-                    tab.id,
-                    'toggle',
-                    {
-                        frameId: 0
-                    },
-                    () => {}
-                );
-            });
-            e.source.checked = false;
-            this.desactivate = false;
-        } else {
-            this.desactivate = !this.desactivate;
+        if (this.darkMode) {
+          // positionne le mode dark
+          this.toggleTheme(this.darkMode);
         }
-    }
+      }
 
-    toggleVerboseMode(verboseModeValue: boolean) {
-        chrome.storage.local.set({ verboseMode: verboseModeValue });
-    }
+      if (results['mouseCoordinates']) {
+        this.mouseCoordinates = results['mouseCoordinates'];
+      }
 
-    onLanguageSelect({ value }) {
-        chrome.storage.local.set({ language: value });
-        this.translate.use(value);
-        if (value === 'fr') {
-            chrome.storage.local.set({ messages: frMessages });
-        } else {
-            chrome.storage.local.set({ messages: enMessages });
-        }
-        chrome.runtime.sendMessage(
-            {
-                action: 'UPDATE_MENU'
-            },
-            () => {}
+      if (results['verboseMode']) {
+        this.verboseMode = results['verboseMode'];
+      }
+
+      if (results['deepMockLevel']) {
+        this.deepMockLevel = results['deepMockLevel'];
+      }
+      this.cdr.detectChanges();
+    });
+  }
+
+  /**
+   * Permet de basculer de thème
+   */
+  toggleTheme(darkModevalue: boolean) {
+    chrome.storage.local.set({ darkMode: darkModevalue });
+    this.themeService.toggleTheme(darkModevalue);
+  }
+
+  updateDeepMockLevel(event) {
+    chrome.storage.local.set({ deepMockLevel: event.value });
+    this.deepMockLevel = event.value;
+  }
+
+  toggleMouseCoordinatesOption(mouseCoordinatesValue: boolean) {
+    chrome.storage.local.set({ mouseCoordinates: mouseCoordinatesValue });
+    // on previent background qui va prevenir contentscript qu'on a modifié le mouseCoordinates
+    chrome.runtime.sendMessage(
+      {
+        action: 'MOUSE_COORDINATES',
+        value: mouseCoordinatesValue
+      },
+      () => {}
+    );
+  }
+
+  toggleDesactivate(e) {
+    if (!this.desactivate) {
+      chrome.storage.local.set({ disabled: true });
+      // on previent background
+      chrome.runtime.sendMessage(
+        {
+          action: 'updateIcon',
+          value: 'tuello-stop-32x32.png'
+        },
+        () => {}
+      );
+      chrome.tabs.getCurrent((tab) => {
+        chrome.tabs.sendMessage(
+          tab.id,
+          'toggle',
+          {
+            frameId: 0
+          },
+          () => {}
         );
+      });
+      e.source.checked = false;
+      this.desactivate = false;
+    } else {
+      this.desactivate = !this.desactivate;
     }
+  }
 
-    async save() {
-        const all = await chrome.storage.local.get();
-        const value = formatDate(new Date());
-        const txtBlob = new Blob([JSON.stringify(all)], { type: 'text/plain;charset=utf-8' });
-        saveAs(txtBlob, `tuello-global.${value}.json`);
+  toggleVerboseMode(verboseModeValue: boolean) {
+    chrome.storage.local.set({ verboseMode: verboseModeValue });
+  }
+
+  onLanguageSelect({ value }) {
+    chrome.storage.local.set({ language: value });
+    this.translate.use(value);
+    if (value === 'fr') {
+      chrome.storage.local.set({ messages: frMessages });
+    } else {
+      chrome.storage.local.set({ messages: enMessages });
     }
+    chrome.runtime.sendMessage(
+      {
+        action: 'UPDATE_MENU'
+      },
+      () => {}
+    );
+  }
 
-    clear() {
-        const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-            width: '350px',
-            data: { message: this.translate.instant('mmn.settings.setup.button.clear.message') }
+  async save() {
+    const all = await chrome.storage.local.get();
+    const value = formatDate(new Date());
+    const txtBlob = new Blob([JSON.stringify(all)], { type: 'text/plain;charset=utf-8' });
+    saveAs(txtBlob, `tuello-global.${value}.json`);
+  }
+
+  clear() {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '350px',
+      data: { message: this.translate.instant('mmn.settings.setup.button.clear.message') }
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(take(1))
+      .subscribe((result) => {
+        if (result) {
+          chrome.storage.local.clear();
+        }
+      });
+  }
+
+  public onChange(fileList: any): void {
+    const file = fileList.target.files[0];
+    const fileReader: FileReader = new FileReader();
+    fileReader.onloadend = (x) => {
+      try {
+        this.jsonContent = JSON.parse(fileReader.result as string);
+        chrome.storage.local.set(this.jsonContent, () => {
+          this.init();
+          this.configurationService.init();
+          this.zone.run(() => {
+            this.snackBar.open(this.translate.instant('mmn.spy-http.import.message'), this.translate.instant('mmn.recorder-http.export.saveAsLib.information.success.action'), { duration: 2000 });
+          });
         });
+      } catch (e) {
+        this.snackBar.open(this.translate.instant('mmn.settings.import.message'), this.translate.instant('mmn.settings.import.error.action'), { duration: 1000, verticalPosition: 'bottom' });
+      }
+    };
+    fileReader.onerror = (event) => {
+      this.snackBar.open(this.translate.instant('mmn.settings.import.message'), this.translate.instant('mmn.settings.import.error.action'), { duration: 1000, verticalPosition: 'bottom' });
+      fileReader.abort();
+    };
+    fileReader.readAsText(file);
+  }
 
-        dialogRef
-            .afterClosed()
-            .pipe(take(1))
-            .subscribe((result) => {
-                if (result) {
-                    chrome.storage.local.clear();
-                }
-            });
-    }
+  selectFile() {
+    this.fileInput.nativeElement.value = '';
+    this.fileInput.nativeElement.click();
+  }
 
-    public onChange(fileList: any): void {
-        const file = fileList.target.files[0];
-        const fileReader: FileReader = new FileReader();
-        fileReader.onloadend = (x) => {
-            try {
-                this.jsonContent = JSON.parse(fileReader.result as string);
-                chrome.storage.local.set(this.jsonContent, () => {
-                    this.init();
-                    this.configurationService.init();
-                    this.zone.run(() => {
-                        this.snackBar.open(this.translate.instant('mmn.spy-http.import.message'), this.translate.instant('mmn.recorder-http.export.saveAsLib.information.success.action'), { duration: 2000 });
-                    });
-                });
-            } catch (e) {
-                this.snackBar.open(this.translate.instant('mmn.settings.import.message'), this.translate.instant('mmn.settings.import.error.action'), { duration: 1000, verticalPosition: 'bottom' });
-            }
-        };
-        fileReader.onerror = (event) => {
-            this.snackBar.open(this.translate.instant('mmn.settings.import.message'), this.translate.instant('mmn.settings.import.error.action'), { duration: 1000, verticalPosition: 'bottom' });
-            fileReader.abort();
-        };
-        fileReader.readAsText(file);
-    }
-
-    selectFile() {
-        this.fileInput.nativeElement.value = '';
-        this.fileInput.nativeElement.click();
-    }
-
-    /**
-     * Reactive le guide de bienvenue pour le prochain demarrage
-     */
-    async resetGuide(): Promise<void> {
-        await this.guideTourService.resetWelcome();
-        this.snackBar.open(
-            this.translate.instant('mmn.settings.guide.reset.success'),
-            '',
-            { duration: 3000 }
-        );
-    }
+  /**
+   * Reactive le guide de bienvenue pour le prochain demarrage
+   */
+  async resetGuide(): Promise<void> {
+    await this.guideTourService.resetWelcome();
+    this.snackBar.open(this.translate.instant('mmn.settings.guide.reset.success'), '', { duration: 3000 });
+  }
 }

@@ -4,8 +4,15 @@
 @use 'animate.css/animate.min.css' as *;
 @use './themes/default-theme' as *;
 
-html, body { height: 100%; }
-body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+}
 
 .full-width {
   width: 100%;
@@ -42,7 +49,7 @@ body { margin: 0; font-family: "Roboto", sans-serif; font-size: 12px;}
   /*white-space: nowrap !important;*/
 }
 
-body.black-theme  #jsonEditorTree {
+body.black-theme #jsonEditorTree {
   --jse-tag-background: #303030;
   --jse-tag-color: #d4d4d4;
   --jse-delimiter-color: #d4d4d4;
@@ -50,7 +57,7 @@ body.black-theme  #jsonEditorTree {
 }
 
 body.black-theme .segment-key {
-  color:  #d4d4d4 !important;
+  color: #d4d4d4 !important;
 }
 
 /* ========================================
@@ -75,7 +82,9 @@ body.black-theme .segment-key {
 .guide-highlighted {
   position: relative;
   z-index: 9999 !important;
-  box-shadow: 0 0 0 4px #D59F5D, 0 0 20px rgba(213, 159, 93, 0.5) !important;
+  box-shadow:
+    0 0 0 4px #d59f5d,
+    0 0 20px rgba(213, 159, 93, 0.5) !important;
   border-radius: 4px;
   animation: guide-pulse 2s ease-in-out infinite;
   /* Optimisation GPU pour animation fluide */
@@ -85,11 +94,16 @@ body.black-theme .segment-key {
 }
 
 @keyframes guide-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 4px #D59F5D, 0 0 20px rgba(213, 159, 93, 0.5);
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px #d59f5d,
+      0 0 20px rgba(213, 159, 93, 0.5);
   }
   50% {
-    box-shadow: 0 0 0 6px #D59F5D, 0 0 30px rgba(213, 159, 93, 0.7);
+    box-shadow:
+      0 0 0 6px #d59f5d,
+      0 0 30px rgba(213, 159, 93, 0.7);
   }
 }
 
@@ -201,7 +215,7 @@ body.black-theme {
 
     .guide-step-header {
       h3 {
-        color: #D59F5D;
+        color: #d59f5d;
       }
 
       .guide-step-counter {
@@ -216,7 +230,9 @@ body.black-theme {
   }
 
   .guide-highlighted {
-    box-shadow: 0 0 0 4px #D59F5D, 0 0 20px rgba(213, 159, 93, 0.6) !important;
+    box-shadow:
+      0 0 0 4px #d59f5d,
+      0 0 20px rgba(213, 159, 93, 0.6) !important;
   }
 }
 
@@ -287,7 +303,7 @@ body.black-theme {
       }
 
       mat-icon {
-        color: #D59F5D;
+        color: #d59f5d;
         margin-right: 10px;
         flex-shrink: 0;
         font-size: 20px;
@@ -336,9 +352,15 @@ body.black-theme {
 }
 
 @keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Theme sombre pour welcome dialog */
@@ -353,7 +375,7 @@ body.black-theme .welcome-dialog {
 
       .feature-text {
         h4 {
-          color: #D59F5D;
+          color: #d59f5d;
         }
 
         p {
@@ -394,4 +416,36 @@ body.black-theme #jsonEditorContainer {
   --jse-text-color: #d4d4d4;
   --jse-panel-background: #252526;
   --jse-panel-color: #d4d4d4;
+}
+
+/* ========================================
+   CDK Drag & Drop - Mosaïque
+   ======================================== */
+
+mmn-mosaic-tile.cdk-drag {
+  cursor: grab;
+}
+
+mmn-mosaic-tile.cdk-drag:active {
+  cursor: grabbing;
+}
+
+mmn-mosaic-tile.cdk-drag-preview {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  opacity: 0.95;
+}
+
+mmn-mosaic-tile.cdk-drag-placeholder {
+  opacity: 0.3;
+  border: 2px dashed #417182;
+  border-radius: 8px;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging mmn-mosaic-tile:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }

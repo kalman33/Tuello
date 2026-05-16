@@ -25,32 +25,16 @@
               "browser": ""
             },
             "index": "src/index.html",
-            "polyfills": [
-              "src/polyfills.ts"
-            ],
+            "polyfills": ["src/polyfills.ts"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              "src/favicon.ico",
-              "src/assets"
-            ],
+            "assets": ["src/favicon.ico", "src/assets"],
             "stylePreprocessorOptions": {
-              "includePaths": [
-                "./node_modules"
-              ]
+              "includePaths": ["./node_modules"]
             },
-            "styles": [
-              "src/styles.scss",
-              "node_modules/vanilla-jsoneditor/themes/jse-theme-dark.css"
-            ],
+            "styles": ["src/styles.scss", "node_modules/vanilla-jsoneditor/themes/jse-theme-dark.css"],
             "scripts": [],
-            "allowedCommonJsDependencies": [
-              "file-saver",
-              "jsoneditor",
-              "buffer",
-              "pixelmatch",
-              "pngjs/browser"
-            ],
+            "allowedCommonJsDependencies": ["file-saver", "jsoneditor", "buffer", "pixelmatch", "pngjs/browser"],
             "browser": "src/main.ts"
           },
           "configurations": {
@@ -64,9 +48,7 @@
                 "fonts": false
               },
               "stylePreprocessorOptions": {
-                "includePaths": [
-                  "./node_modules"
-                ]
+                "includePaths": ["./node_modules"]
               },
               "budgets": [
                 {
@@ -123,32 +105,95 @@
             "tsConfig": "tsconfig.spec.json",
             "karmaConfig": "karma.conf.js",
             "inlineStyleLanguage": "scss",
-            "assets": [
-              "src/favicon.ico",
-              "src/assets"
-            ],
-            "styles": [
-              "src/styles.scss"
-            ],
+            "assets": ["src/favicon.ico", "src/assets"],
+            "styles": ["src/styles.scss"],
             "scripts": []
           }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
+        }
+      }
+    },
+    "mosaic": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "mmn",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": {
+              "base": "dist/tuello",
+              "browser": "mosaic"
+            },
+            "index": {
+              "input": "src/mosaic/mosaic.html",
+              "output": "mosaic.html"
+            },
+            "polyfills": ["src/polyfills.ts"],
+            "tsConfig": "tsconfig.mosaic.json",
+            "inlineStyleLanguage": "scss",
+            "assets": ["src/favicon.ico", "src/assets"],
+            "stylePreprocessorOptions": {
+              "includePaths": ["./node_modules"]
+            },
+            "styles": ["src/styles.scss"],
+            "scripts": [],
+            "allowedCommonJsDependencies": ["file-saver"],
+            "browser": "src/mosaic/main.mosaic.ts",
+            "deleteOutputPath": false
+          },
+          "configurations": {
+            "production": {
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": false
+              },
+              "stylePreprocessorOptions": {
+                "includePaths": ["./node_modules"]
+              },
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
         }
       }
     }
   },
   "cli": {
-    "schematicCollections": [
-      "@angular-eslint/schematics"
-    ]
+    "schematicCollections": ["@angular-eslint/schematics"]
   },
   "schematics": {
     "@angular-eslint/schematics:application": {

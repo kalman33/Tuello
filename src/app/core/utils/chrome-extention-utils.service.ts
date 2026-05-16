@@ -1,21 +1,25 @@
-import {Injectable} from '@angular/core';
+import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class ChromeExtentionUtilsService {
-
   public imageViewerOpened = false;
   public devtoolsOpened = false;
+  /** Vrai quand Tuello s'ouvre en onglet plein écran (pas dans une iframe) */
+  public isStandaloneTab = window === window.top;
 
   /**
    * permet de cacher le plugin chrome
    */
   public hide(): Promise<string> {
-    chrome.runtime.sendMessage({
-      action: 'HIDE'
-    }, ()=>{});
+    chrome.runtime.sendMessage(
+      {
+        action: 'HIDE'
+      },
+      () => {}
+    );
     return new Promise((resolve, reject) => {
       const listener = (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
-        if (message.action === 'HIDE_OK'){
+        if (message.action === 'HIDE_OK') {
           chrome.runtime.onMessage.removeListener(listener);
           resolve('success');
         }
@@ -29,31 +33,37 @@ export class ChromeExtentionUtilsService {
    * permet de basculer le plugin chrome
    */
   public toggle() {
-    chrome.runtime.sendMessage({
-      action: 'toggle'
-    }, ()=>{});
-
+    chrome.runtime.sendMessage(
+      {
+        action: 'toggle'
+      },
+      () => {}
+    );
   }
 
   /**
    * permet de cacher le plugin chrome
    */
   public show() {
-    chrome.runtime.sendMessage({
-      action: 'SHOW'
-    }, ()=>{});
+    chrome.runtime.sendMessage(
+      {
+        action: 'SHOW'
+      },
+      () => {}
+    );
   }
 
   public openImageViewer(img: string) {
     if (!this.imageViewerOpened) {
       this.imageViewerOpened = true;
       this.hide();
-      chrome.runtime.sendMessage({
-        action: 'VIEW_IMAGE',
-        value: img,
-      }, ()=>{});
+      chrome.runtime.sendMessage(
+        {
+          action: 'VIEW_IMAGE',
+          value: img
+        },
+        () => {}
+      );
     }
   }
-
-
 }

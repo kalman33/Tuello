@@ -1,0 +1,14 @@
+<div class="grid-container">
+  @if (!hasItems) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">grid_view</mat-icon>
+      <p>{{ 'mmn.mosaic.empty.main' | translate }}</p>
+    </div>
+  } @else {
+    <div cdkDropList cdkDropListOrientation="mixed" class="tiles-list" (cdkDropListDropped)="drop($event)">
+      @for (item of gridItems; track item.data.id) {
+        <mmn-mosaic-tile cdkDrag [item]="item.data" [type]="item.kind" [editable]="false" (tileClick)="onTileClick(item)"> </mmn-mosaic-tile>
+      }
+    </div>
+  }
+</div>

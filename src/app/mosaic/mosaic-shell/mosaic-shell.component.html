@@ -1,0 +1,9 @@
+<mmn-mosaic-toolbar [showBack]="!!selectedCategoryId()" [categoryName]="selectedCategory?.name ?? ''" (backClick)="goBack()"></mmn-mosaic-toolbar>
+
+<main class="mosaic-content">
+  @if (selectedCategoryId()) {
+    <mmn-urls-grid [urls]="categoryUrls" (reordered)="onUrlsReordered($event)"></mmn-urls-grid>
+  } @else {
+    <mmn-categories-grid [categories]="categories" [rootUrls]="rootUrls" (categorySelected)="selectCategory($event)" (reordered)="onGridReordered($event)"></mmn-categories-grid>
+  }
+</main>

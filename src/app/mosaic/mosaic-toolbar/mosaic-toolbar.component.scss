@@ -1,0 +1,27 @@
+.spacer {
+  flex: 1;
+}
+
+button[mat-icon-button] {
+  color: white;
+}
+
+.toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.logo-icon {
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+}
+
+.breadcrumb {
+  font-size: 14px;
+  opacity: 0.8;
+}

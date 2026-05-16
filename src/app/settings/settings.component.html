@@ -10,23 +10,18 @@
           <div [ngClass]="routeAnimationsElements">
             <div class="icon-form-field">
               <mat-icon color="accent">not_interested</mat-icon>
-              <div>{{ 'mmn.settings.general.desactivate.title' | translate }} </div>
+              <div>{{ 'mmn.settings.general.desactivate.title' | translate }}</div>
               <mat-slide-toggle [checked]="desactivate" class="darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
             </div>
             <div class="icon-form-field">
               <mat-icon color="accent">draw</mat-icon>
-              <div>{{ 'mmn.settings.general.verbosemode.title' | translate }} </div>
+              <div>{{ 'mmn.settings.general.verbosemode.title' | translate }}</div>
               <mat-slide-toggle [(ngModel)]="verboseMode" class="darkMode" (change)="toggleVerboseMode(verboseMode)"> </mat-slide-toggle>
             </div>
             <div class="icon-form-field">
               <mat-icon color="accent">language</mat-icon>
               <mat-form-field>
-                <mat-select
-                  [placeholder]="'mmn.settings.general.placeholder' | translate"
-                  [(value)]="selectedLanguage"
-                  (selectionChange)="onLanguageSelect($event)"
-                  name="language"
-                  >
+                <mat-select [placeholder]="'mmn.settings.general.placeholder' | translate" [(value)]="selectedLanguage" (selectionChange)="onLanguageSelect($event)" name="language">
                   @for (l of languages; track l) {
                     <mat-option [value]="l.value">
                       {{ 'mmn.settings.general.language.' + l.label | translate }}
@@ -35,16 +30,22 @@
                 </mat-select>
               </mat-form-field>
             </div>
+            <h2>Mosaic</h2>
+            <div class="icon-form-field">
+              <mat-icon color="accent">grid_view</mat-icon>
+              <div>{{ 'mmn.settings.mosaic.startup' | translate }}</div>
+              <mat-slide-toggle [(ngModel)]="mosaicOpenOnStartup" class="darkMode" (change)="toggleMosaicStartup(mosaicOpenOnStartup)"> </mat-slide-toggle>
+            </div>
+            <div class="icon-form-field">
+              <mat-icon color="accent">open_in_new</mat-icon>
+              <button mat-flat-button color="accent" (click)="openMosaic()" style="color: white">
+                {{ 'mmn.settings.mosaic.open' | translate }}
+              </button>
+            </div>
             <div class="icon-form-field">
               <mat-icon color="accent">gamepad</mat-icon>
-              <div>{{ 'mmn.settings.general.mouse.title' | translate }} </div>
-              <mat-slide-toggle
-                [checked]="mouseCoordinates"
-                [(ngModel)]="mouseCoordinates"
-                class="darkMode"
-                (change)="toggleMouseCoordinatesOption(mouseCoordinates)"
-                >
-              </mat-slide-toggle>
+              <div>{{ 'mmn.settings.general.mouse.title' | translate }}</div>
+              <mat-slide-toggle [checked]="mouseCoordinates" [(ngModel)]="mouseCoordinates" class="darkMode" (change)="toggleMouseCoordinatesOption(mouseCoordinates)"> </mat-slide-toggle>
             </div>
             <h2>{{ 'mmn.settings.deeprecord.title' | translate }}</h2>
             <div class="icon-form-field">
@@ -55,7 +56,8 @@
                 <span [ngClass]="{ bold: deepMockLevel <= 2 }">/2.2</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 3 }">/users</span>
               </div>
-              <mat-slider step="1" thumbLabel min="0" max="3" #ngSlider><input name="deepMockLevel"  [(ngModel)]="deepMockLevel" matSliderThumb (input)="updateDeepMockLevel({source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value})" #ngSliderThumb="matSliderThumb" />
+              <mat-slider step="1" thumbLabel min="0" max="3" #ngSlider
+                ><input name="deepMockLevel" [(ngModel)]="deepMockLevel" matSliderThumb (input)="updateDeepMockLevel({ source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value })" #ngSliderThumb="matSliderThumb" />
               </mat-slider>
             </div>
           </div>
@@ -68,15 +70,14 @@
         </ng-template>
         <div class="icon-form-field">
           <mat-icon color="accent">brush</mat-icon>
-          <div>{{ 'mmn.settings.customize.mode' | translate }} </div>
-          <mat-slide-toggle [checked]="darkMode" [(ngModel)]="darkMode" class="darkMode" (change)="toggleTheme(darkMode)">
-          </mat-slide-toggle>
+          <div>{{ 'mmn.settings.customize.mode' | translate }}</div>
+          <mat-slide-toggle [checked]="darkMode" [(ngModel)]="darkMode" class="darkMode" (change)="toggleTheme(darkMode)"> </mat-slide-toggle>
         </div>
         <h2>{{ 'mmn.settings.guide.title' | translate }}</h2>
         <div class="icon-form-field">
           <mat-icon color="accent">help_outline</mat-icon>
           <div>{{ 'mmn.settings.guide.reset' | translate }}</div>
-          <button mat-icon-button color="accent" (click)="resetGuide()" style="margin-left: auto;">
+          <button mat-icon-button color="accent" (click)="resetGuide()" style="margin-left: auto">
             <mat-icon>refresh</mat-icon>
           </button>
         </div>
@@ -107,42 +108,42 @@
         </div>
 
         @if (storageStats.length > 0) {
-          <h2 style="margin-top: 20px;">
-            <mat-icon color="accent" style="vertical-align: middle;">compress</mat-icon>
+          <h2 style="margin-top: 20px">
+            <mat-icon color="accent" style="vertical-align: middle">compress</mat-icon>
             {{ 'mmn.settings.compression.title' | translate }}
           </h2>
           <div class="compression-stats">
-            <table style="width: 100%; border-collapse: collapse;">
+            <table style="width: 100%; border-collapse: collapse">
               <thead>
-                <tr style="text-align: left; border-bottom: 1px solid #ccc;">
-                  <th style="padding: 8px;">{{ 'mmn.settings.compression.key' | translate }}</th>
-                  <th style="padding: 8px;">{{ 'mmn.settings.compression.original' | translate }}</th>
-                  <th style="padding: 8px;">{{ 'mmn.settings.compression.compressed' | translate }}</th>
-                  <th style="padding: 8px;">{{ 'mmn.settings.compression.saved' | translate }}</th>
+                <tr style="text-align: left; border-bottom: 1px solid #ccc">
+                  <th style="padding: 8px">{{ 'mmn.settings.compression.key' | translate }}</th>
+                  <th style="padding: 8px">{{ 'mmn.settings.compression.original' | translate }}</th>
+                  <th style="padding: 8px">{{ 'mmn.settings.compression.compressed' | translate }}</th>
+                  <th style="padding: 8px">{{ 'mmn.settings.compression.saved' | translate }}</th>
                 </tr>
               </thead>
               <tbody>
                 @for (stat of storageStats; track stat.key) {
-                  <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 8px;">{{ stat.key }}</td>
-                    <td style="padding: 8px;">{{ stat.originalSize }}</td>
-                    <td style="padding: 8px;">{{ stat.currentSize }}</td>
-                    <td style="padding: 8px;">
+                  <tr style="border-bottom: 1px solid #eee">
+                    <td style="padding: 8px">{{ stat.key }}</td>
+                    <td style="padding: 8px">{{ stat.originalSize }}</td>
+                    <td style="padding: 8px">{{ stat.currentSize }}</td>
+                    <td style="padding: 8px">
                       @if (stat.isCompressed) {
-                        <span style="color: #4caf50;">-{{ stat.ratio }}%</span>
+                        <span style="color: #4caf50">-{{ stat.ratio }}%</span>
                       } @else {
-                        <span style="color: #ff9800;">{{ 'mmn.settings.compression.pending' | translate }}</span>
+                        <span style="color: #ff9800">{{ 'mmn.settings.compression.pending' | translate }}</span>
                       }
                     </td>
                   </tr>
                 }
               </tbody>
               <tfoot>
-                <tr style="font-weight: bold; border-top: 2px solid #ccc;">
-                  <td style="padding: 8px;">{{ 'mmn.settings.compression.total' | translate }}</td>
-                  <td style="padding: 8px;">{{ totalOriginalSize }}</td>
-                  <td style="padding: 8px;">{{ totalCurrentSize }}</td>
-                  <td style="padding: 8px; color: #4caf50;">{{ totalSaved }}</td>
+                <tr style="font-weight: bold; border-top: 2px solid #ccc">
+                  <td style="padding: 8px">{{ 'mmn.settings.compression.total' | translate }}</td>
+                  <td style="padding: 8px">{{ totalOriginalSize }}</td>
+                  <td style="padding: 8px">{{ totalCurrentSize }}</td>
+                  <td style="padding: 8px; color: #4caf50">{{ totalSaved }}</td>
                 </tr>
               </tfoot>
             </table>

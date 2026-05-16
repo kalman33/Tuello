@@ -1,0 +1,58 @@
+<div class="tile" (click)="onTileClick()">
+  <div class="tile-preview">
+    @if (type === 'url') {
+      @if (screenshot) {
+        <img [src]="screenshot" class="screenshot" alt="" />
+      } @else if (capturing) {
+        <div class="placeholder">
+          <mat-spinner diameter="32"></mat-spinner>
+        </div>
+      } @else {
+        <div class="placeholder">
+          @if (faviconUrl) {
+            <img [src]="faviconUrl" class="favicon" alt="" />
+          } @else {
+            <mat-icon class="placeholder-icon">language</mat-icon>
+          }
+        </div>
+      }
+    } @else {
+      <div class="category-preview">
+        <mat-icon class="category-icon">folder</mat-icon>
+        <span class="url-count">{{ urlCount }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="tile-footer">
+    <span class="tile-title" [matTooltip]="type === 'category' ? asCategory.name : asUrl.title">
+      {{ type === 'url' ? asUrl.title : asCategory.name }}
+    </span>
+    @if (type === 'url') {
+      <span class="tile-url">{{ asUrl.url }}</span>
+    }
+  </div>
+
+  @if (editable) {
+    <div class="tile-actions" (click)="$event.stopPropagation()">
+      @if (type === 'url' && !capturing) {
+        <button mat-icon-button class="action-btn" [matTooltip]="'mmn.mosaic.url.capture' | translate" (click)="onCapture()">
+          <mat-icon>photo_camera</mat-icon>
+        </button>
+      }
+      <button mat-icon-button class="action-btn" [matMenuTriggerFor]="tileMenu">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #tileMenu="matMenu">
+        <button mat-menu-item (click)="edit.emit()">
+          <mat-icon>edit</mat-icon>
+          {{ 'mmn.mosaic.tile.edit' | translate }}
+        </button>
+        <button mat-menu-item (click)="delete.emit()">
+          <mat-icon color="warn">delete</mat-icon>
+          {{ 'mmn.mosaic.tile.delete' | translate }}
+        </button>
+      </mat-menu>
+    </div>
+  }
+</div>

@@ -10,12 +10,10 @@ import { ThemeService } from './theme/theme.service';
 import { TrackService } from './track/services/track.service';
 
 @Component({
-    selector: 'mmn-root',
-    template: `
-    <router-outlet></router-outlet>
-  `,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterOutlet]
+  selector: 'mmn-root',
+  template: ` <router-outlet></router-outlet> `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterOutlet]
 })
 export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
   title = 'Tuello';
@@ -33,17 +31,20 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     private trackService: TrackService,
     private guideTourService: GuideTourService
   ) {
-    chrome.storage.local.get(['darkMode'], results => {
+    chrome.storage.local.get(['darkMode'], (results) => {
       if (results['darkMode']) {
         this.themeService.toggleTheme(results['darkMode']);
       }
     });
 
-    this.routerSubscription = this.router.events.pipe(
-      filter((event: Event) => event instanceof NavigationEnd)
-    ).subscribe(event => {
-      chrome.storage.local.set({ tuelloCurrentRoute: (event as NavigationEnd).url });
-    });
+    this.routerSubscription = this.router.events
+      .pipe(
+        filter((event: Event) => event instanceof NavigationEnd),
+        filter((event: Event) => !(event as NavigationEnd).url.startsWith('/mosaic'))
+      )
+      .subscribe((event) => {
+        chrome.storage.local.set({ tuelloCurrentRoute: (event as NavigationEnd).url });
+      });
 
     this.actionsListener = (message, sender, sendResponse) => {
       switch (message.action) {
@@ -52,7 +53,6 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
           this.chromeExtentionUtilsService.imageViewerOpened = false;
           break;
         case 'SHOW_COMPARISON_RESULTS':
-
           this.playerService.comparisonResults = message.value;
           this.ngZone.run(() => {
             this.router.navigateByUrl('/spy/results', { skipLocationChange: true });
@@ -66,7 +66,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
           break;
         case 'TRACK_VIEW':
           this.chromeExtentionUtilsService.show();
-          this.trackService.currentHrefLocation = message.value.currentHrefLocation
+          this.trackService.currentHrefLocation = message.value.currentHrefLocation;
           this.ngZone.run(() => {
             this.router.navigate(['/track'], { skipLocationChange: false, queryParams: { trackId: message.value?.trackId } });
           });
@@ -86,10 +86,11 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     chrome.runtime.onMessage.addListener(this.actionsListener);
 
     // on relance la route
-    chrome.storage.local.get(['tuelloCurrentRoute'], results => {
-      if (results['tuelloCurrentRoute']) {
+    chrome.storage.local.get(['tuelloCurrentRoute'], (results) => {
+      const route: string = results['tuelloCurrentRoute'];
+      if (route && !route.startsWith('/mosaic')) {
         this.ngZone.run(() => {
-          this.router.navigateByUrl(results['tuelloCurrentRoute'], { skipLocationChange: true });
+          this.router.navigateByUrl(route, { skipLocationChange: true });
         });
       }
       // Initialisation du guide apres le chargement de la route
