@@ -12,23 +12,33 @@ let player = null;
 let tracksBodyCache: Array<{ key: string; body: any }> = [];
 const TRACKS_BODY_MAX_SIZE = 10;
 
+function isRestrictedUrl(url: string): boolean {
+  return url.startsWith('chrome://') || url.startsWith('about:') || url.startsWith('edge://') || url.startsWith('chrome-extension://');
+}
+
+function applyBadgeForTab(tabId: number, url: string): void {
+  if (isRestrictedUrl(url)) {
+    chrome.action.setBadgeText({ text: 'OFF', tabId });
+    chrome.action.setBadgeBackgroundColor({ color: 'gray', tabId });
+    chrome.action.disable(tabId);
+  } else {
+    chrome.action.setBadgeText({ text: '', tabId });
+    chrome.action.enable(tabId);
+  }
+}
+
 chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.get(activeInfo.tabId, (tab) => {
-    chrome.action.setBadgeText({ text: '', tabId: tab.id }, () => {});
-    chrome.action.enable(tab.id);
+    applyBadgeForTab(tab.id, tab.url ?? '');
   });
 });
 
 // Gérer les changements d'URL sur l'onglet actif
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url) {
-    chrome.action.setBadgeText({ text: '', tabId }, () => {});
-    chrome.action.enable(tabId);
+    applyBadgeForTab(tabId, tab.url ?? '');
   }
 });
-
-// Note: sur chrome://, about://, edge://, le content script ne peut pas être injecté.
-// Le popup détecte ces URLs et ouvre Tuello en plein écran (nouvel onglet index.html) à la place.
 
 self.addEventListener('activate', (event) => {
   (self as any).process = {
