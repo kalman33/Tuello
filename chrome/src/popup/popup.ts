@@ -3,7 +3,8 @@
 chrome.storage.local.get(['disabled'], function (result) {
   if (!result.disabled) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0].url?.startsWith('chrome-extension://')) {
+      const url = tabs[0].url ?? '';
+      if (url.startsWith('chrome-extension://') || url.startsWith('chrome://') || url.startsWith('about:') || url.startsWith('edge://')) {
         chrome.tabs.create({ url: chrome.runtime.getURL('index.html') });
         window.close();
         return;

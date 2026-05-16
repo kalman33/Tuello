@@ -33,15 +33,14 @@ import { RateSupportComponent } from './rate-support/rate-support.component';
 export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   isOpen = false;
   activate = true;
-  displayTitle = false;
-  title: string;
+  title = '';
+  titleAnimated = false;
   selectedIndex = 0;
   menuLabels: string[] = [];
   stateFadeAnimation = 'inactive';
   statesSlideInMenuAnimation = 'inactive';
   dockedLeft = false;
   helpAvailable = true;
-  private titleInterval: ReturnType<typeof setInterval> | null = null;
 
   @ViewChild('snav') sidenav: MatSidenav;
 
@@ -112,18 +111,9 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
 
   animationDone($event) {
     if ($event.toState !== 'active') return;
-    this.displayTitle = true;
-    let letterCount = 1;
-
-    this.titleInterval = setInterval(() => {
-      this.title = 'TUELLO'.substring(0, letterCount);
-      letterCount++;
-      this.changeDetectorRef.detectChanges();
-      if (letterCount === 7) {
-        clearInterval(this.titleInterval);
-        this.titleInterval = null;
-      }
-    }, 100);
+    this.title = 'TUELLO';
+    this.titleAnimated = true;
+    this.changeDetectorRef.detectChanges();
   }
 
   toggleDesactivate(e) {
@@ -171,11 +161,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
-    if (this.titleInterval) {
-      clearInterval(this.titleInterval);
-    }
-  }
+  ngOnDestroy(): void {}
 
   // Fonction pour gérer la sélection d'un élément
   selectMenuItem(index: number): void {

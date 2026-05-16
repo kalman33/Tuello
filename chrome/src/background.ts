@@ -14,38 +14,21 @@ const TRACKS_BODY_MAX_SIZE = 10;
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.get(activeInfo.tabId, (tab) => {
-    if (tab.url.startsWith('chrome://') || tab.url.startsWith('about:') || tab.url.startsWith('edge://')) {
-      chrome.action.setBadgeText({ text: 'OFF', tabId: tab.id });
-      chrome.action.setBadgeBackgroundColor({ color: 'gray', tabId: tab.id });
-      chrome.action.disable(tab.id);
-    } else {
-      chrome.action.setBadgeText({ text: '', tabId: tab.id }, () => {
-        // Chrome réapplique la couleur par défaut automatiquement
-      });
-      chrome.action.enable(tab.id);
-    }
+    chrome.action.setBadgeText({ text: '', tabId: tab.id }, () => {});
+    chrome.action.enable(tab.id);
   });
 });
 
 // Gérer les changements d'URL sur l'onglet actif
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url) {
-    if (tab.url.startsWith('chrome://') || tab.url.startsWith('about:') || tab.url.startsWith('edge://')) {
-      chrome.action.setBadgeText({ text: 'OFF', tabId: tab.id });
-      chrome.action.setBadgeBackgroundColor({ color: 'gray', tabId: tab.id });
-      chrome.action.disable(tab.id);
-    } else {
-      chrome.action.setBadgeText({ text: '', tabId }, () => {
-        // Chrome réapplique la couleur par défaut automatiquement
-      });
-      chrome.action.enable(tab.id);
-    }
+    chrome.action.setBadgeText({ text: '', tabId }, () => {});
+    chrome.action.enable(tabId);
   }
 });
 
-// Note: chrome.action.onClicked ne se déclenche pas quand un popup est défini dans le manifest
-// La gestion des pages non-http (chrome://, about://, edge://) est faite via chrome.action.disable()
-// dans les listeners onActivated et onUpdated ci-dessus
+// Note: sur chrome://, about://, edge://, le content script ne peut pas être injecté.
+// Le popup détecte ces URLs et ouvre Tuello en plein écran (nouvel onglet index.html) à la place.
 
 self.addEventListener('activate', (event) => {
   (self as any).process = {

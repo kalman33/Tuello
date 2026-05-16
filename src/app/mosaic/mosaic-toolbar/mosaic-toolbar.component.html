@@ -5,11 +5,14 @@
     </button>
   }
 
-  <span class="toolbar-title">
+  <div class="toolbar-title">
     <mat-icon class="logo-icon">grid_view</mat-icon>
-    Mosaic
+    <div class="typewriter-container">
+      <span class="tw-tuello" [class.typed]="tuelloTyped" [class.done]="tuelloDone">TUELLO</span>
+      <span class="tw-subtitle" [class.typed]="subtitleTyped">{{ 'mmn.layout.mosaic' | translate }}</span>
+    </div>
     @if (showBack && categoryName) {
       <span class="breadcrumb">/ {{ categoryName }}</span>
     }
-  </span>
+  </div>
 </mat-toolbar>

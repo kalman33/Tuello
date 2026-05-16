@@ -8,7 +8,7 @@
       <img src="assets/img/tuello-128x128.png" width="40px" height="40px" />
     </div>
     <div class="navbar-title">
-      <span class="navbar-spacer">{{ title }}</span>
+      <span class="navbar-spacer" [class.typed]="titleAnimated">{{ title }}</span>
     </div>
     @if (!chromeExtentionUtilsService.isStandaloneTab) {
       <mat-slide-toggle [checked]="activate" class="toggle-slide darkMode" (change)="toggleDesactivate($event)"> </mat-slide-toggle>
