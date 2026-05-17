@@ -31,7 +31,15 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
   private storageChangeListener: (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => void;
   private titleStreamSub?: { unsubscribe(): void };
 
+  private onPopState = () => {
+    if (this.selectedCategoryId()) {
+      this.closeCategory();
+    }
+  };
+
   ngOnInit() {
+    window.addEventListener('popstate', this.onPopState);
+
     chrome.storage.local.get(['darkMode'], (result) => {
       if (result['darkMode']) {
         document.body.classList.remove('default-theme');
@@ -85,10 +93,12 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
       })
       .unsubscribe();
     this.selectedCategoryId.set(categoryId);
+    history.pushState({ categoryId }, '');
     this.cdr.detectChanges();
   }
 
   ngOnDestroy() {
+    window.removeEventListener('popstate', this.onPopState);
     if (this.storageChangeListener) {
       chrome.storage.onChanged.removeListener(this.storageChangeListener);
     }
@@ -96,6 +106,10 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
   }
 
   goBack() {
+    history.back();
+  }
+
+  private closeCategory() {
     this.selectedCategoryId.set(null);
     this.selectedCategory = null;
     this.categoryUrls = [];

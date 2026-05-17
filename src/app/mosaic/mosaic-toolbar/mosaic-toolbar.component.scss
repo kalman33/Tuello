@@ -1,52 +1,74 @@
-.spacer {
-  flex: 1;
+@use '@angular/material' as mat;
+
+:host ::ng-deep .mat-toolbar.mat-toolbar {
+  background: linear-gradient(to right, #1b5064 0%, #417182 50%, #8facb6 100%) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  color: white !important;
+  height: 70px;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: none;
+  backdrop-filter: none;
 }
 
 button[mat-icon-button] {
-  color: white;
+  color: white !important;
 }
 
 .toolbar-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: 500;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 600;
   color: white;
 }
 
 .logo-icon {
-  font-size: 22px;
-  width: 22px;
-  height: 22px;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
 .breadcrumb {
   font-size: 14px;
-  opacity: 0.8;
+  font-weight: 500;
+  color: white;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-left: 12px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .typewriter-container {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
 }
 
 .tw-tuello {
   display: inline-block;
-  font-size: 20px;
-  font-weight: bolder;
-  font-family: system-ui;
-  letter-spacing: 0.3em;
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.25em;
   white-space: nowrap;
   overflow: hidden;
   max-width: 0;
-  border-right: 0.15em solid orange;
+  border-right: 0.15em solid #ffffff;
   animation: tw-blink 0.75s step-end infinite;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.1);
 
   &.typed {
     animation:
-      tw-typing-tuello 0.6s steps(6, end) forwards,
+      tw-typing-tuello 0.8s steps(6, end) forwards,
       tw-blink 0.75s step-end infinite;
   }
 
@@ -60,48 +82,39 @@ button[mat-icon-button] {
 .tw-subtitle {
   display: inline-block;
   font-size: 14px;
-  font-weight: 400;
-  font-family: system-ui;
-  letter-spacing: 0.1em;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: 0.05em;
   white-space: nowrap;
   overflow: hidden;
   max-width: 0;
   opacity: 0;
-  border-right: 0.12em solid transparent;
+  color: rgba(255, 255, 255, 0.9);
 
   &.typed {
     opacity: 1;
-    border-right: 0.12em solid orange;
-    animation:
-      tw-typing-subtitle 0.8s steps(8, end) forwards,
-      tw-blink 0.75s step-end infinite;
+    animation: tw-typing-subtitle 1s steps(12, end) 0.8s forwards;
   }
 }
 
 @keyframes tw-typing-tuello {
-  from {
-    max-width: 0;
-  }
-  to {
-    max-width: 160px;
-  }
+  from { max-width: 0; }
+  to { max-width: 150px; }
 }
 
 @keyframes tw-typing-subtitle {
-  from {
-    max-width: 0;
-  }
-  to {
-    max-width: 120px;
-  }
+  from { max-width: 0; }
+  to { max-width: 180px; }
 }
 
 @keyframes tw-blink {
-  from,
-  to {
-    border-color: transparent;
-  }
-  50% {
-    border-color: orange;
+  from, to { border-color: transparent; }
+  50% { border-color: white; }
+}
+
+:host-context(.black-theme) {
+  ::ng-deep .mat-toolbar.mat-toolbar {
+    background: linear-gradient(to right, #0a212b 0%, #123d4f 50%, #1b5064 100%) !important;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
   }
 }

@@ -1,19 +1,105 @@
 :host {
-  display: flex;
-  flex-direction: column;
+  display: block;
   height: 100vh;
+  width: 100vw;
   overflow: hidden;
 }
 
+.mosaic-shell-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  background: #f8faff;
+  overflow: hidden;
+}
+
+.bg-blobs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: float 20s infinite alternate ease-in-out;
+}
+
+.blob-1 {
+  width: 400px;
+  height: 400px;
+  background: #e0f2f1;
+  top: -100px;
+  right: -100px;
+}
+
+.blob-2 {
+  width: 500px;
+  height: 500px;
+  background: #f3e5f5;
+  bottom: -150px;
+  left: -100px;
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  background: #e3f2fd;
+  top: 40%;
+  left: 30%;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(30px, 50px) rotate(10deg); }
+  66% { transform: translate(-20px, 20px) rotate(-10deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
 .mosaic-content {
+  position: relative;
+  z-index: 1;
   flex: 1;
   overflow-y: auto;
-  padding: 24px 32px;
-  background: #f5f5f5;
+  padding: 32px 48px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.1) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 10px;
+  }
 }
 
 :host-context(.black-theme) {
+  .mosaic-shell-container {
+    background: #121212;
+  }
+
+  .blob-1 { background: #004d40; opacity: 0.2; }
+  .blob-2 { background: #311b92; opacity: 0.2; }
+  .blob-3 { background: #01579b; opacity: 0.2; }
+
   .mosaic-content {
-    background: #303030;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(255,255,255,0.1);
+    }
   }
 }

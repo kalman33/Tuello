@@ -5,8 +5,8 @@
 .tiles-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
-  padding: 8px 0;
+  gap: 32px;
+  padding: 16px 0;
   align-items: flex-start;
   justify-content: flex-start;
 }
@@ -16,17 +16,38 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  color: #9e9e9e;
+  padding: 80px 20px;
+  color: #7f8c8d;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  border-radius: 32px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
 
   .empty-icon {
-    font-size: 64px;
-    width: 64px;
-    height: 64px;
-    margin-bottom: 16px;
+    font-size: 80px;
+    width: 80px;
+    height: 80px;
+    margin-bottom: 24px;
+    color: #bdc3c7;
+    opacity: 0.6;
   }
 
   p {
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+}
+
+:host-context(.black-theme) {
+  .empty-state {
+    background: rgba(45, 45, 45, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #bdc3c7;
+
+    .empty-icon {
+      color: #7f8c8d;
+    }
   }
 }

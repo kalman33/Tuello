@@ -1,9 +1,17 @@
-<mmn-mosaic-toolbar [showBack]="!!selectedCategoryId()" [categoryName]="selectedCategory?.name ?? ''" (backClick)="goBack()"></mmn-mosaic-toolbar>
+<div class="mosaic-shell-container">
+  <div class="bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
 
-<main class="mosaic-content">
-  @if (selectedCategoryId()) {
-    <mmn-urls-grid [urls]="categoryUrls" (reordered)="onUrlsReordered($event)"></mmn-urls-grid>
-  } @else {
-    <mmn-categories-grid [categories]="categories" [rootUrls]="rootUrls" (categorySelected)="selectCategory($event)" (reordered)="onGridReordered($event)"></mmn-categories-grid>
-  }
-</main>
+  <mmn-mosaic-toolbar [showBack]="!!selectedCategoryId()" [categoryName]="selectedCategory?.name ?? ''" (backClick)="goBack()"></mmn-mosaic-toolbar>
+
+  <main class="mosaic-content">
+    @if (selectedCategoryId()) {
+      <mmn-urls-grid [urls]="categoryUrls" (reordered)="onUrlsReordered($event)"></mmn-urls-grid>
+    } @else {
+      <mmn-categories-grid [categories]="categories" [rootUrls]="rootUrls" (categorySelected)="selectCategory($event)" (reordered)="onGridReordered($event)"></mmn-categories-grid>
+    }
+  </main>
+</div>

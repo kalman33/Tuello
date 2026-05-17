@@ -1,3 +1,4 @@
+import { animate, query, stagger, style, transition, trigger } from '@angular/animations';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -15,7 +16,21 @@ interface GridItem {
   templateUrl: './categories-grid.component.html',
   styleUrls: ['./categories-grid.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, MosaicTileComponent, TranslatePipe, DragDropModule]
+  imports: [MatIconModule, MosaicTileComponent, TranslatePipe, DragDropModule],
+  animations: [
+    trigger('staggerList', [
+      transition(':enter', [
+        query(
+          'mmn-mosaic-tile',
+          [
+            style({ opacity: 0, transform: 'translateY(40px) scale(0.9)' }),
+            stagger(50, [animate('0.5s cubic-bezier(0.35, 0, 0.25, 1)', style({ opacity: 1, transform: 'translateY(0) scale(1)' }))])
+          ],
+          { optional: true }
+        )
+      ])
+    ])
+  ]
 })
 export class CategoriesGridComponent {
   @Input() set categories(val: MosaicCategory[]) {
