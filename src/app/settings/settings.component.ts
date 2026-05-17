@@ -117,7 +117,7 @@ export class SettingsComponent implements OnInit {
   }
 
   openMosaic() {
-    chrome.tabs.create({ url: 'chrome://newtab/' });
+    chrome.tabs.create({ url: chrome.runtime.getURL('mosaic/mosaic.html') });
   }
 
   async loadCompressionStats() {

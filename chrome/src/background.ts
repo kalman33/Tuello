@@ -33,9 +33,9 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   });
 });
 
-// Gérer les changements d'URL sur l'onglet actif
+// Gérer les changements d'URL sur l'onglet actif (et les reloads, qui resettent l'état per-tab de chrome.action)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.url) {
+  if (changeInfo.url || changeInfo.status === 'loading') {
     applyBadgeForTab(tabId, tab.url ?? '');
   }
 });

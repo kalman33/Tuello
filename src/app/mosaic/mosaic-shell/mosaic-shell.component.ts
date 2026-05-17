@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, NgZone, OnDestroy, OnInit, signal } from '@angular/core';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { Title } from '@angular/platform-browser';
 import { TranslateService } from '@ngx-translate/core';
 import { CategoriesGridComponent } from '../categories-grid/categories-grid.component';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
@@ -15,7 +16,7 @@ import { UrlsGridComponent } from '../urls-grid/urls-grid.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MosaicToolbarComponent, CategoriesGridComponent, UrlsGridComponent, MatDialogModule, MatSnackBarModule]
 })
-export class MosaicShellComponent implements OnInit {
+export class MosaicShellComponent implements OnInit, OnDestroy {
   selectedCategoryId = signal<string | null>(null);
   selectedCategory: MosaicCategory | null = null;
   categories: MosaicCategory[] = [];
@@ -24,17 +25,43 @@ export class MosaicShellComponent implements OnInit {
 
   private storageService = inject(MosaicStorageService);
   private translate = inject(TranslateService);
+  private titleService = inject(Title);
   private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+  private storageChangeListener: (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => void;
+  private titleStreamSub?: { unsubscribe(): void };
 
   ngOnInit() {
-    chrome.storage.local.get(['darkMode', 'language'], (result) => {
+    chrome.storage.local.get(['darkMode'], (result) => {
       if (result['darkMode']) {
         document.body.classList.remove('default-theme');
         document.body.classList.add('black-theme');
       }
-      const lang = result['language'] ?? 'en';
-      this.translate.use(lang);
     });
+
+    this.titleStreamSub = this.translate.stream('mmn.layout.mosaic').subscribe((title: string) => {
+      if (title && title !== 'mmn.layout.mosaic') {
+        this.titleService.setTitle(title);
+      }
+    });
+
+    this.storageChangeListener = (changes, areaName) => {
+      if (areaName !== 'local') return;
+      this.ngZone.run(() => {
+        if (changes['language']) {
+          const newLang = changes['language'].newValue ?? 'en';
+          if (newLang !== this.translate.currentLang) {
+            this.translate.use(newLang);
+          }
+        }
+        if (changes['darkMode']) {
+          const dark = changes['darkMode'].newValue;
+          document.body.classList.toggle('default-theme', !dark);
+          document.body.classList.toggle('black-theme', !!dark);
+        }
+      });
+    };
+    chrome.storage.onChanged.addListener(this.storageChangeListener);
 
     this.storageService.loadConfig();
 
@@ -59,6 +86,13 @@ export class MosaicShellComponent implements OnInit {
       .unsubscribe();
     this.selectedCategoryId.set(categoryId);
     this.cdr.detectChanges();
+  }
+
+  ngOnDestroy() {
+    if (this.storageChangeListener) {
+      chrome.storage.onChanged.removeListener(this.storageChangeListener);
+    }
+    this.titleStreamSub?.unsubscribe();
   }
 
   goBack() {

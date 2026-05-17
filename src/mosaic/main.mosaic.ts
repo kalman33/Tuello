@@ -5,16 +5,21 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { MosaicShellComponent } from '../app/mosaic/mosaic-shell/mosaic-shell.component';
 
-bootstrapApplication(MosaicShellComponent, {
-  providers: [
-    provideTranslateService({
-      fallbackLang: 'en',
-      loader: provideTranslateHttpLoader({
-        prefix: './assets/i18n/',
-        suffix: '.json'
-      })
-    }),
-    provideAnimations(),
-    provideHttpClient()
-  ]
-}).catch((err) => console.error(err));
+chrome.storage.local.get(['language'], (result) => {
+  const lang = (result['language'] as string) ?? 'en';
+
+  bootstrapApplication(MosaicShellComponent, {
+    providers: [
+      provideTranslateService({
+        lang,
+        fallbackLang: 'en',
+        loader: provideTranslateHttpLoader({
+          prefix: './assets/i18n/',
+          suffix: '.json'
+        })
+      }),
+      provideAnimations(),
+      provideHttpClient()
+    ]
+  }).catch((err) => console.error(err));
+});
