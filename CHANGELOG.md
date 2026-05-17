@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.18.0] - 2026-05-17
+
+    - Ajout de la fonctionnalité Mosaïque (vue multi-tuiles par catégories/URLs)
+    - Optimisations diverses (Recorder HTTP, scripts d'injection)
+
 ## [1.2.17.0] - 2026-05-10
 
     - Recorder HTTP : affichage de la key dans la liste des enregistrements
