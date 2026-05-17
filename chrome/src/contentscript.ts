@@ -3,7 +3,7 @@ import { launchUIRecorderHandler } from './uirecorder';
 import * as lightboxImg from './utils/imageviewer';
 import * as jsonViewer from './utils/jsonViewer';
 import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
-import { recordHttpListener } from './utils/recordHttpListener';
+import { recordHttpListener, flushPendingRecords } from './utils/recordHttpListener';
 import { activateSearchElements, desactivateSearchElements } from './utils/searchElements';
 import { addTagsPanel, deleteTagsPanel, initTagsHandler } from './utils/tags';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
@@ -376,11 +376,33 @@ function activate() {
           '*'
         );
         window.addEventListener('message', recordHttpListener);
+      } else {
+        // Fin de la fenêtre de boot async : l'utilisateur n'a pas activé le record.
+        // On désactive l'intercepteur recorder pour ne pas accumuler les requêtes
+        // dans messageForHTTPRecorderQueue tant que l'utilisateur ne l'active pas.
+        window.postMessage(
+          {
+            type: 'RECORD_HTTP_ACTIVATED',
+            value: false
+          },
+          '*'
+        );
       }
 
       if (results['tuelloHTTPTags']) {
         // On initialise le gestionnaire des tags
         initTagsHandler(results['tuelloHTTPTags']);
+      } else {
+        // Fin de la fenêtre de boot async : pas de tags configurés.
+        // On désactive l'intercepteur tags pour ne pas accumuler les requêtes
+        // dans messageForHTTPTagsQueue.
+        window.postMessage(
+          {
+            type: 'RECORD_HTTP_CALL_FOR_TAGS',
+            value: false
+          },
+          '*'
+        );
       }
       if (results.trackPlay) {
         activateRecordTracks();
@@ -391,6 +413,11 @@ function activate() {
       if (results.mouseCoordinates) {
         addMouseCoordinates();
       }
+    } else {
+      // Tuello désactivé sur cette page : fermer la fenêtre de boot des
+      // intercepteurs HTTP pour éviter d'accumuler les requêtes dans les queues.
+      window.postMessage({ type: 'RECORD_HTTP_ACTIVATED', value: false }, '*');
+      window.postMessage({ type: 'RECORD_HTTP_CALL_FOR_TAGS', value: false }, '*');
     }
   });
 }
@@ -411,6 +438,9 @@ function desactivate() {
     },
     '*'
   );
+  // Flusher le buffer avant de retirer le listener pour ne pas perdre
+  // les records bufferisés par le debounce.
+  flushPendingRecords();
   window.removeEventListener('message', recordHttpListener);
   deleteTagsPanel();
 
@@ -488,6 +518,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         },
         '*'
       );
+      // Flusher le buffer avant de retirer le listener (debounce)
+      flushPendingRecords();
       window.removeEventListener('message', recordHttpListener);
       deleteTagsPanel();
 
@@ -588,6 +620,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.value) {
         window.addEventListener('message', recordHttpListener);
       } else {
+        // Flusher le buffer avant de retirer le listener (debounce)
+        flushPendingRecords();
         window.removeEventListener('message', recordHttpListener);
         deleteTagsPanel();
       }
