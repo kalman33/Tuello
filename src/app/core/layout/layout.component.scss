@@ -3,93 +3,79 @@
 }
 
 @keyframes gradient {
-  0% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
     background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
   }
 }
 
 .navbar-brand {
   text-decoration: none;
   color: white;
-  padding: 10px 10px 0 10px;
+  padding: 10px 10px 0;
 }
 
 .navbar-container {
   display: flex;
   flex-direction: column;
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: 0;
 }
 
-.navbar-is-mobile .navbar {
-  position: fixed;
-  /* Make sure the toolbar will stay on top of the content as it scrolls past. */
-  z-index: 2;
+.navbar-is-mobile {
+  .navbar {
+    position: fixed;
+    z-index: 2;
+  }
+  .navbar-sidenav-container {
+    flex: 1 0 auto;
+  }
 }
 
 .navbar-sidenav-container {
-  /* When the sidenav is not fixed, stretch the sidenav container to fill the available space. This
-           causes `<mat-sidenav-content>` to act as our scrolling element for desktop layouts. */
   flex: 1;
   overflow: hidden;
+
+  mat-sidenav mat-nav-list {
+    padding-top: 0;
+  }
 }
 
 .sidenav-content {
   overflow: hidden;
 }
 
-.navbar-is-mobile .navbar-sidenav-container {
-  /* When the sidenav is fixed, don't constrain the height of the sidenav container. This allows the
-           `<body>` to be our scrolling element for mobile layouts. */
-  flex: 1 0 auto;
-}
-
-button.mat-mdc-raised-button mat-icon {
-  width: 24px;
-  height: 24px;
-}
-
-button.mat-mdc-raised-button span {
-  padding-left: 0px !important;
-}
-
 button.mat-mdc-raised-button {
-  padding-left: 0px;
+  padding-left: 0;
   height: 24px;
-  line-height: 0px !important;
-}
+  line-height: 0 !important;
 
-button.mat-mdc-raised-button:hover span {
-  color: #ffb61e;
+  mat-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  span {
+    padding-left: 0 !important;
+  }
+
+  &:hover span {
+    color: #ffb61e;
+  }
 }
 
 .toggle-slide {
   padding-right: 12px;
 }
 
-/*Set sidenav width*/
-
 mat-sidenav {
   min-width: 190px !important;
   border-right: 1px solid #eee;
   box-shadow: 6px 0 6px rgba(0, 0, 0, 0.1);
-  /* background-color:rgb(63, 81, 181); */
 }
-
-.navbar-sidenav-container mat-sidenav mat-nav-list {
-  padding-top: 0px;
-}
-
-/* Set height of wrapper to stop content from moving up & down */
 
 .progress-bar-container {
   height: 5px;
@@ -97,20 +83,46 @@ mat-sidenav {
 
 a.mat-mdc-list-item {
   height: 56px !important;
-}
 
-a.mat-mdc-list-item:hover {
-  background: rgba(0, 0, 0, 0.01) !important;
+  &:hover {
+    background: rgba(0, 0, 0, 0.01) !important;
+
+    mat-icon {
+      transform: scale(1.2) rotate(90deg);
+      box-shadow:
+        10px 0 20px rgba(0, 0, 0, 0.19),
+        6px 0 6px rgba(0, 0, 0, 0.23);
+    }
+  }
+
+  .mdc-list-item__content span {
+    display: flex;
+    height: 56px;
+    align-items: center;
+  }
+
+  mat-icon {
+    border-radius: 50%;
+    padding: 5px;
+    margin: 3px 15px;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.12),
+      0 1px 2px rgba(0, 0, 0, 0.24);
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease,
+      transform 0.3s ease;
+  }
+
+  [mat-line] {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 a.mdc-list-item {
-  padding-left: 0px !important;
-}
-
-a.mat-mdc-list-item .mdc-list-item__content span {
-  display: flex;
-  height: 56px;
-  align-items: center;
+  padding-left: 0 !important;
 }
 
 mat-nav-list a.mat-mdc-list-item:hover span {
@@ -118,48 +130,18 @@ mat-nav-list a.mat-mdc-list-item:hover span {
   color: #ffb61e;
 }
 
-a.mat-mdc-list-item:hover mat-icon {
-  // padding-left: 10px !important;
-  transform: scale(1.2);
-  box-shadow:
-    10px 0 20px rgba(0, 0, 0, 0.19),
-    6px 0 6px rgba(0, 0, 0, 0.23);
-  transform: rotate(90deg);
-}
-
-a.mat-mdc-list-item mat-icon {
-  border-radius: 50%;
-  padding: 5px;
-  margin: 3px;
-  margin-left: 15px;
-  margin-right: 15px; /* Ajustez l'espacement entre l'icône et le texte */
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.12),
-    0 1px 2px rgba(0, 0, 0, 0.24);
-  transition:
-    color 0.2s ease,
-    background-color 0.2s ease,
-    transform 0.3s ease;
-}
-
-a.mat-mdc-list-item [mat-line] {
-  white-space: nowrap; /* Empêche les retours à la ligne */
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 #push-bottom {
   position: absolute;
   bottom: 10px;
   padding: 0 16px !important;
-}
 
-#push-bottom #rate span {
-  padding-left: 0px !important;
-}
+  #rate span {
+    padding-left: 0 !important;
+  }
 
-#push-bottom button:hover {
-  color: #ffb61e;
+  button:hover {
+    color: #ffb61e;
+  }
 }
 
 .no-ripple-color {
@@ -171,15 +153,13 @@ a.mat-mdc-list-item [mat-line] {
 }
 
 #outline {
-  padding-left: 8px;
-  padding-right: 8px;
+  padding: 0 8px;
 }
 
 .darkMode span {
   font-size: 13px;
 }
 
-/* Bouton d'aide dans la toolbar */
 .toolbar-action {
   display: flex;
   align-items: center;
@@ -197,33 +177,32 @@ a.mat-mdc-list-item [mat-line] {
   }
 }
 
-/** MENU BURGER */
 .nav-icon {
   width: 25px;
-}
 
-.nav-icon:after,
-.nav-icon:before,
-.nav-icon div {
-  background-color: #fff;
-  border-radius: 3px;
-  content: '';
-  display: block;
-  height: 2px;
-  margin: 5px 0;
-  transition: all 0.2s ease-in-out;
-}
+  &:after,
+  &:before,
+  div {
+    background-color: #fff;
+    border-radius: 3px;
+    content: '';
+    display: block;
+    height: 2px;
+    margin: 5px 0;
+    transition: all 0.2s ease-in-out;
+  }
 
-.nav-icon.open:before {
-  transform: translateY(7px) rotate(135deg);
-}
-
-.nav-icon.open:after {
-  transform: translateY(-7px) rotate(-135deg);
-}
-
-.nav-icon.open div {
-  transform: scale(0);
+  &.open {
+    &:before {
+      transform: translateY(7px) rotate(135deg);
+    }
+    &:after {
+      transform: translateY(-7px) rotate(-135deg);
+    }
+    div {
+      transform: scale(0);
+    }
+  }
 }
 
 .navbar-title {
@@ -236,18 +215,18 @@ a.mat-mdc-list-item [mat-line] {
   font-weight: bolder;
   font-family: system-ui;
   letter-spacing: 0.3em;
-  border-right: 0.15em solid orange; /* curseur typewriter */
+  border-right: 0.15em solid orange;
   white-space: nowrap;
   overflow: hidden;
-  width: max-content; /* taille naturelle du texte */
-  max-width: 0; /* masqué initialement */
+  width: max-content;
+  max-width: 0;
   animation: blink-caret 0.75s step-end infinite;
-}
 
-.navbar-spacer.typed {
-  animation:
-    typing 0.6s steps(6, end) forwards,
-    blink-caret 0.75s step-end infinite;
+  &.typed {
+    animation:
+      typing 0.6s steps(6, end) forwards,
+      blink-caret 0.75s step-end infinite;
+  }
 }
 
 @keyframes typing {
@@ -255,11 +234,10 @@ a.mat-mdc-list-item [mat-line] {
     max-width: 0;
   }
   to {
-    max-width: 200px; /* assez large pour toute police ; le min() avec max-content ajuste automatiquement */
+    max-width: 200px;
   }
 }
 
-/* The typewriter cursor effect */
 @keyframes blink-caret {
   from,
   to {
@@ -270,20 +248,20 @@ a.mat-mdc-list-item [mat-line] {
   }
 }
 
-button#rate:active {
-  box-shadow: 0 0 0 0;
-}
-
 button#rate {
   box-shadow: 0 0 0 0;
   padding-bottom: 20px;
-}
 
-button#rate mat-icon {
-  margin-left: 0px;
-  font-size: 24px !important;
-  height: 24px !important;
-  width: 24px !important;
+  &:active {
+    box-shadow: 0 0 0 0;
+  }
+
+  mat-icon {
+    margin-left: 0;
+    font-size: 24px !important;
+    height: 24px !important;
+    width: 24px !important;
+  }
 }
 
 .selected.mat-mdc-list-item:not(:focus) {
@@ -296,24 +274,12 @@ button#rate mat-icon {
   font-weight: bold !important;
 }
 
-.black-theme .mat-mdc-nav-list .mat-mdc-list-item:focus::before {
-  background-color: transparent !important;
-  opacity: 0 !important;
-}
-
-.mat-mdc-nav-list .mat-mdc-list-item:focus::before {
-  background-color: transparent !important;
-  opacity: 0 !important;
-}
-
+.mat-mdc-nav-list .mat-mdc-list-item:focus::before,
 #rate span::before {
   background-color: transparent !important;
   opacity: 0 !important;
 }
 
-/* =============================================
-   Mode plein écran (onglet standalone)
-   ============================================= */
 .standalone {
   mat-sidenav {
     min-width: 240px !important;
@@ -323,9 +289,8 @@ button#rate mat-icon {
     position: relative !important;
     bottom: auto !important;
     margin-top: 16px;
-    padding: 0 16px !important;
+    padding: 12px 16px 0 !important;
     border-top: 1px solid rgba(0, 0, 0, 0.12);
-    padding-top: 12px !important;
   }
 
   button.mat-mdc-raised-button {
