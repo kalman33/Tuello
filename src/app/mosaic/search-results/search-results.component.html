@@ -1,9 +1,7 @@
 <div class="search-results-container">
   @if (results.length === 0) {
     <div class="no-results">
-      <div class="no-results-icon-wrapper">
-        <mat-icon class="no-results-icon">search_off</mat-icon>
-      </div>
+      <mat-icon class="no-results-icon">search_off</mat-icon>
       <h3>{{ 'mmn.mosaic.search.empty.title' | translate }}</h3>
       <p>{{ 'mmn.mosaic.search.empty.subtitle' | translate: { query: query } }}</p>
     </div>
