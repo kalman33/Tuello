@@ -10,6 +10,7 @@
   display: flex;
   align-items: center;
   padding: 0 24px;
+  gap: 16px;
   border-bottom: none;
   backdrop-filter: none;
 }
@@ -25,6 +26,7 @@ button[mat-icon-button] {
   font-size: 20px;
   font-weight: 600;
   color: white;
+  flex-shrink: 0;
 }
 
 .logo-icon {
@@ -32,7 +34,7 @@ button[mat-icon-button] {
   width: 24px;
   height: 24px;
   color: white;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .breadcrumb {
@@ -64,7 +66,7 @@ button[mat-icon-button] {
   max-width: 0;
   border-right: 0.15em solid #ffffff;
   animation: tw-blink 0.75s step-end infinite;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 
   &.typed {
     animation:
@@ -98,23 +100,202 @@ button[mat-icon-button] {
 }
 
 @keyframes tw-typing-tuello {
-  from { max-width: 0; }
-  to { max-width: 150px; }
+  from {
+    max-width: 0;
+  }
+  to {
+    max-width: 150px;
+  }
 }
 
 @keyframes tw-typing-subtitle {
-  from { max-width: 0; }
-  to { max-width: 180px; }
+  from {
+    max-width: 0;
+  }
+  to {
+    max-width: 180px;
+  }
 }
 
 @keyframes tw-blink {
-  from, to { border-color: transparent; }
-  50% { border-color: white; }
+  from,
+  to {
+    border-color: transparent;
+  }
+  50% {
+    border-color: white;
+  }
+}
+
+.toolbar-search {
+  position: relative;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  width: 320px;
+  max-width: 40vw;
+  height: 42px;
+  padding: 0 8px 0 14px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 22px;
+  transition: 0.3s cubic-bezier(0.35, 0, 0.25, 1);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+
+  &.focused {
+    width: 420px;
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow:
+      0 8px 26px rgba(0, 0, 0, 0.2),
+      0 0 0 4px rgba(255, 255, 255, 0.2);
+
+    .search-icon {
+      color: #1b5064;
+    }
+    .search-input {
+      color: #2c3e50;
+      &::placeholder {
+        color: #8facb6;
+      }
+    }
+    .search-clear {
+      color: #1b5064 !important;
+    }
+  }
+
+  &.has-value:not(.focused) {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.8);
+    .search-icon {
+      color: #1b5064;
+    }
+    .search-input {
+      color: #2c3e50;
+    }
+    .search-clear {
+      color: #1b5064 !important;
+    }
+  }
+}
+
+.search-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.85);
+  margin-right: 10px;
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #fff;
+  letter-spacing: 0.01em;
+  transition: color 0.3s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+  }
+}
+
+.search-clear {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  padding: 0 !important;
+  margin-left: 4px;
+  flex-shrink: 0;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 1 !important;
+
+  ::ng-deep .mat-mdc-button-touch-target {
+    width: 28px;
+    height: 28px;
+  }
+  ::ng-deep .mat-mdc-button-persistent-ripple {
+    border-radius: 50%;
+  }
+  ::ng-deep .mat-mdc-button-ripple {
+    border-radius: 50%;
+  }
+  ::ng-deep .mdc-icon-button__ripple {
+    border-radius: 50%;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+  }
 }
 
 :host-context(.black-theme) {
   ::ng-deep .mat-toolbar.mat-toolbar {
     background: linear-gradient(to right, #0a212b 0%, #123d4f 50%, #1b5064 100%) !important;
     box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
+  }
+
+  .toolbar-search {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    &.focused {
+      background: rgba(20, 30, 36, 0.92);
+      border-color: rgba(143, 172, 182, 0.5);
+      box-shadow:
+        0 8px 26px rgba(0, 0, 0, 0.5),
+        0 0 0 4px rgba(143, 172, 182, 0.15);
+
+      .search-icon {
+        color: #8facb6;
+      }
+      .search-input {
+        color: #ecf0f1;
+        &::placeholder {
+          color: #7a909a;
+        }
+      }
+      .search-clear {
+        color: #8facb6 !important;
+      }
+    }
+
+    &.has-value:not(.focused) {
+      background: rgba(20, 30, 36, 0.7);
+      border-color: rgba(143, 172, 182, 0.35);
+      .search-input {
+        color: #ecf0f1;
+      }
+    }
   }
 }

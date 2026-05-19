@@ -1,0 +1,72 @@
+<div class="search-results-container">
+  @if (results.length === 0) {
+    <div class="no-results">
+      <div class="no-results-icon-wrapper">
+        <mat-icon class="no-results-icon">search_off</mat-icon>
+      </div>
+      <h3>{{ 'mmn.mosaic.search.empty.title' | translate }}</h3>
+      <p>{{ 'mmn.mosaic.search.empty.subtitle' | translate: { query: query } }}</p>
+    </div>
+  } @else {
+    <div class="results-header">
+      <span class="results-count">
+        <mat-icon>filter_list</mat-icon>
+        {{ 'mmn.mosaic.search.count' | translate: { count: results.length } }}
+      </span>
+      <span class="results-query">"{{ query }}"</span>
+    </div>
+
+    <div class="results-grid" [@staggerList]>
+      @for (item of results; track trackById($index, item)) {
+        <div class="result-card" (click)="openUrl(item)" [matTooltip]="item.url.url">
+          <div class="result-thumb">
+            @if (item.screenshot) {
+              <img [src]="item.screenshot" class="thumb-image" alt="" />
+            } @else {
+              <div class="thumb-placeholder">
+                @if (item.faviconUrl) {
+                  <div class="favicon-glass">
+                    <img [src]="item.faviconUrl" class="favicon" alt="" />
+                  </div>
+                } @else {
+                  <mat-icon>language</mat-icon>
+                }
+              </div>
+            }
+            @if (item.categoryName) {
+              <span class="category-chip" [matTooltip]="item.categoryName">
+                <mat-icon>folder</mat-icon>
+                {{ item.categoryName }}
+              </span>
+            }
+          </div>
+
+          <div class="result-body">
+            <div class="result-title">
+              @for (part of item.titleParts; track $index) {
+                @if (part.match) {
+                  <mark>{{ part.text }}</mark>
+                } @else {
+                  <span>{{ part.text }}</span>
+                }
+              }
+            </div>
+            <div class="result-url">
+              @for (part of item.urlParts; track $index) {
+                @if (part.match) {
+                  <mark>{{ part.text }}</mark>
+                } @else {
+                  <span>{{ part.text }}</span>
+                }
+              }
+            </div>
+          </div>
+
+          <div class="result-arrow">
+            <mat-icon>arrow_outward</mat-icon>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

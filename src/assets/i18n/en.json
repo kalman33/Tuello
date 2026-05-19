@@ -297,5 +297,10 @@
   "mmn.mosaic.manager.sites": "Direct sites",
   "mmn.mosaic.manager.sites.empty": "No direct sites. Click + to add one.",
   "mmn.mosaic.manager.categories": "Categories",
-  "mmn.mosaic.manager.open": "Open Mosaic"
+  "mmn.mosaic.manager.open": "Open Mosaic",
+  "mmn.mosaic.search.placeholder": "Search a site, URL or category…",
+  "mmn.mosaic.search.clear": "Clear search",
+  "mmn.mosaic.search.count": "{{count}} result(s)",
+  "mmn.mosaic.search.empty.title": "No results",
+  "mmn.mosaic.search.empty.subtitle": "No site matches \"{{query}}\". Try another keyword."
 }

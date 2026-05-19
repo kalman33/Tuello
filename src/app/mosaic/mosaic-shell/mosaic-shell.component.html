@@ -5,10 +5,12 @@
     <div class="blob blob-3"></div>
   </div>
 
-  <mmn-mosaic-toolbar [showBack]="!!selectedCategoryId()" [categoryName]="selectedCategory?.name ?? ''" (backClick)="goBack()"></mmn-mosaic-toolbar>
+  <mmn-mosaic-toolbar [showBack]="!!selectedCategoryId() && !isSearching()" [categoryName]="selectedCategory?.name ?? ''" (backClick)="goBack()" (searchChange)="onSearchChange($event)"></mmn-mosaic-toolbar>
 
   <main class="mosaic-content">
-    @if (selectedCategoryId()) {
+    @if (isSearching()) {
+      <mmn-mosaic-search-results [query]="searchQuery()" [categories]="categories" [rootUrls]="rootUrls"></mmn-mosaic-search-results>
+    } @else if (selectedCategoryId()) {
       <mmn-urls-grid [urls]="categoryUrls" (reordered)="onUrlsReordered($event)"></mmn-urls-grid>
     } @else {
       <mmn-categories-grid [categories]="categories" [rootUrls]="rootUrls" (categorySelected)="selectCategory($event)" (reordered)="onGridReordered($event)"></mmn-categories-grid>

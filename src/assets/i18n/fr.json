@@ -296,5 +296,10 @@
   "mmn.mosaic.manager.sites": "Sites directs",
   "mmn.mosaic.manager.sites.empty": "Aucun site direct. Cliquez sur + pour en ajouter un.",
   "mmn.mosaic.manager.categories": "Catégories",
-  "mmn.mosaic.manager.open": "Ouvrir la Mosaïque"
+  "mmn.mosaic.manager.open": "Ouvrir la Mosaïque",
+  "mmn.mosaic.search.placeholder": "Rechercher un site, une URL, une catégorie…",
+  "mmn.mosaic.search.clear": "Effacer la recherche",
+  "mmn.mosaic.search.count": "{{count}} résultat(s)",
+  "mmn.mosaic.search.empty.title": "Aucun résultat",
+  "mmn.mosaic.search.empty.subtitle": "Aucun site ne correspond à « {{query}} ». Essayez un autre mot-clé."
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, NgZone, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, NgZone, OnDestroy, OnInit, signal } from '@angular/core';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
@@ -6,6 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { CategoriesGridComponent } from '../categories-grid/categories-grid.component';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicToolbarComponent } from '../mosaic-toolbar/mosaic-toolbar.component';
+import { MosaicSearchResultsComponent } from '../search-results/search-results.component';
 import { MosaicStorageService } from '../services/mosaic-storage.service';
 import { UrlsGridComponent } from '../urls-grid/urls-grid.component';
 
@@ -14,7 +15,7 @@ import { UrlsGridComponent } from '../urls-grid/urls-grid.component';
   templateUrl: './mosaic-shell.component.html',
   styleUrls: ['./mosaic-shell.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MosaicToolbarComponent, CategoriesGridComponent, UrlsGridComponent, MatDialogModule, MatSnackBarModule]
+  imports: [MosaicToolbarComponent, CategoriesGridComponent, UrlsGridComponent, MosaicSearchResultsComponent, MatDialogModule, MatSnackBarModule]
 })
 export class MosaicShellComponent implements OnInit, OnDestroy {
   selectedCategoryId = signal<string | null>(null);
@@ -22,6 +23,9 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
   categories: MosaicCategory[] = [];
   rootUrls: MosaicUrl[] = [];
   categoryUrls: MosaicUrl[] = [];
+
+  searchQuery = signal<string>('');
+  isSearching = computed(() => this.searchQuery().trim().length > 0);
 
   private storageService = inject(MosaicStorageService);
   private translate = inject(TranslateService);
@@ -113,6 +117,11 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
     this.selectedCategoryId.set(null);
     this.selectedCategory = null;
     this.categoryUrls = [];
+    this.cdr.detectChanges();
+  }
+
+  onSearchChange(query: string): void {
+    this.searchQuery.set(query);
     this.cdr.detectChanges();
   }
 

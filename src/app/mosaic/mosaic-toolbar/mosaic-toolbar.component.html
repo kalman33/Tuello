@@ -15,4 +15,24 @@
       <span class="breadcrumb">/ {{ categoryName }}</span>
     }
   </div>
+
+  <div class="toolbar-search" [class.focused]="searchFocused()" [class.has-value]="!!searchQuery">
+    <mat-icon class="search-icon">search</mat-icon>
+    <input
+      type="text"
+      class="search-input"
+      [placeholder]="'mmn.mosaic.search.placeholder' | translate"
+      [ngModel]="searchQuery"
+      (ngModelChange)="onSearchInput($event)"
+      (focus)="searchFocused.set(true)"
+      (blur)="searchFocused.set(false)"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    @if (searchQuery) {
+      <button mat-icon-button class="search-clear" [matTooltip]="'mmn.mosaic.search.clear' | translate" (click)="clearSearch()">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </div>
 </mat-toolbar>
