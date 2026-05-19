@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.19.0] - 2026-05-19
+
+    - Ajout du module Recherche dans la Mosaïque
+    - Optimisations CSS
+
 ## [1.2.18.0] - 2026-05-17
 
     - Ajout de la fonctionnalité Mosaïque (vue multi-tuiles par catégories/URLs)
