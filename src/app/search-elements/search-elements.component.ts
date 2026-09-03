@@ -79,10 +79,10 @@ export class SearchElementsComponent implements OnInit {
 
     ngOnInit() {
         // recupération des elements
-        chrome.storage.local.get(['tuelloElements'], (results) => {
+        chrome.storage.local.get(['tuelloElements'], (results: Record<string, any>) => {
             this.elements = results['tuelloElements'];
         });
-        chrome.storage.local.get(['searchElementsActivated'], (results) => {
+        chrome.storage.local.get(['searchElementsActivated'], (results: Record<string, any>) => {
             if (results['searchElementsActivated']) {
                 this.searchElementsActivated = results['searchElementsActivated'];
                 chrome.runtime.sendMessage(
@@ -97,7 +97,7 @@ export class SearchElementsComponent implements OnInit {
         });
 
         // récupération du search attribute to display
-        chrome.storage.local.get(['searchAttributeDisplay'], (results) => {
+        chrome.storage.local.get(['searchAttributeDisplay'], (results: Record<string, any>) => {
             this.searchAttributeDisplay = results['searchAttributeDisplay'];
         });
     }

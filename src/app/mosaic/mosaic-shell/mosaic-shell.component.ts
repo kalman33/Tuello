@@ -61,7 +61,7 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
       if (areaName !== 'local') return;
       this.ngZone.run(() => {
         if (changes['language']) {
-          const newLang = changes['language'].newValue ?? 'en';
+          const newLang = (changes['language'].newValue as string) ?? 'en';
           if (newLang !== this.translate.currentLang) {
             this.translate.use(newLang);
           }

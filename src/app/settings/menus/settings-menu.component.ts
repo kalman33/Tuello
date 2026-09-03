@@ -34,7 +34,7 @@ export class SettingsMenuComponent implements OnInit {
   constructor() { }
 
   ngOnInit(): void {
-    chrome.storage.local.get(['settings'], results => {
+    chrome.storage.local.get(['settings'], (results: Record<string, any>) => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
         this.label = this.menuLabels[this.index];
@@ -47,7 +47,7 @@ export class SettingsMenuComponent implements OnInit {
   }
 
   deleteLabel() {
-    chrome.storage.local.get(['settings'], results => {
+    chrome.storage.local.get(['settings'], (results: Record<string, any>) => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
         this.label = '';
@@ -59,7 +59,7 @@ export class SettingsMenuComponent implements OnInit {
   }
 
   labelChange(label: string) {
-    chrome.storage.local.get(['settings'], results => {
+    chrome.storage.local.get(['settings'], (results: Record<string, any>) => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
         this.menuLabels[this.index] = label;

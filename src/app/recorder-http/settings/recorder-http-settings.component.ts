@@ -24,7 +24,7 @@ export class RecorderHttpSettingsComponent {
 
   constructor(public dialogRef: MatDialogRef<RecorderHttpSettingsComponent>) {
     // recupération des elements
-    chrome.storage.local.get(['tuelloHTTPFilter', 'tuelloHTTPOverWrite'], (results) => {
+    chrome.storage.local.get(['tuelloHTTPFilter', 'tuelloHTTPOverWrite'], (results: Record<string, any>) => {
       this.dataloaded = true;
       this.filter = results['tuelloHTTPFilter'];
       this.overwrite = results['tuelloHTTPOverWrite'] === false ? false : true;

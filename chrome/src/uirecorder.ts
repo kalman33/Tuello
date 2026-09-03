@@ -14,7 +14,7 @@ let captureImageKeyboardShortcut;
 let commentKeyboardShortcut;
 
 export function launchUIRecorderHandler() {
-  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results) => {
+  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
     if (results.uiRecordActivated) {
       if (results.tuelloKeyboardShortcut) {
         screenshotKeyboardShortcut = results['tuelloKeyboardShortcut']?.screenshot || { key: 'S', code: 'KeyS' };
@@ -152,7 +152,7 @@ function keyboardListener(e) {
       },
       () => {}
     );
-    chrome.storage.local.get(['messages'], (results) => {
+    chrome.storage.local.get(['messages'], (results: Record<string, any>) => {
       let placeholder = 'Add comment';
       let submitButton = 'Submit';
 

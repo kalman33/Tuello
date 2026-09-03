@@ -114,7 +114,7 @@ export class CompressionService {
    */
   loadCompressed<T>(key: string): Promise<T | null> {
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get([key], results => {
+      chrome.storage.local.get([key], (results: Record<string, any>) => {
         if (chrome.runtime.lastError) {
           reject(chrome.runtime.lastError);
           return;

@@ -31,7 +31,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     private trackService: TrackService,
     private guideTourService: GuideTourService
   ) {
-    chrome.storage.local.get(['darkMode'], (results) => {
+    chrome.storage.local.get(['darkMode'], (results: Record<string, any>) => {
       if (results['darkMode']) {
         this.themeService.toggleTheme(results['darkMode']);
       }
@@ -86,7 +86,7 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
     chrome.runtime.onMessage.addListener(this.actionsListener);
 
     // on relance la route
-    chrome.storage.local.get(['tuelloCurrentRoute'], (results) => {
+    chrome.storage.local.get(['tuelloCurrentRoute'], (results: Record<string, any>) => {
       const route: string = results['tuelloCurrentRoute'];
       if (route && !route.startsWith('/mosaic')) {
         this.ngZone.run(() => {

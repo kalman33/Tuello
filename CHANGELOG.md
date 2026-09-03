@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
     - Spy & Replay : message d'erreur affiché quand la capture d'image échoue
     - Sécurité : les messages provenant d'autres fenêtres ne peuvent plus injecter de mocks
     - Dépendances : montée en Angular 21.2 et de l'outillage de build (72 → 5 vulnérabilités, plus aucune critique ni haute), durcissement npm contre les attaques de supply chain
+    - Outillage : eslint 10 (flat config) et lint réparé, @types/chrome 0.2.8, webpack-cli 7 ; correction de la fenêtre npm min-release-age qui figeait les installations
 
 ## [1.2.19.0] - 2026-05-19
 

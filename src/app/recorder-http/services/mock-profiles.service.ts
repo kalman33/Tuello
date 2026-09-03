@@ -24,7 +24,7 @@ export class MockProfilesService {
 
   async getActiveProfileId(): Promise<string | null> {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['tuelloActiveProfileId'], (result) => {
+      chrome.storage.local.get(['tuelloActiveProfileId'], (result: Record<string, any>) => {
         resolve(result['tuelloActiveProfileId'] || null);
       });
     });

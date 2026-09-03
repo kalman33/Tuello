@@ -313,7 +313,7 @@ function init() {
 
         // Charger la préférence de position AVANT d'insérer l'iframe dans le DOM
         // pour éviter le flash (l'iframe est ajouté directement avec la bonne position)
-        chrome.storage.local.get(['tuelloDockedLeft'], (results) => {
+        chrome.storage.local.get(['tuelloDockedLeft'], (results: Record<string, any>) => {
           dockedLeft = results['tuelloDockedLeft'] || false;
           applyDockPosition(iframe, false);
           document.body.appendChild(iframe);
@@ -690,7 +690,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       break;
     case 'MMA_TAGS_CHANGE':
-      chrome.storage.local.get(['tuelloHTTPTags'], (results) => {
+      chrome.storage.local.get(['tuelloHTTPTags'], (results: Record<string, any>) => {
         if (results['tuelloHTTPTags']) {
           // On initialise le gestionnaire des tags
           initTagsHandler(results['tuelloHTTPTags']);

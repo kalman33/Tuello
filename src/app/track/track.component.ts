@@ -98,7 +98,7 @@ export class TrackComponent implements OnInit, OnDestroy {
       'tuelloTrackData',
       'tuelloTrackDataDisplay',
       'tuelloTrackDataDisplayType'
-    ], results => {
+    ], (results: Record<string, any>) => {
       if (results['trackPlay']) {
         this.trackPlayActivated = results['trackPlay'];
         chrome.runtime.sendMessage({

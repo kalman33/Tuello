@@ -68,7 +68,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
-  const result = await chrome.storage.local.get(['mosaicConfig']);
+  const result = await chrome.storage.local.get<Record<string, any>>(['mosaicConfig']);
   const config = result['mosaicConfig'];
   if (config?.openOnStartup) {
     chrome.tabs.create({ url: chrome.runtime.getURL('mosaic/mosaic.html') });
@@ -207,7 +207,7 @@ async function init() {
 
   await dynamicallyInjectContentScripts();
 
-  const results = await chrome.storage.local.get(['messages']);
+  const results = await chrome.storage.local.get<Record<string, any>>(['messages']);
   await chrome.contextMenus.removeAll();
 
   const msgs = results.messages?.default;
@@ -236,6 +236,8 @@ async function init() {
         // Synchroniser avec chrome.storage de manière asynchrone (avec compression LZ)
         saveCompressed('tuelloTracksBody', tracksBodyCache).catch(console.error);
       }
+      // listener non bloquant (extraInfoSpec sans 'blocking') : il observe seulement
+      return undefined;
     },
     { urls: ['<all_urls>'] },
     ['requestBody']
@@ -425,7 +427,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       break;
     case 'UPDATE_MENU':
       if (sender && sender.tab && sender.tab.id >= 0) {
-        chrome.storage.local.get(['messages'], (results) => {
+        chrome.storage.local.get(['messages'], (results: Record<string, any>) => {
           if (results.messages) {
             const msgs = results.messages.default;
             chrome.contextMenus.update('id0', {
@@ -796,7 +798,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
               chrome.tabs.onUpdated.removeListener(listener);
               reject(new Error('Timeout'));
             }, 12000);
-            const listener = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+            const listener = (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
               if (tabId === createdTabId && changeInfo.status === 'complete') {
                 clearTimeout(timeout);
                 chrome.tabs.onUpdated.removeListener(listener);

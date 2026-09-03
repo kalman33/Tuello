@@ -16,7 +16,7 @@ export class TagsService {
   loadTags(): Promise<void> {
     // recupération des elements
     return new Promise((resolve) => {
-      chrome.storage.local.get(['tuelloHTTPTags'], results => {
+      chrome.storage.local.get(['tuelloHTTPTags'], (results: Record<string, any>) => {
         this.elements = results['tuelloHTTPTags'] || [];
         resolve();
       });

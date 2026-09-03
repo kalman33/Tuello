@@ -42,7 +42,7 @@ export class AddTagsComponent {
     }
 
     private loadData(): void {
-        chrome.storage.local.get(['tuelloHTTPTags'], (result) => {
+        chrome.storage.local.get(['tuelloHTTPTags'], (result: Record<string, any>) => {
             if (!chrome.runtime.lastError) {
                 this.tagsService.elements = result['tuelloHTTPTags'];
             }

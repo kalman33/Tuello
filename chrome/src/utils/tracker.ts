@@ -385,7 +385,7 @@ function displayTrack(track: Track) {
  * Permet d'afficher les données que l'on veut tracer
  */
 async function getDisplayData(track: Track) {
-  const results = await chrome.storage.local.get(['tuelloTrackDataDisplay', 'tuelloTrackDataDisplayType']);
+  const results = await chrome.storage.local.get<Record<string, any>>(['tuelloTrackDataDisplay', 'tuelloTrackDataDisplayType']);
   const dataDisplayType = results.tuelloTrackDataDisplayType;
   const dataDisplay = results.tuelloTrackDataDisplay;
   let data = track.url.length > 50 ? track.url?.slice(0, 50) + ' ...' : track.url;

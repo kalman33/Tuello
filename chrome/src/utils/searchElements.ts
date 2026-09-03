@@ -34,7 +34,7 @@ export function activateSearchElements() {
   injectStyles(); // Injecte l'animation CSS
 
   // Récupère la langue configurée
-  chrome.storage.local.get(['language'], (result) => {
+  chrome.storage.local.get(['language'], (result: Record<string, any>) => {
     currentLang = result['language'] || 'fr';
     searchAndDisplay();
   });

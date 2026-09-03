@@ -13,7 +13,7 @@ export class MosaicStorageService {
 
   async loadConfig(): Promise<MosaicConfig> {
     return new Promise((resolve) => {
-      chrome.storage.local.get([MOSAIC_CONFIG_KEY], (result) => {
+      chrome.storage.local.get([MOSAIC_CONFIG_KEY], (result: Record<string, any>) => {
         const config: MosaicConfig = result[MOSAIC_CONFIG_KEY] ?? this.defaultConfig();
         this.configSubject.next(config);
         resolve(config);

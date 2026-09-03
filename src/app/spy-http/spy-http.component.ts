@@ -115,7 +115,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     };
     chrome.runtime.onMessage.addListener(this.chromeMessageListener);
 
-    chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results) => {
+    chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
       if (results['uiRecordActivated']) {
         this.spyActif = true;
         // on previent background qui va prevenir contentscript qu'on a démarré le recording

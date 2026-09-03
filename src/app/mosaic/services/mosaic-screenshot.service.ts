@@ -24,7 +24,7 @@ export class MosaicScreenshotService {
 
   async getScreenshot(urlId: string): Promise<string | null> {
     return new Promise((resolve) => {
-      chrome.storage.local.get([MOSAIC_SCREENSHOT_PREFIX + urlId], (result) => {
+      chrome.storage.local.get([MOSAIC_SCREENSHOT_PREFIX + urlId], (result: Record<string, any>) => {
         resolve(result[MOSAIC_SCREENSHOT_PREFIX + urlId] ?? null);
       });
     });

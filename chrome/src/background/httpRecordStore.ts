@@ -39,7 +39,7 @@ interface MockProfilesStorage {
  */
 const mockDuplicateKey = (item: { key: string; method?: string }): string => `${(item.method || '').toUpperCase()} ${item.key}`;
 
-const getLocal = <T>(key: string): Promise<T | undefined> => new Promise((resolve) => chrome.storage.local.get([key], (r) => resolve(r[key])));
+const getLocal = <T>(key: string): Promise<T | undefined> => new Promise((resolve) => chrome.storage.local.get([key], (r: Record<string, any>) => resolve(r[key])));
 
 // Chaîne de promesses : chaque batch attend la fin du précédent.
 let writeChain: Promise<void> = Promise.resolve();

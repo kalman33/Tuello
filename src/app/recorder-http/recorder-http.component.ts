@@ -123,7 +123,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     // Vérifier si body a la classe 'black-theme'
     this.isBlackTheme = document.body.classList.contains('black-theme');
 
-    chrome.storage.local.get(['httpMock', 'httpRecord'], (results) => {
+    chrome.storage.local.get(['httpMock', 'httpRecord'], (results: Record<string, any>) => {
       this.httpRecordActivated = results['httpRecord'];
       this.httpMockActivated = results['httpMock'];
       this.ref.detectChanges();

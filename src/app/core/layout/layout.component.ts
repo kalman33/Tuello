@@ -54,7 +54,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    chrome.storage.local.get(['settings', 'selectedMenu', 'tuelloDockedLeft'], (results) => {
+    chrome.storage.local.get(['settings', 'selectedMenu', 'tuelloDockedLeft'], (results: Record<string, any>) => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }
@@ -153,7 +153,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   openSideNav() {
-    chrome.storage.local.get(['settings', 'selectedMenu'], (results) => {
+    chrome.storage.local.get(['settings', 'selectedMenu'], (results: Record<string, any>) => {
       if (results['settings']) {
         this.menuLabels = results['settings'];
       }

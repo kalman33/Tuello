@@ -115,7 +115,7 @@ async function getHTTPFilterCached(): Promise<string | null> {
   if (now - filterCacheTime < FILTER_CACHE_TTL && cachedHTTPFilter !== undefined) {
     return cachedHTTPFilter;
   }
-  const items = await chrome.storage.local.get(['tuelloHTTPFilter']);
+  const items = await chrome.storage.local.get<Record<string, any>>(['tuelloHTTPFilter']);
   cachedHTTPFilter = items['tuelloHTTPFilter'] || null;
   filterCacheTime = now;
   return cachedHTTPFilter;

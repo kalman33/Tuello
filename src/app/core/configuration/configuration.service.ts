@@ -9,7 +9,7 @@ export class ConfigurationService {
   init(): Promise<any> {
     this.translate.setDefaultLang('en');
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get(['language'], results => {
+      chrome.storage.local.get(['language'], (results: Record<string, any>) => {
         if (chrome.runtime.lastError) {
           reject(chrome.runtime.lastError);
           return;

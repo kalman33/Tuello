@@ -149,7 +149,7 @@ export class SettingsComponent implements OnInit {
   }
 
   init() {
-    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode'], (results) => {
+    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode'], (results: Record<string, any>) => {
       if (results['language']) {
         this.selectedLanguage = results['language'];
       }
