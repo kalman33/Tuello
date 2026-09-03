@@ -1,8 +1,6 @@
 import { ImageType, IUserAction } from '../../../src/app/spy-http/models/UserAction';
-import { PNG } from 'pngjs/browser';
-import pixelmatch from 'pixelmatch';
-import { Buffer } from 'buffer';
 import domtoimage from 'dom-to-image';
+import { comparePngDataUrls, readPng } from './imageCompare';
 
 /** Cache des images trouvées pour éviter les recherches répétées */
 const cache: Map<string, HTMLElement> = new Map();
@@ -33,8 +31,6 @@ const SEARCH_TIME_BUDGET_MS = 7000;
 
 /** Timeout de chargement d'une image */
 const IMAGE_LOAD_TIMEOUT_MS = 5000;
-
-const PNG_DATA_URL_PREFIX = 'data:image/png;base64,';
 
 /**
  * Attend qu'une image soit complètement chargée sans écraser les handlers de la page
@@ -143,8 +139,22 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Empreinte FNV-1a : la clé de cache portait tout le base64 de l'image (plusieurs
+ * dizaines de Ko), rehashé à chaque accès à la Map.
+ */
+function hashString(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 function getCacheKey(action: IUserAction): string {
-  return `${window.location.href}|${action.value}`;
+  const value = action.value ?? '';
+  return `${window.location.href}|${value.length}|${hashString(value)}`;
 }
 
 /**
@@ -182,13 +192,12 @@ export async function searchImg(action: IUserAction): Promise<HTMLElement> {
  * au lieu d'attendre toutes les comparaisons
  */
 async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | null> {
-  const candidates = findCandidates(action);
+  // La limite est passée à findCandidates : inutile de construire (et de calculer le
+  // style de) toute la page pour n'en tester que MAX_ELEMENTS_TO_TEST.
+  const elementsToTest = findCandidates(action, MAX_ELEMENTS_TO_TEST);
 
-  // Limiter le nombre d'éléments à tester pour éviter les blocages
-  const elementsToTest = candidates.slice(0, MAX_ELEMENTS_TO_TEST);
-
-  if (candidates.length > MAX_ELEMENTS_TO_TEST) {
-    console.warn(`Tuello: trop d'éléments candidats (${candidates.length}), limité à ${MAX_ELEMENTS_TO_TEST}`);
+  if (elementsToTest.length === MAX_ELEMENTS_TO_TEST) {
+    console.warn(`Tuello: recherche limitée aux ${MAX_ELEMENTS_TO_TEST} éléments les plus probables`);
   }
 
   const deadline = Date.now() + SEARCH_TIME_BUDGET_MS;
@@ -205,7 +214,7 @@ async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | 
 
     try {
       const dataUrl = await convertElementToBase64(element);
-      const { difference, rescaled } = await compareImages(action.value, dataUrl);
+      const { difference, rescaled } = compareImages(action.value, dataUrl);
       tested++;
 
       if (difference < bestScore) {
@@ -223,7 +232,7 @@ async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | 
     }
   }
 
-  logSearchFailure(action, candidates.length, tested, bestScore, bestElement);
+  logSearchFailure(action, elementsToTest.length, tested, bestScore, bestElement);
 
   return null;
 }
@@ -255,85 +264,18 @@ function logSearchFailure(action: IUserAction, candidateCount: number, tested: n
 }
 
 /**
- * pixelmatch construit une vue Uint32Array sur le buffer : l'offset doit être aligné sur 4 octets
- */
-function toAlignedPixels(data: Uint8Array): Uint8Array {
-  if (data.byteOffset % 4 === 0) {
-    return data;
-  }
-  return new Uint8Array(data);
-}
-
-/**
- * Redimensionne un buffer RGBA (plus proche voisin) pour permettre la comparaison
- * de deux rendus d'une même image servie à des résolutions différentes
- */
-function resizeRgba(data: Uint8Array, srcWidth: number, srcHeight: number, width: number, height: number): Uint8Array {
-  const out = new Uint8Array(width * height * 4);
-  const xRatio = srcWidth / width;
-  const yRatio = srcHeight / height;
-
-  for (let y = 0; y < height; y++) {
-    const srcY = Math.min(srcHeight - 1, Math.floor(y * yRatio));
-    for (let x = 0; x < width; x++) {
-      const srcX = Math.min(srcWidth - 1, Math.floor(x * xRatio));
-      const srcIndex = (srcY * srcWidth + srcX) * 4;
-      const destIndex = (y * width + x) * 4;
-      out[destIndex] = data[srcIndex];
-      out[destIndex + 1] = data[srcIndex + 1];
-      out[destIndex + 2] = data[srcIndex + 2];
-      out[destIndex + 3] = data[srcIndex + 3];
-    }
-  }
-
-  return out;
-}
-
-function readPng(dataUrl: string): { data: Uint8Array; width: number; height: number } {
-  const base64 = dataUrl.startsWith(PNG_DATA_URL_PREFIX) ? dataUrl.slice(PNG_DATA_URL_PREFIX.length) : dataUrl.slice(dataUrl.indexOf(',') + 1);
-  const png = PNG.sync.read(Buffer.from(base64, 'base64'));
-  return { data: png.data, width: png.width, height: png.height };
-}
-
-/**
  * Compare deux images et retourne le pourcentage de différence
  * ainsi que l'information "l'image candidate a dû être redimensionnée"
  */
-async function compareImages(dataUrl1: string, dataUrl2: string): Promise<{ difference: number; rescaled: boolean }> {
+function compareImages(dataUrl1: string, dataUrl2: string): { difference: number; rescaled: boolean } {
   try {
-    const reference = readPng(dataUrl1);
-    const candidate = readPng(dataUrl2);
-
-    const width = reference.width;
-    const height = reference.height;
-    let candidateData = candidate.data;
-    let rescaled = false;
-
-    if (candidate.width !== width || candidate.height !== height) {
-      // Les dimensions diffèrent (srcset, densité d'écran, zoom...) : on normalise
-      // au lieu de rejeter d'emblée, sauf si le ratio n'a rien à voir
-      const referenceRatio = width / height;
-      const candidateRatio = candidate.width / candidate.height;
-      if (Math.abs(referenceRatio - candidateRatio) > ASPECT_RATIO_TOLERANCE) {
-        return { difference: 100, rescaled: false };
-      }
-      candidateData = resizeRgba(candidate.data, candidate.width, candidate.height, width, height);
-      rescaled = true;
-    }
-
-    // Passer null comme buffer de sortie : on n'a besoin que du nombre de pixels différents,
-    // pas de l'image diff. Évite l'allocation d'un PNG (~1.9 MB pour 800×600).
-    const mismatchedPixels = pixelmatch(
-      toAlignedPixels(reference.data),
-      toAlignedPixels(candidateData),
-      null,
-      width,
-      height,
-      { threshold: 0.1 } // Tolérance pour les différences mineures de rendu
-    );
-
-    const totalPixels = width * height;
-    return { difference: (mismatchedPixels / totalPixels) * 100, rescaled };
+    // Pas d'image de différence : on n'a besoin que du pourcentage, générer le PNG
+    // de diff coûterait une allocation par élément testé.
+    const result = comparePngDataUrls(dataUrl1, dataUrl2, {
+      threshold: 0.1,
+      aspectRatioTolerance: ASPECT_RATIO_TOLERANCE
+    });
+    return { difference: result.differencePercent, rescaled: result.rescaled };
   } catch (err) {
     console.warn('Tuello: erreur comparaison images:', err);
     return { difference: 100, rescaled: false };
@@ -364,27 +306,53 @@ function sortBySizeProximity(elements: HTMLElement[], action: IUserAction): HTML
  * On exploite le type d'image enregistré (balise img ou background CSS) pour tester
  * en premier les éléments les plus probables, puis on élargit progressivement.
  */
-export function findCandidates(action: IUserAction): HTMLElement[] {
+export function findCandidates(action: IUserAction, limit = Number.POSITIVE_INFINITY): HTMLElement[] {
   const allElements = Array.from(document.body.getElementsByTagName('*')).filter((element): element is HTMLElement => element instanceof HTMLElement);
 
-  const images = allElements.filter((element) => element instanceof HTMLImageElement);
-  const backgrounds = allElements.filter((element) => !(element instanceof HTMLImageElement) && window.getComputedStyle(element).backgroundImage !== 'none');
+  const isImage = (element: HTMLElement): boolean => element instanceof HTMLImageElement;
+
+  // getComputedStyle force un recalcul de style : on ne l'appelle que sur les éléments
+  // réellement examinés, et une seule fois par élément.
+  const backgroundCache = new Map<HTMLElement, boolean>();
+  const hasBackgroundImage = (element: HTMLElement): boolean => {
+    if (isImage(element)) {
+      return false;
+    }
+    let result = backgroundCache.get(element);
+    if (result === undefined) {
+      result = window.getComputedStyle(element).backgroundImage !== 'none';
+      backgroundCache.set(element, result);
+    }
+    return result;
+  };
+
+  // Le filtrage par taille ne lit que clientWidth/clientHeight : c'est le filtre le
+  // moins cher, on le passe en premier.
+  const sizeMatching = allElements.filter((element) => hasExpectedSize(element, action));
 
   const isBackground = action.imageType === ImageType.BACKGROUND;
 
-  // Groupes du plus probable au moins probable. Le dernier groupe ignore la taille :
-  // une image lazy-loadée ou responsive peut être rendue à une taille différente.
-  const groups: HTMLElement[][] = isBackground
-    ? [backgrounds.filter((e) => hasExpectedSize(e, action)), images.filter((e) => hasExpectedSize(e, action)), allElements.filter((e) => hasExpectedSize(e, action)), backgrounds]
-    : [images.filter((e) => hasExpectedSize(e, action)), backgrounds.filter((e) => hasExpectedSize(e, action)), allElements.filter((e) => hasExpectedSize(e, action)), images];
+  // Groupes du plus probable au moins probable, évalués paresseusement : dès que la
+  // limite est atteinte, les groupes suivants ne sont jamais construits. Le dernier
+  // groupe ignore la taille : une image lazy-loadée ou responsive peut être rendue à
+  // une taille différente.
+  const groups: Array<() => HTMLElement[]> = isBackground
+    ? [() => sizeMatching.filter(hasBackgroundImage), () => sizeMatching.filter(isImage), () => sizeMatching, () => allElements.filter(hasBackgroundImage)]
+    : [() => sizeMatching.filter(isImage), () => sizeMatching.filter(hasBackgroundImage), () => sizeMatching, () => allElements.filter(isImage)];
 
   const ordered: HTMLElement[] = [];
   const seen = new Set<HTMLElement>();
   for (const group of groups) {
-    for (const element of sortBySizeProximity(group, action)) {
+    if (ordered.length >= limit) {
+      break;
+    }
+    for (const element of sortBySizeProximity(group(), action)) {
       if (!seen.has(element)) {
         seen.add(element);
         ordered.push(element);
+        if (ordered.length >= limit) {
+          break;
+        }
       }
     }
   }

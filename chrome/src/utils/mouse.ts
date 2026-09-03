@@ -1,12 +1,15 @@
-let mouseDiv : HTMLDivElement;
+let mouseDiv: HTMLDivElement | null = null;
 
 function mouseListener(event: MouseEvent) {
-  if(event.pageX && event.pageY) {
+  if (mouseDiv && event.pageX && event.pageY) {
     mouseDiv.innerHTML = `${event.pageX}, ${event.pageY}`;
   }
 }
 
 export function addMouseCoordinates() {
+  // Deux activations successives laissaient une div orpheline dans la page
+  removeMouseCoordinates();
+
   document.addEventListener('mousemove', mouseListener);
   mouseDiv = document.createElement('div');
   mouseDiv.id = 'mouseCoordinates';
@@ -24,5 +27,6 @@ export function addMouseCoordinates() {
 
 export function removeMouseCoordinates() {
   document.removeEventListener('mousemove', mouseListener);
-  mouseDiv.remove();
+  mouseDiv?.remove();
+  mouseDiv = null;
 }

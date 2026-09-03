@@ -3,9 +3,7 @@ import { ComparisonResult } from '../models/ComparisonResult';
 import { IFrame } from '../models/IFrame';
 import { getFrameIdFromSrc } from './uiRecorderHandler';
 import { UserAction } from '../models/UserAction';
-import { PNG } from 'pngjs/browser';
-import pixelmatch from 'pixelmatch';
-import { Buffer } from 'buffer';
+import { comparePngDataUrls } from '../utils/imageCompare';
 
 /** Timeout par défaut pour les actions en ms */
 const ACTION_TIMEOUT_MS = 30000;
@@ -217,6 +215,11 @@ export class Player {
         this.pauseCurrentAction = false;
         this.yieldActions = this.iterateGenerator(this.initialActions);
         this.actionResults = [];
+        // count et comparisonResults font partie de l'état du rejeu : sans reset,
+        // les délais repartaient au mauvais index et les comparaisons s'empilaient
+        // d'un rejeu à l'autre.
+        this.count = 0;
+        this.comparisonResults = [];
         if (this.timeoutId) {
           clearTimeout(this.timeoutId);
           this.timeoutId = null;
@@ -342,47 +345,23 @@ export class Player {
           }
 
           try {
-            const pngImgData = PNG.sync.read(Buffer.from(action.data.slice('data:image/png;base64,'.length), 'base64'));
-            const pngImgData1 = PNG.sync.read(Buffer.from(imgData.slice('data:image/png;base64,'.length), 'base64'));
+            // Le candidat est ramené aux dimensions de la référence si besoin : la
+            // fenêtre de rejeu n'a pas toujours exactement la taille d'enregistrement
+            // (devtools ouverts, zoom, autre écran) et la comparaison échouait alors
+            // silencieusement.
+            const comparison = comparePngDataUrls(action.data, imgData, { threshold: 0.1, withDiff: true });
 
-            // Vérifier si les dimensions sont compatibles
-            const width = Math.min(pngImgData.width, pngImgData1.width);
-            const height = Math.min(pngImgData.height, pngImgData1.height);
+            if (comparison.rescaled) {
+              console.warn("Tuello: la capture n'a pas la taille de l'enregistrement, elle a été redimensionnée avant comparaison.");
+            }
 
-            const diffImage = new PNG({ width, height });
+            const data = {
+              misMatchPercentage: comparison.differencePercent.toFixed(2),
+              imageDataUrl: comparison.diffDataUrl
+            };
 
-            // pixelmatch returns the number of mismatched pixels
-            const mismatchedPixels = pixelmatch(
-              pngImgData.data,
-              pngImgData1.data,
-              diffImage.data,
-              width,
-              height,
-              { threshold: 0.1 } // Tolérance pour les différences mineures
-            );
-
-            const match = 1 - mismatchedPixels / (width * height);
-            const misMatchPercentage = (100 - match * 100).toFixed(2);
-
-            diffImage.pack();
-            const chunks: Buffer[] = [];
-            diffImage.on('data', (chunk: Buffer) => {
-              chunks.push(chunk);
-            });
-            diffImage.on('end', () => {
-              const result = Buffer.concat(chunks);
-              const data = {
-                misMatchPercentage,
-                imageDataUrl: 'data:image/png;base64,' + result.toString('base64')
-              };
-
-              this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
-              resolve(true);
-            });
-            diffImage.on('error', (err: Error) => {
-              console.warn('Erreur génération diff image:', err);
-              resolve(false);
-            });
+            this.comparisonResults.push(new ComparisonResult(action.id, action.data, imgData, data));
+            resolve(true);
           } catch (err) {
             console.warn('Erreur comparaison images:', err);
             resolve(false);

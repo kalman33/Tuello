@@ -752,7 +752,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           () => {}
         );
 
-        if (message.value && message.value.comparisonResults) {
+        if (message.value?.comparisonResults?.length > 0) {
           // settimeout permet à tuello de s'afficher et permettre d'ecouter ce message
           setTimeout(() => {
             chrome.runtime.sendMessage(
@@ -768,14 +768,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse();
       break;
     case 'PLAY_USER_ACTION':
+      // Le résultat de run() doit être renvoyé tel quel : le player en déduit si
+      // l'action a réussi (une image introuvable résout false).
       run(message.value)
-        .then(() => {
-          sendResponse();
-          // return true;
+        .then((result) => {
+          sendResponse(result !== false);
         })
         .catch(() => {
-          sendResponse();
-          //return true;
+          sendResponse(false);
         });
       return true;
     case 'MOCK_HTTP_USER_ACTION':

@@ -163,7 +163,9 @@ export function displayEffect(x, y) {
     document.body.append(div);
 
     setTimeout(() => {
-      document.body.removeChild(div);
+      // remove() et pas removeChild() : si la page a re-rendu (SPA) le noeud n'a plus
+      // body comme parent, et l'exception laissait la promesse en suspens (rejeu figé).
+      div.remove();
       resolve(true);
     }, 500);
   });

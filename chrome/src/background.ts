@@ -1,5 +1,21 @@
 import { Player } from './background/player';
-import { addComment, addHttpUserAction, addNavigate, addRecordByImage, addRecordWindowSize, addScreenShot, addUserAction, deleteRecord, initRecord, loadRecordFromStorage, setPause } from './background/uiRecorderHandler';
+import {
+  addComment,
+  addHttpUserAction,
+  addNavigate,
+  addRecordByImage,
+  addRecordWindowSize,
+  addScreenShot,
+  addUserAction,
+  cleanupTabState,
+  deleteRecord,
+  flushPendingSave,
+  initRecord,
+  loadRecordFromStorage,
+  replaceRecord,
+  setActiveTab,
+  setPause
+} from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
 import { loadCompressed, saveCompressed } from './utils/compression';
 import { appendHttpRecords } from './background/httpRecordStore';
@@ -29,9 +45,22 @@ function applyBadgeForTab(tabId: number, url: string): void {
 }
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
+  // L'état d'enregistrement est indexé par onglet : les messages sans sender.tab
+  // (panneau ouvert hors page, popup) doivent retomber sur l'onglet réellement actif.
+  setActiveTab(activeInfo.tabId);
   chrome.tabs.get(activeInfo.tabId, (tab) => {
+    if (chrome.runtime.lastError || !tab) {
+      return;
+    }
     applyBadgeForTab(tab.id, tab.url ?? '');
   });
+});
+
+// Libère l'état d'enregistrement d'un onglet fermé (sinon la Map grossit indéfiniment).
+// La sauvegarde est debouncée : on la force avant de perdre l'onglet.
+chrome.tabs.onRemoved.addListener((tabId) => {
+  flushPendingSave();
+  cleanupTabState(tabId);
 });
 
 // Gérer les changements d'URL sur l'onglet actif (et les reloads, qui resettent l'état per-tab de chrome.action)
@@ -252,10 +281,15 @@ chrome.commands.onCommand.addListener((command) => {
       if (player !== null) {
         pausedActionNumber = player.launchAction('PAUSE');
       }
-      // message au content script
-      chrome.tabs.query({ active: true }, function (tabs) {
+      // message au content script : currentWindow, sinon en multi-fenêtres tabs[0]
+      // pouvait être l'onglet actif d'une autre fenêtre
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        const tabId = tabs[0]?.id;
+        if (tabId === undefined) {
+          return;
+        }
         chrome.tabs.sendMessage(
-          tabs[0].id,
+          tabId,
           'toggle',
           {
             frameId: 0
@@ -263,12 +297,12 @@ chrome.commands.onCommand.addListener((command) => {
           () => {
             // message au content script
             chrome.tabs.sendMessage(
-              tabs[0].id,
+              tabId,
               {
                 action: 'ACTIONS_PAUSED',
                 value: pausedActionNumber
               },
-              () => {}
+              () => chrome.runtime.lastError
             );
           }
         );
@@ -276,9 +310,13 @@ chrome.commands.onCommand.addListener((command) => {
       break;
     case 'RESUME':
       // message au content script
-      chrome.tabs.query({ active: true }, function (tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        const tabId = tabs[0]?.id;
+        if (tabId === undefined) {
+          return;
+        }
         chrome.tabs.sendMessage(
-          tabs[0].id,
+          tabId,
           {
             action: 'HIDE'
           },
@@ -320,29 +358,47 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'LOAD_UI_RECORDERS':
       // on charge les enregistrements du local storage : uniquement pour la frame principale
       if (sender.frameId === 0) {
-        loadRecordFromStorage();
+        loadRecordFromStorage(sender.tab?.id);
       }
       break;
     case 'START_UI_RECORDER':
       if (msg.value === true) {
-        initRecord(sender.tab?.id);
-        chrome.windows.getCurrent((windowInfos) => {
-          let data = {
-            width: windowInfos.width,
-            height: windowInfos.height,
-            top: windowInfos.top,
-            left: windowInfos.left
-          };
-          addRecordWindowSize(data, sender.tab?.id);
-        });
-        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-          if (tabs.length > 0) {
-            const activeTab = tabs[0];
-            const url = activeTab?.url;
-            const action = new UserAction(null);
-            action.type = 'navigation';
-            action.hrefLocation = url;
-            addNavigate(action, tabs[0].id, 0);
+        const recorderTabId = sender.tab?.id;
+        if (recorderTabId !== undefined) {
+          setActiveTab(recorderTabId);
+        }
+
+        // msg.reset === false : on reprend l'enregistrement existant (bouton « ajouter »
+        // du panneau, ou panneau rouvert alors que l'enregistrement tourne déjà).
+        // initRecord repartait sinon d'un record vide qui écrasait l'enregistrement
+        // déjà stocké dès la première sauvegarde.
+        const isAppend = msg.reset === false;
+        const recorderReady = isAppend ? loadRecordFromStorage(recorderTabId) : Promise.resolve(initRecord(recorderTabId));
+
+        recorderReady.then(() => {
+          chrome.windows.getCurrent((windowInfos) => {
+            let data = {
+              width: windowInfos.width,
+              height: windowInfos.height,
+              top: windowInfos.top,
+              left: windowInfos.left
+            };
+            addRecordWindowSize(data, recorderTabId);
+          });
+
+          // L'action de navigation initiale n'a de sens que pour un nouvel
+          // enregistrement : le record repris porte déjà la sienne.
+          if (!isAppend) {
+            chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+              const activeTab = tabs[0];
+              if (!activeTab?.id) {
+                return;
+              }
+              const action = new UserAction(null);
+              action.type = 'navigation';
+              action.hrefLocation = activeTab.url;
+              addNavigate(action, activeTab.id, 0);
+            });
           }
         });
       }
@@ -576,27 +632,25 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       if (player !== null) {
         pausedActionNumber = player.launchAction('PAUSE');
       }
-      // message au content script
-      chrome.tabs.query({ active: true }, function (tabs) {
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          'toggle',
-          {
-            frameId: 0
-          },
-          () => {
-            // message au content script
-            chrome.tabs.sendMessage(
-              tabs[0].id,
-              {
-                action: 'ACTIONS_PAUSED',
-                value: pausedActionNumber
-              },
-              () => {}
-            );
-          }
-        );
-      });
+      // message au content script de l'onglet qui rejoue (sender), et pas à l'onglet
+      // actif d'une fenêtre quelconque
+      chrome.tabs.sendMessage(
+        sender.tab.id,
+        'toggle',
+        {
+          frameId: 0
+        },
+        () => {
+          chrome.tabs.sendMessage(
+            sender.tab.id,
+            {
+              action: 'ACTIONS_PAUSED',
+              value: pausedActionNumber
+            },
+            () => chrome.runtime.lastError
+          );
+        }
+      );
 
       // on doit faire un scroll vers  le haut sur toutes les frames
       chrome.webNavigation.getAllFrames(
@@ -690,7 +744,9 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       break;
     case 'PLAY_USER_ACTIONS':
       if (player) {
-        player.launchAction('RESET');
+        // destroy() et pas seulement RESET : une action en cours (jusqu'à 30s de
+        // timeout) relancerait sinon l'ancien player en parallèle du nouveau.
+        player.destroy();
       }
       player = new Player(msg.value, sender.tab.id, senderResponse);
       player.launchAction('PLAY');
@@ -719,9 +775,14 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       }
       break;
     case 'ACTIVATE':
-      chrome.tabs.query({ active: true }, (tabs) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tabId = tabs[0]?.id;
+        if (tabId === undefined) {
+          senderResponse();
+          return;
+        }
         chrome.tabs.sendMessage(
-          tabs[0].id,
+          tabId,
           {
             action: 'ACTIVATE'
           },
@@ -730,7 +791,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           },
           () =>
             chrome.tabs.sendMessage(
-              tabs[0].id,
+              tabId,
               'open',
               {
                 frameId: 0
@@ -754,18 +815,22 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       addScreenShot(sender.tab.id, msg.value).then((ret) => senderResponse());
       break;
     case 'COMMENT_ACTION':
-      addComment(msg.value);
+      addComment(msg.value, sender.tab?.id);
       senderResponse();
       break;
     case 'PAUSE_OTHER_ACTIONS_FOR_COMMENT_ACTION':
-      setPause(msg.value);
+      setPause(msg.value, sender.tab?.id);
       break;
     case 'RECORD_WINDOW_SIZE':
       // L'initialisation est maintenant gérée par START_UI_RECORDER
       // Ce cas est conservé pour la compatibilité avec les anciens appels
       break;
     case 'RECORD_HTTP':
-      addHttpUserAction(msg.value);
+      addHttpUserAction(msg.value, sender.tab?.id);
+      break;
+    case 'UI_RECORD_UPDATED':
+      // Le panneau a édité le record : synchroniser la copie mémoire du background
+      replaceRecord(msg.value, sender.tab?.id);
       break;
     case 'RECORD_HTTP_BATCH':
       // Persistance centralisée ici : plusieurs onglets peuvent enregistrer en même
@@ -784,7 +849,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         });
       return true;
     case 'RECORD_USER_ACTION_DELETE':
-      deleteRecord().then(() => senderResponse());
+      deleteRecord(sender.tab?.id).then(() => senderResponse());
       return true;
     case 'MOSAIC_OPEN_AND_CAPTURE':
       (async () => {

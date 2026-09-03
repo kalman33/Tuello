@@ -118,11 +118,14 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
       if (results['uiRecordActivated']) {
         this.spyActif = true;
-        // on previent background qui va prevenir contentscript qu'on a démarré le recording
+        // on previent background qui va prevenir contentscript qu'on a démarré le recording.
+        // reset: false car l'enregistrement est déjà en cours : le panneau vient juste
+        // d'être rouvert, il ne faut pas repartir d'un record vide.
         chrome.runtime.sendMessage(
           {
             action: 'START_UI_RECORDER',
-            value: true
+            value: true,
+            reset: false
           },
           () => {}
         );
@@ -152,7 +155,8 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
         .afterClosed()
         .pipe(take(1))
         .subscribe(async (result) => {
-          if (result !== 'add') {
+          const append = result === 'add';
+          if (!append) {
             this.actions = [];
             this.jsonContent = '';
             // Attendre que la suppression soit terminée avant de démarrer
@@ -160,7 +164,8 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
           }
           this.spyActif = true;
           this.chromeExtentionUtilsService.toggle();
-          this.recorderHistoryService.startRecording();
+          // append : le background doit reprendre le record existant, pas le réinitialiser
+          this.recorderHistoryService.startRecording(append);
         });
     } else {
       this.spyActif = true;
@@ -237,7 +242,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       {
         action: 'MOCK_HTTP_USER_ACTION',
         value: true,
-        data: this.recorderHistoryService.record.httpRecords
+        data: this.recorderHistoryService.record?.httpRecords
       },
       () => {}
     );
@@ -407,6 +412,9 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   }
 
   private saveActionsOnLocalStorage() {
+    if (!this.recorderHistoryService.record) {
+      return;
+    }
     this.recorderHistoryService.record.actions = this.actions;
     this.recorderHistoryService.saveUiRecordToLocalStorage();
   }

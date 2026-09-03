@@ -17,15 +17,14 @@ const MAX_ACTIONS_WARNING = 500;
 /** Limite dure du nombre d'actions (au-delà, les nouvelles actions sont ignorées) */
 const MAX_ACTIONS_LIMIT = 2000;
 
-/** Flag pour éviter de spammer les avertissements */
-let maxActionsWarningShown = false;
-
 /** État d'enregistrement isolé par onglet */
 interface RecordingState {
   lastAction: Action | null;
   last: number;
   record: Record | null;
   pause: boolean;
+  /** Flag pour éviter de spammer les avertissements (par onglet, comme le reste de l'état) */
+  maxActionsWarningShown: boolean;
 }
 
 /** Map des états d'enregistrement par tabId */
@@ -44,7 +43,8 @@ function getState(tabId?: number): RecordingState {
       lastAction: null,
       last: Date.now(),
       record: null,
-      pause: false
+      pause: false,
+      maxActionsWarningShown: false
     });
   }
   return recordingStates.get(id)!;
@@ -69,7 +69,7 @@ export function initRecord(tabId?: number): void {
   state.record = null;
   state.lastAction = null;
   state.last = Date.now();
-  maxActionsWarningShown = false; // Reset le flag d'avertissement
+  state.maxActionsWarningShown = false; // Reset le flag d'avertissement
 
   // Annuler toute sauvegarde en attente de l'ancien record
   if (saveDebounceTimer) {
@@ -91,9 +91,9 @@ function canAddAction(state: RecordingState): boolean {
   const actionsCount = state.record.actions.length;
 
   if (actionsCount >= MAX_ACTIONS_LIMIT) {
-    if (!maxActionsWarningShown) {
+    if (!state.maxActionsWarningShown) {
       console.error(`Limite de ${MAX_ACTIONS_LIMIT} actions atteinte. Les nouvelles actions sont ignorées. Sauvegardez et recommencez un nouvel enregistrement.`);
-      maxActionsWarningShown = true;
+      state.maxActionsWarningShown = true;
 
       // Notifier l'UI
       chrome.runtime.sendMessage(
@@ -394,6 +394,30 @@ export function addRecordWindowSize(windowSize: WindowSize, tabId?: number): voi
   });
 }
 
+/**
+ * Remplace le record gardé en mémoire par celui édité dans le panneau Angular.
+ * Sans ça, la copie mémoire du background (obsolète) était réécrite dans le storage
+ * à l'action suivante et les modifications faites dans le panneau (suppression,
+ * réordonnancement, délais, import) étaient perdues.
+ */
+export function replaceRecord(record: Record | null, tabId?: number): void {
+  const state = getState(tabId);
+
+  if (!record) {
+    state.record = null;
+    state.lastAction = null;
+    return;
+  }
+
+  const updated = new Record(record.windowSize);
+  updated.actions = record.actions ?? [];
+  updated.httpRecords = record.httpRecords;
+  updated.last = record.last ?? Date.now();
+
+  state.record = updated;
+  state.lastAction = updated.actions.length ? updated.actions[updated.actions.length - 1] : null;
+}
+
 export function addHttpUserAction(data: HttpReturn, tabId?: number): void {
   const state = getState(tabId);
 
@@ -411,47 +435,53 @@ export function addHttpUserAction(data: HttpReturn, tabId?: number): void {
   saveUiRecordToLocalStorage(state.record);
 }
 
-export function loadRecordFromStorage(tabId?: number): void {
+export function loadRecordFromStorage(tabId?: number): Promise<void> {
   const state = getState(tabId);
 
   // Ne pas charger si le record vient d'être supprimé (flag en mémoire)
   if (recordDeletedFlag) {
     state.last = Date.now();
-    return;
+    return Promise.resolve();
   }
 
-  // Vérifier aussi le flag persisté dans le storage (survit au redémarrage du service worker)
-  chrome.storage.local.get(['uiRecordDeleted'], (result) => {
-    if (result.uiRecordDeleted) {
-      state.last = Date.now();
-      // Supprimer le flag maintenant qu'on l'a lu
-      chrome.storage.local.remove(['uiRecordDeleted']);
-      return;
-    }
-
-    loadCompressed<Record>('uiRecord')
-      .then((data) => {
-        // Vérifier à nouveau le flag après le chargement asynchrone
-        if (recordDeletedFlag) {
-          state.last = Date.now();
-          return;
-        }
-
-        if (data) {
-          if (!state.record) {
-            state.record = new Record(data.windowSize);
-            state.record.actions = data.actions;
-            state.record.httpRecords = data.httpRecords;
-            state.lastAction = data.actions && data.actions.length ? data.actions[data.actions.length - 1] : null;
-            state.last = data.last;
-          }
-        } else {
-          state.last = Date.now();
-        }
-      })
-      .catch(() => {
+  // La promesse permet à l'appelant d'attendre le chargement avant de toucher au
+  // record (sinon un "reprendre l'enregistrement" créait un record vide en parallèle).
+  return new Promise<void>((resolve) => {
+    // Vérifier aussi le flag persisté dans le storage (survit au redémarrage du service worker)
+    chrome.storage.local.get(['uiRecordDeleted'], (result) => {
+      if (result.uiRecordDeleted) {
         state.last = Date.now();
-      });
+        // Supprimer le flag maintenant qu'on l'a lu
+        chrome.storage.local.remove(['uiRecordDeleted']);
+        resolve();
+        return;
+      }
+
+      loadCompressed<Record>('uiRecord')
+        .then((data) => {
+          // Vérifier à nouveau le flag après le chargement asynchrone
+          if (recordDeletedFlag) {
+            state.last = Date.now();
+            return;
+          }
+
+          if (data) {
+            if (!state.record) {
+              state.record = new Record(data.windowSize);
+              state.record.actions = data.actions ?? [];
+              state.record.httpRecords = data.httpRecords;
+              state.lastAction = state.record.actions.length ? state.record.actions[state.record.actions.length - 1] : null;
+              state.last = data.last ?? Date.now();
+            }
+          } else {
+            state.last = Date.now();
+          }
+        })
+        .catch(() => {
+          state.last = Date.now();
+        })
+        .then(() => resolve());
+    });
   });
 }
 
@@ -469,7 +499,7 @@ export function deleteRecord(tabId?: number): Promise<void> {
     pendingSaveRecord = null;
 
     // Reset le flag d'avertissement de limite
-    maxActionsWarningShown = false;
+    state.maxActionsWarningShown = false;
 
     // Marquer que le record a été supprimé (flag en mémoire + storage pour persister au redémarrage du service worker)
     recordDeletedFlag = true;
@@ -606,6 +636,14 @@ chrome.storage.local.get(['uiRecordDeleted'], (result) => {
  * Sauvegarde le record avec debounce pour éviter les écritures trop fréquentes
  */
 function saveUiRecordToLocalStorage(record: Record): void {
+  // Un nouvel enregistrement existe : le marqueur de suppression n'a plus lieu d'être.
+  // Sans ça il restait actif et bloquait le rechargement du record au redémarrage du
+  // service worker, faisant perdre tout ce qui avait été enregistré après la suppression.
+  if (recordDeletedFlag) {
+    recordDeletedFlag = false;
+    chrome.storage.local.remove(['uiRecordDeleted']);
+  }
+
   pendingSaveRecord = record;
 
   // Annuler le timer précédent si existant

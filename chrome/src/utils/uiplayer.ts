@@ -26,12 +26,25 @@ function mouseEvent(event: string, x: number, y: number, key: number) {
     console.warn(`Tuello: Coordonnées invalides pour l'événement ${event}: x=${x}, y=${y}`);
     return;
   }
-  const ev = document.createEvent('MouseEvent');
   const el = getElementAtAbsolutePosition(x, y);
-  ev.initMouseEvent(event, true /* bubble */, true /* cancelable */, window, null, x, y, x, y /* coordinates */, false, false, false, false /* modifier keys */, key, null);
-  if (el) {
-    el.dispatchEvent(ev);
+  if (!el) {
+    return;
   }
+  // clientX/clientY sont des coordonnées viewport : passer les coordonnées absolues
+  // donnait une position fausse à tout code applicatif lisant l'événement (menus,
+  // tooltips, drag) dès que la page était scrollée.
+  const viewport = toViewportCoordinates(x, y);
+  const ev = new MouseEvent(event, {
+    bubbles: true,
+    cancelable: true,
+    view: window,
+    clientX: viewport.x,
+    clientY: viewport.y,
+    screenX: x,
+    screenY: y,
+    button: key
+  });
+  el.dispatchEvent(ev);
 }
 
 function mouseup(x: number, y: number, key: number) {

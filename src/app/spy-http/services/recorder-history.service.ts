@@ -52,9 +52,23 @@ export class RecorderHistoryService {
 
   public saveUiRecordToLocalStorage() {
     this.compressionService.saveCompressed('uiRecord', this.record);
+
+    // Le background garde une copie du record en mémoire pendant l'enregistrement :
+    // sans cette synchronisation, il réécrit sa version obsolète à l'action suivante
+    // et les modifications faites ici sont perdues.
+    chrome.runtime.sendMessage(
+      {
+        action: 'UI_RECORD_UPDATED',
+        value: this.record
+      },
+      () => chrome.runtime.lastError
+    );
   }
 
-  public startRecording() {
+  /**
+   * @param append true pour reprendre l'enregistrement existant au lieu d'en démarrer un nouveau
+   */
+  public startRecording(append = false) {
     // on stock l'état dans le storage
     chrome.storage.local.set({ uiRecordActivated: true });
 
@@ -68,6 +82,7 @@ export class RecorderHistoryService {
     chrome.runtime.sendMessage({
       action: 'START_UI_RECORDER',
       value: true,
+      reset: !append,
     }, () => {});
   }
 }

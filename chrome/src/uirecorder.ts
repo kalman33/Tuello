@@ -8,23 +8,37 @@ import * as lightbox from './utils/lightbox';
 import { recordHttpUserActionListener } from './utils/recordUserActionListener';
 import { addcss } from './utils/utils';
 
+interface KeyboardShortcut {
+  key: string;
+  code: string;
+}
+
 let frame;
-let screenshotKeyboardShortcut;
-let captureImageKeyboardShortcut;
-let commentKeyboardShortcut;
+let screenshotKeyboardShortcut: KeyboardShortcut;
+let captureImageKeyboardShortcut: KeyboardShortcut;
+let commentKeyboardShortcut: KeyboardShortcut;
+
+/**
+ * Normalise un raccourci stocké : on accepte l'objet { key, code } comme la simple
+ * lettre (anciens enregistrements), sinon on retombe sur la valeur par défaut.
+ */
+function toShortcut(stored: any, fallback: KeyboardShortcut): KeyboardShortcut {
+  if (stored && typeof stored === 'object' && stored.key) {
+    return { key: stored.key, code: stored.code ?? `Key${String(stored.key).toUpperCase()}` };
+  }
+  if (typeof stored === 'string' && stored.length > 0) {
+    return { key: stored, code: `Key${stored.toUpperCase()}` };
+  }
+  return fallback;
+}
 
 export function launchUIRecorderHandler() {
   chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
     if (results.uiRecordActivated) {
-      if (results.tuelloKeyboardShortcut) {
-        screenshotKeyboardShortcut = results['tuelloKeyboardShortcut']?.screenshot || { key: 'S', code: 'KeyS' };
-        captureImageKeyboardShortcut = results['tuelloKeyboardShortcut']?.captureImage || { key: 'I', code: 'KeyI' };
-        commentKeyboardShortcut = results['tuelloKeyboardShortcut']?.comment?.key || { key: 'C', code: 'KeyC' };
-      } else {
-        screenshotKeyboardShortcut = { key: 'S', code: 'KeyS' };
-        captureImageKeyboardShortcut = { key: 'I', code: 'KeyI' };
-        commentKeyboardShortcut = { key: 'C', code: 'KeyC' };
-      }
+      const shortcuts = results.tuelloKeyboardShortcut;
+      screenshotKeyboardShortcut = toShortcut(shortcuts?.screenshot, { key: 'S', code: 'KeyS' });
+      captureImageKeyboardShortcut = toShortcut(shortcuts?.captureImage, { key: 'I', code: 'KeyI' });
+      commentKeyboardShortcut = toShortcut(shortcuts?.comment, { key: 'C', code: 'KeyC' });
       // on previent background qu'on a démarré le recording
       chrome.runtime.sendMessage(
         {
