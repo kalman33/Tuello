@@ -288,8 +288,11 @@ function recordImage(withClick: boolean) {
           }, 200);
         }
       })
-      .catch(() => {
+      .catch((error) => {
         document.getElementById('cover-spin')?.style?.setProperty('display', 'none', 'important');
+        // Sans retour visuel, l'utilisateur croit avoir enregistré l'image alors qu'aucune action n'a été créée
+        console.warn('Tuello: capture image impossible', error);
+        lightbox.open({ content: 'Capture Img KO : ' + (error?.message || 'image non exploitable'), autocCloseMs: 2500 });
       });
   }
 }

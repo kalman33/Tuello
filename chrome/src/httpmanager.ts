@@ -6,6 +6,9 @@ import { logData } from './utils/utils';
 
 interface TuelloRecord {
   key: string;
+  // Méthode HTTP enregistrée. Absente sur les mocks antérieurs et sur les fichiers
+  // importés : le mock s'applique alors à toutes les méthodes (joker).
+  method?: string;
   response: unknown;
   httpCode: number;
   delay?: number;
@@ -42,7 +45,14 @@ declare global {
 // Constantes
 // ============================================================================
 
-const EXCLUDED_URL_PATTERNS = ['tuello', 'sockjs'] as const;
+// Ressources chargées par Tuello lui-même (iframe, assets) et live-reload des
+// serveurs de dev. On cible le schéma de l'extension plutôt que la sous-chaîne
+// "tuello", qui rendait impossible l'enregistrement d'une API contenant ce mot.
+const EXCLUDED_URL_PATTERNS = ['chrome-extension://', 'moz-extension://', 'sockjs'] as const;
+
+// Nombre maximum de messages conservés tant que l'utilisateur n'a pas activé
+// l'enregistrement : borne la mémoire si la fenêtre de boot ne se referme jamais.
+const MAX_QUEUED_MESSAGES = 200;
 const MESSAGE_TYPES = {
   RECORD_HTTP: 'RECORD_HTTP',
   ADD_HTTP_CALL_FOR_TAGS: 'ADD_HTTP_CALL_FOR_TAGS',
@@ -84,7 +94,9 @@ let pendingMockXhrQueue: Array<{
 }> = [];
 let pendingMockFetchQueue: Array<{
   resolve: (response: Response) => void;
+  reject: (reason?: unknown) => void;
   url: string;
+  method: string;
   args: Parameters<typeof fetch>;
 }> = [];
 
@@ -99,8 +111,13 @@ interface NormalizedRecord {
   hasWildcard: boolean;
 }
 
-// Index pour recherche rapide O(1)
-let mockIndexExact: Map<string, TuelloRecord> = new Map();
+
+// Index pour recherche rapide O(1). Une même URL peut porter plusieurs records
+// (un par méthode HTTP), conservés dans l'ordre du tableau : le premier gagne.
+let mockIndexExact: Map<string, NormalizedRecord[]> = new Map();
+// Indique que l'index reflète bien les records courants (y compris une liste vide) :
+// sans ce drapeau, vider les mocks laissait findMockRecord retomber sur l'ancien index.
+let mockIndexBuilt = false;
 // Index par suffixe (derniers 3 segments) pour comparaison par suffixe
 let mockIndexSuffix: Map<string, NormalizedRecord[]> = new Map();
 // Liste des mocks avec wildcards (doivent être testés par regex)
@@ -162,6 +179,34 @@ const HTTP_STATUS_TEXT: Record<number, string> = {
 
 const getStatusText = (code: number): string => HTTP_STATUS_TEXT[code] || '';
 
+// Headers qui décrivent le transport de la réponse d'origine : les rejouer tels
+// quels annoncerait une taille ou une compression qui ne sont plus celles du mock.
+const TRANSPORT_HEADERS = new Set(['content-length', 'content-encoding', 'transfer-encoding', 'connection', 'keep-alive', 'trailer', 'upgrade']);
+
+// Statuts pour lesquels la spec Fetch interdit un corps : construire une Response
+// avec un body sur l'un d'eux lève un TypeError.
+const BODYLESS_STATUS = new Set([204, 205, 304]);
+
+// Un record importé ou édité à la main peut ne pas avoir de httpCode (ou en avoir un
+// hors plage) : new Response() lèverait alors un RangeError et xhr.status vaudrait
+// undefined. On retombe sur 200, comme le fait déjà Response par défaut.
+const normalizeHttpStatus = (code: unknown): number => {
+  const parsed = typeof code === 'number' ? code : parseInt(String(code ?? ''), 10);
+  if (!Number.isFinite(parsed)) return 200;
+  const truncated = Math.trunc(parsed);
+  return truncated < 200 || truncated > 599 ? 200 : truncated;
+};
+
+// JSON.stringify(undefined) renvoie undefined : on garantit toujours une chaîne.
+const serializeMockBody = (response: unknown): string => {
+  const serialized = JSON.stringify(response);
+  return serialized === undefined ? '' : serialized;
+};
+
+// Un abort explicite (AbortController) doit toujours rejeter : le convertir en
+// réponse casserait les patterns d'annulation de l'application.
+const isAbortError = (error: unknown): boolean => !!error && typeof error === 'object' && (error as { name?: string }).name === 'AbortError';
+
 // Clone la réponse du mock pour éviter que l'application consommatrice ne mute
 // l'objet stocké dans le record (sinon les appels suivants renvoient la version modifiée).
 const cloneMockResponse = (response: unknown): unknown => {
@@ -175,6 +220,15 @@ const cloneMockResponse = (response: unknown): unknown => {
       return response;
     }
   }
+};
+
+// Extrait la méthode d'un appel fetch : soit de l'init, soit du Request, sinon GET.
+const extractFetchMethod = (args: Parameters<typeof fetch>): string => {
+  const init = args[1] as RequestInit | undefined;
+  if (init?.method) return init.method.toUpperCase();
+  const input = args[0];
+  if (input instanceof Request) return input.method.toUpperCase();
+  return 'GET';
 };
 
 // Extrait l'URL d'un input fetch qui peut être une string, un URL ou un Request.
@@ -194,17 +248,39 @@ const buildMockHeaders = (responseBody: string, recordHeaders?: Record<string, s
   };
   if (recordHeaders) {
     for (const [key, value] of Object.entries(recordHeaders)) {
-      headers[key.toLowerCase()] = value;
+      const name = key.toLowerCase();
+      if (TRANSPORT_HEADERS.has(name)) continue;
+      headers[name] = value;
     }
   }
   return headers;
 };
 
+// Une origine opaque (page sandboxée, about:blank) vaut "null" : postMessage
+// échouerait avec cette valeur en cible.
+const POST_TARGET_ORIGIN = window.location.origin && window.location.origin !== 'null' ? window.location.origin : '*';
+
 const sendMessage = (targetWindow: Window | null, message: HttpMessage): void => {
-  targetWindow?.postMessage(message, window.location.origin);
+  if (!targetWindow) return;
+  try {
+    // postMessage clone déjà la structure : pas besoin de pré-sérialiser en JSON,
+    // ce qui doublait le coût sur les grosses réponses.
+    targetWindow.postMessage(message, POST_TARGET_ORIGIN);
+  } catch {
+    // Contenu non clonable (stream, proxy, fonction...) : repli sur une copie JSON
+    try {
+      targetWindow.postMessage(JSON.parse(JSON.stringify(message)), POST_TARGET_ORIGIN);
+    } catch {
+      logData(`- Tuello HTTP - Message non transmissible pour ${message.url}`);
+    }
+  }
 };
 
 const addToQueue = (message: HttpMessage, queue: HttpMessage[]): void => {
+  // Éviction FIFO : on préfère perdre les plus anciens plutôt que la page
+  if (queue.length >= MAX_QUEUED_MESSAGES) {
+    queue.shift();
+  }
   queue.push(message);
 };
 
@@ -223,6 +299,13 @@ const tryParseJson = (text: string): unknown => {
   }
 };
 
+// Les imports de librairie stockent "window.location.origin + '/api'" sous la forme
+// "###window.location.origin### /api". Sans résolution, la clé partait dans la
+// résolution relative et ne matchait que par chance (via la comparaison par suffixe).
+const ORIGIN_PLACEHOLDER = /^###window\.location\.origin###\s*/;
+
+const resolveOriginPlaceholder = (url: string): string => (ORIGIN_PLACEHOLDER.test(url) ? window.location.origin + url.replace(ORIGIN_PLACEHOLDER, '/').replace(/^\/+/, '/') : url);
+
 const resolveRelativeUrl = (url: string): string => {
   // Si c'est déjà une URL absolue, la retourner
   if (url.match(/^https?:\/\//)) {
@@ -237,8 +320,8 @@ const resolveRelativeUrl = (url: string): string => {
 };
 
 const removeURLPortAndProtocol = (url: string): string => {
-  // D'abord résoudre les URLs relatives
-  const resolvedUrl = resolveRelativeUrl(url);
+  // D'abord résoudre le placeholder d'origine puis les URLs relatives
+  const resolvedUrl = resolveRelativeUrl(resolveOriginPlaceholder(url));
   try {
     const parseURL = new URL(resolvedUrl);
     // Retourner uniquement le pathname (+ search + hash), sans le hostname
@@ -291,6 +374,67 @@ const normalizeUrlForIndex = (url: string): { normalized: string; segments: stri
 };
 
 /**
+ * Choisit, parmi des records dont l'URL correspond déjà, celui qui répond à la
+ * méthode HTTP de la requête :
+ *  - une correspondance exacte de méthode est prioritaire ;
+ *  - à défaut, un mock sans méthode (ancien format ou import) sert de joker ;
+ *  - les candidats sont parcourus dans l'ordre du tableau, donc le premier gagne.
+ */
+const pickByMethod = (candidates: NormalizedRecord[] | undefined, method?: string): TuelloRecord | undefined => {
+  if (!candidates || candidates.length === 0) return undefined;
+  // Méthode inconnue côté requête : on ne filtre pas (comportement historique)
+  if (!method) return candidates[0].record;
+
+  const requestMethod = method.toUpperCase();
+  let genericMatch: TuelloRecord | undefined;
+
+  for (const candidate of candidates) {
+    const recordMethod = candidate.record.method;
+    if (!recordMethod) {
+      if (!genericMatch) genericMatch = candidate.record;
+    } else if (recordMethod.toUpperCase() === requestMethod) {
+      return candidate.record;
+    }
+  }
+
+  return genericMatch;
+};
+
+/**
+ * Un record correspond-il à la méthode de la requête ? (utilisé par la recherche
+ * linéaire de repli, qui n'a pas de notion de priorité)
+ */
+const methodMatches = (record: TuelloRecord, method?: string): boolean => !record.method || !method || record.method.toUpperCase() === method.toUpperCase();
+
+/**
+ * Compare les segments d'un mock à ceux d'une URL plus courte (contextRoot absent
+ * de la requête, ex. mock "global/api/users" vs URL "api/users"), en respectant
+ * les wildcards présents dans le mock.
+ *
+ * Au moins un segment doit correspondre littéralement : sans cette garde, un mock
+ * terminé par "/*" intercepte n'importe quelle URL d'un seul segment (son suffixe
+ * de comparaison se réduit alors à "*", qui matche tout). Un mock volontairement
+ * universel ("*") reste géré par la comparaison sur la clé complète.
+ */
+const matchesBySuffix = (candidateSegments: string[], segments: string[]): boolean => {
+  if (segments.length === 0 || candidateSegments.length <= segments.length) return false;
+
+  const mockSuffix = candidateSegments.slice(-segments.length);
+  let hasLiteralMatch = false;
+
+  const allMatch = segments.every((seg, idx) => {
+    const mockSeg = mockSuffix[idx];
+    if (mockSeg.includes('*')) {
+      return getCachedRegex(mockSeg).test(seg);
+    }
+    hasLiteralMatch = true;
+    return seg === mockSeg;
+  });
+
+  return allMatch && hasLiteralMatch;
+};
+
+/**
  * Génère une clé de suffixe pour l'index (derniers N segments)
  */
 const getSuffixKey = (segments: string[], count: number = 3): string => {
@@ -311,6 +455,7 @@ const buildMockIndex = (records: TuelloRecord[]): void => {
   mockWildcardRecords = [];
   mockSearchCache.clear();
   mockIndexVersion++;
+  mockIndexBuilt = true;
 
   for (const record of records) {
     const { normalized, segments } = normalizeUrlForIndex(record.key);
@@ -324,11 +469,21 @@ const buildMockIndex = (records: TuelloRecord[]): void => {
     };
 
     if (hasWildcard) {
-      // Les wildcards doivent être testés par regex
+      // Les wildcards ne peuvent pas être indexés par suffixe : la clé calculée pour
+      // une URL réelle ne contient jamais de placeholder et ne les retrouverait pas.
+      // Ils sont donc testés séparément (regex complète puis suffixe).
       mockWildcardRecords.push(normalizedRecord);
+      continue;
+    }
+
+    // Index exact pour recherche O(1). On empile au lieu d'écraser : plusieurs
+    // méthodes peuvent partager la même URL, et le premier record du tableau
+    // reste prioritaire (cohérent avec la recherche linéaire de repli).
+    const exactBucket = mockIndexExact.get(normalized);
+    if (exactBucket) {
+      exactBucket.push(normalizedRecord);
     } else {
-      // Index exact pour recherche O(1)
-      mockIndexExact.set(normalized, record);
+      mockIndexExact.set(normalized, [normalizedRecord]);
     }
 
     // Index par suffixe pour la comparaison par suffixe
@@ -363,11 +518,13 @@ const addToCache = (key: string, result: TuelloRecord | null): void => {
 };
 
 /**
- * Recherche optimisée d'un mock pour une URL
+ * Recherche optimisée d'un mock pour une URL et une méthode HTTP
  */
-const findMockRecordOptimized = (url: string): TuelloRecord | undefined => {
+const findMockRecordOptimized = (url: string, method?: string): TuelloRecord | undefined => {
   const { normalized, segments } = normalizeUrlForIndex(url);
-  const cacheKey = `${mockIndexVersion}:${normalized}`;
+  // La méthode fait partie de la clé de cache : deux verbes sur la même URL
+  // peuvent répondre des mocks différents.
+  const cacheKey = `${mockIndexVersion}:${(method || '').toUpperCase()}:${normalized}`;
 
   // 1. Vérifier le cache
   if (mockSearchCache.has(cacheKey)) {
@@ -376,7 +533,7 @@ const findMockRecordOptimized = (url: string): TuelloRecord | undefined => {
   }
 
   // 2. Recherche exacte O(1)
-  const exactMatch = mockIndexExact.get(normalized);
+  const exactMatch = pickByMethod(mockIndexExact.get(normalized), method);
   if (exactMatch) {
     addToCache(cacheKey, exactMatch);
     return exactMatch;
@@ -389,34 +546,24 @@ const findMockRecordOptimized = (url: string): TuelloRecord | undefined => {
     const candidates = mockIndexSuffix.get(suffixKey);
 
     if (candidates) {
-      for (const candidate of candidates) {
-        // Vérifier si c'est un match par suffixe
-        if (candidate.segments.length > segments.length) {
-          const mockSuffix = candidate.segments.slice(-segments.length);
-          const isMatch = segments.every((seg, idx) => {
-            const mockSeg = mockSuffix[idx];
-            if (mockSeg.includes('*')) {
-              return getCachedRegex(mockSeg).test(seg);
-            }
-            return seg === mockSeg;
-          });
-
-          if (isMatch) {
-            addToCache(cacheKey, candidate.record);
-            return candidate.record;
-          }
-        }
+      const suffixMatches = candidates.filter((candidate) => matchesBySuffix(candidate.segments, segments));
+      const suffixMatch = pickByMethod(suffixMatches, method);
+      if (suffixMatch) {
+        addToCache(cacheKey, suffixMatch);
+        return suffixMatch;
       }
     }
   }
 
-  // 4. Vérifier les wildcards par regex complète (plus lent, mais nécessaire).
-  // La vérification par suffixe a déjà été faite à l'étape 3 via l'index.
-  for (const wildcardRecord of mockWildcardRecords) {
-    if (getCachedRegex(wildcardRecord.normalizedKey).test(normalized)) {
-      addToCache(cacheKey, wildcardRecord.record);
-      return wildcardRecord.record;
-    }
+  // 4. Vérifier les wildcards, absents des index précédents : d'abord par regex
+  // complète, puis par suffixe comme le fait la recherche linéaire de repli.
+  const wildcardMatches = mockWildcardRecords.filter(
+    (wildcardRecord) => getCachedRegex(wildcardRecord.normalizedKey).test(normalized) || matchesBySuffix(wildcardRecord.segments, segments)
+  );
+  const wildcardMatch = pickByMethod(wildcardMatches, method);
+  if (wildcardMatch) {
+    addToCache(cacheKey, wildcardMatch);
+    return wildcardMatch;
   }
 
   // Pas de match trouvé
@@ -452,37 +599,97 @@ const compareWithMockLevel = (url1: string, url2: string): boolean => {
 
   // Comparaison par suffixe : l'URL actuelle peut avoir moins de segments (contextRoot manquant)
   // Ex: mock = "global/text1/text2/text3", actuel = "text1/text2/text3" → match
+  // Même règle que la recherche indexée, pour que les deux chemins concordent.
   const segments1 = normalizedUrl1.split('/').filter((s) => s);
   const segments2 = normalizedUrl2.split('/').filter((s) => s);
 
-  // Si l'URL actuelle a moins de segments que le mock, vérifier si c'est un suffixe
-  if (segments1.length < segments2.length) {
-    const mockSuffix = segments2.slice(-segments1.length);
-    return segments1.every((seg, i) => {
-      const mockSeg = mockSuffix[i];
-      // Support des wildcards dans le segment du mock
-      if (mockSeg.includes('*')) {
-        return getCachedRegex(mockSeg).test(seg);
-      }
-      return seg === mockSeg;
-    });
-  }
-
-  return false;
+  return matchesBySuffix(segments2, segments1);
 };
 
-const findMockRecord = (url: string): TuelloRecord | undefined => {
+const findMockRecord = (url: string, method?: string): TuelloRecord | undefined => {
   const records = window.tuelloRecords;
   if (!records || typeof records === 'string') return undefined;
 
-  // Utiliser la recherche optimisée si l'index est disponible
-  if (mockIndexExact.size > 0 || mockWildcardRecords.length > 0) {
-    return findMockRecordOptimized(url);
+  // Utiliser la recherche optimisée dès que l'index reflète les records courants.
+  // On se base sur mockIndexBuilt et non sur la taille de l'index : un index
+  // volontairement vide (tous les mocks supprimés) doit rester prioritaire.
+  if (mockIndexBuilt) {
+    return findMockRecordOptimized(url, method);
   }
 
   // Fallback sur la recherche linéaire si l'index n'est pas construit
-  return records.find(({ key }: TuelloRecord) => compareWithMockLevel(url, key));
+  return records.find((record: TuelloRecord) => compareWithMockLevel(url, record.key) && methodMatches(record, method));
 };
+
+/**
+ * Construit la valeur de xhr.response en respectant responseType : la spec impose
+ * une chaîne pour '' et 'text', un objet pour 'json', un Blob ou un ArrayBuffer
+ * pour les types binaires. On renvoyait systématiquement l'objet JSON.
+ */
+const buildXhrResponseValue = (responseType: XMLHttpRequestResponseType, record: TuelloRecord, responseBody: string): unknown => {
+  if (!responseBody) return responseType === 'json' || responseType === 'document' ? null : '';
+
+  switch (responseType) {
+    case 'json':
+      return cloneMockResponse(record.response);
+    case 'blob':
+      return new Blob([responseBody], { type: 'application/json' });
+    case 'arraybuffer':
+      return new TextEncoder().encode(responseBody).buffer;
+    case 'document':
+      // On ne fabrique pas de Document à partir d'un mock JSON
+      return null;
+    default:
+      return responseBody;
+  }
+};
+
+/**
+ * Applique un record en réponse à un XHR intercepté.
+ * Les propriétés sont posées immédiatement (l'application peut les lire au retour
+ * de send()) et les évènements dispatchés en asynchrone, pour laisser le temps
+ * d'attacher les listeners.
+ */
+const applyMockToXhr = (xhr: ExtendedXMLHttpRequest, record: TuelloRecord, url: string): void => {
+  const status = normalizeHttpStatus(record.httpCode);
+  const responseBody = BODYLESS_STATUS.has(status) ? '' : serializeMockBody(record.response);
+  // xhr.responseType doit être lu avant que les propriétés ne soient redéfinies
+  const mockedResponse = buildXhrResponseValue(xhr.responseType, record, responseBody);
+
+  Object.defineProperty(xhr, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
+  Object.defineProperty(xhr, 'status', { writable: true, value: status });
+  Object.defineProperty(xhr, 'statusText', { writable: true, value: getStatusText(status) });
+  Object.defineProperty(xhr, 'responseText', { writable: true, value: responseBody });
+  Object.defineProperty(xhr, 'response', { writable: true, value: mockedResponse });
+  Object.defineProperty(xhr, 'responseURL', { writable: true, value: url });
+
+  const mockHeaders = buildMockHeaders(responseBody, record.headers);
+
+  xhr.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] ?? null;
+  xhr.getAllResponseHeaders = () =>
+    Object.entries(mockHeaders)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\r\n');
+
+  logData('- Mock HTTP - Mock de ' + url);
+
+  // dispatchEvent('readystatechange') déclenche déjà le handler xhr.onreadystatechange
+  // — ne pas appeler originalCallback manuellement, sinon il est invoqué 2 fois.
+  setTimeout(() => {
+    xhr.dispatchEvent(new Event('readystatechange'));
+    xhr.dispatchEvent(new Event('load'));
+    xhr.dispatchEvent(new Event('loadend'));
+  }, record.delay || 0);
+};
+
+// Réponse de repli quand une requête non mockée échoue alors que le mock est actif
+// (typiquement un blocage CORS) : on préfère une 404 explicite à une exception.
+const buildFallbackResponse = (url: string): Response =>
+  new Response(JSON.stringify({ error: 'Request failed', url }), {
+    status: 404,
+    statusText: 'Not Found',
+    headers: { 'Content-Type': 'application/json' }
+  });
 
 // Traite la queue des XHR en attente de mock
 const processPendingMockXhrQueue = (): void => {
@@ -494,40 +701,10 @@ const processPendingMockXhrQueue = (): void => {
 
     const { xhr, originalCallback, body } = pending;
     const url = xhr.originalURL || '';
-    const record = findMockRecord(url);
+    const record = findMockRecord(url, xhr.xhrMethod);
 
     if (record) {
-      const applyMock = (): void => {
-        const responseBody = JSON.stringify(record.response);
-        Object.defineProperty(xhr, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
-        Object.defineProperty(xhr, 'status', { writable: true, value: record.httpCode });
-        Object.defineProperty(xhr, 'statusText', { writable: true, value: getStatusText(record.httpCode) });
-        Object.defineProperty(xhr, 'responseText', { writable: true, value: responseBody });
-        Object.defineProperty(xhr, 'response', { writable: true, value: cloneMockResponse(record.response) });
-        Object.defineProperty(xhr, 'responseURL', { writable: true, value: url });
-
-        const mockHeaders = buildMockHeaders(responseBody, record.headers);
-
-        xhr.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] ?? null;
-        xhr.getAllResponseHeaders = () =>
-          Object.entries(mockHeaders)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join('\r\n');
-
-        logData('- Mock HTTP - Mock de ' + url);
-
-        // dispatchEvent('readystatechange') déclenche déjà le handler xhr.onreadystatechange
-        // — ne pas appeler originalCallback manuellement, sinon il est invoqué 2 fois.
-        xhr.dispatchEvent(new Event('readystatechange'));
-        xhr.dispatchEvent(new Event('load'));
-        xhr.dispatchEvent(new Event('loadend'));
-      };
-
-      if (record.delay) {
-        setTimeout(applyMock, record.delay);
-      } else {
-        applyMock();
-      }
+      applyMockToXhr(xhr, record, url);
     } else {
       // Pas de mock trouvé - laisser passer la requête normalement
       logData('- Mock HTTP - Pas de mock pour ' + url + ' - Requête envoyée normalement');
@@ -554,8 +731,8 @@ const processPendingMockFetchQueue = (): void => {
     const pending = pendingMockFetchQueue.shift();
     if (!pending) continue;
 
-    const { resolve, url, args } = pending;
-    const record = findMockRecord(url);
+    const { resolve, reject, url, method, args } = pending;
+    const record = findMockRecord(url, method);
 
     if (record) {
       logData('- Mock HTTP - Mock de ' + url);
@@ -571,15 +748,13 @@ const processPendingMockFetchQueue = (): void => {
         .then((response) => manager.runInterceptorsFetch(response, ...args))
         .then(resolve)
         .catch((error) => {
-          // En cas d'erreur (ex: CORS), retourner une réponse 404
+          // Un abort doit rester un abort : seule une erreur réseau/CORS devient une 404
+          if (isAbortError(error)) {
+            reject(error);
+            return;
+          }
           logData(`- Tuello HTTP - Erreur fetch en queue (probablement CORS) pour ${url} : ${error}`);
-          resolve(
-            new Response(JSON.stringify({ error: 'Request failed (CORS)', url }), {
-              status: 404,
-              statusText: 'Not Found',
-              headers: { 'Content-Type': 'application/json' }
-            })
-          );
+          resolve(buildFallbackResponse(url));
         });
     }
   }
@@ -597,7 +772,41 @@ const onTuelloRecordsReady = (): void => {
 };
 
 const createMockedResponse = (originalResponse: Response, record: TuelloRecord): Response => {
-  const body = JSON.stringify(record.response);
+  const status = normalizeHttpStatus(record.httpCode);
+  // 204 / 205 / 304 : la spec Fetch interdit un corps, new Response(body, { status })
+  // lèverait un TypeError et le mock ne serait jamais servi.
+  const isBodyless = BODYLESS_STATUS.has(status);
+  const body = isBodyless ? '' : serializeMockBody(record.response);
+
+  // Créer les headers avec des valeurs par défaut
+  const headers = new Headers();
+
+  // Ajouter les headers de base par défaut (sans objet, pas de corps à décrire)
+  if (!isBodyless) {
+    headers.set('Content-Type', 'application/json');
+    headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
+  }
+
+  // Ajouter les headers enregistrés du record (ils écrasent les valeurs par défaut)
+  if (record.headers) {
+    Object.entries(record.headers).forEach(([key, value]) => {
+      if (TRANSPORT_HEADERS.has(key.toLowerCase())) return;
+      try {
+        headers.set(key, value);
+      } catch {
+        // Nom ou valeur de header invalide dans le record : on l'ignore plutôt
+        // que de faire échouer la construction de toute la réponse mockée.
+        logData(`- Mock HTTP - Header ignoré (invalide) : ${key}`);
+      }
+    });
+  }
+
+  const init: ResponseInit = { headers, status, statusText: getStatusText(status) };
+
+  if (isBodyless) {
+    return new Response(null, init);
+  }
+
   const stream = new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode(body));
@@ -605,25 +814,7 @@ const createMockedResponse = (originalResponse: Response, record: TuelloRecord):
     }
   });
 
-  // Créer les headers avec des valeurs par défaut
-  const headers = new Headers();
-
-  // Ajouter les headers de base par défaut
-  headers.set('Content-Type', 'application/json');
-  headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
-
-  // Ajouter les headers enregistrés du record (ils écrasent les valeurs par défaut)
-  if (record.headers) {
-    Object.entries(record.headers).forEach(([key, value]) => {
-      headers.set(key, value);
-    });
-  }
-
-  return new Response(stream, {
-    headers,
-    status: record.httpCode,
-    statusText: getStatusText(record.httpCode)
-  });
+  return new Response(stream, init);
 };
 
 // ============================================================================
@@ -738,32 +929,11 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
     }
 
     // Records prêts, chercher le mock
-    const record = findMockRecord(url);
+    const record = findMockRecord(url, this.xhrMethod);
     if (record) {
       // Mock trouvé - intercepter la requête
       logData(`- Mock HTTP (XHR) - Mock trouvé pour : ${url}`);
-
-      const responseBody = JSON.stringify(record.response);
-      Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
-      Object.defineProperty(this, 'status', { writable: true, value: record.httpCode });
-      Object.defineProperty(this, 'statusText', { writable: true, value: getStatusText(record.httpCode) });
-      Object.defineProperty(this, 'responseText', { writable: true, value: responseBody });
-      Object.defineProperty(this, 'response', { writable: true, value: cloneMockResponse(record.response) });
-      Object.defineProperty(this, 'responseURL', { writable: true, value: url });
-
-      const mockHeaders = buildMockHeaders(responseBody, record.headers);
-
-      this.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] ?? null;
-      this.getAllResponseHeaders = () =>
-        Object.entries(mockHeaders)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join('\r\n');
-
-      setTimeout(() => {
-        this.dispatchEvent(new Event('readystatechange'));
-        this.dispatchEvent(new Event('load'));
-        this.dispatchEvent(new Event('loadend'));
-      }, record.delay || 0);
+      applyMockToXhr(this, record, url);
       return; // Ne pas envoyer la requête réelle
     }
 
@@ -774,17 +944,21 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
   // Comportement normal (mock non activé ou pas de mock trouvé)
   this.interceptorManager?.runInterceptorsXHR(this);
 
-  // Capturer les erreurs CORS sur XHR pour retourner une 404
+  // Capturer les erreurs CORS sur XHR pour retourner une 404.
+  // Uniquement quand le mock est actif : hors de ce mode Tuello ne doit pas
+  // réécrire le statut d'une erreur réseau réelle de l'application.
   // { once: true } évite l'accumulation de listeners si le XHR est réutilisé
-  this.addEventListener(
-    'error',
-    () => {
-      logData(`- Tuello HTTP - Erreur XHR (probablement CORS) pour ${url}`);
-      Object.defineProperty(this, 'status', { writable: true, value: 404 });
-      Object.defineProperty(this, 'statusText', { writable: true, value: 'Not Found' });
-    },
-    { once: true }
-  );
+  if (mockUserActivated) {
+    this.addEventListener(
+      'error',
+      () => {
+        logData(`- Tuello HTTP - Erreur XHR (probablement CORS) pour ${url}`);
+        Object.defineProperty(this, 'status', { writable: true, value: 404 });
+        Object.defineProperty(this, 'statusText', { writable: true, value: 'Not Found' });
+      },
+      { once: true }
+    );
+  }
 
   return originalSend.call(this, body);
 };
@@ -796,21 +970,24 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
 window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
   const input = args[0];
   const url = extractFetchUrl(input);
+  const method = extractFetchMethod(args);
 
   if (mockUserActivated) {
     // Si les records ne sont pas prêts, on crée une promesse qui attend
     if (!tuelloRecordsReady) {
       logData(`- Mock HTTP - Fetch en attente (records non prêts): ${url}`);
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         pendingMockFetchQueue.push({
           resolve: (res) => resolve(res),
+          reject: (reason) => reject(reason),
           url,
+          method,
           args // Stocker les arguments pour pouvoir envoyer la requête plus tard si pas de mock
         });
       });
     }
 
-    const record = findMockRecord(url);
+    const record = findMockRecord(url, method);
     if (record) {
       logData('- Mock HTTP (Fetch Bypass) - Blocage CORS réussi pour ' + url);
       if (record.delay) await sleepAsync(record.delay);
@@ -824,13 +1001,15 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
     const response = await originalFetch(...args);
     return manager.runInterceptorsFetch(response, ...args);
   } catch (error) {
-    // En cas d'erreur (ex: CORS), retourner une réponse 404
+    // Hors mode mock, Tuello doit être transparent : une erreur réseau reste une
+    // erreur réseau (offline, DNS, CORS...), sinon l'application ne peut plus la
+    // distinguer d'une vraie 404. Un abort doit toujours rejeter, mock ou pas.
+    if (!mockUserActivated || isAbortError(error)) {
+      throw error;
+    }
+    // Mock actif : une requête non mockée bloquée par CORS ne doit pas casser la page
     logData(`- Tuello HTTP - Erreur fetch (probablement CORS) pour ${url} : ${error}`);
-    return new Response(JSON.stringify({ error: 'Request failed (CORS)', url }), {
-      status: 404,
-      statusText: 'Not Found',
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return buildFallbackResponse(url);
   }
 };
 
@@ -853,7 +1032,7 @@ manager.addInterceptor(intercepteurHTTPTags);
 // - Si mock activé + records pas prêts : send() met en queue, processPendingMockXhrQueue traite ensuite
 // Seul le mock fetch intercepteur reste utile comme filet de sécurité.
 
-intercepteurHTTPMock.interceptFetch = async function (response: Response): Promise<Response> {
+intercepteurHTTPMock.interceptFetch = async function (response: Response, ...args: unknown[]): Promise<Response> {
   if (!this.isActive) return response;
 
   // Si l'utilisateur n'a pas activé le mock, ne rien faire
@@ -862,6 +1041,9 @@ intercepteurHTTPMock.interceptFetch = async function (response: Response): Promi
   }
 
   const url = response.url;
+  // Sans URL exploitable (réponse opaque, Response construite à la main), une
+  // résolution relative pointerait vers l'URL de la page et mockerait n'importe quoi.
+  if (!url) return response;
 
   // Si tuelloRecords n'est pas encore prêt, retourner la réponse originale
   // (la requête a déjà été faite, pas de sens de bloquer)
@@ -871,7 +1053,7 @@ intercepteurHTTPMock.interceptFetch = async function (response: Response): Promi
   }
 
   // tuelloRecords est prêt, appliquer le mock normalement
-  const record = findMockRecord(url);
+  const record = findMockRecord(url, extractFetchMethod(args as Parameters<typeof fetch>));
   if (!record) {
     logData('- Mock HTTP - Mock non trouvé de ' + url);
     return response;
@@ -992,13 +1174,11 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
     headers
   };
 
-  const serializedMessage = JSON.parse(JSON.stringify(message));
-
   if (this.userActivation) {
-    sendMessage(window, serializedMessage);
+    sendMessage(window, message);
   } else {
     // Mettre en queue pour une éventuelle activation utilisateur
-    addToQueue(serializedMessage, messageForHTTPRecorderQueue);
+    addToQueue(message, messageForHTTPRecorderQueue);
   }
 
   return response;
@@ -1015,7 +1195,15 @@ intercepteurHTTPTags.interceptXHR = function (req: ExtendedXMLHttpRequest): void
   req.addEventListener('loadend', function () {
     const url = req.responseURL;
     if (url && typeof url === 'string' && !isExcludedUrl(url)) {
-      const response = tryParseJson(req.responseText);
+      // Lire responseText lève une InvalidStateError quand responseType vaut
+      // 'blob'/'arraybuffer'/'document' : ces réponses ne nous intéressent pas.
+      let response: unknown;
+      try {
+        response = tryParseJson(req.responseText);
+      } catch {
+        return;
+      }
+
       const message: HttpMessage = {
         type: MESSAGE_TYPES.ADD_HTTP_CALL_FOR_TAGS,
         url,
@@ -1049,13 +1237,11 @@ intercepteurHTTPTags.interceptFetch = async function (response: Response): Promi
     response: responseData
   };
 
-  const serializedMessage = JSON.parse(JSON.stringify(message));
-
   if (this.userActivation) {
     flushQueue(window.top, messageForHTTPTagsQueue);
-    sendMessage(window.top, serializedMessage);
+    sendMessage(window.top, message);
   } else {
-    addToQueue(serializedMessage, messageForHTTPTagsQueue);
+    addToQueue(message, messageForHTTPTagsQueue);
   }
 
   return response;
@@ -1068,6 +1254,13 @@ intercepteurHTTPTags.interceptFetch = async function (response: Response): Promi
 window.addEventListener(
   'message',
   (event: MessageEvent) => {
+    // Le script s'exécute dans le monde MAIN : sans ce filtre, n'importe quelle
+    // iframe ou fenêtre tierce pourrait injecter ses propres mocks dans la page.
+    // Seuls les messages postés par le content script de CETTE fenêtre sont acceptés.
+    const source = event.source as unknown as Window | null;
+    if (source !== window) return;
+    if (POST_TARGET_ORIGIN !== '*' && event.origin !== POST_TARGET_ORIGIN) return;
+
     const { data } = event;
     if (!data?.type) return;
 
@@ -1082,19 +1275,19 @@ window.addEventListener(
             window.tuelloRecords = [];
           }
 
-          // Construire l'index pour recherche optimisée
-          if (Array.isArray(window.tuelloRecords) && window.tuelloRecords.length > 0) {
-            buildMockIndex(window.tuelloRecords);
-          }
+          // Construire l'index pour recherche optimisée. Toujours reconstruire, même
+          // pour une liste vide : sinon l'index précédent resterait actif et des mocks
+          // supprimés continueraient d'être servis.
+          buildMockIndex(Array.isArray(window.tuelloRecords) ? window.tuelloRecords : []);
 
           // Marquer que l'utilisateur a activé le mock
           mockUserActivated = true;
           manager.activateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);
 
-          // Si on a des records, traiter les requêtes en attente
-          if (window.tuelloRecords && window.tuelloRecords.length > 0) {
-            onTuelloRecordsReady();
-          }
+          // Débloquer les requêtes en attente sans condition sur le nombre de records :
+          // une liste de mocks vide est un état valide, et laisser tuelloRecordsReady
+          // à false gèlerait définitivement tous les XHR/fetch de la page.
+          onTuelloRecordsReady();
         } else {
           mockUserActivated = false;
           manager.deactivateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);
@@ -1118,19 +1311,17 @@ window.addEventListener(
           }
 
           for (const pending of drainedFetch) {
-            const { resolve, url: pendingUrl, args: pendingArgs } = pending;
+            const { resolve, reject, url: pendingUrl, args: pendingArgs } = pending;
             originalFetch(...pendingArgs)
               .then((response) => manager.runInterceptorsFetch(response, ...pendingArgs))
               .then(resolve)
               .catch((error) => {
+                if (isAbortError(error)) {
+                  reject(error);
+                  return;
+                }
                 logData(`- Mock HTTP - Erreur fetch drainé pour ${pendingUrl}: ${error}`);
-                resolve(
-                  new Response(JSON.stringify({ error: 'Request failed', url: pendingUrl }), {
-                    status: 404,
-                    statusText: 'Not Found',
-                    headers: { 'Content-Type': 'application/json' }
-                  })
-                );
+                resolve(buildFallbackResponse(pendingUrl));
               });
           }
 
@@ -1138,6 +1329,7 @@ window.addEventListener(
           mockIndexSuffix.clear();
           mockWildcardRecords = [];
           mockSearchCache.clear();
+          mockIndexBuilt = false;
         }
         break;
 
@@ -1176,15 +1368,12 @@ window.addEventListener(
           window.tuelloRecords = [];
         }
 
-        // Construire l'index pour recherche optimisée
-        if (Array.isArray(window.tuelloRecords) && window.tuelloRecords.length > 0) {
-          buildMockIndex(window.tuelloRecords);
-        }
+        // Reconstruire l'index même pour une liste vide, sinon les mocks supprimés
+        // resteraient servis depuis l'index précédent.
+        buildMockIndex(Array.isArray(window.tuelloRecords) ? window.tuelloRecords : []);
 
-        // Si on a des records et que le mock est activé, traiter les requêtes en attente
-        if (window.tuelloRecords && window.tuelloRecords.length > 0) {
-          onTuelloRecordsReady();
-        }
+        // Débloquer les requêtes en attente : une liste vide est un état valide
+        onTuelloRecordsReady();
         break;
     }
   },

@@ -115,7 +115,7 @@ try {
           type: 'MOCK_HTTP_ACTIVATED',
           value: true
         },
-        window.location.origin
+        '*'
       );
     }
   } else if (jsonData) {
@@ -127,7 +127,7 @@ try {
           type: 'MOCK_HTTP_TUELLO_RECORDS',
           value: true
         },
-        window.location.origin
+        '*'
       );
     }
   }
@@ -135,18 +135,24 @@ try {
   // Ignorer les erreurs localStorage (peut échouer en contexte cross-origin)
 }
 
+/**
+ * Met à jour le cache localStorage utilisé au démarrage de la page pour appliquer
+ * les mocks avant la lecture (asynchrone) de chrome.storage.
+ * Doit être rafraîchi à chaque changement de mocks, sinon un rechargement rejoue
+ * brièvement des mocks supprimés.
+ */
+function cacheTuelloRecords(tuelloRecords: unknown, deepMockLevel: number): void {
+  try {
+    localStorage.setItem('TUELLO_RECORDS', JSON.stringify({ tuelloRecords, deepMockLevel }));
+  } catch (error) {
+    // Ignorer les erreurs localStorage (peut échouer si quota dépassé ou contexte cross-origin)
+  }
+}
+
 loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel'])
   .then((result) => {
     if (result.tuelloRecords && Array.isArray(result.tuelloRecords)) {
-      try {
-        const jsonData = JSON.stringify({
-          tuelloRecords: result.tuelloRecords,
-          deepMockLevel: result.deepMockLevel || 0
-        });
-        localStorage.setItem('TUELLO_RECORDS', jsonData);
-      } catch (error) {
-        // Ignorer les erreurs localStorage (peut échouer si quota dépassé ou contexte cross-origin)
-      }
+      cacheTuelloRecords(result.tuelloRecords, result.deepMockLevel || 0);
       window.postMessage(
         {
           type: 'MOCK_HTTP_TUELLO_RECORDS',
@@ -154,7 +160,7 @@ loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tu
           tuelloRecords: result.tuelloRecords,
           deepMockLevel: result.deepMockLevel || 0
         },
-        window.location.origin
+        '*'
       );
     }
   })
@@ -337,7 +343,7 @@ function activate() {
   // Réactiver le listener mousedown (supprimé lors de la désactivation)
   addMousedownListener();
 
-  loadCompressedMultiple<{
+  const loadPromise = loadCompressedMultiple<{
     mouseCoordinates?: boolean;
     tuelloHTTPTags?: unknown;
     httpRecord?: boolean;
@@ -347,7 +353,9 @@ function activate() {
     trackPlay?: boolean;
     disabled?: boolean;
     searchElementsActivated?: boolean;
-  }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated']).then((results) => {
+  }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated']);
+
+  loadPromise.then((results) => {
     if (!results.disabled) {
       // Mettre à jour le cache localStorage pour la prochaine session
       try {
@@ -416,10 +424,24 @@ function activate() {
     } else {
       // Tuello désactivé sur cette page : fermer la fenêtre de boot des
       // intercepteurs HTTP pour éviter d'accumuler les requêtes dans les queues.
-      window.postMessage({ type: 'RECORD_HTTP_ACTIVATED', value: false }, '*');
-      window.postMessage({ type: 'RECORD_HTTP_CALL_FOR_TAGS', value: false }, '*');
+      closeInterceptorsBootWindow();
     }
   });
+  loadPromise.catch((error) => {
+    // Sans ce catch, un échec de lecture du storage laissait les intercepteurs
+    // enregistrer indéfiniment dans leurs files d'attente.
+    console.warn('Tuello: lecture du storage impossible, intercepteurs HTTP désactivés', error);
+    closeInterceptorsBootWindow();
+  });
+}
+
+/**
+ * Referme la fenêtre de boot des intercepteurs HTTP : tant qu'ils n'ont pas reçu
+ * d'ordre explicite, ils bufferisent toutes les réponses de la page.
+ */
+function closeInterceptorsBootWindow() {
+  window.postMessage({ type: 'RECORD_HTTP_ACTIVATED', value: false }, '*');
+  window.postMessage({ type: 'RECORD_HTTP_CALL_FOR_TAGS', value: false }, '*');
 }
 
 // desactive tuello
@@ -650,6 +672,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
     case 'MMA_RECORDS_CHANGE':
       loadCompressedMultiple<{ httpMock?: boolean; deepMockLevel?: number; tuelloRecords?: unknown }>(['httpMock', 'deepMockLevel', 'tuelloRecords']).then((results) => {
+        // Rafraîchir le cache de démarrage pour ne pas rejouer d'anciens mocks au
+        // prochain chargement de la page
+        cacheTuelloRecords(Array.isArray(results.tuelloRecords) ? results.tuelloRecords : [], results.deepMockLevel || 0);
         if (results.httpMock) {
           window.postMessage(
             {

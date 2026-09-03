@@ -2,6 +2,7 @@ import { Player } from './background/player';
 import { addComment, addHttpUserAction, addNavigate, addRecordByImage, addRecordWindowSize, addScreenShot, addUserAction, deleteRecord, initRecord, loadRecordFromStorage, setPause } from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
 import { loadCompressed, saveCompressed } from './utils/compression';
+import { appendHttpRecords } from './background/httpRecordStore';
 import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
 import Port = chrome.runtime.Port;
 
@@ -121,6 +122,28 @@ function test(tab)  {
   });
 };
 */
+
+/**
+ * Diffuse un message à l'onglet émetteur puis à tous les autres onglets.
+ * L'état du mock et de l'enregistrement est global (chrome.storage.local) : ne
+ * prévenir que l'onglet courant laissait les autres onglets déjà ouverts dans
+ * l'ancien mode jusqu'à leur rechargement.
+ */
+function broadcastToAllTabs(message: Record<string, unknown>, senderTabId?: number): void {
+  if (senderTabId !== undefined && senderTabId >= 0) {
+    chrome.tabs.sendMessage(senderTabId, message, () => chrome.runtime.lastError);
+  }
+  chrome.tabs.query({}, (tabs) => {
+    for (const tab of tabs) {
+      if (tab.id === undefined || tab.id < 0 || tab.id === senderTabId) {
+        continue;
+      }
+      // lastError est lu pour éviter les "Unchecked runtime.lastError" sur les
+      // onglets sans content script (chrome://, Web Store, onglets déchargés).
+      chrome.tabs.sendMessage(tab.id, message, () => chrome.runtime.lastError);
+    }
+  });
+}
 
 async function dynamicallyInjectContentScripts() {
   const contentScriptsToInject = [
@@ -397,17 +420,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       break;
 
     case 'HTTP_MOCK_STATE':
-      if (sender && sender.tab && sender.tab.id >= 0) {
-        // on envoie un message au content scrip
-        chrome.tabs.sendMessage(
-          sender.tab.id,
-          {
-            action: 'HTTP_MOCK_STATE',
-            value: msg.value
-          },
-          () => {}
-        );
-      }
+      // Etat global : tous les onglets doivent basculer, pas seulement l'émetteur
+      broadcastToAllTabs({ action: 'HTTP_MOCK_STATE', value: msg.value }, sender?.tab?.id);
       break;
     case 'UPDATE_MENU':
       if (sender && sender.tab && sender.tab.id >= 0) {
@@ -439,29 +453,12 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       }
       break;
     case 'HTTP_RECORD_STATE':
-      if (sender && sender.tab && sender.tab.id >= 0) {
-        // on envoie un message au content scrip
-        chrome.tabs.sendMessage(
-          sender.tab.id,
-          {
-            action: 'HTTP_RECORD_STATE',
-            value: msg.value
-          },
-          () => {}
-        );
-      }
+      // Etat global : tous les onglets doivent basculer, pas seulement l'émetteur
+      broadcastToAllTabs({ action: 'HTTP_RECORD_STATE', value: msg.value }, sender?.tab?.id);
       break;
     case 'MMA_RECORDS_CHANGE':
-      if (sender && sender.tab && sender.tab.id >= 0) {
-        // on envoie un message au content scrip
-        chrome.tabs.sendMessage(
-          sender.tab.id,
-          {
-            action: 'MMA_RECORDS_CHANGE'
-          },
-          () => {}
-        );
-      }
+      // Les mocks sont partagés par tous les onglets : idem
+      broadcastToAllTabs({ action: 'MMA_RECORDS_CHANGE' }, sender?.tab?.id);
       break;
     case 'MMA_TAGS_CHANGE':
       if (sender && sender.tab && sender.tab.id >= 0) {
@@ -768,6 +765,22 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'RECORD_HTTP':
       addHttpUserAction(msg.value);
       break;
+    case 'RECORD_HTTP_BATCH':
+      // Persistance centralisée ici : plusieurs onglets peuvent enregistrer en même
+      // temps, un verrou par page ne les protégeait pas les uns des autres.
+      appendHttpRecords(msg.value)
+        .then((added) => {
+          if (added) {
+            // Prévenir le panneau Angular (s'il est ouvert) de rafraîchir sa vue
+            chrome.runtime.sendMessage({ refresh: true }, () => chrome.runtime.lastError);
+          }
+          senderResponse({ added });
+        })
+        .catch((error) => {
+          console.error("Tuello: Erreur lors de l'enregistrement HTTP:", error);
+          senderResponse({ added: false });
+        });
+      return true;
     case 'RECORD_USER_ACTION_DELETE':
       deleteRecord().then(() => senderResponse());
       return true;

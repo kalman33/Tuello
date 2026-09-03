@@ -72,8 +72,11 @@ export class ExportComponent {
     }
 
     replaceDynamicData(data) {
-        let dataTxt = data.replace(/'###window.location.origin###/, " window.location.origin + '");
-        dataTxt = dataTxt.replace(/"###window.location.origin###/, ' window.location.origin + "');
+        // Flag /g indispensable : sans lui seule la premiere occurrence etait restauree
+        // et les mocks suivants gardaient le placeholder litteral dans le fichier exporte.
+        // Les points sont echappes pour ne pas matcher n'importe quel caractere.
+        let dataTxt = data.replace(/'###window\.location\.origin###/g, " window.location.origin + '");
+        dataTxt = dataTxt.replace(/"###window\.location\.origin###/g, ' window.location.origin + "');
         return dataTxt;
     }
 

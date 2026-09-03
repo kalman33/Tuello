@@ -1,12 +1,12 @@
 {
   "name": "Tuello",
-  "version": "1.2.19.0",
+  "version": "1.2.20.0",
   "description": "Intercept and modify HTTP Requests, Track ressources, search elements and record and replay user's browser actions",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "manifest_version": 3,
-  "permissions": ["storage", "webNavigation", "tabs", "scripting", "contextMenus", "activeTab", "webRequest"],
+  "permissions": ["storage", "unlimitedStorage", "webNavigation", "tabs", "scripting", "contextMenus", "activeTab", "webRequest"],
   "host_permissions": ["http://*/", "https://*/", "<all_urls>"],
   "background": {
     "service_worker": "background.js"

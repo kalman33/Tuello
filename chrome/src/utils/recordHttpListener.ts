@@ -1,30 +1,15 @@
-import { loadCompressed, saveCompressed, decompress, compress } from './compression';
-import { removeDuplicateEntries, removeDuplicatesKeepLast, stringContainedInURL } from './utils';
-
-interface MockProfile {
-  id: string;
-  name: string;
-  mocks: any[];
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface MockProfilesStorage {
-  profiles: MockProfile[];
-  activeProfileId: string;
-}
-
 interface NewRecord {
   key: string;
+  method: string | undefined;
   response: any;
   httpCode: number;
   delay: number | undefined;
   headers: Record<string, string> | undefined;
 }
 
-// Debounce : on attend que la rafale de requêtes se calme avant d'écrire
-// dans chrome.storage (qui est coûteux : décompression LZ + JSON.parse + dédoublonnage
-// + JSON.stringify + recompression de tout le tableau tuelloRecords).
+// Debounce : on attend que la rafale de requêtes se calme avant de transmettre le
+// lot au service worker (qui décompresse, dédoublonne et recompresse tout le
+// tableau tuelloRecords à chaque écriture).
 const FLUSH_DEBOUNCE_MS = 500;
 // Garde-fou : si la rafale ne s'arrête pas, on flush quand même au-delà de ce seuil
 // pour éviter que le buffer grossisse indéfiniment en mémoire et que l'UI tarde trop.
@@ -38,6 +23,7 @@ export function recordHttpListener(event: MessageEvent) {
 
   pendingRecords.push({
     key: event.data.url,
+    method: typeof event.data.method === 'string' && event.data.method ? event.data.method.toUpperCase() : undefined,
     response: event.data.error || event.data.response,
     httpCode: event.data.status,
     delay: event.data.delay,
@@ -60,7 +46,11 @@ export function recordHttpListener(event: MessageEvent) {
 }
 
 /**
- * Écrit le buffer accumulé dans chrome.storage en une seule passe.
+ * Transmet le buffer accumulé au service worker, qui est seul à écrire dans
+ * chrome.storage : la lecture-modification-écriture se faisait auparavant ici,
+ * derrière un verrou local à la page, ce qui ne protégeait pas de la concurrence
+ * entre plusieurs onglets enregistrant en même temps.
+ *
  * Doit être appelée :
  *  - automatiquement après FLUSH_DEBOUNCE_MS d'inactivité
  *  - automatiquement quand le buffer dépasse MAX_BUFFER_SIZE
@@ -72,121 +62,34 @@ export function flushPendingRecords(): Promise<void> {
   flushTimer = null;
   if (pendingRecords.length === 0) return Promise.resolve();
 
-  // Drainer le buffer AVANT le await : si un record arrive pendant qu'on écrit,
+  // Drainer le buffer avant l'envoi : si un record arrive entre-temps,
   // il finit dans le prochain batch (un nouveau timer sera planifié).
   const batch = pendingRecords;
   pendingRecords = [];
 
-  return mutex
-    .lock()
-    .then(async () => {
-      try {
-        const [tuelloRecords, tuelloHTTPOverWrite, tuelloHTTPFilter, mockProfilesData] = await Promise.all([
-          loadCompressed<any[]>('tuelloRecords'),
-          new Promise<boolean | undefined>((resolve) => {
-            chrome.storage.local.get(['tuelloHTTPOverWrite'], (r) => resolve(r.tuelloHTTPOverWrite));
-          }),
-          new Promise<string | undefined>((resolve) => {
-            chrome.storage.local.get(['tuelloHTTPFilter'], (r) => resolve(r.tuelloHTTPFilter));
-          }),
-          loadCompressed<MockProfilesStorage>('tuelloMockProfiles')
-        ]);
-
-        let records = tuelloRecords || [];
-        let anyAdded = false;
-
-        // Insérer tout le batch en mémoire avant le dédoublonnage
-        for (const r of batch) {
-          if (!tuelloHTTPFilter || stringContainedInURL(tuelloHTTPFilter, r.key)) {
-            records.unshift(r);
-            anyAdded = true;
-          }
+  return new Promise<void>((resolve) => {
+    try {
+      chrome.runtime.sendMessage({ action: 'RECORD_HTTP_BATCH', value: batch }, () => {
+        // lastError est lu pour éviter les "Unchecked runtime.lastError" quand le
+        // service worker est indisponible (extension rechargée, page orpheline).
+        if (chrome.runtime.lastError) {
+          console.warn("Tuello: Enregistrement HTTP non transmis:", chrome.runtime.lastError.message);
         }
-
-        if (anyAdded) {
-          // Une seule passe de dédoublonnage pour tout le batch
-          if (tuelloHTTPOverWrite === false) {
-            records = removeDuplicatesKeepLast(records);
-          } else {
-            records = removeDuplicateEntries(records);
-          }
-
-          // Une seule écriture pour le batch entier
-          await saveCompressed('tuelloRecords', records);
-
-          // Synchroniser avec le profil actif
-          if (mockProfilesData?.activeProfileId && mockProfilesData?.profiles) {
-            const activeProfile = mockProfilesData.profiles.find((p) => p.id === mockProfilesData.activeProfileId);
-            if (activeProfile) {
-              activeProfile.mocks = records;
-              activeProfile.updatedAt = Date.now();
-              await saveCompressed('tuelloMockProfiles', mockProfilesData);
-            }
-          }
-
-          chrome.runtime.sendMessage({ refresh: true }, () => {});
-        }
-
-        mutex.unlock();
-      } catch (error) {
-        console.error("Tuello: Erreur lors de l'enregistrement HTTP:", error);
-        mutex.unlock();
-      }
-    })
-    .catch((error) => {
-      console.error("Tuello: Erreur lors de l'acquisition du verrou :", error);
-    });
+        resolve();
+      });
+    } catch (error) {
+      // Contexte d'extension invalidé : le content script ne peut plus rien écrire
+      console.warn("Tuello: Enregistrement HTTP impossible:", error);
+      resolve();
+    }
+  });
 }
 
 // Best-effort : flush ce qui reste si la page se ferme avant le debounce.
-// chrome.storage.local.set est async, donc l'écriture peut ne pas aboutir si
-// le navigateur tue la page trop vite, mais sur des batchs courts ça passe
-// la plupart du temps.
+// L'envoi part immédiatement vers le service worker, qui survit à la page :
+// l'écriture aboutit donc même si l'onglet disparaît juste après.
 window.addEventListener('beforeunload', () => {
   if (pendingRecords.length > 0) {
     flushPendingRecords();
   }
 });
-
-// Définition d'une classe Mutex pour le verrouillage
-class Mutex {
-  private locked: boolean;
-  private queue: (() => void)[];
-
-  constructor() {
-    this.locked = false;
-    this.queue = [];
-  }
-
-  lock(): Promise<void> {
-    return new Promise<void>((resolve) => {
-      if (this.locked) {
-        this.queue.push(resolve);
-      } else {
-        this.locked = true;
-        resolve();
-      }
-    });
-  }
-
-  unlock(): void {
-    // Protection contre le double unlock
-    if (!this.locked && this.queue.length === 0) {
-      console.warn("Tuello: Tentative de déverrouillage d'un mutex non verrouillé");
-      return;
-    }
-
-    if (this.queue.length > 0) {
-      const nextResolve = this.queue.shift();
-      if (nextResolve) {
-        this.locked = true; // Maintenir le verrou pour le prochain acquéreur
-        nextResolve();
-      }
-    } else {
-      this.locked = false;
-    }
-  }
-}
-
-// Création d'une instance de Mutex
-const mutex = new Mutex();

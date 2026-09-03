@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.20.0] - 2026-09-03
+
+    - Mock HTTP : correction du blocage complet de la page quand le mock est activé sans aucun mock enregistré
+    - Mock HTTP : les mocks supprimés ne sont plus servis jusqu'au rechargement de la page
+    - Mock HTTP : prise en compte de la méthode HTTP (GET et POST sur une même URL ne s'écrasent plus)
+    - Mock HTTP : corrections des mocks 204/304, des codes HTTP absents ou invalides et des mocks à wildcard ignorés
+    - Hors mode mock, les erreurs réseau et les annulations (AbortController) ne sont plus converties en 404
+    - Record HTTP : persistance centralisée dans le service worker (plus de perte d'enregistrements entre onglets)
+    - Recorder HTTP : sauvegarde différée pendant l'édition, message d'import affiché après le parsing, export corrigé
+    - Activation du mock/enregistrement et profondeur de comparaison propagées à tous les onglets ouverts
+    - Spy & Replay : recherche d'image plus fiable (lazy-loading, images responsive, backgrounds CSS, images cross-origin)
+    - Spy & Replay : message d'erreur affiché quand la capture d'image échoue
+    - Sécurité : les messages provenant d'autres fenêtres ne peuvent plus injecter de mocks
+    - Dépendances : montée en Angular 21.2 et de l'outillage de build (72 → 5 vulnérabilités, plus aucune critique ni haute), durcissement npm contre les attaques de supply chain
+
 ## [1.2.19.0] - 2026-05-19
 
     - Ajout du module Recherche dans la Mosaïque

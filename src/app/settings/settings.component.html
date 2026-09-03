@@ -51,7 +51,8 @@
             <div class="icon-form-field">
               <mat-icon color="accent">brush</mat-icon>
               <div>
-                <span [ngClass]="{ bold: deepMockLevel === 0 }">https://my-server</span>
+                <!-- Le protocole et l'hôte ne sont jamais comparés : seul le chemin l'est -->
+                <span class="ignored">https://my-server</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 1 }">/api</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 2 }">/2.2</span>
                 <span [ngClass]="{ bold: deepMockLevel <= 3 }">/users</span>

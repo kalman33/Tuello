@@ -186,8 +186,16 @@ export class SettingsComponent implements OnInit {
   }
 
   updateDeepMockLevel(event) {
-    chrome.storage.local.set({ deepMockLevel: event.value });
     this.deepMockLevel = event.value;
+    // La profondeur est figée dans l'index des mocks au moment de sa construction :
+    // sans notification, déplacer le curseur n'avait d'effet qu'au rechargement de la page.
+    chrome.storage.local.set({ deepMockLevel: event.value }, () => {
+      chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('Tuello:', chrome.runtime.lastError.message);
+        }
+      });
+    });
   }
 
   toggleMouseCoordinatesOption(mouseCoordinatesValue: boolean) {

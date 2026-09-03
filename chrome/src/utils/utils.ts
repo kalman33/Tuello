@@ -9,18 +9,27 @@ export function logData(...args: any[]) {
 }
 
 /**
- * permet de supprimer les doublons dans le flux json
+ * Sélecteur de clé de dédoublonnage. Par défaut on se base sur `key` seule ;
+ * les mocks HTTP passent un sélecteur incluant la méthode pour que GET et POST
+ * sur une même URL ne s'écrasent plus mutuellement.
  */
-export function removeDuplicateEntries(data: any): any {
+export type DuplicateKeySelector = (item: any) => string;
+
+const defaultKeySelector: DuplicateKeySelector = item => item.key;
+
+/**
+ * permet de supprimer les doublons dans le flux json (garde la premiere occurrence)
+ */
+export function removeDuplicateEntries(data: any, keySelector: DuplicateKeySelector = defaultKeySelector): any {
   // suppression doublons dans json
-  const temp = [];
+  const seen = new Set<string>();
   return data.filter(item => {
-    if (!temp.includes(item.key)) {
-      temp.push(item.key);
-      return true;
-    } else {
+    const key = keySelector(item);
+    if (seen.has(key)) {
       return false;
     }
+    seen.add(key);
+    return true;
   });
 }
 
@@ -37,14 +46,14 @@ async function hashString(message) {
   return hashHex;
 }
 
-export function removeDuplicatesKeepLast(data) {
-  const temp = {};
+export function removeDuplicatesKeepLast(data, keySelector: DuplicateKeySelector = defaultKeySelector) {
+  const temp = new Map<string, any>();
   data.forEach(item => {
-    temp[item.key] = item; // Remplace chaque élément avec la même clé dans temp
+    temp.set(keySelector(item), item); // Remplace chaque élément avec la même clé dans temp
   });
 
   // Retourne les valeurs de temp, qui contiendront uniquement le dernier élément de chaque clé
-  return Object.values(temp);
+  return Array.from(temp.values());
 }
 
 export function stringContainedInURL(stringData, url) {

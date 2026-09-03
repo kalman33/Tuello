@@ -28,6 +28,9 @@ import { RecorderHttpService } from './services/recorder-http.service';
 import { TagsService } from './services/tags.service';
 import { RecorderHttpSettingsComponent } from './settings/recorder-http-settings.component';
 
+/** Délai d'inactivité avant de persister les modifications faites dans l'éditeur JSON */
+const SAVE_DEBOUNCE_MS = 500;
+
 @Component({
   selector: 'mmn-recorder-http',
   templateUrl: './recorder-http.component.html',
@@ -62,6 +65,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   private debounceTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private chromeMessageListener: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void;
   private importMode: ImportMode = 'replace';
+  private saveDebounceId: ReturnType<typeof setTimeout> | null = null;
   records;
 
   // Profils
@@ -146,6 +150,12 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     if (this.debounceTimeoutId) {
       clearTimeout(this.debounceTimeoutId);
     }
+    // Ne pas perdre une édition en cours de debounce si l'utilisateur quitte l'écran
+    if (this.saveDebounceId) {
+      clearTimeout(this.saveDebounceId);
+      this.saveDebounceId = null;
+      this.flushPendingSave();
+    }
     if (this.customLabelObserver) {
       this.customLabelObserver.disconnect();
     }
@@ -173,10 +183,12 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Détecte les doublons dans les mocks basés sur la clé 'key'.
-   * Les doublons sont tous les mocks avec la même clé sauf le dernier (qui sera utilisé).
-   * Optimisé en une seule passe : on collecte tous les indices par clé, puis on marque
-   * tous sauf le dernier comme doublons.
+   * Détecte les doublons dans les mocks, sur le couple URL + méthode HTTP.
+   * Le mock effectivement servi est le PREMIER de la liste (httpmanager parcourt le
+   * tableau dans l'ordre, et l'enregistrement place le plus récent en tête) : ce sont
+   * donc tous les suivants qui sont signalés comme doublons.
+   * Un mock sans méthode s'applique à toutes les méthodes : il fait doublon avec
+   * n'importe quel autre mock de la même URL.
    */
   private detectDuplicates(records: any) {
     this.duplicateIndices.clear();
@@ -185,27 +197,24 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Collecte tous les indices pour chaque clé en une seule passe
-    const indicesByKey = new Map<string, number[]>();
+    // Une seule passe : la première occurrence d'une clé est celle qui sera utilisée
+    const seenByUrl = new Map<string, Set<string>>();
     records.forEach((record, index) => {
-      if (record && record.key) {
-        const indices = indicesByKey.get(record.key);
-        if (indices) {
-          indices.push(index);
-        } else {
-          indicesByKey.set(record.key, [index]);
-        }
+      if (!record || !record.key) {
+        return;
       }
+      const method = (record.method || '').toUpperCase();
+      const methods = seenByUrl.get(record.key);
+      if (!methods) {
+        seenByUrl.set(record.key, new Set([method]));
+        return;
+      }
+      // '' (aucune méthode) est un joker : il masque et est masqué par tous les autres
+      if (methods.has(method) || methods.has('') || method === '') {
+        this.duplicateIndices.add(index);
+      }
+      methods.add(method);
     });
-
-    // Marque tous les indices sauf le dernier de chaque groupe
-    for (const indices of indicesByKey.values()) {
-      if (indices.length > 1) {
-        for (let i = 0; i < indices.length - 1; i++) {
-          this.duplicateIndices.add(indices[i]);
-        }
-      }
-    }
   }
 
   gererRefresh() {
@@ -243,7 +252,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
         onRenderMenu: (items, context) => items.filter((item) => !item.text && item.type !== 'separator' && item.className !== 'jse-transform'),
         onClassName: this.onClassNameHandler,
         onChange: () => {
-          this.updateData();
+          this.scheduleUpdateData();
         },
         onRenderContextMenu: (items: ContextMenuItem[], context: RenderContextMenuContext) => {
           // On supprime le separator ainsi que le bloc couper/copier/coller
@@ -349,7 +358,11 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
           await this.recorderService.reset();
           this.jsonEditorTree.update({ json: [] });
           this.records = [];
+          this.detectDuplicates(this.records);
           this.ref.detectChanges();
+          // Sans cette notification, les pages ouvertes continuent de servir les
+          // mocks supprimés jusqu'à leur prochain rechargement.
+          this.notifyRecordsChange();
         }
       });
   }
@@ -415,6 +428,36 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Regroupe les modifications successives de l'éditeur : chaque frappe déclenchait
+   * sinon une compression LZ + une écriture de tout le tableau dans chrome.storage,
+   * puis un broadcast aux pages ouvertes (qui reconstruisent leur index de mocks).
+   */
+  private scheduleUpdateData() {
+    if (this.saveDebounceId) {
+      clearTimeout(this.saveDebounceId);
+    }
+    this.saveDebounceId = setTimeout(() => {
+      this.saveDebounceId = null;
+      this.updateData();
+    }, SAVE_DEBOUNCE_MS);
+  }
+
+  /**
+   * Persiste l'état courant de l'éditeur sans toucher à la vue : appelée à la
+   * destruction du composant, où un detectChanges() lèverait une erreur.
+   */
+  private flushPendingSave(): void {
+    try {
+      const jsonData = this.jsonEditorTree?.get() as JSONContent;
+      if (jsonData?.json) {
+        this.recorderService.saveToLocalStorage(jsonData.json).then(() => this.notifyRecordsChange());
+      }
+    } catch (e) {
+      console.warn('Tuello: sauvegarde finale des mocks impossible', e);
+    }
+  }
+
+  /**
    * Permet de mettre à jour les données si le json est valide
    */
   async updateData() {
@@ -429,11 +472,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       // Sauvegarder l'objet directement (pas une chaîne JSON) pour que recordHttpListener
       // puisse correctement vérifier Array.isArray()
       await this.recorderService.saveToLocalStorage(jsonData.json);
-      chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {
-        if (chrome.runtime.lastError) {
-          console.warn('Tuello:', chrome.runtime.lastError.message);
-        }
-      });
+      this.notifyRecordsChange();
       this.ref.detectChanges();
     } else {
       this.infoBar.open('Json invalide', '', {
@@ -554,12 +593,14 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     fileReader.onloadend = (x) => {
       jsonResult = fileReader.result as string;
 
+      // Le message de succès est affiché par applyImportedData, une fois le parsing
+      // (asynchrone) réellement abouti : sinon un fichier invalide affichait
+      // « import réussi » avant « erreur de parsing ».
       if (jsonResult && extension === 'json') {
         this.processJsonResult(jsonResult);
       } else {
         this.processNonJsonResult(jsonResult);
       }
-      this.infoBar.open(this.translate.instant('mmn.spy-http.import.message'), this.translate.instant('mmn.spy-http.import.success.action'), { duration: 2000 });
     };
     fileReader.onerror = (event) => {
       this.infoBar.open(this.translate.instant('mmn.spy-http.import.message'), this.translate.instant('mmn.spy-http.import.error.action'), { duration: 2000 });
@@ -640,11 +681,12 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     this.jsonEditorTree.update({ json: [...dataToApply] });
     this.ref.detectChanges();
     this.updateData();
+    this.infoBar.open(this.translate.instant('mmn.spy-http.import.message'), this.translate.instant('mmn.spy-http.import.success.action'), { duration: 2000 });
   }
 
   replaceDynamicData(data) {
-    let ret = data.replace(/window.location.origin \+ "/g, '"###window.location.origin### ');
-    ret = ret.replace(/window.location.origin \+ '/g, "'###window.location.origin### ");
+    let ret = data.replace(/window\.location\.origin \+ "/g, '"###window.location.origin### ');
+    ret = ret.replace(/window\.location\.origin \+ '/g, "'###window.location.origin### ");
     return ret;
   }
 
@@ -742,6 +784,14 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     await this.recorderService.saveToLocalStorage(this.records);
 
     // Notifier le changement pour httpmanager
+    this.notifyRecordsChange();
+  }
+
+  /**
+   * Prévient httpmanager (via le content script) que la liste des mocks a changé,
+   * pour qu'il reconstruise son index sans attendre un rechargement de la page.
+   */
+  private notifyRecordsChange(): void {
     chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {
       if (chrome.runtime.lastError) {
         console.warn('Tuello:', chrome.runtime.lastError.message);
