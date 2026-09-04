@@ -1,4 +1,5 @@
-import { Scenario, SCENARIOS_KEY } from '../../src/app/core/scenarios/scenario.models';
+import { Scenario, SCENARIOS_KEY, stripLeadingNavigations } from '../../src/app/core/scenarios/scenario.models';
+import { Action } from '../../src/app/spy-http/models/Action';
 import { Player } from './background/player';
 import {
   addComment,
@@ -158,18 +159,31 @@ function test(tab)  {
  */
 function waitForTabComplete(tabId: number, timeoutMs = 12000): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
+    let settled = false;
+    const done = (error?: Error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
       chrome.tabs.onUpdated.removeListener(listener);
-      reject(new Error('Timeout'));
-    }, timeoutMs);
+      error ? reject(error) : resolve();
+    };
+    const timeout = setTimeout(() => done(new Error('Timeout')), timeoutMs);
     const listener = (updatedTabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
       if (updatedTabId === tabId && changeInfo.status === 'complete') {
-        clearTimeout(timeout);
-        chrome.tabs.onUpdated.removeListener(listener);
-        resolve();
+        done();
       }
     };
     chrome.tabs.onUpdated.addListener(listener);
+
+    // L'onglet peut avoir fini de charger avant la pose du listener : sans cette
+    // vérification, l'attente allait jusqu'au timeout et le scénario ne partait pas.
+    chrome.tabs.get(tabId, (tab) => {
+      if (!chrome.runtime.lastError && tab?.status === 'complete') {
+        done();
+      }
+    });
   });
 }
 
@@ -895,21 +909,33 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       return true;
     case 'MOSAIC_PLAY_SCENARIO':
       (async () => {
+        // L'ouverture du site passe avant toute autre chose : une lecture de
+        // scénario en échec ne doit pas empêcher la navigation de la tuile.
+        let createdTab: chrome.tabs.Tab;
+        try {
+          createdTab = await chrome.tabs.create({ url: msg.url, active: true });
+        } catch (e) {
+          console.warn('Tuello: ouverture du site de la mosaïque impossible', e);
+          senderResponse({ opened: false });
+          return;
+        }
+        // Réponse immédiate : la mosaïque n'attend que la confirmation de
+        // l'ouverture, pas la fin du rejeu.
+        senderResponse({ opened: true });
+
         try {
           const scenario = await findScenario(msg.scenarioId);
-          const createdTab = await chrome.tabs.create({ url: msg.url, active: true });
-          if (!scenario?.actions?.length) {
-            // Scénario introuvable ou vide : le site est quand même ouvert
-            senderResponse({ success: false });
+          // Les scénarios enregistrés avant l'exclusion de la navigation initiale
+          // en portent encore une : elle renverrait l'onglet vers l'URL d'origine.
+          const actions = stripLeadingNavigations(scenario?.actions);
+          if (!actions.length) {
             return;
           }
           await waitForTabComplete(createdTab.id);
-          await playScenarioOnTab(scenario, createdTab.id);
-          senderResponse({ success: true });
+          await playScenarioOnTab(scenario, actions, createdTab.id);
         } catch (e) {
-          console.warn('Tuello: échec du lancement du scénario', e);
+          console.warn('Tuello: échec du rejeu du scénario', e);
           stopScenarioPlayer();
-          senderResponse({ success: false });
         }
       })();
       return true;
@@ -929,7 +955,7 @@ async function findScenario(scenarioId: string): Promise<Scenario | null> {
  * Rejoue un scénario dans l'onglet fraîchement ouvert par la mosaïque.
  * Rejeu silencieux : ni panneau Tuello, ni écran de résultats à la fin.
  */
-async function playScenarioOnTab(scenario: Scenario, tabId: number): Promise<void> {
+async function playScenarioOnTab(scenario: Scenario, actions: Action[], tabId: number): Promise<void> {
   // Les mocks HTTP d'un enregistrement précédent ne doivent pas polluer le scénario
   chrome.tabs.sendMessage(tabId, { action: 'MOCK_HTTP_USER_ACTION', value: false }, () => chrome.runtime.lastError);
 
@@ -960,7 +986,7 @@ async function playScenarioOnTab(scenario: Scenario, tabId: number): Promise<voi
   chrome.webNavigation.onCompleted.addListener(onCompletedPlayer);
   chrome.webNavigation.onBeforeNavigate.addListener(onbeforePlayer);
 
-  player = new Player(scenario.actions, tabId, () => {}, { onFinished: stopScenarioPlayer });
+  player = new Player(actions, tabId, () => {}, { onFinished: stopScenarioPlayer });
   player.launchAction('PLAY');
 }
 

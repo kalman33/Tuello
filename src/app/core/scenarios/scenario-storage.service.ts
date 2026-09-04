@@ -140,6 +140,9 @@ export class ScenarioStorageService {
   /**
    * Ne conserve que les actions rejouables et retire les images base64 : elles ne
    * servent qu'à la comparaison visuelle, absente du rejeu d'un scénario.
+   * La navigation initiale de l'enregistrement est conservée : elle sert quand on
+   * recharge le scénario dans Spy & Replay. C'est le rejeu depuis la mosaïque qui
+   * l'écarte, sa navigation étant déjà assurée par l'URL de la tuile.
    */
   private toReplayableActions(actions: Action[]): Action[] {
     return (actions ?? []).filter((action) => !NON_REPLAYABLE_TYPES.includes(action.actionType)).map(({ data, ...action }) => action as Action);
