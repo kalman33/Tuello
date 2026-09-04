@@ -15,6 +15,16 @@ const SCREENSHOT_RENDER_DELAY_MS = 300;
 const MIN_WINDOW_SIZE = 100;
 const MAX_WINDOW_SIZE = 10000;
 
+/** Options de rejeu */
+export interface PlayerOptions {
+  /**
+   * Rejeu silencieux (scénario lancé depuis la mosaïque) : à la fin, aucun message
+   * n'est envoyé au content script — c'est ACTIONS_RESULTS qui rouvre le panneau
+   * Tuello et l'écran de comparaison. Le background nettoie via ce callback.
+   */
+  onFinished?: () => void;
+}
+
 /** Résultat d'une action */
 interface ActionResult {
   success: boolean;
@@ -33,11 +43,13 @@ export class Player {
   comparisonResults: ComparisonResult[] = [];
   actionResults: ActionResult[] = [];
   private isDestroyed = false;
+  private onFinished?: () => void;
 
-  constructor(actions: Action[], chromeTabId: number, senderResponse: (response?: any) => void) {
+  constructor(actions: Action[], chromeTabId: number, senderResponse: (response?: any) => void, options?: PlayerOptions) {
     this.initialActions = actions;
     this.chromeTabId = chromeTabId;
     this.yieldActions = this.iterateGenerator(actions);
+    this.onFinished = options?.onFinished;
   }
 
   /**
@@ -124,6 +136,12 @@ export class Player {
       console.warn(`${failedActions.length} action(s) ont échoué:`, failedActions);
     }
 
+    // Rejeu silencieux : on ne réveille pas le panneau Tuello dans la page
+    if (this.onFinished) {
+      this.onFinished();
+      return;
+    }
+
     chrome.tabs.sendMessage(
       this.chromeTabId,
       {
@@ -145,22 +163,16 @@ export class Player {
   }
 
   private async handleNavigate(userAction: UserAction): Promise<boolean> {
+    // On navigue dans l'onglet rejoué : avec l'onglet actif, un scénario lancé
+    // depuis la mosaïque pouvait détourner un autre onglet.
     return new Promise((resolve) => {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (chrome.runtime.lastError || !tabs[0]?.id) {
-          console.warn('Erreur navigation: onglet non trouvé');
+      chrome.tabs.update(this.chromeTabId, { url: userAction.hrefLocation }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('Erreur navigation:', chrome.runtime.lastError.message);
           resolve(false);
-          return;
+        } else {
+          resolve(true);
         }
-
-        chrome.tabs.update(tabs[0].id, { url: userAction.hrefLocation }, () => {
-          if (chrome.runtime.lastError) {
-            console.warn('Erreur navigation:', chrome.runtime.lastError.message);
-            resolve(false);
-          } else {
-            resolve(true);
-          }
-        });
       });
     });
   }

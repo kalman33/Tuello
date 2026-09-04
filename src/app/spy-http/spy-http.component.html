@@ -18,6 +18,10 @@
         <mat-icon>stop</mat-icon>
         {{ 'mmn.spy-http.button.stop' | translate }}
       </button>
+      <button id="guide-spy-scenario" [disabled]="spyActif || actions?.length <= 0" mat-flat-button color="primary" (click)="saveScenario()">
+        <mat-icon>bookmark_add</mat-icon>
+        {{ 'mmn.spy-http.button.save-scenario' | translate }}
+      </button>
     </div>
 
     <mat-tab-group #tabGrp id="guide-spy-actions">
@@ -59,6 +63,40 @@
             }
           </mat-nav-list>
         </mat-list>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">bookmarks</mat-icon>
+          {{ 'mmn.spy-http.tabs.scenarios' | translate }}
+        </ng-template>
+        @if (scenarios.length === 0) {
+          <p class="scenario-empty">{{ 'mmn.spy-http.scenario.empty' | translate }}</p>
+        } @else {
+          <mat-list>
+            @for (scenario of scenarios; track scenario.id) {
+              <mat-list-item class="scenario-item">
+                <mat-icon matListItemIcon color="accent">bookmark</mat-icon>
+                <span matListItemTitle>{{ scenario.name }}</span>
+                <span matListItemLine class="scenario-meta">
+                  {{ formatScenarioDate(scenario.createdAt) }} &middot;
+                  {{ 'mmn.spy-http.scenario.actions.count' | translate: { count: scenario.actions.length } }}
+                </span>
+                <div matListItemMeta class="scenario-actions">
+                  <button mat-icon-button [matTooltip]="'mmn.spy-http.scenario.load' | translate" (click)="loadScenario(scenario)">
+                    <mat-icon>file_download</mat-icon>
+                  </button>
+                  <button mat-icon-button [matTooltip]="'mmn.spy-http.scenario.rename' | translate" (click)="renameScenario(scenario)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" [matTooltip]="'mmn.spy-http.scenario.delete' | translate" (click)="deleteScenario(scenario)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </mat-list-item>
+            }
+          </mat-list>
+        }
       </mat-tab>
 
       <mat-tab>

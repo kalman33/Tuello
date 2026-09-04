@@ -34,6 +34,12 @@
             <mat-icon matListItemIcon>link</mat-icon>
             <span matListItemTitle>{{ url.title }}</span>
             <span matListItemLine class="url-line">{{ url.url }}</span>
+            @if (scenarioName(url); as name) {
+              <span matListItemLine class="scenario-chip">
+                <mat-icon>smart_display</mat-icon>
+                {{ name }}
+              </span>
+            }
             <div matListItemMeta class="item-actions">
               <button mat-icon-button (click)="editRootUrl(url)">
                 <mat-icon>edit</mat-icon>
@@ -86,6 +92,12 @@
                   <mat-icon matListItemIcon>link</mat-icon>
                   <span matListItemTitle>{{ url.title }}</span>
                   <span matListItemLine class="url-line">{{ url.url }}</span>
+                  @if (scenarioName(url); as name) {
+                    <span matListItemLine class="scenario-chip">
+                      <mat-icon>smart_display</mat-icon>
+                      {{ name }}
+                    </span>
+                  }
                   <div matListItemMeta class="item-actions">
                     <button mat-icon-button (click)="editCategoryUrl(category.id, url)">
                       <mat-icon>edit</mat-icon>

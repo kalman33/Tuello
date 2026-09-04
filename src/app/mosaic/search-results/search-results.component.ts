@@ -3,7 +3,9 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, Input, O
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScenarioStorageService } from '../../core/scenarios/scenario-storage.service';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
+import { MosaicLauncherService } from '../services/mosaic-launcher.service';
 import { MosaicScreenshotService } from '../services/mosaic-screenshot.service';
 
 export interface SearchResultItem {
@@ -38,6 +40,8 @@ export class MosaicSearchResultsComponent implements OnChanges {
   results: SearchResultItem[] = [];
 
   private screenshotService = inject(MosaicScreenshotService);
+  private scenarioStorageService = inject(ScenarioStorageService);
+  private launcherService = inject(MosaicLauncherService);
   private cdr = inject(ChangeDetectorRef);
 
   ngOnChanges(_changes: SimpleChanges): void {
@@ -87,6 +91,7 @@ export class MosaicSearchResultsComponent implements OnChanges {
   }
 
   private async loadScreenshots(): Promise<void> {
+    await this.scenarioStorageService.load();
     for (const r of this.results) {
       const shot = await this.screenshotService.getScreenshot(r.url.id);
       if (shot) {
@@ -116,8 +121,13 @@ export class MosaicSearchResultsComponent implements OnChanges {
     return parts;
   }
 
+  /** Nom du scénario associé, ou null si aucun (ou scénario supprimé) */
+  scenarioName(item: SearchResultItem): string | null {
+    return item.url.scenarioId ? this.scenarioStorageService.getName(item.url.scenarioId) : null;
+  }
+
   openUrl(item: SearchResultItem): void {
-    chrome.tabs.create({ url: item.url.url });
+    this.launcherService.open(item.url);
   }
 
   trackById(_i: number, item: SearchResultItem): string {

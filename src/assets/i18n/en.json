@@ -227,6 +227,8 @@
   "mmn.guide.spy.step3.content": "Reorganize, edit, or delete recorded actions.",
   "mmn.guide.spy.step4.title": "Keyboard Shortcuts",
   "mmn.guide.spy.step4.content": "Customize shortcuts for screenshots and comments.",
+  "mmn.guide.spy.step5.title": "Scenarios",
+  "mmn.guide.spy.step5.content": "Save the recording as a named scenario, then link it to a Mosaic site: the site opens and the scenario plays automatically.",
 
   "mmn.guide.track.title": "Track Resources Guide",
   "mmn.guide.track.step1.title": "Data to Track",
@@ -302,5 +304,21 @@
   "mmn.mosaic.search.clear": "Clear search",
   "mmn.mosaic.search.count": "{{count}} result(s)",
   "mmn.mosaic.search.empty.title": "No results",
-  "mmn.mosaic.search.empty.subtitle": "No site matches \"{{query}}\". Try another keyword."
+  "mmn.mosaic.search.empty.subtitle": "No site matches \"{{query}}\". Try another keyword.",
+  "mmn.spy-http.button.save-scenario": "Scenario",
+  "mmn.spy-http.tabs.scenarios": "Scenarios",
+  "mmn.spy-http.scenario.name": "Scenario name",
+  "mmn.spy-http.scenario.save": "Save scenario",
+  "mmn.spy-http.scenario.saved": "Scenario \"{{name}}\" saved",
+  "mmn.spy-http.scenario.exists": "A scenario already has this name: it will be replaced.",
+  "mmn.spy-http.scenario.rename": "Rename scenario",
+  "mmn.spy-http.scenario.delete": "Delete scenario",
+  "mmn.spy-http.scenario.load": "Load into editor",
+  "mmn.spy-http.scenario.empty": "No saved scenario. Record some actions then click \"Scenario\".",
+  "mmn.spy-http.scenario.actions.count": "{{count}} action(s)",
+  "mmn.mosaic.url.scenario": "Scenario",
+  "mmn.mosaic.url.scenario.none": "None",
+  "mmn.mosaic.url.scenario.hint": "Played automatically once the site is open",
+  "mmn.mosaic.import.scenarios": "{{count}} scenario(s) imported.",
+  "mmn.mosaic.import.scenarios.missing": "{{count}} scenario link(s) dropped (scenario missing from the file)."
 }

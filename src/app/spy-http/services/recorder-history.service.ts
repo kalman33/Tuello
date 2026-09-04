@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Action } from '../models/Action';
 import { Record } from '../models/Record';
+import { WindowSize } from '../models/WindowSize';
 import { CompressionService } from '../../core/compression/compression.service';
 
 @Injectable({ providedIn: 'root' })
@@ -40,6 +41,16 @@ export class RecorderHistoryService {
     this.record = new Record(data.windowSize);
     this.record.actions = data.actions;
     this.record.httpRecords = data.httpRecords;
+    this.saveUiRecordToLocalStorage();
+  }
+
+  /**
+   * Charge un scénario (actions seules) dans l'enregistrement courant.
+   * Les flux http du record précédent sont abandonnés : un scénario n'en embarque pas.
+   */
+  public importScenario(actions: Action[], windowSize?: WindowSize) {
+    this.record = new Record(windowSize);
+    this.record.actions = actions.map((action) => ({ ...action }));
     this.saveUiRecordToLocalStorage();
   }
 

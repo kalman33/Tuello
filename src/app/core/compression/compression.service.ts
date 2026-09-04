@@ -5,13 +5,7 @@ import { compressToUTF16, decompressFromUTF16 } from 'lz-string';
 const COMPRESSION_PREFIX = 'LZ:';
 
 /** Clés à compresser automatiquement */
-export const COMPRESSED_KEYS = [
-  'tuelloRecords',
-  'uiRecord',
-  'tuelloTracks',
-  'tuelloTracksBody',
-  'tuelloMockProfiles'
-];
+export const COMPRESSED_KEYS = ['tuelloRecords', 'uiRecord', 'tuelloTracks', 'tuelloTracksBody', 'tuelloMockProfiles', 'tuelloScenarios'];
 
 export interface CompressionStats {
   originalSize: number;
@@ -21,7 +15,6 @@ export interface CompressionStats {
 
 @Injectable({ providedIn: 'root' })
 export class CompressionService {
-
   /**
    * Compresse une valeur en UTF-16 optimisé pour chrome.storage
    */
@@ -150,7 +143,7 @@ export class CompressionService {
     const stats = new Map<string, CompressionStats & { currentSize: number }>();
 
     return new Promise((resolve) => {
-      chrome.storage.local.get(COMPRESSED_KEYS, results => {
+      chrome.storage.local.get(COMPRESSED_KEYS, (results) => {
         for (const key of COMPRESSED_KEYS) {
           const data = results[key];
           if (data !== undefined && data !== null) {

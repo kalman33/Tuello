@@ -5,6 +5,9 @@
   }
   
   <div class="tile" (click)="onTileClick()" [class.has-screenshot]="!!screenshot">
+    @if (scenarioName) {
+      <span class="scenario-badge" [matTooltip]="scenarioName"></span>
+    }
     <div class="tile-preview">
       @if (type === 'url') {
         @if (screenshot) {

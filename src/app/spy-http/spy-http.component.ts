@@ -6,29 +6,34 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatButton } from '@angular/material/button';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatLine } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
-import { MatList, MatListItem, MatNavList } from '@angular/material/list';
+import { MatList, MatListItem, MatListItemIcon, MatListItemLine, MatListItemMeta, MatListItemTitle, MatNavList } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTab, MatTabGroup, MatTabLabel } from '@angular/material/tabs';
+import { MatTooltip } from '@angular/material/tooltip';
 import { Router, RouterLink } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { getKeyCode } from 'chrome/src/utils/utils';
 import { saveAs } from 'file-saver';
-import { take } from 'rxjs';
+import { Subscription, take } from 'rxjs';
 import { PausableObservable } from 'rxjs-pausable';
 import { JsonViewerComponent } from '../core/json-viewer/json-viewer.component';
+import { Scenario } from '../core/scenarios/scenario.models';
+import { ScenarioStorageService } from '../core/scenarios/scenario-storage.service';
+import { MosaicStorageService } from '../mosaic/services/mosaic-storage.service';
 import { ChromeExtentionUtilsService } from '../core/utils/chrome-extention-utils.service';
 import { formatDate } from '../core/utils/date-utils';
 import { HttpReturn } from '../recorder-http/models/http.return';
 import { ActionComponent } from './action/action.component';
 import { Action } from './models/Action';
 import { RecordDialogComponent } from './record-dialog/record-dialog.component';
+import { SaveScenarioDialogComponent, SaveScenarioDialogData } from './scenario-dialog/save-scenario-dialog.component';
 import { PlayerService } from './services/player.service';
 import { RecorderHistoryService } from './services/recorder-history.service';
 
@@ -44,6 +49,8 @@ import { RecorderHistoryService } from './services/recorder-history.service';
     NgClass,
     ExtendedModule,
     MatButton,
+    MatIconButton,
+    MatTooltip,
     MatIcon,
     MatTabGroup,
     MatTab,
@@ -51,6 +58,10 @@ import { RecorderHistoryService } from './services/recorder-history.service';
     MatList,
     CdkDropList,
     MatListItem,
+    MatListItemIcon,
+    MatListItemTitle,
+    MatListItemLine,
+    MatListItemMeta,
     ActionComponent,
     CdkDrag,
     MatNavList,
@@ -80,6 +91,9 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
   showResults = false;
 
+  scenarios: Scenario[] = [];
+  private scenariosSubscription: Subscription;
+
   @ViewChild('fileInput') fileInput: ElementRef;
   @ViewChild(CdkVirtualScrollViewport, { static: false })
   viewport: CdkVirtualScrollViewport;
@@ -98,6 +112,8 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     private chromeExtentionUtilsService: ChromeExtentionUtilsService,
     private router: Router,
     private ngZone: NgZone,
+    private scenarioStorageService: ScenarioStorageService,
+    private mosaicStorageService: MosaicStorageService,
     public dialog: MatDialog
   ) {}
 
@@ -140,6 +156,12 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       }
       this.changeDetectorRef.detectChanges();
     });
+
+    this.scenariosSubscription = this.scenarioStorageService.scenarios$.subscribe((scenarios) => {
+      this.scenarios = scenarios;
+      this.changeDetectorRef.detectChanges();
+    });
+    this.scenarioStorageService.load();
 
     this.recorderHistoryService.loadUiRecordFromLocalStorage().then(() => {
       this.actions = this.recorderHistoryService.record ? this.recorderHistoryService.record.actions : null;
@@ -207,6 +229,69 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     this.jsonContent = '';
     await this.recorderHistoryService.deleteAll();
     this.changeDetectorRef.detectChanges();
+  }
+
+  /**
+   * Sauvegarde l'enregistrement courant en tant que scénario nommé, réutilisable
+   * depuis la mosaïque.
+   */
+  saveScenario() {
+    const record = this.recorderHistoryService.record;
+    if (!record || !this.actions?.length) {
+      return;
+    }
+    const data: SaveScenarioDialogData = { existingNames: this.scenarios.map((s) => s.name) };
+    this.dialog
+      .open(SaveScenarioDialogComponent, { data })
+      .afterClosed()
+      .pipe(take(1))
+      .subscribe(async (name: string) => {
+        if (!name) {
+          return;
+        }
+        // Le record en mémoire peut être en retard sur les modifications faites
+        // dans la liste (drag & drop, suppressions) : on repart des actions affichées.
+        record.actions = this.actions;
+        await this.scenarioStorageService.saveFromRecord(name, record);
+        this.snackBar.open(this.translate.instant('mmn.spy-http.scenario.saved', { name }), null, { duration: 2000 });
+      });
+  }
+
+  /** Charge un scénario dans l'éditeur, en remplacement de l'enregistrement courant */
+  loadScenario(scenario: Scenario) {
+    this.playerService.comparisonResults = null;
+    this.recorderHistoryService.importScenario(scenario.actions, scenario.windowSize);
+    this.actions = this.recorderHistoryService.record.actions;
+    this.jsonContent = JSON.stringify(this.recorderHistoryService.record);
+    this.tabGrp.selectedIndex = 0;
+    this.changeDetectorRef.detectChanges();
+  }
+
+  renameScenario(scenario: Scenario) {
+    const data: SaveScenarioDialogData = {
+      name: scenario.name,
+      existingNames: this.scenarios.map((s) => s.name),
+      rename: true
+    };
+    this.dialog
+      .open(SaveScenarioDialogComponent, { data })
+      .afterClosed()
+      .pipe(take(1))
+      .subscribe((name: string) => {
+        if (name && name !== scenario.name) {
+          this.scenarioStorageService.rename(scenario.id, name);
+        }
+      });
+  }
+
+  async deleteScenario(scenario: Scenario) {
+    await this.scenarioStorageService.delete(scenario.id);
+    // Les sites de la mosaïque qui pointaient dessus doivent perdre l'association
+    await this.mosaicStorageService.removeScenarioReferences(scenario.id);
+  }
+
+  formatScenarioDate(timestamp: number): string {
+    return formatDate(new Date(timestamp));
   }
 
   save() {
@@ -388,6 +473,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.scenariosSubscription?.unsubscribe();
     // Suppression du listener Chrome pour éviter les fuites mémoire
     if (this.chromeMessageListener) {
       chrome.runtime.onMessage.removeListener(this.chromeMessageListener);

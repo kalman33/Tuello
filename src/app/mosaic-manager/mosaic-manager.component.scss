@@ -91,3 +91,17 @@
 .add-url-row {
   padding: 8px 0 4px;
 }
+
+.scenario-chip {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #d32f2f;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}

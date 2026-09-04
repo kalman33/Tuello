@@ -226,6 +226,8 @@
   "mmn.guide.spy.step3.content": "Réorganisez, modifiez ou supprimez les actions enregistrées.",
   "mmn.guide.spy.step4.title": "Raccourcis clavier",
   "mmn.guide.spy.step4.content": "Personnalisez les raccourcis pour les captures d'écran et commentaires.",
+  "mmn.guide.spy.step5.title": "Scénarios",
+  "mmn.guide.spy.step5.content": "Sauvegardez l'enregistrement sous forme de scénario nommé, puis associez-le à un site de la Mosaïque : le site s'ouvrira et le scénario se jouera automatiquement.",
 
   "mmn.guide.track.title": "Guide Traquer des ressources",
   "mmn.guide.track.step1.title": "Données à traquer",
@@ -301,5 +303,21 @@
   "mmn.mosaic.search.clear": "Effacer la recherche",
   "mmn.mosaic.search.count": "{{count}} résultat(s)",
   "mmn.mosaic.search.empty.title": "Aucun résultat",
-  "mmn.mosaic.search.empty.subtitle": "Aucun site ne correspond à « {{query}} ». Essayez un autre mot-clé."
+  "mmn.mosaic.search.empty.subtitle": "Aucun site ne correspond à « {{query}} ». Essayez un autre mot-clé.",
+  "mmn.spy-http.button.save-scenario": "Scénario",
+  "mmn.spy-http.tabs.scenarios": "Scénarios",
+  "mmn.spy-http.scenario.name": "Nom du scénario",
+  "mmn.spy-http.scenario.save": "Sauvegarder le scénario",
+  "mmn.spy-http.scenario.saved": "Scénario « {{name}} » sauvegardé",
+  "mmn.spy-http.scenario.exists": "Un scénario porte déjà ce nom : il sera remplacé.",
+  "mmn.spy-http.scenario.rename": "Renommer le scénario",
+  "mmn.spy-http.scenario.delete": "Supprimer le scénario",
+  "mmn.spy-http.scenario.load": "Charger dans l'éditeur",
+  "mmn.spy-http.scenario.empty": "Aucun scénario enregistré. Enregistrez des actions puis cliquez sur « Scénario ».",
+  "mmn.spy-http.scenario.actions.count": "{{count}} action(s)",
+  "mmn.mosaic.url.scenario": "Scénario",
+  "mmn.mosaic.url.scenario.none": "Aucun",
+  "mmn.mosaic.url.scenario.hint": "Joué automatiquement après l'ouverture du site",
+  "mmn.mosaic.import.scenarios": "{{count}} scénario(s) importé(s).",
+  "mmn.mosaic.import.scenarios.missing": "{{count}} association(s) de scénario ignorée(s) (scénario absent du fichier)."
 }

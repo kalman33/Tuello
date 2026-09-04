@@ -31,6 +31,9 @@
                 }
               </div>
             }
+            @if (scenarioName(item); as name) {
+              <span class="scenario-badge" [matTooltip]="name"></span>
+            }
             @if (item.categoryName) {
               <span class="category-chip" [matTooltip]="item.categoryName">
                 <mat-icon>folder</mat-icon>

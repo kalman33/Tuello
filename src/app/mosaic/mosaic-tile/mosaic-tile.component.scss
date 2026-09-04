@@ -199,6 +199,20 @@
   margin-top: 2px;
 }
 
+.scenario-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e53935;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: help;
+}
+
 .tile-actions {
   position: absolute;
   top: 8px;
@@ -257,6 +271,9 @@
   .tile-actions {
     background: rgba(45, 45, 45, 0.8);
     border-color: rgba(255, 255, 255, 0.1);
+  }
+  .scenario-badge {
+    border-color: rgba(35, 35, 35, 0.9);
   }
   .placeholder {
     background: linear-gradient(135deg, #243b55, #141e30);

@@ -146,6 +146,14 @@ export const GUIDE_TOURS: GuideTour[] = [
         contentKey: 'mmn.guide.spy.step4.content',
         position: 'left',
         order: 4
+      },
+      {
+        id: 'spy-scenario',
+        targetSelector: '#guide-spy-scenario',
+        titleKey: 'mmn.guide.spy.step5.title',
+        contentKey: 'mmn.guide.spy.step5.content',
+        position: 'bottom',
+        order: 5
       }
     ]
   },

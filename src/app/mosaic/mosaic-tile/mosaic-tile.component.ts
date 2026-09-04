@@ -5,7 +5,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScenarioStorageService } from '../../core/scenarios/scenario-storage.service';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
+import { MosaicLauncherService } from '../services/mosaic-launcher.service';
 import { MosaicScreenshotService } from '../services/mosaic-screenshot.service';
 
 @Component({
@@ -28,8 +30,12 @@ export class MosaicTileComponent implements OnInit {
   screenshot: string | null = null;
   capturing = false;
   faviconUrl = '';
+  /** Nom du scénario associé : null si aucun, ou si le scénario a été supprimé */
+  scenarioName: string | null = null;
 
   private screenshotService = inject(MosaicScreenshotService);
+  private scenarioStorageService = inject(ScenarioStorageService);
+  private launcherService = inject(MosaicLauncherService);
   private cdr = inject(ChangeDetectorRef);
 
   get asUrl(): MosaicUrl {
@@ -52,7 +58,18 @@ export class MosaicTileComponent implements OnInit {
         this.faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
       } catch {}
       this.loadScreenshot();
+      this.loadScenarioName();
     }
+  }
+
+  private async loadScenarioName() {
+    if (!this.asUrl.scenarioId) {
+      return;
+    }
+    // load() met la liste en cache : une seule lecture du storage pour toute la grille
+    await this.scenarioStorageService.load();
+    this.scenarioName = this.scenarioStorageService.getName(this.asUrl.scenarioId);
+    this.cdr.detectChanges();
   }
 
   private async loadScreenshot() {
@@ -72,7 +89,7 @@ export class MosaicTileComponent implements OnInit {
 
   onTileClick() {
     if (this.type === 'url') {
-      chrome.tabs.create({ url: this.asUrl.url });
+      this.launcherService.open(this.asUrl);
     } else {
       this.tileClick.emit();
     }

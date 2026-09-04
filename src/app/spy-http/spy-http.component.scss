@@ -47,3 +47,19 @@ mmn-action {
 .mat-mdc-form-field-required-marker {
   display: none !important;
 }
+
+.scenario-empty {
+  padding: 16px;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.scenario-meta {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.scenario-actions {
+  display: flex;
+  align-items: center;
+}

@@ -1,3 +1,4 @@
+import { Scenario, SCENARIOS_KEY } from '../../src/app/core/scenarios/scenario.models';
 import { Player } from './background/player';
 import {
   addComment,
@@ -151,6 +152,26 @@ function test(tab)  {
   });
 };
 */
+
+/**
+ * Attend qu'un onglet ait fini de charger (status "complete").
+ */
+function waitForTabComplete(tabId: number, timeoutMs = 12000): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      reject(new Error('Timeout'));
+    }, timeoutMs);
+    const listener = (updatedTabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
+      if (updatedTabId === tabId && changeInfo.status === 'complete') {
+        clearTimeout(timeout);
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+    };
+    chrome.tabs.onUpdated.addListener(listener);
+  });
+}
 
 /**
  * Diffuse un message à l'onglet émetteur puis à tous les autres onglets.
@@ -858,20 +879,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         try {
           const createdTab = await chrome.tabs.create({ url, active: true });
           createdTabId = createdTab.id;
-          await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              chrome.tabs.onUpdated.removeListener(listener);
-              reject(new Error('Timeout'));
-            }, 12000);
-            const listener = (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
-              if (tabId === createdTabId && changeInfo.status === 'complete') {
-                clearTimeout(timeout);
-                chrome.tabs.onUpdated.removeListener(listener);
-                resolve();
-              }
-            };
-            chrome.tabs.onUpdated.addListener(listener);
-          });
+          await waitForTabComplete(createdTabId);
           const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'jpeg', quality: 70 });
           await chrome.storage.local.set({ [`mosaic_screenshot_${urlId}`]: dataUrl });
           await chrome.tabs.remove(createdTabId);
@@ -885,20 +893,94 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         }
       })();
       return true;
+    case 'MOSAIC_PLAY_SCENARIO':
+      (async () => {
+        try {
+          const scenario = await findScenario(msg.scenarioId);
+          const createdTab = await chrome.tabs.create({ url: msg.url, active: true });
+          if (!scenario?.actions?.length) {
+            // Scénario introuvable ou vide : le site est quand même ouvert
+            senderResponse({ success: false });
+            return;
+          }
+          await waitForTabComplete(createdTab.id);
+          await playScenarioOnTab(scenario, createdTab.id);
+          senderResponse({ success: true });
+        } catch (e) {
+          console.warn('Tuello: échec du lancement du scénario', e);
+          stopScenarioPlayer();
+          senderResponse({ success: false });
+        }
+      })();
+      return true;
   }
   return true;
 });
+
+/**
+ * Recherche un scénario enregistré (clé compressée tuelloScenarios).
+ */
+async function findScenario(scenarioId: string): Promise<Scenario | null> {
+  const scenarios = (await loadCompressed<Scenario[]>(SCENARIOS_KEY)) ?? [];
+  return scenarios.find((scenario) => scenario.id === scenarioId) ?? null;
+}
+
+/**
+ * Rejoue un scénario dans l'onglet fraîchement ouvert par la mosaïque.
+ * Rejeu silencieux : ni panneau Tuello, ni écran de résultats à la fin.
+ */
+async function playScenarioOnTab(scenario: Scenario, tabId: number): Promise<void> {
+  // Les mocks HTTP d'un enregistrement précédent ne doivent pas polluer le scénario
+  chrome.tabs.sendMessage(tabId, { action: 'MOCK_HTTP_USER_ACTION', value: false }, () => chrome.runtime.lastError);
+
+  // Les coordonnées enregistrées supposent la taille de fenêtre d'origine
+  const windowSize = scenario.windowSize;
+  if (windowSize?.width && windowSize?.height) {
+    // On cible la fenêtre de l'onglet rejoué : getCurrent() depuis le service
+    // worker ne désigne pas forcément celle de la mosaïque.
+    const playedTab = await chrome.tabs.get(tabId);
+    const updateInfo: chrome.windows.UpdateInfo = {
+      state: 'normal',
+      width: windowSize.width,
+      height: windowSize.height
+    };
+    if (windowSize.top !== undefined) {
+      updateInfo.top = windowSize.top;
+    }
+    if (windowSize.left !== undefined) {
+      updateInfo.left = windowSize.left;
+    }
+    await chrome.windows.update(playedTab.windowId, updateInfo);
+  }
+
+  if (player) {
+    player.destroy();
+  }
+  // Pause/reprise du player pendant les navigations déclenchées par le scénario
+  chrome.webNavigation.onCompleted.addListener(onCompletedPlayer);
+  chrome.webNavigation.onBeforeNavigate.addListener(onbeforePlayer);
+
+  player = new Player(scenario.actions, tabId, () => {}, { onFinished: stopScenarioPlayer });
+  player.launchAction('PLAY');
+}
+
+/** Nettoyage de fin (ou d'échec) d'un scénario joué depuis la mosaïque */
+function stopScenarioPlayer(): void {
+  // L'icône n'est pas touchée : un enregistrement en cours dans un autre onglet
+  // doit garder la sienne.
+  chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
+  chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
+}
 
 /**
  * fonction exécutée avant une navigation ou une navigation d'une iframe
  * permet de désactiver le player
  */
 function onbeforePlayer(details) {
-  if (details.frameId === 0) {
-    let pausedActionNumber;
-    if (player !== null) {
-      pausedActionNumber = player.launchAction('PAUSE');
-    }
+  // Seules les navigations de l'onglet rejoué concernent le player : une navigation
+  // dans un autre onglet mettait le rejeu en pause sans le relancer.
+  if (details.frameId === 0 && player !== null && details.tabId === player.chromeTabId) {
+    player.launchAction('PAUSE');
   }
 }
 
@@ -907,9 +989,7 @@ function onbeforePlayer(details) {
  * permet de réactiver le player
  */
 function onCompletedPlayer(details) {
-  if (details.frameId === 0) {
-    if (player !== null) {
-      player.launchAction('PLAY');
-    }
+  if (details.frameId === 0 && player !== null && details.tabId === player.chromeTabId) {
+    player.launchAction('PLAY');
   }
 }

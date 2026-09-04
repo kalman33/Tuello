@@ -14,6 +14,7 @@ import { take } from 'rxjs';
 import { AddCategoryDialogComponent } from '../mosaic/dialogs/add-category-dialog.component';
 import { AddUrlDialogComponent, AddUrlDialogResult } from '../mosaic/dialogs/add-url-dialog.component';
 import { ImportExportDialogComponent } from '../mosaic/dialogs/import-export-dialog.component';
+import { ScenarioStorageService } from '../core/scenarios/scenario-storage.service';
 import { MosaicCategory, MosaicUrl } from '../mosaic/models/mosaic.models';
 import { MosaicStorageService } from '../mosaic/services/mosaic-storage.service';
 
@@ -30,10 +31,13 @@ export class MosaicManagerComponent implements OnInit {
   openOnStartup = false;
 
   private storageService = inject(MosaicStorageService);
+  private scenarioStorageService = inject(ScenarioStorageService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
+    this.scenarioStorageService.load().then(() => this.cdr.detectChanges());
+
     this.storageService.loadConfig().then((config) => {
       this.openOnStartup = config.openOnStartup;
       this.cdr.detectChanges();
@@ -44,6 +48,11 @@ export class MosaicManagerComponent implements OnInit {
       this.rootUrls = [...(config.urls ?? [])].sort((a, b) => a.order - b.order);
       this.cdr.detectChanges();
     });
+  }
+
+  /** Nom du scénario associé, ou null si aucun (ou scénario supprimé) */
+  scenarioName(url: MosaicUrl): string | null {
+    return url.scenarioId ? this.scenarioStorageService.getName(url.scenarioId) : null;
   }
 
   toggleStartup(value: boolean) {
@@ -89,17 +98,17 @@ export class MosaicManagerComponent implements OnInit {
       .afterClosed()
       .pipe(take(1))
       .subscribe((result: AddUrlDialogResult) => {
-        if (result) this.storageService.addUrl(categoryId, result.url, result.title);
+        if (result) this.storageService.addUrl(categoryId, result.url, result.title, result.scenarioId);
       });
   }
 
   editCategoryUrl(categoryId: string, url: MosaicUrl) {
     this.dialog
-      .open(AddUrlDialogComponent, { data: { url: url.url, title: url.title } })
+      .open(AddUrlDialogComponent, { data: { url: url.url, title: url.title, scenarioId: url.scenarioId } })
       .afterClosed()
       .pipe(take(1))
       .subscribe((result: AddUrlDialogResult) => {
-        if (result) this.storageService.updateUrl(categoryId, { ...url, url: result.url, title: result.title });
+        if (result) this.storageService.updateUrl(categoryId, { ...url, url: result.url, title: result.title, scenarioId: result.scenarioId });
       });
   }
 
@@ -113,17 +122,17 @@ export class MosaicManagerComponent implements OnInit {
       .afterClosed()
       .pipe(take(1))
       .subscribe((result: AddUrlDialogResult) => {
-        if (result) this.storageService.addRootUrl(result.url, result.title);
+        if (result) this.storageService.addRootUrl(result.url, result.title, result.scenarioId);
       });
   }
 
   editRootUrl(url: MosaicUrl) {
     this.dialog
-      .open(AddUrlDialogComponent, { data: { url: url.url, title: url.title } })
+      .open(AddUrlDialogComponent, { data: { url: url.url, title: url.title, scenarioId: url.scenarioId } })
       .afterClosed()
       .pipe(take(1))
       .subscribe((result: AddUrlDialogResult) => {
-        if (result) this.storageService.updateRootUrl({ ...url, url: result.url, title: result.title });
+        if (result) this.storageService.updateRootUrl({ ...url, url: result.url, title: result.title, scenarioId: result.scenarioId });
       });
   }
 
