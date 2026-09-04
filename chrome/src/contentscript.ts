@@ -235,6 +235,9 @@ function init() {
             left:0;right:0;top:0;bottom:0;
             z-index:9999;
             display:none;
+            /* Sans ça, l'overlay récupère le :hover de la page dès qu'il s'affiche et
+               l'élément en cours de capture change d'apparence pendant la capture */
+            pointer-events:none;
         }
         
         @-webkit-keyframes spin {

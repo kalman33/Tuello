@@ -277,7 +277,10 @@ function recordImage(withClick: boolean) {
     document.getElementById('cover-spin')?.style?.setProperty('display', 'block', 'important');
 
     // Record by img
-    convertElementToBase64(elt as HTMLElement)
+    // L'élément est par définition survolé (findImageHover) : on force la capture d'un
+    // rendu au repos, sinon la référence porte les couleurs du :hover et ne correspond
+    // à rien au rejeu.
+    convertElementToBase64(elt as HTMLElement, true)
       .then((base64Img) => {
         const action = new UserAction(null);
         action.type = 'recordByImg';

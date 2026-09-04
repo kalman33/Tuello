@@ -102,10 +102,71 @@ function drawToDataUrl(source: CanvasImageSource, width: number, height: number)
   return canvas.toDataURL('image/png');
 }
 
+/** Etats de rendu volatils : le style calculé dépend alors de la position de la souris ou du focus */
+const VOLATILE_STATE_SELECTOR = ':hover, :focus, :focus-within, :active';
+
+/**
+ * Vrai si le rendu de l'élément dépend de l'interaction en cours (survol, focus).
+ * dom-to-image recopiant le style CALCULÉ, capturer dans cet état produit une
+ * référence que l'on ne retrouvera jamais au rejeu, où l'élément est au repos.
+ */
+function hasVolatileRenderState(element: HTMLElement): boolean {
+  try {
+    return element.matches(VOLATILE_STATE_SELECTOR);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Insère à côté de l'élément une copie au repos, hors écran : même parent (donc mêmes
+ * règles héritées et mêmes sélecteurs descendants), mais ni survolée, ni focus, ni en
+ * cours de transition. C'est elle que l'on capture pour obtenir un rendu reproductible.
+ */
+function createNeutralSnapshot(element: HTMLElement): { node: HTMLElement; dispose: () => void } | null {
+  const parent = element.parentElement;
+  if (!parent) {
+    return null;
+  }
+
+  const rect = element.getBoundingClientRect();
+  if (!rect.width || !rect.height) {
+    return null;
+  }
+
+  // cloneNode ne recopie pas un shadow root : la copie serait vide, on garde l'original
+  if (element.shadowRoot) {
+    return null;
+  }
+
+  const clone = element.cloneNode(true) as HTMLElement;
+  const style = clone.style;
+  // La copie doit sortir du flux pour ne pas décaler la page, tout en gardant la même boîte
+  style.setProperty('position', 'absolute', 'important');
+  style.setProperty('left', '-100000px', 'important');
+  style.setProperty('top', '0', 'important');
+  style.setProperty('margin', '0', 'important');
+  style.setProperty('box-sizing', 'border-box', 'important');
+  style.setProperty('width', `${rect.width}px`, 'important');
+  style.setProperty('height', `${rect.height}px`, 'important');
+  // Sans ça, la copie hérite d'une transition en cours et le rendu dépend de l'instant de capture
+  style.setProperty('transition', 'none', 'important');
+  style.setProperty('animation', 'none', 'important');
+  style.setProperty('pointer-events', 'none', 'important');
+
+  parent.insertBefore(clone, element.nextSibling);
+
+  return { node: clone, dispose: () => clone.remove() };
+}
+
 /**
  * Convertit un élément HTML en image base64
+ *
+ * @param forceNeutralRender force la capture d'une copie au repos, même si l'élément
+ * n'est plus détecté comme survolé (à l'enregistrement, l'affichage du spinner peut
+ * avoir déjà retiré le :hover alors qu'une transition est encore en cours)
  */
-export async function convertElementToBase64(element: HTMLElement): Promise<string> {
+export async function convertElementToBase64(element: HTMLElement, forceNeutralRender = false): Promise<string> {
   if (element instanceof HTMLImageElement) {
     // Vérification que l'image est complètement chargée
     await waitForImageLoaded(element);
@@ -127,10 +188,13 @@ export async function convertElementToBase64(element: HTMLElement): Promise<stri
     }
   } else {
     // Utilisation de dom-to-image pour les autres éléments HTML
+    const snapshot = forceNeutralRender || hasVolatileRenderState(element) ? createNeutralSnapshot(element) : null;
     try {
-      return await domtoimage.toPng(element);
+      return await domtoimage.toPng(snapshot ? snapshot.node : element);
     } catch (error) {
       throw new Error("Erreur lors de la conversion de l'élément HTML en image");
+    } finally {
+      snapshot?.dispose();
     }
   }
 }
@@ -203,6 +267,7 @@ async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | 
   const deadline = Date.now() + SEARCH_TIME_BUDGET_MS;
   let bestScore = Number.POSITIVE_INFINITY;
   let bestElement: HTMLElement | null = null;
+  let bestDataUrl: string | null = null;
   let tested = 0;
 
   // Tester les éléments séquentiellement et s'arrêter au premier match
@@ -220,6 +285,7 @@ async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | 
       if (difference < bestScore) {
         bestScore = difference;
         bestElement = element;
+        bestDataUrl = dataUrl;
       }
 
       const threshold = rescaled ? RESCALED_MATCH_THRESHOLD_PERCENT : MATCH_THRESHOLD_PERCENT;
@@ -232,7 +298,7 @@ async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | 
     }
   }
 
-  logSearchFailure(action, elementsToTest.length, tested, bestScore, bestElement);
+  logSearchFailure(action, elementsToTest.length, tested, bestScore, bestElement, bestDataUrl);
 
   return null;
 }
@@ -241,7 +307,7 @@ async function searchInDomOptimized(action: IUserAction): Promise<HTMLElement | 
  * Trace détaillée en cas d'échec : c'est ce qui permet de distinguer
  * un problème de sélection des candidats d'un problème de rendu de l'image
  */
-function logSearchFailure(action: IUserAction, candidateCount: number, tested: number, bestScore: number, bestElement: HTMLElement | null): void {
+function logSearchFailure(action: IUserAction, candidateCount: number, tested: number, bestScore: number, bestElement: HTMLElement | null, bestDataUrl: string | null): void {
   let referenceSize = 'illisible';
   try {
     const reference = readPng(action.value);
@@ -259,7 +325,11 @@ function logSearchFailure(action: IUserAction, candidateCount: number, tested: n
     tailleImageEnregistrée: referenceSize,
     typeEnregistré: action.imageType ?? 'non défini',
     nbImagesDansLaPage: document.images.length,
-    url: window.location.href
+    url: window.location.href,
+    // Ouvrir ces deux data URL dans un onglet permet de voir immédiatement si l'écart
+    // vient de l'apparence (survol, thème, police) ou d'un élément totalement différent
+    imageEnregistrée: action.value,
+    meilleurRendu: bestDataUrl ?? 'aucun'
   });
 }
 
