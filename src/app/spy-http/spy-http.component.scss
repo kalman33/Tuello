@@ -6,8 +6,128 @@
   margin-top: 15px;
 }
 
-.shortcut.mat-mdc-list-item {
-  margin-bottom: 8px !important;
+/* ---- Onglet Raccourcis ---- */
+.shortcut-list {
+  padding: 16px 8px;
+}
+
+.shortcut-platform {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  opacity: 0.7;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.black-theme .shortcut-platform {
+  border-bottom-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Grille à 3 colonnes : les combinaisons de touches sont ainsi toutes alignées */
+.shortcut-row {
+  display: grid;
+  grid-template-columns: 32px minmax(120px, 220px) 1fr;
+  align-items: center;
+  column-gap: 12px;
+  min-height: 56px;
+  padding: 4px 0;
+}
+
+.shortcut-icon {
+  justify-self: center;
+}
+
+.shortcut-label {
+  font-size: 14px;
+}
+
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Les deux variantes du "Enregistrer par l'image" empilées dans la même colonne */
+.shortcut-keys--stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.shortcut-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background-color: rgba(0, 0, 0, 0.04);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.black-theme .shortcut-key {
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.shortcut-plus {
+  opacity: 0.6;
+  font-size: 13px;
+}
+
+.shortcut-prefix {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Champ de saisie de la lettre : hauteur pilotée par les tokens Material,
+   donc plus de troncature quelle que soit la densité du thème */
+.shortcut-input.mat-mdc-form-field {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
+  --mat-form-field-filled-with-label-container-padding-top: 8px;
+  --mat-form-field-filled-with-label-container-padding-bottom: 8px;
+
+  width: 62px;
+  flex: 0 0 auto;
+
+  .mat-mdc-text-field-wrapper {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  input.mat-mdc-input-element {
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 14px;
+  }
+
+  /* Le message d'erreur est plus large que le champ : on le sort du flux
+     pour qu'il ne déforme pas la ligne ni ne se coupe en plusieurs lignes */
+  .mat-mdc-form-field-subscript-wrapper {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: auto;
+    white-space: nowrap;
+    font-size: 11px;
+  }
 }
 
 mmn-action {
@@ -27,7 +147,6 @@ mmn-action {
   font-weight: bolder;
   background-color: #2b1f14;
 }
-
 
 .button-row {
   padding-top: 15px;

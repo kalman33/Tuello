@@ -21,6 +21,7 @@ import {
 import { UserAction } from './models/UserAction';
 import { loadCompressed, saveCompressed } from './utils/compression';
 import { appendHttpRecords } from './background/httpRecordStore';
+import { formatShortcut, resolvePlatform } from './utils/platform';
 import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
 import Port = chrome.runtime.Port;
 
@@ -233,28 +234,65 @@ async function dynamicallyInjectContentScripts() {
 }
 
 /**
+ * Construit les libellés des menus contextuels : les touches affichées dépendent
+ * de l'OS (⌥ / ⇧ sur macOS, Alt / Maj ailleurs) et des raccourcis personnalisés
+ * enregistrés par l'utilisateur.
+ */
+async function buildMenuItems(msgs?: Record<string, string>): Promise<Array<{ id: string; title: string }>> {
+  const platform = await resolvePlatform();
+  const translated = {
+    alt: msgs?.['mmn.spy-http.tabs.shortcuts.key.alt'],
+    shift: msgs?.['mmn.spy-http.tabs.shortcuts.key.shift']
+  };
+  const click = msgs?.['mmn.spy-http.tabs.shortcuts.key.click'] || 'click';
+  const coord = msgs?.['mmn.spy-http.tabs.shortcuts.key.coord'] || 'Coord.';
+
+  const stored = (await chrome.storage.local.get<Record<string, any>>(['tuelloKeyboardShortcut'])).tuelloKeyboardShortcut;
+  const screenshotKey = (stored?.screenshot?.key || 'S').toUpperCase();
+  const captureImageKey = (stored?.captureImage?.key || 'I').toUpperCase();
+  const commentKey = (stored?.comment?.key || 'C').toUpperCase();
+
+  const combo = (...keys: string[]) => formatShortcut(keys, translated, platform);
+
+  return [
+    { id: 'sel', title: msgs?.['mmn.spy-http.tabs.shortcuts.jsonviewer'] || 'JSON VIEWER' },
+    { id: 'id0', title: `${msgs?.['mmn.spy-http.tabs.shortcuts.screenshot'] || 'Screenshot'} : ${combo('alt', 'shift', screenshotKey)}` },
+    { id: 'id1', title: `${msgs?.['mmn.spy-http.tabs.shortcuts.pause'] || 'Pause'} : ${combo('alt', 'shift', 'P')}` },
+    { id: 'id2', title: `${msgs?.['mmn.spy-http.tabs.shortcuts.resume'] || 'Resume'} : ${combo('alt', 'shift', 'R')}` },
+    {
+      id: 'id3',
+      title: `${msgs?.['mmn.spy-http.tabs.shortcuts.record.by.img'] || 'Rec. by img'} : ${combo('alt', 'shift', click)} / ${combo(coord, 'alt', 'shift', captureImageKey)}`
+    },
+    { id: 'id4', title: `${msgs?.['mmn.spy-http.tabs.shortcuts.add.comment'] || 'Add comment'} : ${combo('alt', 'shift', commentKey)}` }
+  ];
+}
+
+/**
  * Crée les menus contextuels avec les traductions appropriées
  */
-function createContextMenus(msgs?: Record<string, string>): void {
-  const menuItems = [
-    { id: 'sel', defaultTitle: 'JSON VIEWER', msgKey: 'mmn.spy-http.tabs.shortcuts.jsonviewer' },
-    { id: 'id0', defaultTitle: 'Screenshot : ALT + MAJ + S', msgKey: 'mmn.spy-http.tabs.shortcuts.screenshot', suffix: ' : ALT + MAJ + S' },
-    { id: 'id1', defaultTitle: 'Pause : ALT + MAJ + P', msgKey: 'mmn.spy-http.tabs.shortcuts.pause', suffix: ' : ALT + MAJ + P' },
-    { id: 'id2', defaultTitle: 'Resume : ALT + MAJ + R', msgKey: 'mmn.spy-http.tabs.shortcuts.resume', suffix: ' : ALT + MAJ + R' },
-    { id: 'id3', defaultTitle: 'Rec. by img :  ALT + MAJ + click / Coord. + ALT + MAJ + I', msgKey: 'mmn.spy-http.tabs.shortcuts.record.by.img', suffix: ' :  ALT + MAJ + click / Coord. + ALT + MAJ + I' },
-    { id: 'id4', defaultTitle: 'Add comment :  ALT + MAJ + C', msgKey: 'mmn.spy-http.tabs.shortcuts.add.comment', suffix: ' :  ALT + MAJ + C' }
-  ];
+async function createContextMenus(msgs?: Record<string, string>): Promise<void> {
+  const menuItems = await buildMenuItems(msgs);
 
   for (const item of menuItems) {
-    const title = msgs ? msgs[item.msgKey] + (item.suffix || '') : item.defaultTitle;
     chrome.contextMenus.create(
       {
         id: item.id,
-        title,
+        title: item.title,
         contexts: ['all']
       },
       () => chrome.runtime.lastError
     ); // ignore errors about an existing id
+  }
+}
+
+/**
+ * Met à jour les titres des menus contextuels existants
+ */
+async function updateContextMenus(msgs?: Record<string, string>): Promise<void> {
+  const menuItems = await buildMenuItems(msgs);
+
+  for (const item of menuItems) {
+    chrome.contextMenus.update(item.id, { title: item.title, contexts: ['all'] }, () => chrome.runtime.lastError);
   }
 }
 
@@ -275,7 +313,7 @@ async function init() {
   await chrome.contextMenus.removeAll();
 
   const msgs = results.messages?.default;
-  createContextMenus(msgs);
+  await createContextMenus(msgs);
 
   chrome.webRequest.onBeforeRequest.addListener(
     (details) => {
@@ -517,33 +555,11 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       broadcastToAllTabs({ action: 'HTTP_MOCK_STATE', value: msg.value }, sender?.tab?.id);
       break;
     case 'UPDATE_MENU':
-      if (sender && sender.tab && sender.tab.id >= 0) {
-        chrome.storage.local.get(['messages'], (results: Record<string, any>) => {
-          if (results.messages) {
-            const msgs = results.messages.default;
-            chrome.contextMenus.update('id0', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.screenshot'] + ' : ALT + MAJ + S',
-              contexts: ['all']
-            });
-            chrome.contextMenus.update('id1', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.pause'] + ' : ALT + MAJ + P',
-              contexts: ['all']
-            });
-            chrome.contextMenus.update('id2', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.resume'] + ' : ALT + MAJ + R',
-              contexts: ['all']
-            });
-            chrome.contextMenus.update('id3', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.record.by.img'] + ' :  ALT + MAJ + click / Coord. + ALT + MAJ + I',
-              contexts: ['all']
-            });
-            chrome.contextMenus.update('id4', {
-              title: msgs['mmn.spy-http.tabs.shortcuts.add.comment'] + ' :  ALT + MAJ + C',
-              contexts: ['all']
-            });
-          }
-        });
-      }
+      // Message émis par la page d'extension (pas par un onglet) : pas de garde sur sender.tab,
+      // les menus contextuels sont globaux.
+      chrome.storage.local.get(['messages'], (results: Record<string, any>) => {
+        updateContextMenus(results.messages?.default).catch(console.error);
+      });
       break;
     case 'HTTP_RECORD_STATE':
       // Etat global : tous les onglets doivent basculer, pas seulement l'émetteur

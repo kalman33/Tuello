@@ -125,6 +125,12 @@
   "mmn.spy-http.tabs.shortcuts.record.by.img": "Record by image",
   "mmn.spy-http.tabs.shortcuts.record.by.img.shortcut": "Press",
   "mmn.spy-http.tabs.shortcuts.required": "This field is required",
+  "mmn.spy-http.tabs.shortcuts.key.alt": "Alt",
+  "mmn.spy-http.tabs.shortcuts.key.shift": "Shift",
+  "mmn.spy-http.tabs.shortcuts.key.click": "click",
+  "mmn.spy-http.tabs.shortcuts.key.coord": "Coord.",
+  "mmn.spy-http.tabs.shortcuts.platform.mac": "Shortcuts adapted to the macOS keyboard (⌥ Option, ⇧ Shift)",
+  "mmn.spy-http.tabs.shortcuts.platform.other": "Shortcuts adapted to the Windows / Linux keyboard",
   "mmn.spy-http.tabs.parameters": "Settings",
 
   "mmn.spy-http.results.button.close": "Close",

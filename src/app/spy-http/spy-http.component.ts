@@ -7,9 +7,8 @@ import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButton, MatIconButton } from '@angular/material/button';
-import { MatLine } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
-import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatError, MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatList, MatListItem, MatListItemIcon, MatListItemLine, MatListItemMeta, MatListItemTitle, MatNavList } from '@angular/material/list';
@@ -19,6 +18,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { Router, RouterLink } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
+import { MAC_MODIFIER_LABELS, MAC_MODIFIER_TITLES, resolvePlatform, TuelloPlatform } from 'chrome/src/utils/platform';
 import { getKeyCode } from 'chrome/src/utils/utils';
 import { saveAs } from 'file-saver';
 import { Subscription, take } from 'rxjs';
@@ -65,9 +65,7 @@ import { RecorderHistoryService } from './services/recorder-history.service';
     ActionComponent,
     CdkDrag,
     MatNavList,
-    MatLine,
     MatFormField,
-    MatLabel,
     MatInput,
     MatError,
     RouterLink,
@@ -83,6 +81,14 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   comment = 'C';
   captureImage = 'I';
 
+  /** Libellés des touches de modification, adaptés au clavier de l'OS courant */
+  platform: TuelloPlatform = 'other';
+  altLabel = 'Alt';
+  shiftLabel = 'Maj';
+  altTooltip = '';
+  shiftTooltip = '';
+  platformHint = '';
+
   uiRecordListener;
   resumerPauseListener;
   private chromeMessageListener: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void;
@@ -93,6 +99,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
   scenarios: Scenario[] = [];
   private scenariosSubscription: Subscription;
+  private langChangeSubscription: Subscription;
 
   @ViewChild('fileInput') fileInput: ElementRef;
   @ViewChild(CdkVirtualScrollViewport, { static: false })
@@ -130,6 +137,17 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       sendResponse();
     };
     chrome.runtime.onMessage.addListener(this.chromeMessageListener);
+
+    // Les libellés des touches dépendent de l'OS (⌥ / ⇧ sur macOS, Alt / Maj ailleurs)
+    resolvePlatform().then((platform) => {
+      this.platform = platform;
+      this.updateKeyLabels();
+      this.changeDetectorRef.detectChanges();
+    });
+    this.langChangeSubscription = this.translate.onLangChange.subscribe(() => {
+      this.updateKeyLabels();
+      this.changeDetectorRef.detectChanges();
+    });
 
     chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
       if (results['uiRecordActivated']) {
@@ -474,26 +492,53 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.scenariosSubscription?.unsubscribe();
+    this.langChangeSubscription?.unsubscribe();
     // Suppression du listener Chrome pour éviter les fuites mémoire
     if (this.chromeMessageListener) {
       chrome.runtime.onMessage.removeListener(this.chromeMessageListener);
     }
-    chrome.storage.local.set({
-      tuelloKeyboardShortcut: {
-        screenshot: { key: this.screenshot, code: getKeyCode(this.screenshot) },
-        captureImage: { key: this.captureImage, code: getKeyCode(this.captureImage) },
-        comment: { key: this.comment, code: getKeyCode(this.comment) }
-      }
-    });
+    chrome.storage.local.set({ tuelloKeyboardShortcut: this.buildKeyboardShortcut() });
+  }
+
+  /**
+   * Recalcule les libellés des touches de modification : symboles Apple sur macOS,
+   * libellés traduits (Alt / Maj / Shift) sur les autres plateformes.
+   */
+  private updateKeyLabels() {
+    const isMac = this.platform === 'mac';
+    this.translate
+      .get(['mmn.spy-http.tabs.shortcuts.key.alt', 'mmn.spy-http.tabs.shortcuts.key.shift', `mmn.spy-http.tabs.shortcuts.platform.${this.platform}`])
+      .pipe(take(1))
+      .subscribe((labels) => {
+        const altTranslation = labels['mmn.spy-http.tabs.shortcuts.key.alt'];
+        const shiftTranslation = labels['mmn.spy-http.tabs.shortcuts.key.shift'];
+
+        this.altLabel = isMac ? MAC_MODIFIER_LABELS.alt : altTranslation;
+        this.shiftLabel = isMac ? MAC_MODIFIER_LABELS.shift : shiftTranslation;
+        this.altTooltip = isMac ? MAC_MODIFIER_TITLES.alt : altTranslation;
+        this.shiftTooltip = isMac ? MAC_MODIFIER_TITLES.shift : shiftTranslation;
+        this.platformHint = labels[`mmn.spy-http.tabs.shortcuts.platform.${this.platform}`];
+        this.changeDetectorRef.detectChanges();
+      });
+  }
+
+  /**
+   * Les raccourcis sont comparés à `KeyboardEvent.code` ("KeyS"), qui n'existe que
+   * pour la lettre en majuscule : on normalise la saisie avant de la stocker.
+   */
+  private buildKeyboardShortcut() {
+    const normalize = (key: string) => (key || '').toUpperCase();
+    return {
+      screenshot: { key: normalize(this.screenshot), code: getKeyCode(normalize(this.screenshot)) },
+      captureImage: { key: normalize(this.captureImage), code: getKeyCode(normalize(this.captureImage)) },
+      comment: { key: normalize(this.comment), code: getKeyCode(normalize(this.comment)) }
+    };
   }
 
   keyboardShortcutChange($event) {
-    chrome.storage.local.set({
-      tuelloKeyboardShortcut: {
-        screenshot: { key: this.screenshot, code: getKeyCode(this.screenshot) },
-        captureImage: { key: this.captureImage, code: getKeyCode(this.captureImage) },
-        comment: { key: this.comment, code: getKeyCode(this.comment) }
-      }
+    chrome.storage.local.set({ tuelloKeyboardShortcut: this.buildKeyboardShortcut() }, () => {
+      // les menus contextuels affichent les raccourcis : on les resynchronise
+      chrome.runtime.sendMessage({ action: 'UPDATE_MENU' }, () => chrome.runtime.lastError);
     });
   }
 
