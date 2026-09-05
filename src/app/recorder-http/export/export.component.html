@@ -1,24 +1,28 @@
 <h1 mat-dialog-title>{{ 'mmn.recorder-http.export.title' | translate }}</h1>
 <div mat-dialog-content>
-    <div [ngClass]="routeAnimationsElements">
-        <button mat-flat-button color="primary" (click)="save()">
-            <mat-icon>save</mat-icon>
-            {{ 'mmn.recorder-http.export.button.save' | translate }}
-        </button>
-        <p>{{ 'mmn.recorder-http.export.save.information' | translate }}</p>
-    </div>
-    <mat-divider></mat-divider>
-    <div [ngClass]="routeAnimationsElements">
-        <button mat-flat-button color="primary" (click)="saveAsLib()">
-            <mat-icon>library_books</mat-icon>
-            {{ 'mmn.recorder-http.export.button.saveAsLib' | translate }}
-        </button>
+  <div [ngClass]="routeAnimationsElements">
+    <button mat-flat-button color="primary" (click)="save()">
+      <mat-icon>save</mat-icon>
+      {{ 'mmn.recorder-http.export.button.save' | translate }}
+    </button>
+    <p>{{ 'mmn.recorder-http.export.save.information' | translate }}</p>
+  </div>
+  <mat-divider></mat-divider>
+  <div [ngClass]="routeAnimationsElements">
+    <button mat-flat-button color="primary" (click)="saveAsLib()">
+      <mat-icon>library_books</mat-icon>
+      {{ 'mmn.recorder-http.export.button.saveAsLib' | translate }}
+    </button>
 
-        <p>{{ 'mmn.recorder-http.export.saveAsLib.information' | translate }}</p>
-        <p>{{ 'mmn.recorder-http.export.saveAsLib.information.detail' | translate }}</p>
-        <code>&lt;script src="{{ libFileName }}"&gt;&lt;/script&gt;</code>
+    <p>{{ 'mmn.recorder-http.export.saveAsLib.information' | translate }}</p>
+    <div class="verbose-option">
+      <mat-slide-toggle [(ngModel)]="verboseLib">{{ 'mmn.recorder-http.export.saveAsLib.verbose' | translate }}</mat-slide-toggle>
+      <p class="verbose-hint">{{ 'mmn.recorder-http.export.saveAsLib.verbose.information' | translate }}</p>
     </div>
+    <p>{{ 'mmn.recorder-http.export.saveAsLib.information.detail' | translate }}</p>
+    <code>&lt;script src="{{ libFileName }}"&gt;&lt;/script&gt;</code>
+  </div>
 </div>
 <div mat-dialog-actions align="end">
-    <button mat-flat-button mat-dialog-close>{{ 'mmn.recorder-http.export.button.close' | translate }}</button>
+  <button mat-flat-button mat-dialog-close>{{ 'mmn.recorder-http.export.button.close' | translate }}</button>
 </div>

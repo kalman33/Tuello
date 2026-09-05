@@ -80,6 +80,8 @@
   "mmn.recorder-http.export.button.save": "Sauvegarde",
   "mmn.recorder-http.export.save.information": "Sauvegarder au format json. Ce fichier pourra ensuite être reimporté dans Tuello.",
   "mmn.recorder-http.export.saveAsLib.information": "Permet de créer une librairie qui permettra, en l'injectant dans votre application, de la transformer en mode démo.",
+  "mmn.recorder-http.export.saveAsLib.verbose": "Mode verbeux",
+  "mmn.recorder-http.export.saveAsLib.verbose.information": "Affiche dans la console du navigateur les bouchons trouvés, les appels non bouchonnés et les réponses renvoyées.",
   "mmn.recorder-http.export.saveAsLib.information.detail": "Copier le fichier js à la racine de votre projet et importer le dans votre page: ",
   "mmn.recorder-http.export.saveAsLib.information.message": "Export du fichier js",
   "mmn.recorder-http.export.saveAsLib.information.success.action": "Succès",

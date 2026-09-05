@@ -1,6 +1,9 @@
 ({
   tuello: function () {
     let deepMockLevel = 2; //'###IMPORT_DEEPMOCKLEVEL###';
+    // Remplace a l'export par 'true' ou 'false' : mode verbeux (logs des bouchons trouves / non trouves).
+    const verboseFlag: string = '###IMPORT_VERBOSE###';
+    const verbose: boolean = verboseFlag === 'true';
     window['tuelloRecords'] = '###IMPORT_DATA###';
 
     // ============================================================================
@@ -49,6 +52,18 @@
     };
 
     const getStatusText = (code: number): string => HTTP_STATUS_TEXT[code] || '';
+
+    // ============================================================================
+    // Logs (mode verbeux uniquement)
+    // ============================================================================
+
+    const LOG_PREFIX = '[ TUELLO ]';
+    const LOG_STYLE = 'color:#00bcd4;font-weight:bold;';
+
+    const logVerbose = (...args: unknown[]): void => {
+      if (!verbose) return;
+      console.log('%c' + LOG_PREFIX, LOG_STYLE, ...args);
+    };
 
     // ============================================================================
     // Index optimisé pour recherche rapide
@@ -395,6 +410,13 @@
     const initialRecords = window['tuelloRecords'] as unknown;
     if (Array.isArray(initialRecords) && initialRecords.length > 0) {
       buildMockIndex(initialRecords as TuelloRecord[]);
+      logVerbose('Librairie initialisée :', initialRecords.length, 'bouchon(s) chargé(s), deepMockLevel =', deepMockLevel);
+      logVerbose(
+        'Bouchons disponibles :',
+        (initialRecords as TuelloRecord[]).map(({ key, httpCode, delay }) => ({ key, httpCode, delay: delay || 0 }))
+      );
+    } else {
+      logVerbose('Librairie initialisée : aucun bouchon chargé');
     }
 
     // ============================================================================
@@ -409,9 +431,12 @@
 
     (window as any).XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
       const url = this['originalURL'] || '';
+      const method = this['xhrMethod'] || 'GET';
       const record = findMockRecord(url);
 
       if (record) {
+        logVerbose('XHR bouchonné :', method, url, '→ clé :', record.key, '| statut :', record.httpCode, '| délai :', record.delay || 0, 'ms');
+        logVerbose('XHR réponse :', url, record.response);
         const responseBody = JSON.stringify(record.response);
         Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
         Object.defineProperty(this, 'status', { writable: true, value: record.httpCode });
@@ -436,6 +461,7 @@
         return;
       }
 
+      logVerbose('XHR non bouchonné (appel réel) :', method, url);
       return originalSend.call(this, body);
     };
 
@@ -448,15 +474,20 @@
       const record = findMockRecord(url);
 
       if (record) {
+        logVerbose('Fetch bouchonné :', url, '→ clé :', record.key, '| statut :', record.httpCode, '| délai :', record.delay || 0, 'ms');
+        logVerbose('Fetch réponse :', url, record.response);
         if (record.delay) {
           await new Promise((resolve) => setTimeout(resolve, record.delay));
         }
         return createMockedResponse(record);
       }
 
+      logVerbose('Fetch non bouchonné (appel réel) :', url);
+
       try {
         return await originalFetch(...args);
       } catch (error) {
+        logVerbose('Fetch en erreur (CORS ?) :', url, error);
         return new Response(JSON.stringify({ error: 'Request failed (CORS)', url }), {
           status: 404,
           statusText: 'Not Found',
