@@ -77,6 +77,13 @@ mat-sidenav {
   box-shadow: 6px 0 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Le #eee ci-dessus donne un trait blanc sur fond sombre :
+   on separe par la profondeur plutot que par un liseré */
+.black-theme mat-sidenav {
+  border-right-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 6px 0 18px rgba(0, 0, 0, 0.55);
+}
+
 .progress-bar-container {
   height: 5px;
 }
@@ -270,8 +277,18 @@ button#rate {
 }
 
 .black-theme .selected.mat-mdc-list-item:not(:focus) {
-  background-color: #878787 !important;
+  background-color: rgba(213, 159, 93, 0.16) !important;
+  box-shadow: inset 3px 0 0 #d59f5d;
   font-weight: bold !important;
+}
+
+.black-theme .selected.mat-mdc-list-item:not(:focus) span {
+  color: #e8b578;
+}
+
+/* Le survol clair (noir a 1%) est invisible sur fond sombre */
+.black-theme a.mat-mdc-list-item:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
 }
 
 .mat-mdc-nav-list .mat-mdc-list-item:focus::before,

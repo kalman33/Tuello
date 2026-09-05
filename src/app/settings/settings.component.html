@@ -30,7 +30,12 @@
                 </mat-select>
               </mat-form-field>
             </div>
-            <h2>Mosaic</h2>
+            <div class="icon-form-field">
+              <mat-icon color="accent">gamepad</mat-icon>
+              <div>{{ 'mmn.settings.general.mouse.title' | translate }}</div>
+              <mat-slide-toggle [checked]="mouseCoordinates" [(ngModel)]="mouseCoordinates" class="darkMode" (change)="toggleMouseCoordinatesOption(mouseCoordinates)"> </mat-slide-toggle>
+            </div>
+            <h2>{{ 'mmn.settings.mosaic.title' | translate }}</h2>
             <div class="icon-form-field">
               <mat-icon color="accent">grid_view</mat-icon>
               <div>{{ 'mmn.settings.mosaic.startup' | translate }}</div>
@@ -41,11 +46,6 @@
               <button mat-flat-button color="accent" (click)="openMosaic()" style="color: white">
                 {{ 'mmn.settings.mosaic.open' | translate }}
               </button>
-            </div>
-            <div class="icon-form-field">
-              <mat-icon color="accent">gamepad</mat-icon>
-              <div>{{ 'mmn.settings.general.mouse.title' | translate }}</div>
-              <mat-slide-toggle [checked]="mouseCoordinates" [(ngModel)]="mouseCoordinates" class="darkMode" (change)="toggleMouseCoordinatesOption(mouseCoordinates)"> </mat-slide-toggle>
             </div>
             <h2>{{ 'mmn.settings.deeprecord.title' | translate }}</h2>
             <div class="icon-form-field">

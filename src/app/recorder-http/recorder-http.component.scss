@@ -42,20 +42,12 @@
   margin-left: 8px;
   margin-right: 4px;
 
-  // Réduire la hauteur du mat-form-field
+  // Réduire la hauteur du mat-form-field (tokens Material : gère aussi le label flottant)
+  --mat-form-field-container-height: 36px;
+  --mat-form-field-container-vertical-padding: 8px;
+
   .mat-mdc-form-field-subscript-wrapper {
     display: none;
-  }
-
-  .mat-mdc-text-field-wrapper {
-    padding: 0 8px !important;
-    height: 36px !important;
-  }
-
-  .mat-mdc-form-field-infix {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
-    min-height: 36px !important;
   }
 
   .mat-mdc-select-trigger {

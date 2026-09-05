@@ -449,3 +449,147 @@ mmn-mosaic-tile.cdk-drag-placeholder {
 .cdk-drop-list-dragging mmn-mosaic-tile:not(.cdk-drag-placeholder) {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
+
+/* ========================================
+   Habillage global UI — champs & boutons
+   (purement visuel : aucun impact sur les gabarits)
+   ======================================== */
+
+:root {
+  /* Coins arrondis des boutons */
+  --mat-button-filled-container-shape: 8px;
+  --mat-button-protected-container-shape: 8px;
+  --mat-button-outlined-container-shape: 8px;
+  --mat-button-text-container-shape: 8px;
+  --mat-button-tonal-container-shape: 8px;
+
+  /* Champs en apparence "outline" : coins arrondis + contour adouci */
+  --mat-form-field-outlined-container-shape: 8px;
+  --mat-form-field-outlined-outline-color: rgba(18, 61, 79, 0.28);
+  --mat-form-field-outlined-hover-outline-color: rgba(18, 61, 79, 0.6);
+  --mat-form-field-outlined-focus-outline-width: 2px;
+}
+
+/* --- Boutons : transition commune --- */
+.mat-mdc-button-base {
+  transition:
+    box-shadow 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Boutons pleins (mat-flat-button) et surelevés (mat-raised-button) --- */
+.mat-mdc-unelevated-button:not(:disabled),
+.mat-mdc-raised-button:not(:disabled) {
+  box-shadow:
+    0 1px 2px rgba(18, 61, 79, 0.16),
+    0 2px 6px rgba(18, 61, 79, 0.12);
+}
+
+.mat-mdc-unelevated-button:not(:disabled):hover,
+.mat-mdc-raised-button:not(:disabled):hover {
+  box-shadow:
+    0 2px 4px rgba(18, 61, 79, 0.2),
+    0 6px 14px rgba(18, 61, 79, 0.18);
+  transform: translateY(-1px);
+}
+
+.mat-mdc-unelevated-button:not(:disabled):active,
+.mat-mdc-raised-button:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(18, 61, 79, 0.24);
+}
+
+/* --- Boutons contour et texte --- */
+.mat-mdc-outlined-button:not(:disabled):hover {
+  box-shadow: 0 2px 6px rgba(18, 61, 79, 0.14);
+}
+
+/* --- Boutons icônes : pas d'ombre, juste une réaction douce --- */
+.mat-mdc-icon-button:not(:disabled):hover {
+  transform: scale(1.08);
+}
+
+.mat-mdc-icon-button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+/* --- Theme sombre : ombres et contours adaptés --- */
+body.black-theme {
+  --mat-form-field-outlined-outline-color: rgba(255, 255, 255, 0.32);
+  --mat-form-field-outlined-hover-outline-color: rgba(255, 255, 255, 0.66);
+
+  .mat-mdc-unelevated-button:not(:disabled),
+  .mat-mdc-raised-button:not(:disabled) {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.5),
+      0 2px 6px rgba(0, 0, 0, 0.38);
+  }
+
+  .mat-mdc-unelevated-button:not(:disabled):hover,
+  .mat-mdc-raised-button:not(:disabled):hover {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.55),
+      0 6px 14px rgba(0, 0, 0, 0.45);
+  }
+
+  .mat-mdc-outlined-button:not(:disabled):hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Champs dont le <mat-label> est vide : pas d'encoche dans le contour */
+.mdc-notched-outline__notch:has(> label:empty) {
+  display: none;
+}
+
+/* ========================================
+   Voile de fond des modales (CDK backdrop)
+   ======================================== */
+
+.cdk-overlay-dark-backdrop {
+  background: rgba(18, 61, 79, 0.32);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+body.black-theme .cdk-overlay-dark-backdrop {
+  background: rgba(6, 22, 30, 0.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* Panneau des modales : coins arrondis et ombre portée cohérents (tokens Material) */
+:root {
+  --mat-dialog-container-shape: 14px;
+  /* Le theme M2 pose 8px : les boutons se retrouvent colles au bord,
+     desalignes du contenu qui, lui, a 24px */
+  --mat-dialog-actions-padding: 8px 24px 20px;
+  --mat-dialog-container-elevation-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.22),
+    0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+body.black-theme {
+  --mat-dialog-container-elevation-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.65),
+    0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* ========================================
+   Voile de fond du menu de navigation (mat-sidenav en mode "over")
+   ======================================== */
+
+:root {
+  --mat-sidenav-scrim-color: rgba(18, 61, 79, 0.45);
+}
+
+body.black-theme {
+  /* Le theme sombre Material pose ici un voile BLANC a 60% : laiteux et delave */
+  --mat-sidenav-scrim-color: rgba(6, 22, 30, 0.62);
+}
+
+.mat-drawer-backdrop.mat-drawer-shown {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}

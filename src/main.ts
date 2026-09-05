@@ -4,6 +4,7 @@ import { enableProdMode, importProvidersFrom, inject, provideAppInitializer } fr
 import { OverlayModule } from '@angular/cdk/overlay';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { BrowserModule, bootstrapApplication } from '@angular/platform-browser';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { FlexLayoutModule } from '@ngbracket/ngx-layout';
@@ -43,6 +44,8 @@ bootstrapApplication(AppComponent, {
       }), PlayerService,
         provideAnimations(),
         provideHttpClient(withInterceptorsFromDi()),
+        // Apparence par defaut des champs de formulaire : contour (au lieu de "fill")
+        { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
     ]
 })
   .catch(err => console.error(err));

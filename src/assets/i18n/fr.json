@@ -267,6 +267,7 @@
   "mmn.settings.guide.title": "Guide interactif",
   "mmn.settings.guide.reset": "Réactiver le guide de bienvenue",
   "mmn.settings.guide.reset.success": "Le guide sera affiché au prochain démarrage",
+  "mmn.settings.mosaic.title": "Mosaïque",
   "mmn.settings.mosaic.startup": "Ouvrir Mosaïque au démarrage de Chrome",
   "mmn.settings.mosaic.open": "Ouvrir Mosaïque",
   "mmn.mosaic.category.add": "Ajouter une catégorie",

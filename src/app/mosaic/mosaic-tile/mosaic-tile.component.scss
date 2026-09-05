@@ -285,6 +285,13 @@
     background: rgba(255, 255, 255, 0.1);
   }
   .category-preview {
-    background: linear-gradient(135deg, #1e3a8a, #1e40af);
+    background:
+      radial-gradient(circle at 28% 22%, rgba(213, 159, 93, 0.22), transparent 62%),
+      linear-gradient(135deg, #1f5d75 0%, #14455a 45%, #0d2c3a 100%);
+  }
+  .category-icon-wrapper {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   }
 }
