@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.21.0] - 2026-09-05
+
+    - Mosaïque : nouvelle vue arborescence, navigation clavier et édition sur place des catégories/URLs
+    - Mosaïque : association d'un scénario Spy & Replay à une tuile, lancé automatiquement à l'ouverture de l'URL
+    - Spy & Replay : sauvegarde d'un enregistrement en scénario réutilisable
+    - Spy & Replay : raccourcis clavier adaptés aux claviers Mac/Windows et affichage refondu
+    - Spy & Replay : capture d'image plus fiable pendant la navigation
+    - Export "Lib" : choix entre export verbeux ou compact des bouchons
+    - Optimisations IHM (thème, layout, styles Mosaïque/Recorder/Settings) et performances Mosaïque
+
 ## [1.2.20.0] - 2026-09-03
 
     - Mock HTTP : correction du blocage complet de la page quand le mock est activé sans aucun mock enregistré
