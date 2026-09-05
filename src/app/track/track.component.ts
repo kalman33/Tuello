@@ -122,24 +122,26 @@ export class TrackComponent implements OnInit, OnDestroy {
     });
 
     this.chromeMessageListener = (message, sender, sendResponse) => {
-      if (message.refreshTrackData) {
-        // recupération des enregistrements avec décompression LZ
-        this.compressionService.loadCompressed<any[]>('tuelloTracks').then(tracks => {
-          this.ngZone.run(() => {
-            this.tracks = tracks || [];
-            this.ref.detectChanges();
-          });
-          sendResponse();
-        }).catch(() => {
-          this.ngZone.run(() => {
-            this.tracks = [];
-            this.ref.detectChanges();
-          });
-          sendResponse();
-        });
-      } else {
-        sendResponse();
+      // Ce listener reçoit tous les messages de l'extension, y compris ceux
+      // adressés au background : ne répondre qu'aux siens, sinon le canal est
+      // fermé avant que le destinataire réel ait répondu.
+      if (!message.refreshTrackData) {
+        return false;
       }
+      // recupération des enregistrements avec décompression LZ
+      this.compressionService.loadCompressed<any[]>('tuelloTracks').then(tracks => {
+        this.ngZone.run(() => {
+          this.tracks = tracks || [];
+          this.ref.detectChanges();
+        });
+        sendResponse();
+      }).catch(() => {
+        this.ngZone.run(() => {
+          this.tracks = [];
+          this.ref.detectChanges();
+        });
+        sendResponse();
+      });
       return true;
     };
     chrome.runtime.onMessage.addListener(this.chromeMessageListener);

@@ -71,6 +71,10 @@ export class AppComponent implements OnInit, OnDestroy, AfterViewInit {
             this.router.navigate(['/track'], { skipLocationChange: false, queryParams: { trackId: message.value?.trackId } });
           });
           break;
+        default:
+          // Ce listener reçoit tous les messages de l'extension, y compris ceux
+          // adressés au background : y répondre fermerait le canal avant lui.
+          return false;
       }
       sendResponse();
       return true;

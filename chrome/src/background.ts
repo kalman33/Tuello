@@ -924,21 +924,10 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       })();
       return true;
     case 'MOSAIC_PLAY_SCENARIO':
+      // L'onglet est ouvert par la mosaïque elle-même : le background ne fait
+      // que rejouer le scénario dedans, sinon un secours côté mosaïque ouvrait
+      // un second onglet dès que la réponse tardait ou était volée.
       (async () => {
-        // L'ouverture du site passe avant toute autre chose : une lecture de
-        // scénario en échec ne doit pas empêcher la navigation de la tuile.
-        let createdTab: chrome.tabs.Tab;
-        try {
-          createdTab = await chrome.tabs.create({ url: msg.url, active: true });
-        } catch (e) {
-          console.warn('Tuello: ouverture du site de la mosaïque impossible', e);
-          senderResponse({ opened: false });
-          return;
-        }
-        // Réponse immédiate : la mosaïque n'attend que la confirmation de
-        // l'ouverture, pas la fin du rejeu.
-        senderResponse({ opened: true });
-
         try {
           const scenario = await findScenario(msg.scenarioId);
           // Les scénarios enregistrés avant l'exclusion de la navigation initiale
@@ -947,8 +936,8 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
           if (!actions.length) {
             return;
           }
-          await waitForTabComplete(createdTab.id);
-          await playScenarioOnTab(scenario, actions, createdTab.id);
+          await waitForTabComplete(msg.tabId);
+          await playScenarioOnTab(scenario, actions, msg.tabId);
         } catch (e) {
           console.warn('Tuello: échec du rejeu du scénario', e);
           stopScenarioPlayer();

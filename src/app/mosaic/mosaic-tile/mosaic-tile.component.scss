@@ -230,9 +230,13 @@
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
-  line-height: 32px;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  line-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
   color: #34495e;
 
   &:hover {
@@ -242,6 +246,8 @@
     font-size: 18px;
     width: 18px;
     height: 18px;
+    line-height: 18px;
+    margin: 0;
   }
 }
 

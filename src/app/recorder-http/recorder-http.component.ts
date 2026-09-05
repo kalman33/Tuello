@@ -133,10 +133,15 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     this.initProfiles();
 
     this.chromeMessageListener = (message, sender, sendResponse) => {
-      if (message.refresh) {
-        this.gererRefresh();
+      // Ce listener reçoit tous les messages de l'extension, y compris ceux
+      // adressés au background : ne répondre qu'aux siens, sinon le canal est
+      // fermé avant que le destinataire réel ait répondu.
+      if (!message.refresh) {
+        return false;
       }
+      this.gererRefresh();
       sendResponse();
+      return true;
     };
     chrome.runtime.onMessage.addListener(this.chromeMessageListener);
   }

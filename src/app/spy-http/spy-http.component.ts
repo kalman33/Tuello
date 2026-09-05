@@ -126,15 +126,20 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.chromeMessageListener = (message, sender, sendResponse) => {
-      if (message.action === 'UI_RECORD_CHANGED') {
-        this.ngZone.run(() => {
-          this.recorderHistoryService.record = message.value;
-          // Synchroniser les actions locales avec le record mis à jour
-          this.actions = message.value?.actions ?? null;
-          this.changeDetectorRef.detectChanges();
-        });
+      // Ce listener reçoit tous les messages de l'extension, y compris ceux
+      // adressés au background : ne répondre qu'aux siens, sinon le canal est
+      // fermé avant que le destinataire réel ait répondu.
+      if (message.action !== 'UI_RECORD_CHANGED') {
+        return false;
       }
+      this.ngZone.run(() => {
+        this.recorderHistoryService.record = message.value;
+        // Synchroniser les actions locales avec le record mis à jour
+        this.actions = message.value?.actions ?? null;
+        this.changeDetectorRef.detectChanges();
+      });
       sendResponse();
+      return true;
     };
     chrome.runtime.onMessage.addListener(this.chromeMessageListener);
 
