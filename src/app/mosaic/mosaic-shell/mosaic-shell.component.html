@@ -5,15 +5,36 @@
     <div class="blob blob-3"></div>
   </div>
 
-  <mmn-mosaic-toolbar [showBack]="!!selectedCategoryId() && !isSearching()" [categoryName]="selectedCategory?.name ?? ''" (backClick)="goBack()" (searchChange)="onSearchChange($event)"></mmn-mosaic-toolbar>
+  <mmn-mosaic-toolbar
+    [showBack]="showBack()"
+    [categoryName]="selectedCategory?.name ?? ''"
+    [viewMode]="viewMode()"
+    [editMode]="editMode()"
+    (backClick)="goBack()"
+    (searchChange)="onSearchChange($event)"
+    (viewModeChange)="onViewModeChange($event)"
+    (editModeChange)="onEditModeChange($event)"
+    (addUrl)="addUrl()"
+    (addCategory)="addCategory()"
+  ></mmn-mosaic-toolbar>
 
   <main class="mosaic-content">
-    @if (isSearching()) {
+    @if (viewMode() === 'tree') {
+      <mmn-mosaic-tree [categories]="categories" [rootUrls]="rootUrls" [query]="searchQuery()" [editable]="editMode()" (urlMoved)="onUrlMoved($event)" (action)="onTreeAction($event)"></mmn-mosaic-tree>
+    } @else if (showSearchResults()) {
       <mmn-mosaic-search-results [query]="searchQuery()" [categories]="categories" [rootUrls]="rootUrls"></mmn-mosaic-search-results>
     } @else if (selectedCategoryId()) {
-      <mmn-urls-grid [urls]="categoryUrls" (reordered)="onUrlsReordered($event)"></mmn-urls-grid>
+      <mmn-urls-grid [urls]="categoryUrls" [editable]="editMode()" (reordered)="onUrlsReordered($event)" (editUrl)="onCategoryUrlEdit($event)" (deleteUrl)="onCategoryUrlDelete($event)"></mmn-urls-grid>
     } @else {
-      <mmn-categories-grid [categories]="categories" [rootUrls]="rootUrls" (categorySelected)="selectCategory($event)" (reordered)="onGridReordered($event)"></mmn-categories-grid>
+      <mmn-categories-grid
+        [categories]="categories"
+        [rootUrls]="rootUrls"
+        [editable]="editMode()"
+        (categorySelected)="selectCategory($event)"
+        (reordered)="onGridReordered($event)"
+        (editItem)="onGridEdit($event)"
+        (deleteItem)="onGridDelete($event)"
+      ></mmn-categories-grid>
     }
   </main>
 </div>

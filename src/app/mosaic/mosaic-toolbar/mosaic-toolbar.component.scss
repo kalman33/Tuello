@@ -254,6 +254,51 @@ button[mat-icon-button] {
   }
 }
 
+.view-switch {
+  flex-shrink: 0;
+  border-radius: 20px !important;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  height: 38px;
+
+  ::ng-deep .mat-button-toggle {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.75);
+    border-left-color: rgba(255, 255, 255, 0.2) !important;
+
+    .mat-button-toggle-label-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 14px;
+      line-height: 36px;
+    }
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+  }
+
+  ::ng-deep .mat-button-toggle-checked {
+    background: rgba(255, 255, 255, 0.9);
+    color: #1b5064;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.95);
+      color: #1b5064;
+    }
+  }
+}
+
 :host-context(.black-theme) {
   ::ng-deep .mat-toolbar.mat-toolbar {
     background: linear-gradient(to right, #0a212b 0%, #123d4f 50%, #1b5064 100%) !important;
@@ -297,5 +342,25 @@ button[mat-icon-button] {
         color: #ecf0f1;
       }
     }
+  }
+
+  .view-switch {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15) !important;
+
+    ::ng-deep .mat-button-toggle-checked {
+      background: rgba(143, 172, 182, 0.9);
+      color: #0a212b;
+
+      &:hover {
+        background: rgba(143, 172, 182, 1);
+        color: #0a212b;
+      }
+    }
+  }
+
+  .toolbar-action.is-on {
+    background: rgba(143, 172, 182, 0.9);
+    color: #0a212b !important;
   }
 }

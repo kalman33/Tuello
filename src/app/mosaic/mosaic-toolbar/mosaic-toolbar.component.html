@@ -19,6 +19,7 @@
   <div class="toolbar-search" [class.focused]="searchFocused()" [class.has-value]="!!searchQuery">
     <mat-icon class="search-icon">search</mat-icon>
     <input
+      #searchInput
       type="text"
       class="search-input"
       [placeholder]="'mmn.mosaic.search.placeholder' | translate"
@@ -35,4 +36,33 @@
       </button>
     }
   </div>
+
+  @if (editMode) {
+    <button mat-icon-button class="toolbar-action" [matTooltip]="'mmn.mosaic.add.tooltip' | translate" [matMenuTriggerFor]="addMenu">
+      <mat-icon>add</mat-icon>
+    </button>
+    <mat-menu #addMenu="matMenu">
+      <button mat-menu-item (click)="addUrl.emit()">
+        <mat-icon>language</mat-icon>
+        {{ 'mmn.mosaic.url.add' | translate }}
+      </button>
+      <button mat-menu-item (click)="addCategory.emit()">
+        <mat-icon>folder</mat-icon>
+        {{ 'mmn.mosaic.category.add' | translate }}
+      </button>
+    </mat-menu>
+  }
+
+  <button mat-icon-button class="toolbar-action" [class.is-on]="editMode" [matTooltip]="(editMode ? 'mmn.mosaic.edit.disable' : 'mmn.mosaic.edit.enable') | translate" (click)="editModeChange.emit(!editMode)">
+    <mat-icon>{{ editMode ? 'edit_off' : 'edit' }}</mat-icon>
+  </button>
+
+  <mat-button-toggle-group class="view-switch" [value]="viewMode" (change)="onViewModeChange($event.value)" [hideSingleSelectionIndicator]="true" [attr.aria-label]="'mmn.mosaic.view.label' | translate">
+    <mat-button-toggle value="grid" [matTooltip]="'mmn.mosaic.view.grid' | translate">
+      <mat-icon>grid_view</mat-icon>
+    </mat-button-toggle>
+    <mat-button-toggle value="tree" [matTooltip]="'mmn.mosaic.view.tree' | translate">
+      <mat-icon>account_tree</mat-icon>
+    </mat-button-toggle>
+  </mat-button-toggle-group>
 </mat-toolbar>

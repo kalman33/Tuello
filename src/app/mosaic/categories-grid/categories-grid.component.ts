@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicTileComponent } from '../mosaic-tile/mosaic-tile.component';
 
-interface GridItem {
+export interface GridItem {
   kind: 'category' | 'url';
   data: MosaicCategory | MosaicUrl;
 }
@@ -41,8 +41,11 @@ export class CategoriesGridComponent {
     this._rootUrls = val;
     this.buildGridItems();
   }
+  @Input() editable = false;
   @Output() categorySelected = new EventEmitter<string>();
   @Output() reordered = new EventEmitter<{ categories: MosaicCategory[]; rootUrls: MosaicUrl[] }>();
+  @Output() editItem = new EventEmitter<GridItem>();
+  @Output() deleteItem = new EventEmitter<GridItem>();
 
   private _categories: MosaicCategory[] = [];
   private _rootUrls: MosaicUrl[] = [];

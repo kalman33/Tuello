@@ -16,7 +16,7 @@
 
     <div class="results-grid" [@staggerList]>
       @for (item of results; track trackById($index, item)) {
-        <div class="result-card" (click)="openUrl(item)" [matTooltip]="item.url.url">
+        <div class="result-card" [class.is-active]="activeIndex() === $index" [attr.data-nav-index]="$index" (click)="openUrl(item, $event.ctrlKey || $event.metaKey)" (mouseenter)="selectResult($index)" [matTooltip]="item.url.url">
           <div class="result-thumb">
             @if (item.screenshot) {
               <img [src]="item.screenshot" class="thumb-image" alt="" />

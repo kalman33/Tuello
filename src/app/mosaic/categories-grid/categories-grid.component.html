@@ -7,7 +7,7 @@
   } @else {
     <div cdkDropList cdkDropListOrientation="mixed" class="tiles-list" (cdkDropListDropped)="drop($event)" [@staggerList]>
       @for (item of gridItems; track item.data.id) {
-        <mmn-mosaic-tile cdkDrag [item]="item.data" [type]="item.kind" [editable]="false" (tileClick)="onTileClick(item)"> </mmn-mosaic-tile>
+        <mmn-mosaic-tile cdkDrag [item]="item.data" [type]="item.kind" [editable]="editable" (tileClick)="onTileClick(item)" (edit)="editItem.emit(item)" (delete)="deleteItem.emit(item)"></mmn-mosaic-tile>
       }
     </div>
   }

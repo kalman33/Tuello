@@ -6,10 +6,13 @@ export class MosaicLauncherService {
   /**
    * Ouvre le site d'une tuile. Si un scénario lui est associé, le background
    * enchaîne le rejeu des actions une fois la page chargée.
+   *
+   * `background` (Ctrl/Cmd+Entrée) est ignoré quand un scénario est associé :
+   * le rejeu pilote l'onglet, il doit être au premier plan.
    */
-  open(url: MosaicUrl): void {
+  open(url: MosaicUrl, background = false): void {
     if (!url.scenarioId) {
-      chrome.tabs.create({ url: url.url });
+      chrome.tabs.create({ url: url.url, active: !background });
       return;
     }
 

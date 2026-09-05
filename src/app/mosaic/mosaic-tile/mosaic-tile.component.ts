@@ -9,6 +9,7 @@ import { ScenarioStorageService } from '../../core/scenarios/scenario-storage.se
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicLauncherService } from '../services/mosaic-launcher.service';
 import { MosaicScreenshotService } from '../services/mosaic-screenshot.service';
+import { faviconFor } from '../utils/mosaic-text';
 
 @Component({
   selector: 'mmn-mosaic-tile',
@@ -52,11 +53,7 @@ export class MosaicTileComponent implements OnInit {
 
   ngOnInit() {
     if (this.type === 'url') {
-      const url = this.asUrl.url;
-      try {
-        const domain = new URL(url).hostname;
-        this.faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-      } catch {}
+      this.faviconUrl = faviconFor(this.asUrl.url);
       this.loadScreenshot();
       this.loadScenarioName();
     }

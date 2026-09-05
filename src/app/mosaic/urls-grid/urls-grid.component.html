@@ -7,7 +7,7 @@
   } @else {
     <div cdkDropList cdkDropListOrientation="mixed" class="tiles-list" (cdkDropListDropped)="drop($event)" [@staggerList]>
       @for (url of displayUrls; track url.id) {
-        <mmn-mosaic-tile cdkDrag [item]="url" type="url" [editable]="false"></mmn-mosaic-tile>
+        <mmn-mosaic-tile cdkDrag [item]="url" type="url" [editable]="editable" (edit)="editUrl.emit(url)" (delete)="deleteUrl.emit(url)"></mmn-mosaic-tile>
       }
     </div>
   }

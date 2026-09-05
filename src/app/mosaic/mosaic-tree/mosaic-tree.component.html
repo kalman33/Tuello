@@ -1,0 +1,146 @@
+<div class="tree-container">
+  @if (isEmpty) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">account_tree</mat-icon>
+      <p>{{ 'mmn.mosaic.empty.main' | translate }}</p>
+    </div>
+  } @else if (!hasContent) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">search_off</mat-icon>
+      <p class="empty-title">{{ 'mmn.mosaic.search.empty.title' | translate }}</p>
+      <p>{{ 'mmn.mosaic.search.empty.subtitle' | translate: { query: query } }}</p>
+    </div>
+  } @else {
+    @if (!isSearching && categories.length > 0) {
+      <div class="tree-actions">
+        <button mat-button class="tree-action" (click)="allExpanded ? collapseAll() : expandAll()">
+          <mat-icon>{{ allExpanded ? 'unfold_less' : 'unfold_more' }}</mat-icon>
+          {{ (allExpanded ? 'mmn.mosaic.tree.collapseAll' : 'mmn.mosaic.tree.expandAll') | translate }}
+        </button>
+      </div>
+    }
+
+    <div class="tree" cdkDropListGroup [@staggerTree]>
+      <div class="root-list" [class.is-empty]="rootNodes.length === 0" cdkDropList [cdkDropListData]="null" [cdkDropListDisabled]="isSearching" (cdkDropListDropped)="drop($event)">
+        @for (node of rootNodes; track node.url.id) {
+          <div
+            class="tree-node url-row root-url"
+            [class.is-active]="activeIndex() === node.navIndex"
+            [attr.data-nav-index]="node.navIndex"
+            (mouseenter)="selectRow(node.navIndex)"
+            cdkDrag
+            [cdkDragData]="node.url"
+            [cdkDragDisabled]="isSearching"
+            role="button"
+            tabindex="0"
+            (click)="openUrl(node.url, $event.ctrlKey || $event.metaKey)"
+            (keydown.enter)="openUrl(node.url)"
+            (keydown.space)="openUrl(node.url)"
+          >
+            <mat-icon cdkDragHandle class="drag-handle" (click)="$event.stopPropagation()">drag_indicator</mat-icon>
+            <ng-container *ngTemplateOutlet="urlContent; context: { $implicit: node }"></ng-container>
+          </div>
+        }
+      </div>
+
+      @for (catNode of categoryNodes; track catNode.category.id) {
+        <div class="tree-node category-block">
+          <div
+            class="category-row"
+            [class.is-active]="activeIndex() === catNode.navIndex"
+            [attr.data-nav-index]="catNode.navIndex"
+            (mouseenter)="selectRow(catNode.navIndex)"
+            role="button"
+            tabindex="0"
+            [attr.aria-expanded]="isExpanded(catNode.category.id)"
+            (click)="toggleCategory(catNode.category.id)"
+            (keydown.enter)="toggleCategory(catNode.category.id)"
+            (keydown.space)="toggleCategory(catNode.category.id)"
+          >
+            <mat-icon class="chevron" [class.open]="isExpanded(catNode.category.id)">chevron_right</mat-icon>
+            <mat-icon class="folder-icon">{{ isExpanded(catNode.category.id) ? 'folder_open' : 'folder' }}</mat-icon>
+            <span class="category-name">
+              @for (part of catNode.nameParts; track $index) {
+                <span [class.hl]="part.match">{{ part.text }}</span>
+              }
+            </span>
+            <span class="count-chip">{{ catNode.urls.length }}</span>
+            @if (editable) {
+              <span class="row-actions" (click)="$event.stopPropagation()">
+                <button mat-icon-button class="row-action" [matTooltip]="'mmn.mosaic.url.add' | translate" (click)="action.emit({ type: 'add-url', categoryId: catNode.category.id })">
+                  <mat-icon>add</mat-icon>
+                </button>
+                <button mat-icon-button class="row-action" [matTooltip]="'mmn.mosaic.category.edit' | translate" (click)="action.emit({ type: 'edit-category', category: catNode.category })">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button class="row-action" [matTooltip]="'mmn.mosaic.tile.delete' | translate" (click)="action.emit({ type: 'delete-category', category: catNode.category })">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </span>
+            }
+          </div>
+
+          @if (isExpanded(catNode.category.id)) {
+            <div class="children" cdkDropList [cdkDropListData]="catNode.category.id" [cdkDropListDisabled]="isSearching" (cdkDropListDropped)="drop($event)">
+              @if (catNode.urls.length === 0) {
+                <div class="child-empty">{{ 'mmn.mosaic.empty.urls' | translate }}</div>
+              }
+              @for (node of catNode.urls; track node.url.id) {
+                <div
+                  class="url-row"
+                  [class.is-active]="activeIndex() === node.navIndex"
+                  [attr.data-nav-index]="node.navIndex"
+                  (mouseenter)="selectRow(node.navIndex)"
+                  cdkDrag
+                  [cdkDragData]="node.url"
+                  [cdkDragDisabled]="isSearching"
+                  role="button"
+                  tabindex="0"
+                  (click)="openUrl(node.url, $event.ctrlKey || $event.metaKey)"
+                  (keydown.enter)="openUrl(node.url)"
+                  (keydown.space)="openUrl(node.url)"
+                >
+                  <mat-icon cdkDragHandle class="drag-handle" (click)="$event.stopPropagation()">drag_indicator</mat-icon>
+                  <ng-container *ngTemplateOutlet="urlContent; context: { $implicit: node }"></ng-container>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<ng-template #urlContent let-node>
+  @if (node.faviconUrl) {
+    <img [src]="node.faviconUrl" class="favicon" alt="" />
+  } @else {
+    <mat-icon class="favicon-fallback">language</mat-icon>
+  }
+  <span class="url-title">
+    @for (part of node.titleParts; track $index) {
+      <span [class.hl]="part.match">{{ part.text }}</span>
+    }
+  </span>
+  <span class="url-link">
+    @for (part of node.urlParts; track $index) {
+      <span [class.hl]="part.match">{{ part.text }}</span>
+    }
+  </span>
+  @if (scenarioName(node.url)) {
+    <mat-icon class="scenario-icon" [matTooltip]="scenarioName(node.url)">play_circle</mat-icon>
+  }
+  @if (editable) {
+    <span class="row-actions" (click)="$event.stopPropagation()">
+      <button mat-icon-button class="row-action" [matTooltip]="'mmn.mosaic.tile.edit' | translate" (click)="action.emit({ type: 'edit-url', categoryId: categoryIdOf(node.url), url: node.url })">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button mat-icon-button class="row-action" [matTooltip]="'mmn.mosaic.tile.delete' | translate" (click)="action.emit({ type: 'delete-url', categoryId: categoryIdOf(node.url), url: node.url })">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </span>
+  } @else {
+    <mat-icon class="open-icon">open_in_new</mat-icon>
+  }
+</ng-template>

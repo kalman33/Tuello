@@ -29,7 +29,10 @@ import { MosaicTileComponent } from '../mosaic-tile/mosaic-tile.component';
 })
 export class UrlsGridComponent implements OnChanges {
   @Input() urls: MosaicUrl[] = [];
+  @Input() editable = false;
   @Output() reordered = new EventEmitter<MosaicUrl[]>();
+  @Output() editUrl = new EventEmitter<MosaicUrl>();
+  @Output() deleteUrl = new EventEmitter<MosaicUrl>();
 
   displayUrls: MosaicUrl[] = [];
 

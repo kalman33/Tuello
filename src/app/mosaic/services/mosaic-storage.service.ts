@@ -143,6 +143,54 @@ export class MosaicStorageService {
   }
 
   /**
+   * Déplace un site d'un conteneur à l'autre — une catégorie, ou la racine quand
+   * l'id vaut `null`. Retrait et insertion sont écrits en une seule fois : en deux
+   * étapes, un échec entre les deux laisserait le site nulle part.
+   */
+  async moveUrl(fromCategoryId: string | null, toCategoryId: string | null, urlId: string, toIndex: number): Promise<void> {
+    const current = this.configSubject.getValue();
+    const rootUrls = [...(current.urls ?? [])].sort((a, b) => a.order - b.order);
+    const categories = current.categories.map((c) => ({ ...c, urls: [...c.urls].sort((a, b) => a.order - b.order) }));
+
+    const containerOf = (id: string | null): MosaicUrl[] | undefined => (id === null ? rootUrls : categories.find((c) => c.id === id)?.urls);
+    const source = containerOf(fromCategoryId);
+    const target = containerOf(toCategoryId);
+    if (!source || !target) {
+      return;
+    }
+
+    const fromIndex = source.findIndex((u) => u.id === urlId);
+    if (fromIndex === -1) {
+      return;
+    }
+    const [moved] = source.splice(fromIndex, 1);
+    target.splice(Math.max(0, Math.min(toIndex, target.length)), 0, moved);
+
+    const config: MosaicConfig = {
+      ...current,
+      urls: this.reassignRootOrders(current, rootUrls),
+      categories: categories.map((c) => ({ ...c, urls: c.urls.map((u, i) => ({ ...u, order: i })) }))
+    };
+    await this.saveConfig(config);
+  }
+
+  /**
+   * Réaffecte aux sites racine les valeurs d'ordre déjà en place au lieu de
+   * renuméroter à partir de 0 : dans la vue mosaïque ces ordres sont partagés avec
+   * ceux des catégories (cf. reorderGridItems), et repartir de 0 ferait remonter
+   * tous les sites racine devant les catégories dans la grille.
+   */
+  private reassignRootOrders(current: MosaicConfig, rootUrls: MosaicUrl[]): MosaicUrl[] {
+    const slots = (current.urls ?? []).map((u) => u.order).sort((a, b) => a - b);
+    let next = Math.max(-1, ...current.categories.map((c) => c.order), ...slots) + 1;
+    while (slots.length < rootUrls.length) {
+      slots.push(next++);
+    }
+    slots.length = rootUrls.length;
+    return rootUrls.map((u, i) => ({ ...u, order: slots[i] }));
+  }
+
+  /**
    * Retire toute association vers un scénario supprimé : sans ce nettoyage, les
    * sites gardent un scenarioId orphelin qui ne correspond plus à rien.
    */

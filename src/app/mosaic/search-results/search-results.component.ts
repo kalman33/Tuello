@@ -1,12 +1,14 @@
 import { animate, query, stagger, style, transition, trigger } from '@angular/animations';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, ElementRef, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScenarioStorageService } from '../../core/scenarios/scenario-storage.service';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicLauncherService } from '../services/mosaic-launcher.service';
+import { MosaicNavigationService } from '../services/mosaic-navigation.service';
 import { MosaicScreenshotService } from '../services/mosaic-screenshot.service';
+import { faviconFor, splitMatches, TextPart } from '../utils/mosaic-text';
 
 export interface SearchResultItem {
   url: MosaicUrl;
@@ -14,8 +16,8 @@ export interface SearchResultItem {
   categoryId: string | null;
   faviconUrl: string;
   screenshot: string | null;
-  titleParts: { text: string; match: boolean }[];
-  urlParts: { text: string; match: boolean }[];
+  titleParts: TextPart[];
+  urlParts: TextPart[];
 }
 
 @Component({
@@ -32,7 +34,7 @@ export interface SearchResultItem {
     ])
   ]
 })
-export class MosaicSearchResultsComponent implements OnChanges {
+export class MosaicSearchResultsComponent implements OnInit, OnChanges, OnDestroy {
   @Input() query = '';
   @Input() categories: MosaicCategory[] = [];
   @Input() rootUrls: MosaicUrl[] = [];
@@ -42,10 +44,50 @@ export class MosaicSearchResultsComponent implements OnChanges {
   private screenshotService = inject(MosaicScreenshotService);
   private scenarioStorageService = inject(ScenarioStorageService);
   private launcherService = inject(MosaicLauncherService);
+  private navigationService = inject(MosaicNavigationService);
+  private host = inject(ElementRef<HTMLElement>);
   private cdr = inject(ChangeDetectorRef);
+  private activateSub?: { unsubscribe(): void };
+
+  readonly activeIndex = this.navigationService.activeIndex;
+
+  constructor() {
+    // Le template lit activeIndex() : la mise en surbrillance est prise en charge
+    // par le signal. L'effet ne sert qu'au défilement, différé d'une frame pour
+    // que la classe active soit déjà posée sur la carte.
+    effect(() => {
+      const index = this.activeIndex();
+      requestAnimationFrame(() => this.scrollIntoView(index));
+    });
+  }
+
+  ngOnInit(): void {
+    this.activateSub = this.navigationService.activate$.subscribe(({ index, background }) => {
+      const item = this.results[index];
+      if (item) {
+        this.launcherService.open(item.url, background);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.activateSub?.unsubscribe();
+    this.navigationService.reset();
+  }
 
   ngOnChanges(_changes: SimpleChanges): void {
     this.buildResults();
+  }
+
+  private scrollIntoView(index: number): void {
+    if (index < 0) {
+      return;
+    }
+    this.host.nativeElement.querySelector(`[data-nav-index="${index}"]`)?.scrollIntoView({ block: 'nearest' });
+  }
+
+  selectResult(index: number): void {
+    this.navigationService.setActive(index);
   }
 
   private buildResults(): void {
@@ -73,19 +115,21 @@ export class MosaicSearchResultsComponent implements OnChanges {
       return t.includes(q) || u.includes(q) || c.includes(q);
     });
 
-    this.results = filtered.map((it) => {
-      let favicon = '';
-      try {
-        favicon = `https://www.google.com/s2/favicons?domain=${new URL(it.url.url).hostname}&sz=64`;
-      } catch {}
-      return {
-        ...it,
-        faviconUrl: favicon,
-        screenshot: null,
-        titleParts: this.splitMatches(it.url.title ?? '', q),
-        urlParts: this.splitMatches(it.url.url ?? '', q)
-      } as SearchResultItem;
-    });
+    this.results = filtered.map(
+      (it) =>
+        ({
+          ...it,
+          faviconUrl: faviconFor(it.url.url),
+          screenshot: null,
+          titleParts: splitMatches(it.url.title ?? '', q),
+          urlParts: splitMatches(it.url.url ?? '', q)
+        }) as SearchResultItem
+    );
+
+    this.navigationService.setCount(this.results.length);
+    // Nouvelle recherche : le curseur repart à zéro, l'index précédent désignait
+    // un autre site.
+    this.navigationService.clearActive();
 
     this.loadScreenshots();
   }
@@ -101,33 +145,13 @@ export class MosaicSearchResultsComponent implements OnChanges {
     this.cdr.detectChanges();
   }
 
-  private splitMatches(text: string, q: string): { text: string; match: boolean }[] {
-    if (!q || !text) return [{ text, match: false }];
-    const parts: { text: string; match: boolean }[] = [];
-    const lower = text.toLowerCase();
-    let i = 0;
-    while (i < text.length) {
-      const idx = lower.indexOf(q, i);
-      if (idx === -1) {
-        parts.push({ text: text.slice(i), match: false });
-        break;
-      }
-      if (idx > i) {
-        parts.push({ text: text.slice(i, idx), match: false });
-      }
-      parts.push({ text: text.slice(idx, idx + q.length), match: true });
-      i = idx + q.length;
-    }
-    return parts;
-  }
-
   /** Nom du scénario associé, ou null si aucun (ou scénario supprimé) */
   scenarioName(item: SearchResultItem): string | null {
     return item.url.scenarioId ? this.scenarioStorageService.getName(item.url.scenarioId) : null;
   }
 
-  openUrl(item: SearchResultItem): void {
-    this.launcherService.open(item.url);
+  openUrl(item: SearchResultItem, background = false): void {
+    this.launcherService.open(item.url, background);
   }
 
   trackById(_i: number, item: SearchResultItem): string {
