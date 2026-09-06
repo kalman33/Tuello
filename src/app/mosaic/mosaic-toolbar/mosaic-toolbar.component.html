@@ -53,6 +53,10 @@
     </mat-menu>
   }
 
+  <button mat-icon-button class="toolbar-action" [matTooltip]="'mmn.mosaic.shortcuts.tooltip' | translate" (click)="showShortcuts.emit()">
+    <mat-icon>keyboard</mat-icon>
+  </button>
+
   <button mat-icon-button class="toolbar-action" [class.is-on]="editMode" [matTooltip]="(editMode ? 'mmn.mosaic.edit.disable' : 'mmn.mosaic.edit.enable') | translate" (click)="editModeChange.emit(!editMode)">
     <mat-icon>{{ editMode ? 'edit_off' : 'edit' }}</mat-icon>
   </button>

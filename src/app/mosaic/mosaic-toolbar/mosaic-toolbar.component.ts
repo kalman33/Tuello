@@ -27,6 +27,7 @@ export class MosaicToolbarComponent implements AfterViewInit, OnDestroy {
   @Output() editModeChange = new EventEmitter<boolean>();
   @Output() addUrl = new EventEmitter<void>();
   @Output() addCategory = new EventEmitter<void>();
+  @Output() showShortcuts = new EventEmitter<void>();
 
   tuelloTyped = false;
   tuelloDone = false;
@@ -79,7 +80,8 @@ export class MosaicToolbarComponent implements AfterViewInit, OnDestroy {
     this.focusSearch();
   }
 
-  private focusSearch(): void {
+  /** Rend la main au champ de recherche : la mosaïque se pilote au clavier, il doit garder le focus */
+  focusSearch(): void {
     this.timers.push(
       setTimeout(() => {
         this.searchInput()?.nativeElement.focus();

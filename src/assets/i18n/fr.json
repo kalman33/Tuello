@@ -337,5 +337,21 @@
   "mmn.mosaic.url.scenario.none": "Aucun",
   "mmn.mosaic.url.scenario.hint": "Joué automatiquement après l'ouverture du site",
   "mmn.mosaic.import.scenarios": "{{count}} scénario(s) importé(s).",
-  "mmn.mosaic.import.scenarios.missing": "{{count}} association(s) de scénario ignorée(s) (scénario absent du fichier)."
+  "mmn.mosaic.import.scenarios.missing": "{{count}} association(s) de scénario ignorée(s) (scénario absent du fichier).",
+  "mmn.mosaic.shortcuts.tooltip": "Raccourcis clavier (F1)",
+  "mmn.mosaic.shortcuts.title": "Raccourcis clavier",
+  "mmn.mosaic.shortcuts.group.navigation": "Se déplacer",
+  "mmn.mosaic.shortcuts.group.open": "Ouvrir",
+  "mmn.mosaic.shortcuts.group.search": "Rechercher",
+  "mmn.mosaic.shortcuts.updown": "Rangée précédente / suivante (élément précédent / suivant en arborescence)",
+  "mmn.mosaic.shortcuts.leftright": "Élément précédent / suivant dans la rangée",
+  "mmn.mosaic.shortcuts.escape": "Effacer la recherche, puis le curseur, puis revenir aux catégories",
+  "mmn.mosaic.shortcuts.enter": "Ouvrir le site sélectionné, ou entrer dans la catégorie (la déplier en arborescence)",
+  "mmn.mosaic.shortcuts.enter.background": "Ouvrir le site dans un onglet en arrière-plan",
+  "mmn.mosaic.shortcuts.digits": "Ouvrir directement le 1er au 9e élément affiché",
+  "mmn.mosaic.shortcuts.digits.background": "Ouvrir cet élément en arrière-plan",
+  "mmn.mosaic.shortcuts.type": "Filtrer sans rien cliquer : le champ de recherche garde toujours le focus",
+  "mmn.mosaic.shortcuts.help": "Afficher cette aide",
+  "mmn.mosaic.shortcuts.key.escape": "Échap",
+  "mmn.mosaic.shortcuts.hint": "Sans curseur positionné, Entrée ouvre le premier élément de la liste."
 }

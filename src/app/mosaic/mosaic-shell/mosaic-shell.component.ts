@@ -8,6 +8,7 @@ import { ConfirmDialogComponent } from '../../core/confirmation-dialog/confirmat
 import { CategoriesGridComponent, GridItem } from '../categories-grid/categories-grid.component';
 import { AddCategoryDialogComponent } from '../dialogs/add-category-dialog.component';
 import { AddUrlDialogComponent, AddUrlDialogResult } from '../dialogs/add-url-dialog.component';
+import { KeyboardShortcutsDialogComponent } from '../dialogs/keyboard-shortcuts-dialog.component';
 import { MosaicCategory, MosaicUrl, MosaicViewMode, MOSAIC_VIEW_MODE_KEY } from '../models/mosaic.models';
 import { MosaicToolbarComponent } from '../mosaic-toolbar/mosaic-toolbar.component';
 import { MosaicTreeAction, MosaicTreeComponent, MosaicUrlMove } from '../mosaic-tree/mosaic-tree.component';
@@ -70,7 +71,9 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
    * fonctionner sans quitter la saisie.
    */
   private onKeyDown = (event: KeyboardEvent) => {
-    if (event.defaultPrevented || this.isTypingElsewhere(event)) {
+    // Une boîte de dialogue ouverte (ajout, aide…) capte le clavier : ni les
+    // flèches ni Alt+chiffre ne doivent piloter la liste derrière elle.
+    if (event.defaultPrevented || this.dialog.openDialogs.length > 0 || this.isTypingElsewhere(event)) {
       return;
     }
 
@@ -83,6 +86,11 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
       this.navigationService.activate(Number(digit[1]) - 1, event.ctrlKey || event.metaKey);
       return;
     }
+    if (event.key === 'F1') {
+      event.preventDefault();
+      this.openShortcuts();
+      return;
+    }
     if (event.altKey || event.shiftKey) {
       return;
     }
@@ -90,11 +98,23 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault();
-        this.navigationService.moveBy(1);
+        this.navigationService.moveByRow(1);
         break;
       case 'ArrowUp':
         event.preventDefault();
-        this.navigationService.moveBy(-1);
+        this.navigationService.moveByRow(-1);
+        break;
+      case 'ArrowRight':
+        if (this.canNavigateHorizontally(event)) {
+          event.preventDefault();
+          this.navigationService.moveBy(1);
+        }
+        break;
+      case 'ArrowLeft':
+        if (this.canNavigateHorizontally(event)) {
+          event.preventDefault();
+          this.navigationService.moveBy(-1);
+        }
         break;
       case 'Enter':
         event.preventDefault();
@@ -102,18 +122,32 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
         break;
       case 'Escape':
         event.preventDefault();
-        // Échap efface d'abord la recherche, puis seulement le curseur : sinon on
-        // perdrait la liste avant d'avoir pu la reparcourir.
+        // Échap défait le dernier niveau de contexte : la recherche d'abord — sinon
+        // on perdrait la liste avant d'avoir pu la reparcourir —, puis le curseur,
+        // puis la catégorie ouverte.
         if (this.isSearching()) {
           this.toolbar()?.clearSearch();
-        } else {
+        } else if (this.navigationService.activeIndex() >= 0) {
           this.navigationService.clearActive();
+        } else if (this.showBack()) {
+          this.goBack();
         }
         break;
       default:
         break;
     }
   };
+
+  /**
+   * Gauche/droite déplacent le caret dans la recherche tant qu'on y saisit du
+   * texte : on ne les détourne qu'une fois entré dans la liste (première flèche
+   * haut/bas), ou quand il n'y a rien à éditer.
+   */
+  private canNavigateHorizontally(event: KeyboardEvent): boolean {
+    const target = event.target as HTMLElement | null;
+    const inSearchInput = !!target?.classList?.contains('search-input');
+    return !inSearchInput || !this.searchQuery() || this.navigationService.activeIndex() >= 0;
+  }
 
   /** Une saisie ailleurs que dans la recherche de la mosaïque garde ses touches */
   private isTypingElsewhere(event: KeyboardEvent): boolean {
@@ -254,6 +288,16 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
   addUrl(): void {
     const categoryId = this.viewMode() === 'grid' ? this.selectedCategoryId() : null;
     this.openUrlDialog(null, categoryId);
+  }
+
+  /** Aide clavier : bouton de la barre d'outils ou F1 */
+  openShortcuts(): void {
+    this.dialog
+      .open(KeyboardShortcutsDialogComponent, { autoFocus: false })
+      .afterClosed()
+      .pipe(take(1))
+      // Le champ de recherche doit retrouver le focus : c'est lui qui reçoit la frappe
+      .subscribe(() => this.toolbar()?.focusSearch());
   }
 
   addCategory(): void {

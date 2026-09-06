@@ -1,13 +1,13 @@
 import { animate, query, stagger, style, transition, trigger } from '@angular/animations';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, ElementRef, inject, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScenarioStorageService } from '../../core/scenarios/scenario-storage.service';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicLauncherService } from '../services/mosaic-launcher.service';
-import { MosaicNavigationService } from '../services/mosaic-navigation.service';
 import { MosaicScreenshotService } from '../services/mosaic-screenshot.service';
+import { MosaicGridNavigationBase } from '../utils/mosaic-grid-navigation.base';
 import { faviconFor, splitMatches, TextPart } from '../utils/mosaic-text';
 
 export interface SearchResultItem {
@@ -34,7 +34,7 @@ export interface SearchResultItem {
     ])
   ]
 })
-export class MosaicSearchResultsComponent implements OnInit, OnChanges, OnDestroy {
+export class MosaicSearchResultsComponent extends MosaicGridNavigationBase implements OnChanges {
   @Input() query = '';
   @Input() categories: MosaicCategory[] = [];
   @Input() rootUrls: MosaicUrl[] = [];
@@ -44,46 +44,17 @@ export class MosaicSearchResultsComponent implements OnInit, OnChanges, OnDestro
   private screenshotService = inject(MosaicScreenshotService);
   private scenarioStorageService = inject(ScenarioStorageService);
   private launcherService = inject(MosaicLauncherService);
-  private navigationService = inject(MosaicNavigationService);
-  private host = inject(ElementRef<HTMLElement>);
   private cdr = inject(ChangeDetectorRef);
-  private activateSub?: { unsubscribe(): void };
-
-  readonly activeIndex = this.navigationService.activeIndex;
-
-  constructor() {
-    // Le template lit activeIndex() : la mise en surbrillance est prise en charge
-    // par le signal. L'effet ne sert qu'au défilement, différé d'une frame pour
-    // que la classe active soit déjà posée sur la carte.
-    effect(() => {
-      const index = this.activeIndex();
-      requestAnimationFrame(() => this.scrollIntoView(index));
-    });
-  }
-
-  ngOnInit(): void {
-    this.activateSub = this.navigationService.activate$.subscribe(({ index, background }) => {
-      const item = this.results[index];
-      if (item) {
-        this.launcherService.open(item.url, background);
-      }
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.activateSub?.unsubscribe();
-    this.navigationService.reset();
-  }
 
   ngOnChanges(_changes: SimpleChanges): void {
     this.buildResults();
   }
 
-  private scrollIntoView(index: number): void {
-    if (index < 0) {
-      return;
+  protected override activateNavItem(index: number, background: boolean): void {
+    const item = this.results[index];
+    if (item) {
+      this.launcherService.open(item.url, background);
     }
-    this.host.nativeElement.querySelector(`[data-nav-index="${index}"]`)?.scrollIntoView({ block: 'nearest' });
   }
 
   selectResult(index: number): void {
@@ -126,7 +97,7 @@ export class MosaicSearchResultsComponent implements OnInit, OnChanges, OnDestro
         }) as SearchResultItem
     );
 
-    this.navigationService.setCount(this.results.length);
+    this.syncNavigation(this.results.length);
     // Nouvelle recherche : le curseur repart à zéro, l'index précédent désignait
     // un autre site.
     this.navigationService.clearActive();

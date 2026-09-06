@@ -1,10 +1,12 @@
 import { animate, query, stagger, style, transition, trigger } from '@angular/animations';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '@ngx-translate/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicTileComponent } from '../mosaic-tile/mosaic-tile.component';
+import { MosaicLauncherService } from '../services/mosaic-launcher.service';
+import { MosaicGridNavigationBase } from '../utils/mosaic-grid-navigation.base';
 
 export interface GridItem {
   kind: 'category' | 'url';
@@ -32,7 +34,7 @@ export interface GridItem {
     ])
   ]
 })
-export class CategoriesGridComponent {
+export class CategoriesGridComponent extends MosaicGridNavigationBase {
   @Input() set categories(val: MosaicCategory[]) {
     this._categories = val;
     this.buildGridItems();
@@ -51,6 +53,25 @@ export class CategoriesGridComponent {
   private _rootUrls: MosaicUrl[] = [];
   gridItems: GridItem[] = [];
 
+  private launcherService = inject(MosaicLauncherService);
+
+  /** Entrée / Alt+chiffre : on ouvre le site, ou on entre dans la catégorie */
+  protected override activateNavItem(index: number, background: boolean): void {
+    const item = this.gridItems[index];
+    if (!item) {
+      return;
+    }
+    if (item.kind === 'category') {
+      this.categorySelected.emit((item.data as MosaicCategory).id);
+    } else {
+      this.launcherService.open(item.data as MosaicUrl, background);
+    }
+  }
+
+  selectItem(index: number): void {
+    this.navigationService.setActive(index);
+  }
+
   private buildGridItems(): void {
     const catMax = this._categories.length > 0 ? Math.max(...this._categories.map((c) => c.order)) : -1;
     const urlMax = this._rootUrls.length > 0 ? Math.max(...this._rootUrls.map((u) => u.order)) : -1;
@@ -65,6 +86,8 @@ export class CategoriesGridComponent {
       all.sort((a, b) => a.data.order - b.data.order);
       this.gridItems = all;
     }
+
+    this.syncNavigation(this.gridItems.length);
   }
 
   get hasItems(): boolean {
@@ -80,6 +103,7 @@ export class CategoriesGridComponent {
   drop(event: CdkDragDrop<GridItem[]>): void {
     moveItemInArray(this.gridItems, event.previousIndex, event.currentIndex);
     this.gridItems = [...this.gridItems];
+    this.syncNavigation(this.gridItems.length);
     const newCategories: MosaicCategory[] = [];
     const newRootUrls: MosaicUrl[] = [];
     this.gridItems.forEach((item, i) => {

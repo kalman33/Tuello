@@ -38,9 +38,12 @@ function isRestrictedUrl(url: string): boolean {
 
 function applyBadgeForTab(tabId: number, url: string): void {
   if (isRestrictedUrl(url)) {
+    // Page sans site (nouvel onglet, chrome://, page d'extension) : Tuello ne peut pas
+    // s'injecter, mais l'action reste cliquable pour ouvrir la mosaïque. Le badge "OFF"
+    // signale l'inactivité (une action désactivée n'ouvrirait pas le popup).
     chrome.action.setBadgeText({ text: 'OFF', tabId });
     chrome.action.setBadgeBackgroundColor({ color: 'gray', tabId });
-    chrome.action.disable(tabId);
+    chrome.action.enable(tabId);
   } else {
     chrome.action.setBadgeText({ text: '', tabId });
     chrome.action.enable(tabId);

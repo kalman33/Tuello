@@ -5,6 +5,12 @@
   perspective: 1000px;
 }
 
+/* Curseur clavier : même repère visuel que dans les résultats de recherche */
+:host(.is-active) .tile {
+  outline: 2px solid #1b5064;
+  outline-offset: 2px;
+}
+
 .tile-wrapper {
   position: relative;
   width: 100%;
@@ -252,6 +258,10 @@
 }
 
 :host-context(.black-theme) {
+  &.is-active .tile {
+    outline-color: #8facb6;
+  }
+
   .tile {
     background: rgba(35, 35, 35, 0.9);
     border-color: rgba(255, 255, 255, 0.15);

@@ -338,5 +338,21 @@
   "mmn.mosaic.url.scenario.none": "None",
   "mmn.mosaic.url.scenario.hint": "Played automatically once the site is open",
   "mmn.mosaic.import.scenarios": "{{count}} scenario(s) imported.",
-  "mmn.mosaic.import.scenarios.missing": "{{count}} scenario link(s) dropped (scenario missing from the file)."
+  "mmn.mosaic.import.scenarios.missing": "{{count}} scenario link(s) dropped (scenario missing from the file).",
+  "mmn.mosaic.shortcuts.tooltip": "Keyboard shortcuts (F1)",
+  "mmn.mosaic.shortcuts.title": "Keyboard shortcuts",
+  "mmn.mosaic.shortcuts.group.navigation": "Move around",
+  "mmn.mosaic.shortcuts.group.open": "Open",
+  "mmn.mosaic.shortcuts.group.search": "Search",
+  "mmn.mosaic.shortcuts.updown": "Previous / next row (previous / next item in tree view)",
+  "mmn.mosaic.shortcuts.leftright": "Previous / next item within the row",
+  "mmn.mosaic.shortcuts.escape": "Clear the search, then the cursor, then go back to the categories",
+  "mmn.mosaic.shortcuts.enter": "Open the selected site, or enter the category (expand it in tree view)",
+  "mmn.mosaic.shortcuts.enter.background": "Open the site in a background tab",
+  "mmn.mosaic.shortcuts.digits": "Open the 1st to 9th displayed item directly",
+  "mmn.mosaic.shortcuts.digits.background": "Open that item in the background",
+  "mmn.mosaic.shortcuts.type": "Filter without clicking anywhere: the search field always keeps the focus",
+  "mmn.mosaic.shortcuts.help": "Show this help",
+  "mmn.mosaic.shortcuts.key.escape": "Esc",
+  "mmn.mosaic.shortcuts.hint": "With no cursor set, Enter opens the first item of the list."
 }

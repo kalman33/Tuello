@@ -16,12 +16,15 @@ import { faviconFor } from '../utils/mosaic-text';
   templateUrl: './mosaic-tile.component.html',
   styleUrls: ['./mosaic-tile.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.is-active]': 'active' },
   imports: [MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule, MatProgressSpinnerModule, TranslatePipe]
 })
 export class MosaicTileComponent implements OnInit {
   @Input() item: MosaicCategory | MosaicUrl;
   @Input() type: 'category' | 'url';
   @Input() editable = true;
+  /** Tuile sous le curseur clavier */
+  @Input() active = false;
 
   @Output() tileClick = new EventEmitter<void>();
   @Output() edit = new EventEmitter<void>();

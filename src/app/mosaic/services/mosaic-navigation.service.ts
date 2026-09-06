@@ -17,6 +17,8 @@ export class MosaicNavigationService {
   readonly activeIndex = signal(-1);
 
   private count = 0;
+  /** 1 pour une liste (arbre) ; le nombre de tuiles par rangée pour une grille */
+  private columns = 1;
   private activateSubject = new Subject<MosaicNavActivation>();
   readonly activate$ = this.activateSubject.asObservable();
 
@@ -30,6 +32,11 @@ export class MosaicNavigationService {
     }
   }
 
+  /** Mesuré après rendu par les vues en grille : il dépend de la largeur de la fenêtre */
+  setColumns(columns: number): void {
+    this.columns = Math.max(1, columns);
+  }
+
   moveBy(delta: number): void {
     if (this.count === 0) {
       return;
@@ -38,6 +45,28 @@ export class MosaicNavigationService {
     // Première flèche : on entre dans la liste par le haut ou par le bas selon le sens
     const next = current === -1 ? (delta > 0 ? 0 : this.count - 1) : (current + delta + this.count) % this.count;
     this.activeIndex.set(next);
+  }
+
+  /**
+   * Déplacement vertical : d'une rangée en grille, d'un élément en liste. On ne
+   * boucle pas de la dernière rangée à la première — on se cale sur la borne,
+   * comme le ferait un curseur de texte.
+   */
+  moveByRow(delta: number): void {
+    if (this.count === 0) {
+      return;
+    }
+    if (this.columns === 1) {
+      this.moveBy(delta);
+      return;
+    }
+    const current = this.activeIndex();
+    if (current === -1) {
+      this.activeIndex.set(delta > 0 ? 0 : this.count - 1);
+      return;
+    }
+    const next = current + delta * this.columns;
+    this.activeIndex.set(next < 0 || next >= this.count ? (delta > 0 ? this.count - 1 : 0) : next);
   }
 
   setActive(index: number): void {
@@ -62,6 +91,7 @@ export class MosaicNavigationService {
   /** À la destruction d'une vue : la suivante repartira d'un curseur vierge */
   reset(): void {
     this.count = 0;
+    this.columns = 1;
     this.activeIndex.set(-1);
   }
 }

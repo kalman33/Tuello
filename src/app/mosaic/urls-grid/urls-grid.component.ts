@@ -1,10 +1,12 @@
 import { animate, query, stagger, style, transition, trigger } from '@angular/animations';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, inject, Input, OnChanges, Output } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { MosaicUrl } from '../models/mosaic.models';
 import { MosaicTileComponent } from '../mosaic-tile/mosaic-tile.component';
+import { MosaicLauncherService } from '../services/mosaic-launcher.service';
+import { MosaicGridNavigationBase } from '../utils/mosaic-grid-navigation.base';
 
 @Component({
   selector: 'mmn-urls-grid',
@@ -27,7 +29,7 @@ import { MosaicTileComponent } from '../mosaic-tile/mosaic-tile.component';
     ])
   ]
 })
-export class UrlsGridComponent implements OnChanges {
+export class UrlsGridComponent extends MosaicGridNavigationBase implements OnChanges {
   @Input() urls: MosaicUrl[] = [];
   @Input() editable = false;
   @Output() reordered = new EventEmitter<MosaicUrl[]>();
@@ -36,13 +38,28 @@ export class UrlsGridComponent implements OnChanges {
 
   displayUrls: MosaicUrl[] = [];
 
+  private launcherService = inject(MosaicLauncherService);
+
   ngOnChanges(): void {
     this.displayUrls = [...this.urls];
+    this.syncNavigation(this.displayUrls.length);
+  }
+
+  protected override activateNavItem(index: number, background: boolean): void {
+    const url = this.displayUrls[index];
+    if (url) {
+      this.launcherService.open(url, background);
+    }
+  }
+
+  selectItem(index: number): void {
+    this.navigationService.setActive(index);
   }
 
   drop(event: CdkDragDrop<MosaicUrl[]>): void {
     moveItemInArray(this.displayUrls, event.previousIndex, event.currentIndex);
     this.displayUrls = [...this.displayUrls];
+    this.syncNavigation(this.displayUrls.length);
     this.reordered.emit(this.displayUrls);
   }
 }
