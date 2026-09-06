@@ -201,7 +201,43 @@ export class Player {
       }
     }
 
-    return this.sendMessageToContent(userAction, options);
+    const played = await this.sendMessageToContent(userAction, options);
+    if (played) {
+      return true;
+    }
+    return this.retryOnOtherFrames(userAction, options.frameId);
+  }
+
+  /**
+   * Rejoue l'action dans les autres frames de l'onglet.
+   *
+   * L'iframe cible est retrouvée par son URL, qui peut avoir changé depuis
+   * l'enregistrement (redirection d'authentification, paramètre de session) :
+   * l'action partait alors dans le document principal, où le champ n'existe pas.
+   * Limité aux actions capables de dire elles-mêmes qu'elles ont trouvé leur
+   * cible ; un clic par coordonnées, lui, réussit toujours et serait rejoué en
+   * double.
+   */
+  private async retryOnOtherFrames(userAction: UserAction, triedFrameId: number): Promise<boolean> {
+    if (userAction.type !== 'input' || !userAction.selector) {
+      return false;
+    }
+
+    const frames = await new Promise<chrome.webNavigation.GetAllFrameResultDetails[]>((resolve) => {
+      chrome.webNavigation.getAllFrames({ tabId: this.chromeTabId }, (result) => {
+        resolve(chrome.runtime.lastError || !result ? [] : result);
+      });
+    });
+
+    for (const frame of frames) {
+      if (frame.frameId === triedFrameId) {
+        continue;
+      }
+      if (await this.sendMessageToContent(userAction, { frameId: frame.frameId })) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private scheduleNextAction(): void {

@@ -4,6 +4,7 @@
 import { ImageType } from '../../src/app/spy-http/models/UserAction';
 import { UserAction } from './models/UserAction';
 import { convertElementToBase64, findImageHover } from './utils/imageRecorder';
+import { buildSelector } from './utils/cssSelector';
 import { extractLabel, findClickableAncestor } from './utils/labelSelector';
 import * as lightbox from './utils/lightbox';
 import { showToast } from './utils/toast';
@@ -303,6 +304,7 @@ function keyboardListener(e) {
     const rect = (e.target as any).getBoundingClientRect();
     action.x = Math.ceil(rect.left + window.scrollX);
     action.y = Math.ceil(rect.top + window.scrollY);
+    action.selector = buildSelector(e.target as Element);
     action.frame = frame;
     chrome.runtime.sendMessage(
       {

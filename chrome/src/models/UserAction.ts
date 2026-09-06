@@ -1,4 +1,5 @@
 import { IFrame } from './IFrame';
+import { buildSelector } from '../utils/cssSelector';
 
 export interface ICoordinates {
   top: number;
@@ -21,6 +22,8 @@ export interface IUserAction {
   label?: string;
   /** Balise de l'élément d'origine : départage deux éléments portant le même libellé */
   labelTag?: string;
+  /** Sélecteur CSS du champ saisi : rejeu fiable même si la mise en page a bougé */
+  selector?: string;
   imageType?: ImageType;
   htmlCoordinates?: ICoordinates;
   clientWidth?: number;
@@ -41,6 +44,7 @@ export class UserAction implements IUserAction {
 
   public label: string;
   public labelTag: string;
+  public selector: string;
 
   public imageType: ImageType;
   public htmlCoordinates: ICoordinates;
@@ -68,6 +72,8 @@ export class UserAction implements IUserAction {
           this.x = Math.ceil(rect.left + window.scrollX);
           this.y = Math.ceil(rect.top + window.scrollY);
           this.value = (e.target as any).value;
+          // Les coordonnées seules ne suffisent pas : cf. buildSelector.
+          this.selector = buildSelector(e.target as Element);
           break;
       }
     }

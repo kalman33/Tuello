@@ -1,5 +1,6 @@
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 import { searchImg } from './imageRecorder';
+import { findBySelector } from './cssSelector';
 import { findClickableAncestor, findElementByLabel } from './labelSelector';
 import { displayEffect, getOffset, getParentByTagName } from './utils';
 
@@ -56,18 +57,81 @@ function scrollTo(scrollX: number, scrollY: number): void {
   window.scrollTo(scrollX, scrollY);
 }
 
-function input(x: number, y: number, value: string) {
-  const el = getElementAtAbsolutePosition(x, y);
-  if (el) {
+/** Éléments capables de recevoir une saisie */
+function isFillable(el: Element | null): el is HTMLElement {
+  if (!el) {
+    return false;
+  }
+  const tag = el.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || (el as HTMLElement).isContentEditable;
+}
+
+/**
+ * Retrouve le champ à remplir.
+ *
+ * Le sélecteur passe avant les coordonnées : celles-ci désignent le coin haut-gauche
+ * du champ au moment de l'enregistrement, et le moindre décalage de mise en page
+ * (bandeau, iframe redimensionnée, contenu chargé plus tard) fait pointer
+ * `elementFromPoint` sur un conteneur — la valeur partait alors dans le vide.
+ */
+function findInputTarget(action: IUserAction): HTMLElement | null {
+  const bySelector = findBySelector(action.selector);
+  if (isFillable(bySelector)) {
+    return bySelector;
+  }
+
+  const atPoint = getElementAtAbsolutePosition(action.x, action.y);
+  if (isFillable(atPoint)) {
+    return atPoint as HTMLElement;
+  }
+  // Le point peut tomber sur l'habillage du champ (bordure, conteneur) : on
+  // accepte le champ qu'il contient s'il n'y en a qu'un.
+  const nested = atPoint?.querySelectorAll<HTMLElement>('input, textarea, select');
+  if (nested && nested.length === 1) {
+    return nested[0];
+  }
+  return null;
+}
+
+/**
+ * Affecte la valeur via le setter natif : React (et tout framework qui surveille
+ * la propriété) ignore une écriture directe sur `element.value` et réaffiche
+ * l'ancienne valeur au rendu suivant.
+ */
+function setNativeValue(el: HTMLElement, value: string): void {
+  const prototype = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+  if (setter) {
+    setter.call(el, value);
+  } else {
     (el as HTMLInputElement).value = value;
-    // Déclencher les événements pour que les frameworks réactifs détectent le changement
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
   }
 }
 
-function enterKeypress(x: number, y: number) {
-  const el = getElementAtAbsolutePosition(x, y);
+function input(action: IUserAction): boolean {
+  const el = findInputTarget(action);
+  if (!el) {
+    console.warn('Tuello: champ de saisie introuvable', { selector: action.selector, x: action.x, y: action.y });
+    return false;
+  }
+
+  // Certaines pages n'écoutent la saisie qu'une fois le champ focalisé.
+  (el as HTMLElement).focus?.();
+
+  if (el.isContentEditable) {
+    el.textContent = action.value;
+  } else {
+    setNativeValue(el, action.value);
+  }
+
+  // Déclencher les événements pour que les frameworks réactifs détectent le changement
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  return true;
+}
+
+function enterKeypress(x: number, y: number, selector?: string) {
+  const el = findBySelector(selector) ?? getElementAtAbsolutePosition(x, y);
   if (!el) return;
 
   const form = getParentByTagName(el as HTMLElement, 'form');
@@ -95,11 +159,10 @@ export function run(action: IUserAction) {
         resolve(true);
         break;
       case 'input':
-        input(action.x, action.y, action.value);
-        resolve(true);
+        resolve(input(action));
         break;
       case 'enterKey':
-        enterKeypress(action.x, action.y);
+        enterKeypress(action.x, action.y, action.selector);
         resolve(true);
         break;
       case 'scroll':

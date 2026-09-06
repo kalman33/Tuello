@@ -21,6 +21,8 @@ export interface IUserAction {
   label?: string;
   /** Balise de l'élément d'origine : départage deux éléments portant le même libellé */
   labelTag?: string;
+  /** Sélecteur CSS du champ saisi : rejeu fiable même si la mise en page a bougé */
+  selector?: string;
   imageType?: ImageType;
   htmlCoordinates?: ICoordinates;
   clientWidth?: number;

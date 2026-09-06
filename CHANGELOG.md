@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
     - Spy & Replay : sélection d'un élément par son libellé (Maj + clic), pour les éléments dont la position change d'une exécution à l'autre (chiffres d'un code PIN mélangés)
     - Mosaïque : un scénario lancé depuis une tuile n'ouvre plus le panneau Tuello, même lorsqu'une action échoue
+    - Spy & Replay : les champs de saisie sont enregistrés avec un sélecteur CSS et retrouvés par ce sélecteur au rejeu — les coordonnées seules échouaient dès que la mise en page avait bougé (bandeau, iframe redimensionnée, contenu chargé plus tard)
+    - Spy & Replay : une saisie non rejouée dans l'iframe attendue est retentée dans les autres iframes de la page (corrige les formulaires en iframe dont l'URL change entre l'enregistrement et le rejeu, ex. redirection d'authentification)
+    - Spy & Replay : la valeur est désormais posée via le setter natif du champ, pour les applications React/Vue qui ignoraient l'écriture directe et réaffichaient l'ancienne valeur
+    - Spy & Replay : une saisie dont le champ est introuvable est signalée comme échec (avec trace en console) au lieu d'être appliquée silencieusement à un élément quelconque
 
 ## [1.2.21.0] - 2026-09-06
 
