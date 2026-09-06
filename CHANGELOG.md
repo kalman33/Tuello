@@ -2,8 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.21.0] - 2026-09-05
+## [1.2.21.0] - 2026-09-06
 
+    - Mosaïque : navigation clavier étendue aux vues grille (catégories, sites) et aux résultats de recherche, en plus de l'arborescence
+    - Mosaïque : flèches haut/bas pour changer de rangée, gauche/droite pour se déplacer dans la rangée (gauche/droite restent au champ de recherche tant qu'on y saisit du texte)
+    - Mosaïque : Alt+1 à Alt+9 ouvrent directement les 9 premiers éléments affichés (Ctrl/Cmd en plus pour un onglet en arrière-plan), y compris en AZERTY et sous macOS
+    - Mosaïque : Échap défait un niveau de contexte à la fois — recherche, puis curseur, puis retour aux catégories
+    - Mosaïque : aide des raccourcis clavier accessible par F1 ou depuis la barre d'outils
+    - Mosaïque : mise en surbrillance et défilement automatique de la tuile sous le curseur clavier
+    - Mosaïque : les raccourcis ne pilotent plus la liste lorsqu'une boîte de dialogue est ouverte
+    - Extension : l'icône Tuello reste cliquable sur les pages non instrumentables (nouvel onglet, chrome://, pages d'extension) et ouvre la Mosaïque — ou le panneau Tuello si l'on est déjà dans la Mosaïque
     - Mosaïque : nouvelle vue arborescence, navigation clavier et édition sur place des catégories/URLs
     - Mosaïque : association d'un scénario Spy & Replay à une tuile, lancé automatiquement à l'ouverture de l'URL
     - Spy & Replay : sauvegarde d'un enregistrement en scénario réutilisable
