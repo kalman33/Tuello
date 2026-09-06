@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.22.0] - 2026-09-06
+
+    - Spy & Replay : sélection d'un élément par son libellé (Maj + clic), pour les éléments dont la position change d'une exécution à l'autre (chiffres d'un code PIN mélangés)
+    - Mosaïque : un scénario lancé depuis une tuile n'ouvre plus le panneau Tuello, même lorsqu'une action échoue
+
 ## [1.2.21.0] - 2026-09-06
 
     - Mosaïque : navigation clavier étendue aux vues grille (catégories, sites) et aux résultats de recherche, en plus de l'arborescence

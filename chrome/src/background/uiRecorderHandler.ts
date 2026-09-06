@@ -119,7 +119,19 @@ export function setPause(val: boolean, tabId?: number): void {
   state.pause = val;
 }
 
-export async function addRecordByImage(userAction: IUserAction, tabId: number, frameId: number): Promise<void> {
+export function addRecordByImage(userAction: IUserAction, tabId: number, frameId: number): Promise<void> {
+  return addTargetedAction(userAction, tabId, frameId, ActionType.RECORD_BY_IMAGE);
+}
+
+export function addRecordByLabel(userAction: IUserAction, tabId: number, frameId: number): Promise<void> {
+  return addTargetedAction(userAction, tabId, frameId, ActionType.RECORD_BY_LABEL);
+}
+
+/**
+ * Enregistre une action qui désigne son élément autrement que par ses coordonnées
+ * (par l'image ou par le libellé) : seul le type d'action les distingue.
+ */
+async function addTargetedAction(userAction: IUserAction, tabId: number, frameId: number, actionType: ActionType): Promise<void> {
   const state = getState(tabId);
 
   if (!state.record) {
@@ -137,7 +149,7 @@ export async function addRecordByImage(userAction: IUserAction, tabId: number, f
 
   if (userAction.frame && userAction.frame.frameIndex !== undefined) {
     // on est dans le cas devtools
-    const action = new Action(delay, ActionType.RECORD_BY_IMAGE, userAction);
+    const action = new Action(delay, actionType, userAction);
     state.record.actions.push(action);
     state.last = now;
     state.record.last = state.last;
@@ -150,7 +162,7 @@ export async function addRecordByImage(userAction: IUserAction, tabId: number, f
       // Frame non trouvée, on continue avec un frame par défaut
       userAction.frame = { src: '', frameId: 0 };
     }
-    const action = new Action(delay, ActionType.RECORD_BY_IMAGE, userAction);
+    const action = new Action(delay, actionType, userAction);
     state.record.actions.push(action);
     state.last = now;
     state.record.last = state.last;

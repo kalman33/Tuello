@@ -4,7 +4,9 @@
 import { ImageType } from '../../src/app/spy-http/models/UserAction';
 import { UserAction } from './models/UserAction';
 import { convertElementToBase64, findImageHover } from './utils/imageRecorder';
+import { extractLabel, findClickableAncestor } from './utils/labelSelector';
 import * as lightbox from './utils/lightbox';
+import { showToast } from './utils/toast';
 import { recordHttpUserActionListener } from './utils/recordUserActionListener';
 import { addcss } from './utils/utils';
 
@@ -107,6 +109,7 @@ function httpRecordUI(activation: boolean) {
 
 function removeListeners() {
   document.removeEventListener('keydown', keyboardListener);
+  document.removeEventListener('click', labelListener, true);
   document.removeEventListener('click', listener);
   document.removeEventListener('scroll', listener);
   document.removeEventListener('input', listener);
@@ -120,6 +123,9 @@ function addListeners() {
   removeListeners();
 
   document.addEventListener('keydown', keyboardListener);
+  // En capture : Maj+clic doit être intercepté avant que la page (et le listener
+  // de clic ci-dessous) ne le traite, cf. labelListener.
+  document.addEventListener('click', labelListener, true);
   document.addEventListener('click', listener);
   document.addEventListener('scroll', listener);
   document.addEventListener('input', listener);
@@ -142,6 +148,78 @@ function listener(e) {
       () => {}
     );
   }
+}
+
+/** Champs où Maj+clic sert à sélectionner du texte */
+function isEditable(element: HTMLElement): boolean {
+  if (!element) {
+    return false;
+  }
+  const tag = element.tagName?.toLowerCase();
+  if (tag === 'textarea' || element.isContentEditable) {
+    return true;
+  }
+  if (tag !== 'input') {
+    return false;
+  }
+  const type = (element as HTMLInputElement).type?.toLowerCase();
+  return !['button', 'submit', 'reset', 'checkbox', 'radio', 'image', 'file'].includes(type);
+}
+
+/**
+ * Maj+clic : enregistre l'élément par son libellé plutôt que par ses coordonnées.
+ *
+ * Intercepté en capture pour couper net le clic d'origine : la page ne doit pas le
+ * traiter tout de suite (Maj+clic ouvre un lien dans une nouvelle fenêtre, et
+ * certaines applications ont leur propre comportement pour cette combinaison).
+ * Une fois l'action enregistrée, on rejoue un clic simple pour que le parcours de
+ * l'utilisateur se poursuive normalement — ce clic programmatique n'a pas de
+ * coordonnées, `listener` ne l'enregistre donc pas en double.
+ */
+function labelListener(e: MouseEvent) {
+  if (!e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) {
+    return;
+  }
+
+  const target = e.target as HTMLElement;
+  // Dans un champ de saisie, Maj+clic étend la sélection de texte : l'intercepter
+  // priverait l'utilisateur de ce geste sans rien apporter (on saisit un champ, on
+  // ne le désigne pas par son libellé).
+  if (isEditable(target)) {
+    return;
+  }
+
+  const clickable = findClickableAncestor(target);
+  // Le texte de la cible exacte est plus discriminant que celui de son conteneur :
+  // le <span> du chiffre, pas l'ensemble du contenu du bouton.
+  const label = extractLabel(target) || extractLabel(clickable);
+
+  if (!label) {
+    showToast('Tuello : aucun libellé sur cet élément');
+    return;
+  }
+
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
+  const action = new UserAction(null);
+  action.type = 'recordByLabel';
+  action.label = label;
+  action.labelTag = target?.tagName ? target.tagName.toLowerCase() : undefined;
+  action.hrefLocation = window.location.href;
+  action.frame = frame;
+
+  chrome.runtime.sendMessage(
+    {
+      action: 'RECORD_BY_LABEL_ACTION',
+      value: action
+    },
+    () => {
+      showToast(`Tuello : libellé « ${label} » enregistré`);
+      (clickable ?? target)?.click();
+    }
+  );
 }
 
 function keyboardListener(e) {
@@ -237,6 +315,11 @@ function keyboardListener(e) {
 }
 
 function mousedownListener(e) {
+  // Maj+clic est enregistré par libellé (labelListener) : sans ce garde, un submit
+  // était en plus enregistré par coordonnées.
+  if (e.shiftKey && !e.altKey) {
+    return;
+  }
   // on surveille qu'il ne s'agise pas d'un click sur un bouton submit car l'event click n'est pas remonté dans ce cas
   if (e.target.tagName && e.target.tagName.toLowerCase() === 'input' && e.target.type && e.target.type.toLowerCase() === 'submit') {
     const useraction = new UserAction(null);

@@ -6,6 +6,7 @@ import {
   addHttpUserAction,
   addNavigate,
   addRecordByImage,
+  addRecordByLabel,
   addRecordWindowSize,
   addScreenShot,
   addUserAction,
@@ -265,6 +266,10 @@ async function buildMenuItems(msgs?: Record<string, string>): Promise<Array<{ id
     {
       id: 'id3',
       title: `${msgs?.['mmn.spy-http.tabs.shortcuts.record.by.img'] || 'Rec. by img'} : ${combo('alt', 'shift', click)} / ${combo(coord, 'alt', 'shift', captureImageKey)}`
+    },
+    {
+      id: 'id5',
+      title: `${msgs?.['mmn.spy-http.tabs.shortcuts.record.by.label'] || 'Record by label'} : ${combo('shift', click)}`
     },
     { id: 'id4', title: `${msgs?.['mmn.spy-http.tabs.shortcuts.add.comment'] || 'Add comment'} : ${combo('alt', 'shift', commentKey)}` }
   ];
@@ -681,6 +686,14 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       }
       break;
     case 'PLAY_ACTION_ERROR':
+      // Scénario lancé depuis la mosaïque : on abandonne le rejeu sans rien afficher,
+      // il n'y a personne pour le reprendre et l'utilisateur n'a demandé qu'un site.
+      if (player !== null && player.silent) {
+        console.warn('Tuello: action introuvable, rejeu du scénario interrompu');
+        player.finishSilently();
+        player = null;
+        break;
+      }
       chrome.action.setIcon({ path: '/assets/logos/tuello-32x32.png' });
       let pausedActionNumber;
       if (player !== null) {
@@ -863,6 +876,10 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       break;
     case 'RECORD_BY_IMAGE_ACTION':
       addRecordByImage(msg.value, sender.tab.id, sender.frameId);
+      senderResponse();
+      break;
+    case 'RECORD_BY_LABEL_ACTION':
+      addRecordByLabel(msg.value, sender.tab.id, sender.frameId);
       senderResponse();
       break;
     case 'SCREENSHOT_ACTION':

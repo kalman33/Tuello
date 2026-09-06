@@ -20,6 +20,7 @@ Core Features
 - Capture screenshots (Alt+Shift+S) with annotations during recording
 - Add comments (Alt+Shift+C) to document your test scenarios
 - Record by image (Alt+Shift+I): Locate elements using visual matching
+- Record by label (Shift+Click): Locate elements by their text, wherever they are displayed
 - Drag & drop to reorder recorded actions
 - Replay recorded sessions with visual comparison to detect UI regressions
 - Synchronize HTTP mocks during replay for consistent test results

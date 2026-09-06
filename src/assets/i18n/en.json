@@ -124,6 +124,7 @@
   "mmn.spy-http.tabs.shortcuts.add.comment": "Add comment",
   "mmn.spy-http.tabs.shortcuts.record.by.img": "Record by image",
   "mmn.spy-http.tabs.shortcuts.record.by.img.shortcut": "Press",
+  "mmn.spy-http.tabs.shortcuts.record.by.label": "Record by label",
   "mmn.spy-http.tabs.shortcuts.required": "This field is required",
   "mmn.spy-http.tabs.shortcuts.key.alt": "Alt",
   "mmn.spy-http.tabs.shortcuts.key.shift": "Shift",
@@ -154,6 +155,7 @@
   "mmn.spy-http.actions.type.screenshot": "Screenshot",
   "mmn.spy-http.actions.type.navigate": "Navigate",
   "mmn.spy-http.actions.type.record.by.img": "Rec by img",
+  "mmn.spy-http.actions.type.record.by.label": "By label",
 
   "mmn.track.button.import": "Import",
   "mmn.track.button.saveAs": "Save",

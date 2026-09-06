@@ -18,9 +18,10 @@ const MAX_WINDOW_SIZE = 10000;
 /** Options de rejeu */
 export interface PlayerOptions {
   /**
-   * Rejeu silencieux (scénario lancé depuis la mosaïque) : à la fin, aucun message
-   * n'est envoyé au content script — c'est ACTIONS_RESULTS qui rouvre le panneau
-   * Tuello et l'écran de comparaison. Le background nettoie via ce callback.
+   * Rejeu silencieux (scénario lancé depuis la mosaïque) : à la fin comme en cas
+   * d'échec d'une action, le panneau Tuello ne doit pas s'ouvrir — l'utilisateur a
+   * juste demandé l'ouverture d'un site. Le nettoyage passe par ce callback, à la
+   * place du message ACTIONS_RESULTS qui rouvre le panneau et l'écran de comparaison.
    */
   onFinished?: () => void;
 }
@@ -44,12 +45,21 @@ export class Player {
   actionResults: ActionResult[] = [];
   private isDestroyed = false;
   private onFinished?: () => void;
+  /** Rejeu sans retour visuel de Tuello (scénario lancé depuis la mosaïque) */
+  readonly silent: boolean;
 
   constructor(actions: Action[], chromeTabId: number, senderResponse: (response?: any) => void, options?: PlayerOptions) {
     this.initialActions = actions;
     this.chromeTabId = chromeTabId;
     this.yieldActions = this.iterateGenerator(actions);
     this.onFinished = options?.onFinished;
+    this.silent = !!options?.onFinished;
+  }
+
+  /** Termine un rejeu silencieux (fin normale ou action en échec) */
+  finishSilently(): void {
+    this.destroy();
+    this.onFinished?.();
   }
 
   /**

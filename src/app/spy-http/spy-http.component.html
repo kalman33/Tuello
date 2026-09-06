@@ -186,6 +186,16 @@
           </div>
 
           <div class="shortcut-row">
+            <mat-icon color="accent" class="shortcut-icon">text_fields</mat-icon>
+            <span class="shortcut-label">{{ 'mmn.spy-http.tabs.shortcuts.record.by.label' | translate }}</span>
+            <span class="shortcut-keys">
+              <kbd class="shortcut-key" [matTooltip]="shiftTooltip">{{ shiftLabel }}</kbd>
+              <span class="shortcut-plus">+</span>
+              <kbd class="shortcut-key">{{ 'mmn.spy-http.tabs.shortcuts.key.click' | translate }}</kbd>
+            </span>
+          </div>
+
+          <div class="shortcut-row">
             <mat-icon color="accent" class="shortcut-icon">message</mat-icon>
             <span class="shortcut-label">{{ 'mmn.spy-http.tabs.shortcuts.add.comment' | translate }}</span>
             <span class="shortcut-keys">

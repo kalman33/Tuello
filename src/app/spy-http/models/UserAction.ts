@@ -17,6 +17,10 @@ export interface IUserAction {
   scrollX?: number;
   scrollY?: number;
   value?: string;
+  /** Libellé recherché au rejeu pour les actions `recordByLabel` */
+  label?: string;
+  /** Balise de l'élément d'origine : départage deux éléments portant le même libellé */
+  labelTag?: string;
   imageType?: ImageType;
   htmlCoordinates?: ICoordinates;
   clientWidth?: number;

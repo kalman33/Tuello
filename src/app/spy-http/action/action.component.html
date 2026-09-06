@@ -1,7 +1,7 @@
 <div fxLayout="row">
-  <div fxFlex="15%" (click)='reduceDelay()' class="label delay" matTooltip="(ms)">
+  <div fxFlex="15%" (click)="reduceDelay()" class="label delay" matTooltip="(ms)">
     <mat-icon class="v-align-middle">access_time</mat-icon>
-    <span class="v-align-middle">+ {{action.delay}}</span>
+    <span class="v-align-middle">+ {{ action.delay }}</span>
   </div>
 
   <!-- navigate -->
@@ -11,7 +11,7 @@
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.navigate' | translate }}</span>
     </div>
     <div fxFlex="50%">
-      <div fxFlex="50%" class="data">{{domain}}</div>
+      <div fxFlex="50%" class="data">{{ domain }}</div>
     </div>
   }
 
@@ -22,9 +22,7 @@
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.screenshot' | translate }}</span>
     </div>
     <div fxFlex="50%">
-      <img style='display:block; width:50px;height:50px;'
-        (click)="chromeExtentionUtilsService.openImageViewer(action?.data)"
-        [src]='action?.data' alt="Screenshot"/>
+      <img style="display: block; width: 50px; height: 50px" (click)="chromeExtentionUtilsService.openImageViewer(action?.data)" [src]="action?.data" alt="Screenshot" />
     </div>
   }
 
@@ -35,10 +33,17 @@
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.record.by.img' | translate }}</span>
     </div>
     <div fxFlex="50%">
-      <img style='display:block; width:30px;height:30px;'
-        (click)="chromeExtentionUtilsService.openImageViewer(action?.userAction?.value)"
-        [src]='action?.userAction?.value' alt="Screenshot"/>
+      <img style="display: block; width: 30px; height: 30px" (click)="chromeExtentionUtilsService.openImageViewer(action?.userAction?.value)" [src]="action?.userAction?.value" alt="Screenshot" />
     </div>
+  }
+
+  <!-- record by label -->
+  @if (action.actionType === 'RECORD_BY_LABEL') {
+    <div fxFlex="15%" class="label screenshot">
+      <mat-icon class="v-align-middle">text_fields</mat-icon>
+      <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.record.by.label' | translate }}</span>
+    </div>
+    <div fxFlex="50%" class="data">{{ action?.userAction?.label }}</div>
   }
 
   <!-- Comment -->
@@ -47,42 +52,31 @@
       <mat-icon>comment</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.comment' | translate }}</span>
     </div>
-    <div fxFlex="50%" class="data">{{action?.data}}</div>
+    <div fxFlex="50%" class="data">{{ action?.data }}</div>
   }
 
   <!-- event -->
   @if (action.actionType === 'EVENT') {
-    <div fxFlex="15%"  [className]="action?.userAction?.type === 'resize' ? 'label windowResize' : 'label actionType'" >
+    <div fxFlex="15%" [className]="action?.userAction?.type === 'resize' ? 'label windowResize' : 'label actionType'">
       <mat-icon>face</mat-icon>
-      <span class="v-align-middle">{{action?.userAction?.type | lowercase}}</span>
+      <span class="v-align-middle">{{ action?.userAction?.type | lowercase }}</span>
     </div>
-    <div fxFlex="50%" class="data">{{action?.userAction?.value}}</div>
+    <div fxFlex="50%" class="data">{{ action?.userAction?.value }}</div>
   }
   <div fxFlex class="actions">
     @if (action?.userAction?.type === 'click') {
-      <button mat-icon-button
-        color="primary" (click)='previewAction()'>
+      <button mat-icon-button color="primary" (click)="previewAction()">
         <mat-icon>remove_red_eye</mat-icon>
       </button>
     }
-    <button mat-icon-button
-      color="primary"
-      (click)='duplicateAction()'
-      >
+    <button mat-icon-button color="primary" (click)="duplicateAction()">
       <mat-icon>content_copy</mat-icon>
     </button>
-    <button mat-icon-button
-      color="primary"
-      (click)="openJsonEditor()"
-      >
+    <button mat-icon-button color="primary" (click)="openJsonEditor()">
       <mat-icon>edit</mat-icon>
     </button>
-    <button mat-icon-button
-      color="primary" (click)='deleteAction()'>
+    <button mat-icon-button color="primary" (click)="deleteAction()">
       <mat-icon>delete</mat-icon>
     </button>
-
   </div>
 </div>
-
-

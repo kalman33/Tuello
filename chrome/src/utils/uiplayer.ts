@@ -1,5 +1,6 @@
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 import { searchImg } from './imageRecorder';
+import { findClickableAncestor, findElementByLabel } from './labelSelector';
 import { displayEffect, getOffset, getParentByTagName } from './utils';
 
 /**
@@ -104,6 +105,26 @@ export function run(action: IUserAction) {
       case 'scroll':
         scrollTo(action.scrollX, action.scrollY);
         resolve(true);
+        break;
+      case 'recordByLabel':
+        // Recherche par texte : l'élément a pu changer de position depuis
+        // l'enregistrement, ses coordonnées ne sont pas exploitables.
+        const labelElement = findElementByLabel(action.label, action.labelTag);
+        if (!labelElement) {
+          chrome.runtime.sendMessage(
+            {
+              action: 'PLAY_ACTION_ERROR'
+            },
+            () => resolve(false)
+          );
+          break;
+        }
+        const clickable = findClickableAncestor(labelElement) ?? labelElement;
+        const clickableOffset = getOffset(clickable);
+        displayEffect(clickableOffset.left + clickable.offsetWidth / 2, clickableOffset.top + clickable.offsetHeight / 2).then(() => {
+          clickable.click();
+          resolve(true);
+        });
         break;
       case 'recordByImg':
         searchImg(action)
