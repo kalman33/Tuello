@@ -52,7 +52,7 @@ export function open(params: LightboxParams) {
     } else {
       divElt.append(params.content);
     }
-   
+
     container.appendChild(divElt);
     if (options.hideScroll) {
       document.body.style.overflow = 'hidden';
@@ -60,7 +60,14 @@ export function open(params: LightboxParams) {
 
     container.style.display = 'flex';
 
-    window.setTimeout(() => (container.style.opacity = 1), 0);
+    window.setTimeout(() => {
+      container.style.opacity = 1;
+      // positionne directement le focus dans le premier champ de saisie (ex : commentaire)
+      const firstField = divElt.querySelector('textarea, input, select') as HTMLElement;
+      if (firstField) {
+        firstField.focus();
+      }
+    }, 0);
 
     if (params && params.autocCloseMs) {
       window.setTimeout(() => {
@@ -73,7 +80,7 @@ export function open(params: LightboxParams) {
   });
 }
 
-export function close(){
+export function close() {
   const commentValue = document.forms['comment']['inputComment'].value;
   container.style.display = 'none';
   container.innerHTML = '';
@@ -103,4 +110,3 @@ function initContainer() {
 
   return imgboxContainer;
 }
-
