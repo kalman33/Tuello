@@ -15,6 +15,10 @@ const SCREENSHOT_RENDER_DELAY_MS = 300;
 const MIN_WINDOW_SIZE = 100;
 const MAX_WINDOW_SIZE = 10000;
 
+/** Bornes d'affichage du commentaire pendant le rejeu (ms) */
+const MIN_COMMENT_DISPLAY_MS = 2000;
+const MAX_COMMENT_DISPLAY_MS = 10000;
+
 /** Options de rejeu */
 export interface PlayerOptions {
   /**
@@ -108,7 +112,9 @@ export class Player {
           this.comparisonResults = [];
         }
         actionSuccess = await this.compareImage(action.value);
-      } else if (action.value.actionType !== 'COMMENT') {
+      } else if (action.value.actionType === 'COMMENT') {
+        actionSuccess = await this.showComment(action.value);
+      } else {
         actionSuccess = await this.handleUserAction(userAction);
       }
     } catch (error) {
@@ -170,6 +176,49 @@ export class Player {
         }
       }
     );
+  }
+
+  /**
+   * Affiche dans la page le commentaire saisi pendant l'enregistrement.
+   *
+   * Le bandeau reste visible jusqu'à l'action suivante (borné) : sans cela, un
+   * commentaire suivi d'un long délai disparaissait avant que l'utilisateur ait
+   * pu le lire, et un commentaire suivi d'une action immédiate le laissait à
+   * l'écran pendant la suite du scénario.
+   */
+  private async showComment(action: Action): Promise<boolean> {
+    // Rejeu silencieux : aucun retour visuel de Tuello dans la page
+    if (this.silent || !action.data) {
+      return true;
+    }
+
+    const nextDelay = this.initialActions[this.count]?.delay ?? 0;
+    const durationMs = Math.min(Math.max(nextDelay, MIN_COMMENT_DISPLAY_MS), MAX_COMMENT_DISPLAY_MS);
+
+    return this.sendToContent({
+      action: 'SHOW_REPLAY_COMMENT',
+      value: action.data,
+      durationMs
+    });
+  }
+
+  /** Retire le bandeau de commentaire (avant une capture d'écran) */
+  private async hideComment(): Promise<boolean> {
+    if (this.silent) {
+      return true;
+    }
+    return this.sendToContent({ action: 'HIDE_REPLAY_COMMENT' });
+  }
+
+  /** Envoie un message au document principal de l'onglet rejoué */
+  private sendToContent(message: Record<string, any>): Promise<boolean> {
+    return new Promise((resolve) => {
+      chrome.tabs.sendMessage(this.chromeTabId, message, { frameId: 0 }, () => {
+        // Un content script absent (page interne, onglet fermé) ne doit pas
+        // interrompre le rejeu
+        resolve(!chrome.runtime.lastError);
+      });
+    });
   }
 
   private async handleNavigate(userAction: UserAction): Promise<boolean> {
@@ -392,9 +441,13 @@ export class Player {
   }
 
   compareImage(action: Action): Promise<boolean> {
+    // Le bandeau de commentaire fausserait la comparaison avec la référence
+    const bannerHidden = this.hideComment();
+
     return new Promise((resolve) => {
       // Attendre que le rendu soit complet avant de capturer
-      setTimeout(() => {
+      setTimeout(async () => {
+        await bannerHidden;
         chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: 'png' }, (imgData) => {
           if (chrome.runtime.lastError || !imgData) {
             console.warn('Erreur capture screenshot:', chrome.runtime.lastError?.message);

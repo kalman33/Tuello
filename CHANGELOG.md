@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.23.0] - 2026-09-07
+
+    - Spy & Replay : les commentaires enregistrés s'affichent pendant le rejeu dans un bandeau lisible, visible jusqu'à l'action suivante (entre 2 et 10 secondes)
+    - Spy & Replay : le bandeau de commentaire est retiré avant chaque capture d'écran et à la fin du rejeu, pour ne pas fausser la comparaison d'images
+    - Spy & Replay : la saisie d'un commentaire pendant l'enregistrement place directement le curseur dans le champ
+    - Spy & Replay : rejeu plus rapide — le repère visuel d'une action ne retarde plus l'action suivante (une demi-seconde gagnée par action)
+    - Spy & Replay : recherche par libellé nettement plus rapide sur les pages volumineuses (parcours des textes au lieu de tous les éléments, et mémorisation du dernier élément trouvé pour un libellé)
+    - Spy & Replay : le repère visuel d'une action ne peut plus décaler la mise en page ni s'interposer devant l'élément visé
+
 ## [1.2.22.0] - 2026-09-06
 
     - Spy & Replay : sélection d'un élément par son libellé (Maj + clic), pour les éléments dont la position change d'une exécution à l'autre (chiffres d'un code PIN mélangés)

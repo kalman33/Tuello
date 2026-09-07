@@ -8,6 +8,7 @@ import { activateSearchElements, desactivateSearchElements } from './utils/searc
 import { addTagsPanel, deleteTagsPanel, initTagsHandler } from './utils/tags';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
+import { hideComment, showComment } from './utils/commentBanner';
 import { displayEffect } from './utils/utils';
 import { loadCompressedMultiple } from './utils/compression';
 import { IFRAME_OFFSET_PX, IFRAME_WIDTH_PX } from './utils/constants';
@@ -723,6 +724,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'ACTIONS_RESULTS':
       if (window.self === window.top) {
+        // le bandeau de commentaire ne doit pas survivre à la fin du rejeu
+        hideComment();
         // SHOW
         const iframeResult = document.getElementById('iframeTuello') as HTMLIFrameElement;
         if (iframeResult) {
@@ -769,6 +772,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       }
       sendResponse();
+      break;
+    case 'SHOW_REPLAY_COMMENT':
+      if (window.self === window.top) {
+        showComment(message.value, message.durationMs);
+      }
+      sendResponse(true);
+      break;
+    case 'HIDE_REPLAY_COMMENT':
+      if (window.self === window.top) {
+        hideComment();
+      }
+      sendResponse(true);
       break;
     case 'PLAY_USER_ACTION':
       // Le résultat de run() doit être renvoyé tel quel : le player en déduit si
