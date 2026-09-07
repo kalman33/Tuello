@@ -9,6 +9,6 @@
     "typeRoots": ["../node_modules/@types"],
     "downlevelIteration": true,
     "moduleResolution": "node",
-    "lib": ["webworker", "es2017", "dom", "ES2021.String"]
+    "lib": ["webworker", "es2017", "dom", "ES2021.String", "ES2021.WeakRef"]
   }
 }

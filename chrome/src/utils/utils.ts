@@ -155,20 +155,22 @@ export function addEventListener(type, func) {
  * @param y
  */
 export function displayEffect(x, y) {
-  return new Promise(resolve => {
-    let div = document.createElement('div');
-    div.style.left = (x - window.scrollX) + 'px';
-    div.style.top = (y - window.scrollY) + 'px';
-    div.className = 'tuello-circle';
-    document.body.append(div);
+  const div = document.createElement('div');
+  div.style.left = (x - window.scrollX) + 'px';
+  div.style.top = (y - window.scrollY) + 'px';
+  // Position et insensibilité au pointeur posées en ligne : la feuille de style de
+  // Tuello peut manquer (page sans <head> au moment de l'injection), et le repère ne
+  // doit jamais décaler la mise en page ni s'interposer devant l'élément visé.
+  div.style.position = 'fixed';
+  div.style.pointerEvents = 'none';
+  div.className = 'tuello-circle';
+  document.body.append(div);
 
-    setTimeout(() => {
-      // remove() et pas removeChild() : si la page a re-rendu (SPA) le noeud n'a plus
-      // body comme parent, et l'exception laissait la promesse en suspens (rejeu figé).
-      div.remove();
-      resolve(true);
-    }, 500);
-  });
+  // L'action n'attend pas la fin de l'animation : le repère s'efface de son côté,
+  // alors que l'attendre ajoutait une demi-seconde à chaque action du scénario.
+  // remove() et pas removeChild() : si la page a re-rendu (SPA) le nœud n'a plus
+  // body comme parent, et removeChild lèverait une exception.
+  setTimeout(() => div.remove(), 500);
 }
 
 /**

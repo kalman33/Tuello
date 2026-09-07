@@ -149,10 +149,9 @@ export function run(action: IUserAction) {
       case 'click':
         const x = action.x;
         const y = action.y;
-        displayEffect(x, y).then(() => {
-          mouseEvent('click', x, y, 0);
-          resolve(true);
-        });
+        displayEffect(x, y);
+        mouseEvent('click', x, y, 0);
+        resolve(true);
         break;
       case 'mouseup':
         mouseup(action.x, action.y, action.key);
@@ -184,20 +183,18 @@ export function run(action: IUserAction) {
         }
         const clickable = findClickableAncestor(labelElement) ?? labelElement;
         const clickableOffset = getOffset(clickable);
-        displayEffect(clickableOffset.left + clickable.offsetWidth / 2, clickableOffset.top + clickable.offsetHeight / 2).then(() => {
-          clickable.click();
-          resolve(true);
-        });
+        displayEffect(clickableOffset.left + clickable.offsetWidth / 2, clickableOffset.top + clickable.offsetHeight / 2);
+        clickable.click();
+        resolve(true);
         break;
       case 'recordByImg':
         searchImg(action)
           .then((img) => {
             if (img instanceof HTMLElement) {
               const offset = getOffset(img);
-              displayEffect(img.offsetWidth / 2 + offset.left, img.offsetHeight / 2 + offset.top).then(() => {
-                img.click();
-                resolve(true);
-              });
+              displayEffect(img.offsetWidth / 2 + offset.left, img.offsetHeight / 2 + offset.top);
+              img.click();
+              resolve(true);
             } else {
               resolve(false);
             }
