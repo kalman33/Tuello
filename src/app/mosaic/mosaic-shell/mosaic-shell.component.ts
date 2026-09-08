@@ -91,6 +91,15 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
       this.openShortcuts();
       return;
     }
+    // Le focus a pu quitter la recherche (clic sur une tuile, fermeture d'un menu…)
+    // alors qu'on navigue au clavier : un caractère imprimable ramène la saisie
+    // dans le champ et n'est pas perdu. Les raccourcis sont déjà traités au-dessus.
+    if (this.isPrintableKey(event) && !this.isSearchInput(event.target)) {
+      event.preventDefault();
+      this.toolbar()?.typeIntoSearch(event.key);
+      return;
+    }
+
     if (event.altKey || event.shiftKey) {
       return;
     }
@@ -144,9 +153,7 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
    * haut/bas), ou quand il n'y a rien à éditer.
    */
   private canNavigateHorizontally(event: KeyboardEvent): boolean {
-    const target = event.target as HTMLElement | null;
-    const inSearchInput = !!target?.classList?.contains('search-input');
-    return !inSearchInput || !this.searchQuery() || this.navigationService.activeIndex() >= 0;
+    return !this.isSearchInput(event.target) || !this.searchQuery() || this.navigationService.activeIndex() >= 0;
   }
 
   /** Une saisie ailleurs que dans la recherche de la mosaïque garde ses touches */
@@ -155,9 +162,22 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
     if (!target) {
       return false;
     }
-    const isSearchInput = target.classList?.contains('search-input');
     const editable = target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
-    return editable && !isSearchInput;
+    return editable && !this.isSearchInput(target);
+  }
+
+  private isSearchInput(target: EventTarget | null): boolean {
+    return !!(target as HTMLElement | null)?.classList?.contains('search-input');
+  }
+
+  /**
+   * Caractère à reporter dans la recherche : une touche unique, sans modificateur
+   * de commande — Maj reste admis, il ne sert qu'à la casse. L'espace est écarté :
+   * il actionne le bouton ou la ligne d'arbre qui a le focus, et n'ouvrirait de
+   * toute façon aucune recherche utile en tête de saisie.
+   */
+  private isPrintableKey(event: KeyboardEvent): boolean {
+    return event.key.length === 1 && event.key !== ' ' && !event.ctrlKey && !event.metaKey && !event.altKey;
   }
 
   ngOnInit() {

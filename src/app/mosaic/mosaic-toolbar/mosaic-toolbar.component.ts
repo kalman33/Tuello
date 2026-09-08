@@ -80,11 +80,29 @@ export class MosaicToolbarComponent implements AfterViewInit, OnDestroy {
     this.focusSearch();
   }
 
+  /**
+   * Reprise de saisie : une frappe faite alors que le focus avait quitté le champ
+   * (clic sur une tuile, retour de dialogue…) est reportée dans la recherche
+   * plutôt que perdue.
+   */
+  typeIntoSearch(char: string): void {
+    this.searchQuery += char;
+    this.searchChange.emit(this.searchQuery);
+    this.cdr.markForCheck();
+    this.focusSearch();
+  }
+
   /** Rend la main au champ de recherche : la mosaïque se pilote au clavier, il doit garder le focus */
   focusSearch(): void {
     this.timers.push(
       setTimeout(() => {
-        this.searchInput()?.nativeElement.focus();
+        const input = this.searchInput()?.nativeElement;
+        if (!input) {
+          return;
+        }
+        input.focus();
+        // Caret en fin de texte : la frappe suivante prolonge la recherche au lieu de l'écraser
+        input.setSelectionRange(input.value.length, input.value.length);
       }, 0)
     );
   }

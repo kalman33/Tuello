@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
     - Spy & Replay : le bouton stop interrompt aussi un rejeu en cours (jusqu'ici seule la pause permettait de reprendre la main)
     - Spy & Replay : la navigation initiale de l'enregistrement n'est plus perdue une fois sur deux
     - Spy & Replay : les navigations faites hors de la page sont enregistrées — favori, URL saisie, boutons précédent/suivant et rechargement (F5), rejoué comme tel
+    - Mosaïque : taper un caractère alors que le focus a quitté la recherche (navigation clavier, clic sur une tuile) redonne le focus au champ et y reporte la frappe
 
 ## [1.2.23.0] - 2026-09-07
 
