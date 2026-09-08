@@ -155,6 +155,7 @@
   "mmn.spy-http.actions.type.comment": "Commentaire",
   "mmn.spy-http.actions.type.screenshot": "Capture",
   "mmn.spy-http.actions.type.navigate": "Navigation",
+  "mmn.spy-http.actions.type.reload": "Rechargement",
   "mmn.spy-http.actions.type.record.by.img": "Cpt par img",
   "mmn.spy-http.actions.type.record.by.label": "Par libellé",
   "mmn.track.button.import": "Importer",

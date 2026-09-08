@@ -222,6 +222,21 @@ export class Player {
   }
 
   private async handleNavigate(userAction: UserAction): Promise<boolean> {
+    // Un rechargement enregistré (F5) est rejoué comme tel : redemander l'URL
+    // courante ne recharge pas forcément la page.
+    if (userAction.type === 'reload') {
+      return new Promise((resolve) => {
+        chrome.tabs.reload(this.chromeTabId, {}, () => {
+          if (chrome.runtime.lastError) {
+            console.warn('Erreur rechargement:', chrome.runtime.lastError.message);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+      });
+    }
+
     // On navigue dans l'onglet rejoué : avec l'onglet actif, un scénario lancé
     // depuis la mosaïque pouvait détourner un autre onglet.
     return new Promise((resolve) => {

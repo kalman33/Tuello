@@ -170,7 +170,12 @@ async function addTargetedAction(userAction: IUserAction, tabId: number, frameId
   }
 }
 
-export async function addNavigate(userAction: IUserAction, tabId: number, frameId: number): Promise<void> {
+/**
+ * @param append true pour une navigation faite en cours d'enregistrement (favori,
+ * URL saisie, précédent/suivant, rechargement) : elle prend sa place à la suite des
+ * actions déjà enregistrées. false pour la navigation initiale, qui ouvre le scénario.
+ */
+export async function addNavigate(userAction: IUserAction, tabId: number, frameId: number, append = false): Promise<void> {
   const state = getState(tabId);
 
   if (!state.record) {
@@ -180,6 +185,15 @@ export async function addNavigate(userAction: IUserAction, tabId: number, frameI
 
   // Vérifier la limite d'actions
   if (!canAddAction(state)) {
+    return;
+  }
+
+  // Une redirection enchaîne plusieurs navigations vers la même page : une seule
+  // action a du sens au rejeu. Un rechargement (F5) vise par définition la page
+  // courante : lui, reste une action à part entière.
+  const lastRecorded = state.record.actions[state.record.actions.length - 1];
+  const isReload = userAction.type === 'reload';
+  if (append && !isReload && lastRecorded?.actionType === ActionType.NAVIGATE && lastRecorded.userAction?.hrefLocation === userAction.hrefLocation) {
     return;
   }
 
@@ -195,8 +209,13 @@ export async function addNavigate(userAction: IUserAction, tabId: number, frameI
   }
 
   const action = new Action(delay, ActionType.NAVIGATE, userAction);
-  if (state.record.actions.length === 0) {
+  if (append || state.record.actions.length === 0) {
     state.record.actions.push(action);
+    // La page a changé : un scroll ou une saisie qui suit ne doit pas être fusionné
+    // avec celui d'avant la navigation.
+    if (append) {
+      state.lastAction = action;
+    }
   } else {
     state.record.actions.unshift(action);
   }
@@ -379,30 +398,38 @@ export function addComment(comment: string, tabId?: number): void {
   saveUiRecordToLocalStorage(state.record);
 }
 
-export function addRecordWindowSize(windowSize: WindowSize, tabId?: number): void {
+/**
+ * La promesse permet à l'appelant d'attendre la (re)création du record avant d'y
+ * ajouter une action : cette fonction peut repartir d'un record vide (suppression
+ * précédente), ce qui effaçait l'action de navigation initiale ajoutée en parallèle.
+ */
+export function addRecordWindowSize(windowSize: WindowSize, tabId?: number): Promise<void> {
   const state = getState(tabId);
 
   // Vérifier le flag dans le storage (async mais non bloquant pour l'UI)
-  chrome.storage.local.get(['uiRecordDeleted'], (result) => {
-    // Si le flag est présent (mémoire OU storage), forcer un nouveau record
-    if (result.uiRecordDeleted || recordDeletedFlag) {
-      state.record = null;
-      state.lastAction = null;
-      recordDeletedFlag = false;
-      // Supprimer le flag du storage
-      chrome.storage.local.remove(['uiRecordDeleted']);
-    }
+  return new Promise<void>((resolve) => {
+    chrome.storage.local.get(['uiRecordDeleted'], (result) => {
+      // Si le flag est présent (mémoire OU storage), forcer un nouveau record
+      if (result.uiRecordDeleted || recordDeletedFlag) {
+        state.record = null;
+        state.lastAction = null;
+        recordDeletedFlag = false;
+        // Supprimer le flag du storage
+        chrome.storage.local.remove(['uiRecordDeleted']);
+      }
 
-    if (!state.record) {
-      state.record = new Record(windowSize);
-      state.record.actions = [];
-      state.lastAction = null;
-    } else {
-      state.record.windowSize = windowSize;
-    }
+      if (!state.record) {
+        state.record = new Record(windowSize);
+        state.record.actions = [];
+        state.lastAction = null;
+      } else {
+        state.record.windowSize = windowSize;
+      }
 
-    // Sauvegarder et notifier Angular
-    saveUiRecordToLocalStorage(state.record);
+      // Sauvegarder et notifier Angular
+      saveUiRecordToLocalStorage(state.record);
+      resolve();
+    });
   });
 }
 

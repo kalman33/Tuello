@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.24.0] - 2026-09-08
+
+    - Spy & Replay : le bouton stop interrompt aussi un rejeu en cours (jusqu'ici seule la pause permettait de reprendre la main)
+    - Spy & Replay : la navigation initiale de l'enregistrement n'est plus perdue une fois sur deux
+    - Spy & Replay : les navigations faites hors de la page sont enregistrées — favori, URL saisie, boutons précédent/suivant et rechargement (F5), rejoué comme tel
+
 ## [1.2.23.0] - 2026-09-07
 
     - Spy & Replay : les commentaires enregistrés s'affichent pendant le rejeu dans un bandeau lisible, visible jusqu'à l'action suivante (entre 2 et 10 secondes)

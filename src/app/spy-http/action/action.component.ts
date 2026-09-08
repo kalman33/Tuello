@@ -31,6 +31,9 @@ export class ActionComponent implements OnChanges {
     /** Domain extrait de l'URL (calculé une seule fois quand l'action change) */
     domain: string = '';
 
+    /** Rechargement de page (F5) : même action que la navigation, mais rejouée sur place */
+    isReload = false;
+
     constructor(
         public dialog: MatDialog,
         public chromeExtentionUtilsService: ChromeExtentionUtilsService
@@ -39,6 +42,7 @@ export class ActionComponent implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['action']) {
             this.domain = this.extractDomain();
+            this.isReload = this.action?.userAction?.type === 'reload';
         }
     }
 

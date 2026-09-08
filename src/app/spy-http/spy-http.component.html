@@ -1,23 +1,23 @@
 <div class="container">
   <div fxFlex="99%">
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
-      <button id="guide-spy-record" [disabled]="spyActif" mat-flat-button color="primary" (click)="startRecording()">
+      <button id="guide-spy-record" [disabled]="spyActif || playing" mat-flat-button color="primary" (click)="startRecording()">
         <mat-icon>mic</mat-icon>
         {{ 'mmn.spy-http.button.record' | translate }}
       </button>
-      <button mat-flat-button color="primary" (click)="deleteRecords()">
+      <button [disabled]="playing" mat-flat-button color="primary" (click)="deleteRecords()">
         <mat-icon>delete</mat-icon>
         {{ 'mmn.spy-http.button.delete' | translate }}
       </button>
-      <button id="guide-spy-play" [disabled]="spyActif || actions?.length <= 0" mat-flat-button color="primary" (click)="startPlaying()">
+      <button id="guide-spy-play" [disabled]="spyActif || playing || actions?.length <= 0" mat-flat-button color="primary" (click)="startPlaying()">
         <mat-icon>play_circle_outline</mat-icon>
         {{ 'mmn.spy-http.button.play' | translate }}
       </button>
-      <button [disabled]="!spyActif" mat-flat-button color="primary" (click)="stopRecording()">
+      <button [disabled]="!spyActif && !playing" mat-flat-button color="primary" (click)="stop()">
         <mat-icon>stop</mat-icon>
         {{ 'mmn.spy-http.button.stop' | translate }}
       </button>
-      <button id="guide-spy-scenario" [disabled]="spyActif || actions?.length <= 0" mat-flat-button color="primary" (click)="saveScenario()">
+      <button id="guide-spy-scenario" [disabled]="spyActif || playing || actions?.length <= 0" mat-flat-button color="primary" (click)="saveScenario()">
         <mat-icon>bookmark_add</mat-icon>
         {{ 'mmn.spy-http.button.save-scenario' | translate }}
       </button>

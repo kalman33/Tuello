@@ -77,6 +77,59 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
+/**
+ * Types de navigation déclenchés hors de la page : le content script ne voit aucun
+ * clic pour ceux-là (barre d'adresse, favori, page d'accueil, suggestion, F5). Les
+ * transitions issues d'un clic dans la page ('link', 'form_submit') sont exclues :
+ * l'action de clic est déjà enregistrée et rejoue la navigation.
+ */
+const RECORDED_TRANSITION_TYPES = ['typed', 'auto_bookmark', 'generated', 'keyword', 'keyword_generated', 'start_page', 'reload'];
+
+/**
+ * Enregistre les navigations que le content script ne peut pas capter : favori,
+ * URL saisie, boutons précédent/suivant, rechargement (F5). Sans ça, un changement
+ * de site en cours d'enregistrement n'apparaissait pas dans le scénario et le rejeu
+ * restait sur la page précédente.
+ */
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId !== 0 || details.tabId === undefined || details.tabId < 0 || isRestrictedUrl(details.url ?? '')) {
+    return;
+  }
+  // Le rejeu navigue lui aussi : ses navigations ne sont pas des actions utilisateur
+  if (player !== null && player.chromeTabId === details.tabId) {
+    return;
+  }
+  // Une redirection décidée par la page se reproduira d'elle-même au rejeu ; la
+  // redirection serveur, elle, fait partie de la navigation demandée (c'est l'URL
+  // d'arrivée qui est enregistrée, la seule qui sera atteinte au rejeu).
+  if (details.transitionQualifiers?.includes('client_redirect')) {
+    return;
+  }
+  const fromHistory = details.transitionQualifiers?.includes('forward_back');
+  if (!fromHistory && !RECORDED_TRANSITION_TYPES.includes(details.transitionType)) {
+    return;
+  }
+
+  chrome.storage.local.get(['uiRecordActivated', 'uiRecordTabId'], (results: Record<string, any>) => {
+    // Seul l'onglet suivi par l'enregistrement compte : un onglet ouvert à côté
+    // pendant l'enregistrement ne doit pas glisser ses navigations dans le scénario.
+    if (!results['uiRecordActivated'] || results['uiRecordTabId'] !== details.tabId) {
+      return;
+    }
+    // L'onglet peut n'avoir aucun état en mémoire (service worker redémarré) : on
+    // repart du record stocké plutôt que d'en créer un vide qui écraserait
+    // l'enregistrement en cours.
+    loadRecordFromStorage(details.tabId).then(() => {
+      const action = new UserAction(null);
+      // Un rechargement est rejoué comme tel : demander la même URL ne recharge pas
+      // toujours la page, et l'utilisateur qui fait F5 attend bien un rechargement.
+      action.type = details.transitionType === 'reload' ? 'reload' : 'navigation';
+      action.hrefLocation = details.url;
+      addNavigate(action, details.tabId, 0, true);
+    });
+  });
+});
+
 self.addEventListener('activate', (event) => {
   (self as any).process = {
     versions: {
@@ -104,6 +157,10 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  // Aucun rejeu ne survit à la fermeture du navigateur : le drapeau resté à true
+  // laisserait le panneau bloqué sur le bouton stop.
+  chrome.storage.local.set({ uiPlayActivated: false });
+
   const result = await chrome.storage.local.get<Record<string, any>>(['mosaicConfig']);
   const config = result['mosaicConfig'];
   if (config?.openOnStartup) {
@@ -211,6 +268,26 @@ function broadcastToAllTabs(message: Record<string, unknown>, senderTabId?: numb
       // onglets sans content script (chrome://, Web Store, onglets déchargés).
       chrome.tabs.sendMessage(tab.id, message, () => chrome.runtime.lastError);
     }
+  });
+}
+
+/**
+ * Onglet sur lequel porte l'enregistrement : celui d'où vient le message quand il
+ * est connu (le panneau est injecté dans la page), l'onglet actif sinon. L'onglet
+ * émetteur est plus fiable que la requête sur l'onglet actif, qui peut désigner une
+ * autre fenêtre.
+ */
+function resolveRecorderTab(tabId?: number): Promise<chrome.tabs.Tab | null> {
+  return new Promise((resolve) => {
+    if (tabId !== undefined && tabId >= 0) {
+      chrome.tabs.get(tabId, (tab) => {
+        resolve(chrome.runtime.lastError || !tab ? null : tab);
+      });
+      return;
+    }
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      resolve(tabs[0] ?? null);
+    });
   });
 }
 
@@ -435,6 +512,9 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       // listener de navigation : permet de désactiver et réactiver le player le temps que le dom se charge dans la nouvelle page
       chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
       chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
+      // Le rejeu est terminé : le panneau doit repasser du bouton stop au bouton play
+      player = null;
+      chrome.storage.local.set({ uiPlayActivated: false });
       break;
     case 'LOAD_UI_RECORDERS':
       // on charge les enregistrements du local storage : uniquement pour la frame principale
@@ -448,6 +528,14 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         if (recorderTabId !== undefined) {
           setActiveTab(recorderTabId);
         }
+        // Onglet suivi par l'enregistrement : seules ses navigations hors page
+        // (favori, URL saisie) sont enregistrées, pas celles d'un onglet ouvert à
+        // côté pendant l'enregistrement.
+        resolveRecorderTab(recorderTabId).then((tab) => {
+          if (tab?.id !== undefined) {
+            chrome.storage.local.set({ uiRecordTabId: tab.id });
+          }
+        });
 
         // msg.reset === false : on reprend l'enregistrement existant (bouton « ajouter »
         // du panneau, ou panneau rouvert alors que l'enregistrement tourne déjà).
@@ -464,23 +552,29 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
               top: windowInfos.top,
               left: windowInfos.left
             };
-            addRecordWindowSize(data, recorderTabId);
-          });
-
-          // L'action de navigation initiale n'a de sens que pour un nouvel
-          // enregistrement : le record repris porte déjà la sienne.
-          if (!isAppend) {
-            chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-              const activeTab = tabs[0];
-              if (!activeTab?.id) {
+            // La taille de fenêtre peut repartir d'un record vide : la navigation
+            // initiale doit être ajoutée après, sinon elle disparaissait une fois
+            // sur deux, selon lequel des deux traitements asynchrones finissait en
+            // dernier.
+            addRecordWindowSize(data, recorderTabId).then(() => {
+              // L'action de navigation initiale n'a de sens que pour un nouvel
+              // enregistrement : le record repris porte déjà la sienne.
+              if (isAppend) {
                 return;
               }
-              const action = new UserAction(null);
-              action.type = 'navigation';
-              action.hrefLocation = activeTab.url;
-              addNavigate(action, activeTab.id, 0);
+              resolveRecorderTab(recorderTabId).then((tab) => {
+                if (!tab?.id || isRestrictedUrl(tab.url ?? '')) {
+                  return;
+                }
+                const action = new UserAction(null);
+                action.type = 'navigation';
+                action.hrefLocation = tab.url;
+                // Même onglet que la taille de fenêtre : l'état d'enregistrement est
+                // indexé par onglet, l'action irait sinon dans un autre record.
+                addNavigate(action, recorderTabId ?? tab.id, 0);
+              });
             });
-          }
+          });
         });
       }
       // on envoie un message au content scrip
@@ -816,7 +910,14 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         player.destroy();
       }
       player = new Player(msg.value, sender.tab.id, senderResponse);
+      // Le panneau lit ce drapeau pour proposer l'arrêt du rejeu (il est réouvert à
+      // chaque navigation du scénario et perd son état interne)
+      chrome.storage.local.set({ uiPlayActivated: true });
       player.launchAction('PLAY');
+      break;
+    case 'STOP_PLAY_USER_ACTIONS':
+      stopPlayer(sender?.tab?.id);
+      senderResponse();
       break;
     case 'MOCK_HTTP_USER_ACTION':
       if (sender && sender.tab && sender.tab.id >= 0) {
@@ -1015,12 +1116,41 @@ async function playScenarioOnTab(scenario: Scenario, actions: Action[], tabId: n
   player.launchAction('PLAY');
 }
 
+/**
+ * Interrompt le rejeu en cours (bouton stop du panneau) : le player, les listeners
+ * de navigation, les mocks HTTP activés pour l'occasion et le bandeau de commentaire.
+ * Le panneau est réaffiché pour que l'utilisateur retrouve la liste des actions.
+ */
+function stopPlayer(senderTabId?: number): void {
+  const playedTabId = player?.chromeTabId ?? senderTabId;
+
+  if (player !== null) {
+    player.destroy();
+    player = null;
+  }
+  chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
+  chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
+  chrome.storage.local.set({ uiPlayActivated: false });
+  chrome.action.setIcon({ path: '/assets/logos/tuello-32x32.png' });
+
+  if (playedTabId === undefined || playedTabId < 0) {
+    return;
+  }
+  // Les mocks ne concernent que le rejeu : ils doivent être coupés dans toutes les frames
+  chrome.tabs.sendMessage(playedTabId, { action: 'MOCK_HTTP_USER_ACTION', value: false }, () => chrome.runtime.lastError);
+  chrome.tabs.sendMessage(playedTabId, { action: 'HIDE_REPLAY_COMMENT' }, { frameId: 0 }, () => chrome.runtime.lastError);
+  chrome.tabs.sendMessage(playedTabId, { action: 'SHOW' }, { frameId: 0 }, () => chrome.runtime.lastError);
+}
+
 /** Nettoyage de fin (ou d'échec) d'un scénario joué depuis la mosaïque */
 function stopScenarioPlayer(): void {
   // L'icône n'est pas touchée : un enregistrement en cours dans un autre onglet
   // doit garder la sienne.
   chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
   chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
+  // Sans ça le player terminé restait référencé et l'onglet passait pour un onglet
+  // en cours de rejeu (navigations non enregistrées).
+  player = null;
 }
 
 /**

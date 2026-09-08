@@ -74,6 +74,8 @@ import { RecorderHistoryService } from './services/recorder-history.service';
 })
 export class SpyHttpComponent implements OnInit, OnDestroy {
   spyActif: boolean;
+  /** Un rejeu est en cours (éventuellement en pause) : le bouton stop peut l'interrompre */
+  playing = false;
   pausable: PausableObservable<Action>;
   actions: Action[];
   pausedAction = 0;
@@ -92,6 +94,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   uiRecordListener;
   resumerPauseListener;
   private chromeMessageListener: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => void;
+  private storageListener: (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => void;
 
   jsonContent: string;
 
@@ -154,7 +157,21 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       this.changeDetectorRef.detectChanges();
     });
 
-    chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
+    // Le panneau est recréé à chaque navigation du scénario rejoué : l'état du rejeu
+    // vit dans le storage, où le background le tient à jour.
+    this.storageListener = (changes, areaName) => {
+      if (areaName !== 'local' || !changes['uiPlayActivated']) {
+        return;
+      }
+      this.ngZone.run(() => {
+        this.playing = !!changes['uiPlayActivated'].newValue;
+        this.changeDetectorRef.detectChanges();
+      });
+    };
+    chrome.storage.onChanged.addListener(this.storageListener);
+
+    chrome.storage.local.get(['uiRecordActivated', 'uiPlayActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
+      this.playing = !!results['uiPlayActivated'];
       if (results['uiRecordActivated']) {
         this.spyActif = true;
         // on previent background qui va prevenir contentscript qu'on a démarré le recording.
@@ -217,6 +234,32 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       this.chromeExtentionUtilsService.toggle();
       this.recorderHistoryService.startRecording();
     }
+  }
+
+  /**
+   * Le bouton stop couvre les deux états : arrêt de l'enregistrement en cours, ou
+   * interruption d'un rejeu (le rejeu peut être long, et l'utilisateur n'a sinon que
+   * la pause pour reprendre la main).
+   */
+  stop() {
+    if (this.playing) {
+      this.stopPlaying();
+    }
+    if (this.spyActif) {
+      this.stopRecording();
+    }
+  }
+
+  /** Interrompt le rejeu en cours : le background arrête le player et remet la page en état */
+  stopPlaying() {
+    this.playing = false;
+    this.playerService.pausedActionNumber = 0;
+    chrome.runtime.sendMessage(
+      {
+        action: 'STOP_PLAY_USER_ACTIONS'
+      },
+      () => chrome.runtime.lastError
+    );
   }
 
   stopRecording() {
@@ -328,6 +371,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   public startPlaying() {
     this.playerService.comparisonResults = null;
     this.spyActif = false;
+    this.playing = true;
 
     // permet de demander de scroller en 0,0 sur toutes les iframes
     chrome.runtime.sendMessage(
@@ -498,9 +542,12 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.scenariosSubscription?.unsubscribe();
     this.langChangeSubscription?.unsubscribe();
-    // Suppression du listener Chrome pour éviter les fuites mémoire
+    // Suppression des listeners Chrome pour éviter les fuites mémoire
     if (this.chromeMessageListener) {
       chrome.runtime.onMessage.removeListener(this.chromeMessageListener);
+    }
+    if (this.storageListener) {
+      chrome.storage.onChanged.removeListener(this.storageListener);
     }
     chrome.storage.local.set({ tuelloKeyboardShortcut: this.buildKeyboardShortcut() });
   }
