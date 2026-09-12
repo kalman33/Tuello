@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, NgZone, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 import { TranslateService } from '@ngx-translate/core';
 import { take } from 'rxjs';
 import { ConfirmDialogComponent } from '../../core/confirmation-dialog/confirmation-dialog.component';
-import { CategoriesGridComponent, GridItem } from '../categories-grid/categories-grid.component';
+import { CategoriesGridComponent, GridItem, UrlDroppedInCategory } from '../categories-grid/categories-grid.component';
 import { AddCategoryDialogComponent } from '../dialogs/add-category-dialog.component';
 import { AddUrlDialogComponent, AddUrlDialogResult } from '../dialogs/add-url-dialog.component';
 import { KeyboardShortcutsDialogComponent } from '../dialogs/keyboard-shortcuts-dialog.component';
@@ -34,6 +34,11 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
   searchQuery = signal<string>('');
   isSearching = computed(() => this.searchQuery().trim().length > 0);
 
+  /** Un site de la catégorie ouverte est en cours de glisser : la racine s'offre en dépôt */
+  rootDropAvailable = signal(false);
+  /** Zone « racine » survolée */
+  rootDropActive = signal(false);
+
   viewMode = signal<MosaicViewMode>('grid');
   /**
    * Volontairement non persisté : un mode édition encore actif après un
@@ -52,6 +57,7 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
   private storageService = inject(MosaicStorageService);
   private navigationService = inject(MosaicNavigationService);
   private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
   private translate = inject(TranslateService);
   private titleService = inject(Title);
   private cdr = inject(ChangeDetectorRef);
@@ -439,8 +445,49 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Site glissé sur une tuile dossier depuis la grille racine : il rejoint la fin
+   * de la catégorie. La tuile disparaissant de la grille, un message rappelle où
+   * elle a atterri.
+   */
+  async onUrlDroppedInCategory(drop: UrlDroppedInCategory): Promise<void> {
+    const category = this.categories.find((c) => c.id === drop.categoryId);
+    const url = this.rootUrls.find((u) => u.id === drop.urlId);
+    if (!category || !url) {
+      return;
+    }
+    await this.storageService.moveUrl(null, drop.categoryId, drop.urlId, category.urls.length);
+    this.snackBar.open(this.translate.instant('mmn.mosaic.url.moved', { title: url.title, category: category.name }), undefined, { duration: 3000 });
+  }
+
   async onUrlMoved(move: MosaicUrlMove): Promise<void> {
     await this.storageService.moveUrl(move.fromCategoryId, move.toCategoryId, move.urlId, move.toIndex);
+  }
+
+  onCategoryDragging(dragging: boolean): void {
+    this.rootDropAvailable.set(dragging);
+    if (!dragging) {
+      this.rootDropActive.set(false);
+    }
+    this.cdr.detectChanges();
+  }
+
+  onRootTargetChange(over: boolean): void {
+    this.rootDropActive.set(over);
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Site lâché sur la zone « racine » de la barre d'outils : il sort de la catégorie
+   * ouverte et rejoint la fin des sites racine.
+   */
+  async onUrlDroppedOnRoot(url: MosaicUrl): Promise<void> {
+    const categoryId = this.selectedCategoryId();
+    if (!categoryId) {
+      return;
+    }
+    await this.storageService.moveUrl(categoryId, null, url.id, this.rootUrls.length);
+    this.snackBar.open(this.translate.instant('mmn.mosaic.url.movedRoot', { title: url.title }), undefined, { duration: 3000 });
   }
 
   async onUrlsReordered(urls: MosaicUrl[]): Promise<void> {

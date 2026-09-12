@@ -9,12 +9,15 @@
       @for (url of displayUrls; track url.id) {
         <mmn-mosaic-tile
           cdkDrag
+          [cdkDragData]="url"
           [item]="url"
           type="url"
           [editable]="editable"
           [active]="activeIndex() === $index"
           [attr.data-nav-index]="$index"
           (mouseenter)="selectItem($index)"
+          (cdkDragStarted)="onDragStarted()"
+          (cdkDragEnded)="onDragEnded()"
           (edit)="editUrl.emit(url)"
           (delete)="deleteUrl.emit(url)"
         ></mmn-mosaic-tile>

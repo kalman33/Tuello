@@ -5,16 +5,21 @@
       <p>{{ 'mmn.mosaic.empty.main' | translate }}</p>
     </div>
   } @else {
-    <div cdkDropList cdkDropListOrientation="mixed" class="tiles-list" (cdkDropListDropped)="drop($event)" [@staggerList]>
+    <div cdkDropList cdkDropListOrientation="mixed" class="tiles-list" [cdkDropListSortPredicate]="sortPredicate" (cdkDropListSorted)="onSorted($event)" (cdkDropListDropped)="drop($event)" [@staggerList]>
       @for (item of gridItems; track item.data.id) {
         <mmn-mosaic-tile
           cdkDrag
+          [cdkDragData]="item"
           [item]="item.data"
           [type]="item.kind"
           [editable]="editable"
           [active]="activeIndex() === $index"
+          [dropTarget]="item.kind === 'category' && dropTargetId === item.data.id"
           [attr.data-nav-index]="$index"
+          [attr.data-mosaic-drop]="item.kind === 'category' ? item.data.id : null"
           (mouseenter)="selectItem($index)"
+          (cdkDragStarted)="onDragStarted(item)"
+          (cdkDragEnded)="onDragEnded()"
           (tileClick)="onTileClick(item)"
           (edit)="editItem.emit(item)"
           (delete)="deleteItem.emit(item)"

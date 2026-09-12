@@ -11,6 +11,25 @@
   outline-offset: 2px;
 }
 
+/* Dossier prêt à recevoir le site glissé : le repère doit rester lisible alors que
+   la tuile ne bouge plus (le réordonnancement est neutralisé sur les dossiers) */
+:host(.is-drop-target) {
+  .tile {
+    transform: translateY(-10px) scale(1.04);
+    outline: 3px solid #4facfe;
+    outline-offset: 3px;
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.28);
+  }
+
+  .category-preview {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+  }
+
+  .category-icon-wrapper {
+    transform: scale(1.15);
+  }
+}
+
 .tile-wrapper {
   position: relative;
   width: 100%;
@@ -149,6 +168,7 @@
 }
 
 .category-icon-wrapper {
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   width: 56px;
   height: 56px;
   background: rgba(255, 255, 255, 0.25);
@@ -260,6 +280,17 @@
 :host-context(.black-theme) {
   &.is-active .tile {
     outline-color: #8facb6;
+  }
+
+  &.is-drop-target {
+    .tile {
+      outline-color: #43e97b;
+    }
+    .category-preview {
+      background:
+        radial-gradient(circle at 28% 22%, rgba(67, 233, 123, 0.25), transparent 62%),
+        linear-gradient(135deg, #1c6b57 0%, #14554a 45%, #0d3a33 100%);
+    }
   }
 
   .tile {

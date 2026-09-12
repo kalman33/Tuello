@@ -21,6 +21,10 @@ export class MosaicToolbarComponent implements AfterViewInit, OnDestroy {
   @Input() categoryName = '';
   @Input() viewMode: MosaicViewMode = 'grid';
   @Input() editMode = false;
+  /** Un site est en cours de glisser : le bouton retour devient zone de dépôt vers la racine */
+  @Input() rootDropAvailable = false;
+  /** Cette zone est survolée : le lâcher remettra le site à la racine */
+  @Input() rootDropActive = false;
   @Output() backClick = new EventEmitter<void>();
   @Output() searchChange = new EventEmitter<string>();
   @Output() viewModeChange = new EventEmitter<MosaicViewMode>();

@@ -30,7 +30,7 @@
       } @else {
         <div class="category-preview">
           <div class="category-icon-wrapper">
-            <mat-icon class="category-icon">folder</mat-icon>
+            <mat-icon class="category-icon">{{ dropTarget ? 'folder_open' : 'folder' }}</mat-icon>
           </div>
           <span class="url-count">{{ urlCount }} items</span>
         </div>

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.25.0] - 2026-09-12
+
+    - Mosaïque : un site de la racine se range dans une catégorie en le glissant sur la tuile du dossier — le dossier visé s'ouvre pour signaler qu'il recevra le site
+    - Mosaïque : pendant ce glisser, les tuiles dossier ne sont plus décalées par le réordonnancement au moment où le curseur les atteint (elles devenaient impossibles à viser)
+    - Mosaïque : à l'intérieur d'une catégorie, le bouton retour devient une zone de dépôt qui remet le site glissé à la racine
+    - Mosaïque : un message confirme la catégorie d'arrivée du site déplacé, dont la tuile a disparu de la vue
+
 ## [1.2.24.0] - 2026-09-08
 
     - Spy & Replay : le bouton stop interrompt aussi un rejeu en cours (jusqu'ici seule la pause permettait de reprendre la main)

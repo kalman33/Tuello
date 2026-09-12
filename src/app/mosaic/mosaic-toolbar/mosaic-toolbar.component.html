@@ -1,8 +1,11 @@
 <mat-toolbar>
   @if (showBack) {
-    <button mat-icon-button [matTooltip]="'mmn.mosaic.back' | translate" (click)="backClick.emit()">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
+    <div class="back-zone" [class.drop-available]="rootDropAvailable" [class.drop-active]="rootDropActive" [attr.data-mosaic-drop]="rootDropAvailable ? 'root' : null">
+      <button mat-icon-button [matTooltip]="'mmn.mosaic.back' | translate" [matTooltipDisabled]="rootDropAvailable" (click)="backClick.emit()">
+        <mat-icon>{{ rootDropActive ? 'home' : 'arrow_back' }}</mat-icon>
+      </button>
+      <span class="drop-hint">{{ 'mmn.mosaic.url.dropRoot' | translate }}</span>
+    </div>
   }
 
   <div class="toolbar-title">

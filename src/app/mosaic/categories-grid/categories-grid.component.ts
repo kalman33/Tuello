@@ -1,16 +1,23 @@
 import { animate, query, stagger, style, transition, trigger } from '@angular/animations';
-import { ChangeDetectionStrategy, Component, EventEmitter, inject, Input, Output } from '@angular/core';
-import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, inject, Input, NgZone, Output } from '@angular/core';
+import { CdkDrag, CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '@ngx-translate/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicTileComponent } from '../mosaic-tile/mosaic-tile.component';
 import { MosaicLauncherService } from '../services/mosaic-launcher.service';
+import { MosaicDropTargetTracker } from '../utils/mosaic-drop-target';
 import { MosaicGridNavigationBase } from '../utils/mosaic-grid-navigation.base';
 
 export interface GridItem {
   kind: 'category' | 'url';
   data: MosaicCategory | MosaicUrl;
+}
+
+/** Site lâché sur une tuile dossier : il quitte la racine pour cette catégorie */
+export interface UrlDroppedInCategory {
+  urlId: string;
+  categoryId: string;
 }
 
 @Component({
@@ -48,12 +55,46 @@ export class CategoriesGridComponent extends MosaicGridNavigationBase {
   @Output() reordered = new EventEmitter<{ categories: MosaicCategory[]; rootUrls: MosaicUrl[] }>();
   @Output() editItem = new EventEmitter<GridItem>();
   @Output() deleteItem = new EventEmitter<GridItem>();
+  @Output() urlDroppedInCategory = new EventEmitter<UrlDroppedInCategory>();
 
   private _categories: MosaicCategory[] = [];
   private _rootUrls: MosaicUrl[] = [];
   gridItems: GridItem[] = [];
 
+  /** Dossier actuellement survolé par le site glissé, null en dehors d'un dossier */
+  dropTargetId: string | null = null;
+  /**
+   * Ordre d'affichage pendant le glisser : le CDK réordonne les tuiles à la volée
+   * sans toucher à `gridItems`, or le prédicat de tri a besoin de savoir quelle
+   * tuile occupe l'emplacement visé.
+   */
+  private liveItems: GridItem[] = [];
+
   private launcherService = inject(MosaicLauncherService);
+  private ngZone = inject(NgZone);
+  private cdr = inject(ChangeDetectorRef);
+
+  /** La zone survolée est toujours une tuile dossier : la racine, elle, est déjà affichée */
+  private dropTracker = new MosaicDropTargetTracker(this.ngZone, (target) => {
+    this.dropTargetId = target;
+    this.cdr.detectChanges();
+  });
+
+  /**
+   * Un site glissé sur un dossier y entre au lieu de prendre sa place : on neutralise
+   * le réordonnancement sur les emplacements de dossier, sinon la tuile visée serait
+   * décalée par le CDK au moment même où le curseur l'atteint, et deviendrait
+   * impossible à viser.
+   */
+  sortPredicate = (index: number, drag: CdkDrag): boolean => {
+    const dragged = drag.data as GridItem | undefined;
+    return dragged?.kind !== 'url' || this.liveItems[index]?.kind !== 'category';
+  };
+
+  override ngOnDestroy(): void {
+    this.dropTracker.stopTracking();
+    super.ngOnDestroy();
+  }
 
   /** Entrée / Alt+chiffre : on ouvre le site, ou on entre dans la catégorie */
   protected override activateNavItem(index: number, background: boolean): void {
@@ -100,7 +141,41 @@ export class CategoriesGridComponent extends MosaicGridNavigationBase {
     }
   }
 
+  /** Le suivi du curseur n'a de sens que pour un site : un dossier ne se range pas dans un dossier */
+  onDragStarted(item: GridItem): void {
+    this.liveItems = [...this.gridItems];
+    if (item.kind === 'url') {
+      this.dropTracker.start();
+    }
+  }
+
+  /**
+   * Le CDK émet `ended` avant `dropped` : la cible doit survivre jusqu'au lâcher,
+   * seule l'écoute du curseur s'arrête ici.
+   */
+  onDragEnded(): void {
+    this.dropTracker.stopTracking();
+  }
+
+  /** Suit le réordonnancement en cours pour garder `liveItems` aligné sur l'affichage */
+  onSorted(event: { previousIndex: number; currentIndex: number }): void {
+    moveItemInArray(this.liveItems, event.previousIndex, event.currentIndex);
+  }
+
   drop(event: CdkDragDrop<GridItem[]>): void {
+    const targetCategoryId = this.dropTargetId;
+    this.dropTracker.reset();
+
+    const dragged = event.item.data as GridItem | undefined;
+    if (targetCategoryId && dragged?.kind === 'url') {
+      // Retrait immédiat : la tuile ne doit pas rester à la racine le temps de
+      // l'écriture dans le storage.
+      this.gridItems = this.gridItems.filter((item) => item !== dragged);
+      this.syncNavigation(this.gridItems.length);
+      this.urlDroppedInCategory.emit({ urlId: (dragged.data as MosaicUrl).id, categoryId: targetCategoryId });
+      return;
+    }
+
     moveItemInArray(this.gridItems, event.previousIndex, event.currentIndex);
     this.gridItems = [...this.gridItems];
     this.syncNavigation(this.gridItems.length);

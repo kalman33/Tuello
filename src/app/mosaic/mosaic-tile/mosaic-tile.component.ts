@@ -16,7 +16,7 @@ import { faviconFor } from '../utils/mosaic-text';
   templateUrl: './mosaic-tile.component.html',
   styleUrls: ['./mosaic-tile.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[class.is-active]': 'active' },
+  host: { '[class.is-active]': 'active', '[class.is-drop-target]': 'dropTarget' },
   imports: [MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule, MatProgressSpinnerModule, TranslatePipe]
 })
 export class MosaicTileComponent implements OnInit {
@@ -25,6 +25,8 @@ export class MosaicTileComponent implements OnInit {
   @Input() editable = true;
   /** Tuile sous le curseur clavier */
   @Input() active = false;
+  /** Dossier survolé par un site en cours de glisser-déposer : il le recevra au lâcher */
+  @Input() dropTarget = false;
 
   @Output() tileClick = new EventEmitter<void>();
   @Output() edit = new EventEmitter<void>();

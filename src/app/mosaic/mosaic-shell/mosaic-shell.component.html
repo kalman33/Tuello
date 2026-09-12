@@ -10,6 +10,8 @@
     [categoryName]="selectedCategory?.name ?? ''"
     [viewMode]="viewMode()"
     [editMode]="editMode()"
+    [rootDropAvailable]="rootDropAvailable()"
+    [rootDropActive]="rootDropActive()"
     (backClick)="goBack()"
     (searchChange)="onSearchChange($event)"
     (viewModeChange)="onViewModeChange($event)"
@@ -25,7 +27,16 @@
     } @else if (showSearchResults()) {
       <mmn-mosaic-search-results [query]="searchQuery()" [categories]="categories" [rootUrls]="rootUrls"></mmn-mosaic-search-results>
     } @else if (selectedCategoryId()) {
-      <mmn-urls-grid [urls]="categoryUrls" [editable]="editMode()" (reordered)="onUrlsReordered($event)" (editUrl)="onCategoryUrlEdit($event)" (deleteUrl)="onCategoryUrlDelete($event)"></mmn-urls-grid>
+      <mmn-urls-grid
+        [urls]="categoryUrls"
+        [editable]="editMode()"
+        (reordered)="onUrlsReordered($event)"
+        (draggingChange)="onCategoryDragging($event)"
+        (rootTargetChange)="onRootTargetChange($event)"
+        (urlDroppedOnRoot)="onUrlDroppedOnRoot($event)"
+        (editUrl)="onCategoryUrlEdit($event)"
+        (deleteUrl)="onCategoryUrlDelete($event)"
+      ></mmn-urls-grid>
     } @else {
       <mmn-categories-grid
         [categories]="categories"
@@ -33,6 +44,7 @@
         [editable]="editMode()"
         (categorySelected)="selectCategory($event)"
         (reordered)="onGridReordered($event)"
+        (urlDroppedInCategory)="onUrlDroppedInCategory($event)"
         (editItem)="onGridEdit($event)"
         (deleteItem)="onGridDelete($event)"
       ></mmn-categories-grid>
