@@ -1,5 +1,6 @@
 import { HttpReturn } from '../../../src/app/recorder-http/models/http.return';
 import { Action } from '../../../src/app/spy-http/models/Action';
+import { ConsoleLogEntry } from '../../../src/app/spy-http/models/ConsoleLogEntry';
 import { ActionType } from '../../../src/app/spy-http/models/ActionType';
 import { Record } from '../../../src/app/spy-http/models/Record';
 import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
@@ -25,6 +26,13 @@ interface RecordingState {
   pause: boolean;
   /** Flag pour éviter de spammer les avertissements (par onglet, comme le reste de l'état) */
   maxActionsWarningShown: boolean;
+  /** Horodatage de la dernière miniature de navigation capturée (debounce, voir addNavigate) */
+  lastCaptureAt?: number;
+  /** Capture "avant" démarrée au `mousedown` (voir `prepareClickScreenshot`), avant que la page
+   * n'ait eu la moindre chance de réagir au clic qui suit. Consommée par la prochaine action
+   * 'click' enregistrée (voir `attachPendingBeforeCapture`) ; une seule à la fois car un
+   * mousedown/click s'enchaînent toujours avant la paire suivante en usage normal. */
+  pendingBeforeCapture?: { promise: Promise<TabCapture>; pageX: number; pageY: number; timestamp: number } | null;
 }
 
 /** Map des états d'enregistrement par tabId */
@@ -150,6 +158,7 @@ async function addTargetedAction(userAction: IUserAction, tabId: number, frameId
   if (userAction.frame && userAction.frame.frameIndex !== undefined) {
     // on est dans le cas devtools
     const action = new Action(delay, actionType, userAction);
+    action.timestamp = now;
     state.record.actions.push(action);
     state.last = now;
     state.record.last = state.last;
@@ -163,11 +172,161 @@ async function addTargetedAction(userAction: IUserAction, tabId: number, frameId
       userAction.frame = { src: '', frameId: 0 };
     }
     const action = new Action(delay, actionType, userAction);
+    action.timestamp = now;
     state.record.actions.push(action);
     state.last = now;
     state.record.last = state.last;
     saveUiRecordToLocalStorage(state.record);
   }
+}
+
+/** Intervalle minimal entre deux captures d'écran (ms), tous déclencheurs confondus
+ * (navigation, appel HTTP stabilisé) : masquer/réafficher le panneau pour chaque capture est
+ * lui-même une mutation DOM observée par la détection de stabilisation HTTP (voir
+ * httpmanager.ts) — sans ce plafond, une page qui enchaîne beaucoup d'appels HTTP peut
+ * déclencher une rafale de captures qui se relancent mutuellement et geler la page. */
+const CAPTURE_MIN_INTERVAL_MS = 800;
+
+interface TabCapture {
+  imgData?: string;
+  scrollX?: number;
+  scrollY?: number;
+  viewportWidth?: number;
+  viewportHeight?: number;
+}
+
+/**
+ * `chrome.tabs.captureVisibleTab` renvoie un PNG à la résolution native de l'écran (souvent
+ * 2x/3x sur un écran retina) : stocké tel quel, un seul screenshot peut peser plusieurs Mo en
+ * base64. `JSON.stringify` + la compression LZ-string de plusieurs Mo dans le service worker
+ * sont lentes, et un redémarrage du service worker (normal en Manifest V3) en plein milieu peut
+ * faire perdre la sauvegarde silencieusement. On redimensionne et recompresse en JPEG dès la
+ * capture, avant tout stockage — pas seulement à la génération du rapport.
+ */
+/** Filet de sécurité : si une étape (createImageBitmap, convertToBlob...) ne se termine
+ * jamais — ex. le service worker est interrompu en plein milieu, comportement normal en
+ * Manifest V3 — l'appelant ne doit jamais rester bloqué indéfiniment. */
+const OPTIMIZE_SCREENSHOT_TIMEOUT_MS = 3000;
+
+async function optimizeScreenshotRaw(dataUrl: string, maxWidthPx: number): Promise<string> {
+  console.log('[Tuello] optimizeScreenshot : fetch du data URL, taille brute =', dataUrl.length, 'caractères');
+  const blob = await (await fetch(dataUrl)).blob();
+  console.log('[Tuello] optimizeScreenshot : blob obtenu, taille =', blob.size, 'octets, type =', blob.type);
+
+  const bitmap = await createImageBitmap(blob);
+  console.log('[Tuello] optimizeScreenshot : bitmap décodé', bitmap.width, 'x', bitmap.height);
+
+  const ratio = Math.min(1, maxWidthPx / bitmap.width);
+  const targetWidth = Math.max(1, Math.round(bitmap.width * ratio));
+  const targetHeight = Math.max(1, Math.round(bitmap.height * ratio));
+
+  const canvas = new OffscreenCanvas(targetWidth, targetHeight);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    console.log('[Tuello] optimizeScreenshot : pas de contexte 2D disponible');
+    return dataUrl;
+  }
+  ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+  console.log('[Tuello] optimizeScreenshot : dessiné à', targetWidth, 'x', targetHeight);
+
+  const outBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.72 });
+  console.log('[Tuello] optimizeScreenshot : JPEG généré, taille =', outBlob.size, 'octets');
+
+  const result = await blobToDataUrl(outBlob);
+  console.log('[Tuello] optimizeScreenshot : terminé, taille finale =', result.length, 'caractères');
+  return result;
+}
+
+async function optimizeScreenshot(dataUrl: string, maxWidthPx = 1280): Promise<string> {
+  try {
+    return await Promise.race([
+      optimizeScreenshotRaw(dataUrl, maxWidthPx),
+      new Promise<string>((resolve) =>
+        setTimeout(() => {
+          console.log('[Tuello] optimizeScreenshot : timeout dépassé, conservation de l’image brute');
+          resolve(dataUrl);
+        }, OPTIMIZE_SCREENSHOT_TIMEOUT_MS)
+      )
+    ]);
+  } catch (e) {
+    console.log('[Tuello] optimizeScreenshot a échoué, conservation de l’image brute :', e);
+    return dataUrl; // repli : image d'origine, mieux vaut une capture lourde qu'aucune
+  }
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return blob.arrayBuffer().then((buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    // Par blocs : `String.fromCharCode(...bytes)` sur un trop grand tableau dépasse la limite
+    // d'arguments d'un appel de fonction.
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return `data:${blob.type};base64,${btoa(binary)}`;
+  });
+}
+
+/**
+ * Capture une miniature de l'onglet (navigation, ou appel HTTP stabilisé). Un échec ne doit
+ * jamais empêcher l'ajout/la mise à jour de l'entrée elle-même. Attend la réponse du `HIDE`
+ * (qui renvoie aussi la géométrie de défilement/viewport, nécessaire pour replacer un repère
+ * de clic sur l'image) avant de capturer, plutôt que de les lancer en parallèle.
+ */
+/** Si la page navigue juste entre l'envoi de HIDE et sa réponse, le content script d'origine
+ * peut être détruit sans jamais répondre : sans ce filet, la capture resterait bloquée
+ * indéfiniment. Au-delà, on tente quand même la capture (sans géométrie pour le repère). */
+const HIDE_RESPONSE_TIMEOUT_MS = 1000;
+
+/** `chrome.tabs.captureVisibleTab` peut échouer pour une raison transitoire (limite de
+ * fréquence Chrome, onglet momentanément pas au premier plan...) — souvent justement au moment
+ * d'une erreur applicative, là où la capture a le plus de valeur. Une seule tentative de
+ * rattrapage après un court délai plutôt que d'abandonner immédiatement. */
+const CAPTURE_RETRY_DELAY_MS = 400;
+
+function captureVisibleTabWithRetry(attempt = 1): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: 'png' }, (imgData) => {
+      if ((chrome.runtime.lastError || !imgData) && attempt === 1) {
+        console.log('[Tuello] captureVisibleTab a échoué, nouvelle tentative :', chrome.runtime.lastError?.message);
+        setTimeout(() => resolve(captureVisibleTabWithRetry(2)), CAPTURE_RETRY_DELAY_MS);
+        return;
+      }
+      if (chrome.runtime.lastError || !imgData) {
+        console.log('[Tuello] captureVisibleTab a échoué après rattrapage :', chrome.runtime.lastError?.message);
+        resolve(undefined);
+        return;
+      }
+      resolve(imgData);
+    });
+  });
+}
+
+function captureTabThumbnail(tabId: number): Promise<TabCapture> {
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const proceedToCapture = (geometry?: Partial<TabCapture>) => {
+      if (settled) return;
+      settled = true;
+      captureVisibleTabWithRetry().then(async (rawImgData) => {
+        chrome.tabs.sendMessage(tabId, { action: 'SHOW' }, { frameId: 0 }, () => {});
+        if (!rawImgData) {
+          resolve({});
+          return;
+        }
+        const imgData = await optimizeScreenshot(rawImgData);
+        resolve({ imgData, ...geometry });
+      });
+    };
+
+    const hideTimeout = setTimeout(() => proceedToCapture(), HIDE_RESPONSE_TIMEOUT_MS);
+    chrome.tabs.sendMessage(tabId, { action: 'HIDE' }, { frameId: 0 }, (geometry) => {
+      clearTimeout(hideTimeout);
+      proceedToCapture(geometry);
+    });
+  });
 }
 
 /**
@@ -208,7 +367,14 @@ export async function addNavigate(userAction: IUserAction, tabId: number, frameI
     userAction.frame = { src: '', frameId: 0 };
   }
 
-  const action = new Action(delay, ActionType.NAVIGATE, userAction);
+  let thumbnail: string | undefined;
+  if (now - (state.lastCaptureAt ?? 0) >= CAPTURE_MIN_INTERVAL_MS) {
+    thumbnail = (await captureTabThumbnail(tabId)).imgData;
+    state.lastCaptureAt = now;
+  }
+
+  const action = new Action(delay, ActionType.NAVIGATE, userAction, thumbnail);
+  action.timestamp = now;
   if (append || state.record.actions.length === 0) {
     state.record.actions.push(action);
     // La page a changé : un scroll ou une saisie qui suit ne doit pas être fusionné
@@ -222,6 +388,84 @@ export async function addNavigate(userAction: IUserAction, tabId: number, frameI
   state.last = now;
   state.record.last = state.last;
   saveUiRecordToLocalStorage(state.record);
+}
+
+/** Durée de vie max d'une capture "avant" en attente (voir `prepareClickScreenshot`) avant
+ * d'être jugée trop ancienne pour être fiable : au-delà, mieux vaut ne pas l'attacher plutôt
+ * que de montrer un écran qui n'a plus de rapport avec le clic qui a suivi (ex. mousedown non
+ * suivi d'un click — sélection de texte, glisser-déposer). */
+const PENDING_BEFORE_CAPTURE_MAX_AGE_MS = 2000;
+
+/**
+ * Démarre la capture "avant" dès le `mousedown`, avant que le `click` qui suit n'ait pu
+ * déclencher la moindre réaction de la page (changement de DOM, navigation...). Attacher la
+ * capture au moment du `click` était trop tard : notre listener de clic (même en phase capture)
+ * s'exécute de façon synchrone dans le même tour de boucle d'événements que les gestionnaires de
+ * la page, mais `chrome.tabs.captureVisibleTab` est asynchrone — par le temps qu'il s'exécute
+ * réellement, la page a déjà fini de réagir. Démarrer le round-trip HIDE/capture/SHOW dès le
+ * `mousedown` (avant toute réaction de la page) est la seule façon d'obtenir une vraie image
+ * "d'avant". Le résultat est consommé par `attachPendingBeforeCapture` une fois l'action
+ * 'click' correspondante créée, quel que soit l'ordre d'arrivée des deux.
+ */
+export function prepareClickScreenshot(data: { x: number; y: number }, tabId?: number): void {
+  if (!tabId || typeof data?.x !== 'number' || typeof data?.y !== 'number') {
+    return;
+  }
+
+  const state = getState(tabId);
+
+  chrome.storage.local.get(['tuelloAutoScreenshotOnHttp'], (settings) => {
+    if (!settings['tuelloAutoScreenshotOnHttp']) {
+      return;
+    }
+    const now = Date.now();
+    if (now - (state.lastCaptureAt ?? 0) < CAPTURE_MIN_INTERVAL_MS) {
+      return;
+    }
+    state.lastCaptureAt = now;
+    state.pendingBeforeCapture = {
+      promise: captureTabThumbnail(tabId),
+      pageX: data.x,
+      pageY: data.y,
+      timestamp: now
+    };
+  });
+}
+
+/**
+ * Attache la capture "avant" préparée au `mousedown` (voir `prepareClickScreenshot`) à l'action
+ * 'click' qui vient d'être enregistrée. Fire-and-forget : ne doit jamais retarder
+ * l'enregistrement de l'action elle-même.
+ */
+async function attachPendingBeforeCapture(action: Action, state: RecordingState): Promise<void> {
+  const pending = state.pendingBeforeCapture;
+  if (!pending) {
+    return;
+  }
+  // Consommée immédiatement : un click sans mousedown préalable (ex. activation clavier) ne
+  // doit pas récupérer par erreur la capture d'un clic précédent.
+  state.pendingBeforeCapture = null;
+  if (Date.now() - pending.timestamp > PENDING_BEFORE_CAPTURE_MAX_AGE_MS) {
+    return;
+  }
+
+  const capture = await pending.promise;
+  if (!capture.imgData) {
+    return;
+  }
+
+  action.data = capture.imgData;
+  if (capture.scrollX !== undefined && capture.scrollY !== undefined && capture.viewportWidth !== undefined && capture.viewportHeight !== undefined) {
+    action.screenshotMarker = {
+      pageX: pending.pageX,
+      pageY: pending.pageY,
+      scrollX: capture.scrollX,
+      scrollY: capture.scrollY,
+      viewportWidth: capture.viewportWidth,
+      viewportHeight: capture.viewportHeight
+    };
+  }
+  saveUiRecordToLocalStorage(state.record!);
 }
 
 export async function addUserAction(userAction: IUserAction, tabId: number, frameId: number): Promise<void> {
@@ -245,6 +489,7 @@ export async function addUserAction(userAction: IUserAction, tabId: number, fram
   const now = Date.now();
   const delay = isNaN(now - state.last) ? 0 : now - state.last;
   const action = new Action(delay, ActionType.EVENT, userAction);
+  action.timestamp = now;
 
   // Résoudre le frame de manière synchrone avant de traiter l'action
   if (!(userAction.frame && userAction.frame.frameIndex !== undefined)) {
@@ -311,6 +556,11 @@ export async function addUserAction(userAction: IUserAction, tabId: number, fram
   state.last = now;
   state.record.last = state.last;
   saveUiRecordToLocalStorage(state.record);
+
+  if (userAction.type === 'click') {
+    // Fire-and-forget : ne doit pas retarder le retour de addUserAction.
+    attachPendingBeforeCapture(action, state);
+  }
 }
 
 export function addScreenShot(tabId: number, isPopupVisible: boolean): Promise<boolean> {
@@ -352,6 +602,7 @@ export function addScreenShot(tabId: number, isPopupVisible: boolean): Promise<b
       const delay = isNaN(now - state.last) ? 0 : now - state.last;
 
       const action = new Action(delay, ActionType.SCREENSHOT, null, imgData);
+      action.timestamp = now;
 
       state.record!.actions.push(action);
       state.lastAction = action;
@@ -391,11 +642,62 @@ export function addComment(comment: string, tabId?: number): void {
   const delay = isNaN(now - state.last) ? 0 : now - state.last;
 
   const action = new Action(delay, ActionType.COMMENT, null, comment);
+  action.timestamp = now;
 
   state.record.actions.push(action);
   state.lastAction = action;
   state.last = now;
   saveUiRecordToLocalStorage(state.record);
+}
+
+/**
+ * Attache une capture d'écran à une requête HTTP déjà enregistrée, une fois le DOM stabilisé
+ * (voir la détection dans httpmanager.ts : compteur de requêtes en vol + MutationObserver,
+ * message HTTP_SETTLED). L'entrée a pu être supprimée entre-temps côté panneau : on abandonne
+ * alors en silence. `clickX`/`clickY`, s'ils sont fournis, indiquent la position du dernier clic
+ * connu avant l'appel (simple indication, pas de garantie de causalité) — stockés avec la
+ * géométrie de défilement/viewport au moment de la capture pour que le rapport puisse y
+ * dessiner un repère.
+ */
+export async function attachHttpSettledScreenshot(data: { requestId: string }, tabId?: number): Promise<void> {
+  console.log('[Tuello] attachHttpSettledScreenshot reçu', data, 'tabId=', tabId);
+  if (!tabId) {
+    console.log('[Tuello] attachHttpSettledScreenshot : pas de tabId, abandon');
+    return;
+  }
+  const state = getState(tabId);
+  const http = state.record?.httpRecords?.find((h) => h.requestId === data.requestId);
+  if (!http) {
+    console.log(
+      '[Tuello] attachHttpSettledScreenshot : entrée introuvable pour requestId=',
+      data.requestId,
+      '— requestIds connus :',
+      state.record?.httpRecords?.map((h) => h.requestId)
+    );
+    return;
+  }
+
+  // Garde-fou partagé avec les miniatures de navigation : sur une page qui enchaîne beaucoup
+  // d'appels HTTP, sans ce plafond chaque capture (masquer/réafficher le panneau) relance le
+  // minuteur des autres veilles en attente et peut déclencher une rafale de captures en cascade.
+  const now = Date.now();
+  if (now - (state.lastCaptureAt ?? 0) < CAPTURE_MIN_INTERVAL_MS) {
+    console.log('[Tuello] attachHttpSettledScreenshot : capture ignorée (trop rapprochée de la précédente)');
+    return;
+  }
+  state.lastCaptureAt = now;
+
+  const capture = await captureTabThumbnail(tabId);
+  if (!capture.imgData) {
+    console.log('[Tuello] attachHttpSettledScreenshot : capture échouée (pas d’imgData)');
+    return;
+  }
+  console.log('[Tuello] attachHttpSettledScreenshot : capture réussie, attachement à', data.requestId);
+
+  // Pas de repère ici : la page a déjà changé depuis le clic qui a potentiellement déclenché cet
+  // appel (c'est justement le "résultat", pas l'écran du clic) — un repère n'y aurait aucun sens.
+  http.screenshot = capture.imgData;
+  saveUiRecordToLocalStorage(state.record!);
 }
 
 /**
@@ -451,6 +753,7 @@ export function replaceRecord(record: Record | null, tabId?: number): void {
   const updated = new Record(record.windowSize);
   updated.actions = record.actions ?? [];
   updated.httpRecords = record.httpRecords;
+  updated.consoleLogs = record.consoleLogs;
   updated.last = record.last ?? Date.now();
 
   state.record = updated;
@@ -469,7 +772,37 @@ export function addHttpUserAction(data: HttpReturn, tabId?: number): void {
   }
 
   state.record.httpRecords.unshift(data);
-  state.record.httpRecords = removeDuplicateEntries(state.record.httpRecords);
+  // Dédoublonner par requestId (unique par appel réel), pas par URL seule : un même endpoint
+  // appelé plusieurs fois (recherche répétée, polling...) doit rester un appel par entrée,
+  // sinon un appel en cours de stabilisation (capture d'écran différée, voir
+  // attachHttpSettledScreenshot) perd silencieusement son entrée dès l'appel suivant sur la
+  // même URL. Repli sur `key` pour les entrées plus anciennes, enregistrées avant ce champ.
+  state.record.httpRecords = removeDuplicateEntries(state.record.httpRecords, (item: HttpReturn) => item.requestId ?? item.key);
+
+  saveUiRecordToLocalStorage(state.record);
+}
+
+/** Plafond de logs conservés par session : borne la taille du rapport sur une page très verbeuse. */
+const MAX_CONSOLE_LOGS = 300;
+
+export function addConsoleLogs(entries: ConsoleLogEntry[], tabId?: number): void {
+  if (!Array.isArray(entries) || !entries.length) {
+    return;
+  }
+  const state = getState(tabId);
+
+  if (!state.record) {
+    state.record = new Record();
+    state.lastAction = null;
+  }
+  if (!state.record.consoleLogs) {
+    state.record.consoleLogs = [];
+  }
+
+  state.record.consoleLogs.push(...entries);
+  if (state.record.consoleLogs.length > MAX_CONSOLE_LOGS) {
+    state.record.consoleLogs = state.record.consoleLogs.slice(-MAX_CONSOLE_LOGS);
+  }
 
   saveUiRecordToLocalStorage(state.record);
 }
@@ -509,6 +842,7 @@ export function loadRecordFromStorage(tabId?: number): Promise<void> {
               state.record = new Record(data.windowSize);
               state.record.actions = data.actions ?? [];
               state.record.httpRecords = data.httpRecords;
+              state.record.consoleLogs = data.consoleLogs;
               state.lastAction = state.record.actions.length ? state.record.actions[state.record.actions.length - 1] : null;
               state.last = data.last ?? Date.now();
             }
@@ -712,9 +1046,16 @@ function saveUiRecordToLocalStorage(record: Record): void {
         console.warn(`Attention: ${pendingSaveRecord.actions.length} actions enregistrées. Considérez sauvegarder et recommencer.`);
       }
 
-      saveCompressed('uiRecord', pendingSaveRecord).catch((err) => {
-        console.error('Erreur sauvegarde uiRecord:', err);
-      });
+      const screenshotCount = (pendingSaveRecord.httpRecords || []).filter((h) => h.screenshot).length + (pendingSaveRecord.actions || []).filter((a) => typeof a.data === 'string' && a.data.startsWith('data:image')).length;
+      const saveStartedAt = Date.now();
+      console.log('[Tuello] saveUiRecordToLocalStorage : écriture en cours,', screenshotCount, 'capture(s) dans le record');
+      saveCompressed('uiRecord', pendingSaveRecord)
+        .then(() => {
+          console.log('[Tuello] saveUiRecordToLocalStorage : écriture réussie en', Date.now() - saveStartedAt, 'ms');
+        })
+        .catch((err) => {
+          console.error('[Tuello] Erreur sauvegarde uiRecord:', err);
+        });
       pendingSaveRecord = null;
     }
     saveDebounceTimer = null;

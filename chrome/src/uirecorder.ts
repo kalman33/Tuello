@@ -9,6 +9,8 @@ import { extractLabel, findClickableAncestor } from './utils/labelSelector';
 import * as lightbox from './utils/lightbox';
 import { showToast } from './utils/toast';
 import { recordHttpUserActionListener } from './utils/recordUserActionListener';
+import { recordConsoleLogListener } from './utils/recordConsoleLogListener';
+import { recordHttpSettledListener } from './utils/recordHttpSettledListener';
 import { addcss } from './utils/utils';
 
 interface KeyboardShortcut {
@@ -20,6 +22,7 @@ let frame;
 let screenshotKeyboardShortcut: KeyboardShortcut;
 let captureImageKeyboardShortcut: KeyboardShortcut;
 let commentKeyboardShortcut: KeyboardShortcut;
+let autoScreenshotOnHttpEnabled = false;
 
 /**
  * Normalise un raccourci stocké : on accepte l'objet { key, code } comme la simple
@@ -36,12 +39,13 @@ function toShortcut(stored: any, fallback: KeyboardShortcut): KeyboardShortcut {
 }
 
 export function launchUIRecorderHandler() {
-  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
+  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut', 'tuelloAutoScreenshotOnHttp'], (results: Record<string, any>) => {
     if (results.uiRecordActivated) {
       const shortcuts = results.tuelloKeyboardShortcut;
       screenshotKeyboardShortcut = toShortcut(shortcuts?.screenshot, { key: 'S', code: 'KeyS' });
       captureImageKeyboardShortcut = toShortcut(shortcuts?.captureImage, { key: 'I', code: 'KeyI' });
       commentKeyboardShortcut = toShortcut(shortcuts?.comment, { key: 'C', code: 'KeyC' });
+      autoScreenshotOnHttpEnabled = !!results.tuelloAutoScreenshotOnHttp;
       // on previent background qu'on a démarré le recording
       chrome.runtime.sendMessage(
         {
@@ -92,7 +96,7 @@ export function launchUIRecorderHandler() {
   });
 }
 
-// permet d'activer le recording d'ui pour la partie http
+// permet d'activer le recording d'ui pour la partie http (et les logs console, même cycle de vie)
 function httpRecordUI(activation: boolean) {
   window.postMessage(
     {
@@ -101,17 +105,35 @@ function httpRecordUI(activation: boolean) {
     },
     window.location.origin
   );
+  window.postMessage(
+    {
+      type: 'RECORD_CONSOLE_LOG_ACTIVATED',
+      value: activation
+    },
+    window.location.origin
+  );
+  window.postMessage(
+    {
+      type: 'AUTO_SCREENSHOT_ON_HTTP_ACTIVATED',
+      value: activation && autoScreenshotOnHttpEnabled
+    },
+    window.location.origin
+  );
   if (activation) {
     window.addEventListener('message', recordHttpUserActionListener);
+    window.addEventListener('message', recordConsoleLogListener);
+    window.addEventListener('message', recordHttpSettledListener);
   } else {
     window.removeEventListener('message', recordHttpUserActionListener);
+    window.removeEventListener('message', recordConsoleLogListener);
+    window.removeEventListener('message', recordHttpSettledListener);
   }
 }
 
 function removeListeners() {
   document.removeEventListener('keydown', keyboardListener);
   document.removeEventListener('click', labelListener, true);
-  document.removeEventListener('click', listener);
+  document.removeEventListener('click', listener, true);
   document.removeEventListener('scroll', listener);
   document.removeEventListener('input', listener);
   // document.removeEventListener('change', listener); // select
@@ -127,7 +149,11 @@ function addListeners() {
   // En capture : Maj+clic doit être intercepté avant que la page (et le listener
   // de clic ci-dessous) ne le traite, cf. labelListener.
   document.addEventListener('click', labelListener, true);
-  document.addEventListener('click', listener);
+  // En capture également : fait enregistrer l'action avant que la page ne traite le clic
+  // (changement de DOM, navigation...). La capture "avant" elle-même démarre dès le mousedown
+  // (voir mousedownListener), pas ici : le round-trip HIDE/capture est asynchrone, donc même en
+  // capture ce listener s'exécuterait toujours trop tard pour déclencher la capture lui-même.
+  document.addEventListener('click', listener, true);
   document.addEventListener('scroll', listener);
   document.addEventListener('input', listener);
   // document.addEventListener('change', listener); // select
@@ -322,6 +348,20 @@ function mousedownListener(e) {
   if (e.shiftKey && !e.altKey) {
     return;
   }
+
+  // Démarre la capture "avant" dès maintenant, avant que le click qui suit ne laisse la page
+  // réagir : attendre l'événement 'click' pour la déclencher était trop tard (round-trip HIDE/
+  // captureVisibleTab/SHOW asynchrone, cf. prepareClickScreenshot côté background).
+  if (autoScreenshotOnHttpEnabled) {
+    chrome.runtime.sendMessage(
+      {
+        action: 'PREPARE_CLICK_SCREENSHOT',
+        value: { x: e.pageX, y: e.pageY }
+      },
+      () => {}
+    );
+  }
+
   // on surveille qu'il ne s'agise pas d'un click sur un bouton submit car l'event click n'est pas remonté dans ce cas
   if (e.target.tagName && e.target.tagName.toLowerCase() === 'input' && e.target.type && e.target.type.toLowerCase() === 'submit') {
     const useraction = new UserAction(null);

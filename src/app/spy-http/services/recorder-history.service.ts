@@ -6,7 +6,6 @@ import { CompressionService } from '../../core/compression/compression.service';
 
 @Injectable({ providedIn: 'root' })
 export class RecorderHistoryService {
-
   // représente un enregistrement
   public record: Record;
 
@@ -26,11 +25,14 @@ export class RecorderHistoryService {
         // Marquer la suppression dans le storage (survit au redémarrage du service worker)
         chrome.storage.local.set({ uiRecordDeleted: true }, () => {
           // Prévenir le background pour effacer son état interne
-          chrome.runtime.sendMessage({
-            action: 'RECORD_USER_ACTION_DELETE'
-          }, () => {
-            resolve();
-          });
+          chrome.runtime.sendMessage(
+            {
+              action: 'RECORD_USER_ACTION_DELETE'
+            },
+            () => {
+              resolve();
+            }
+          );
         });
       });
     });
@@ -41,6 +43,7 @@ export class RecorderHistoryService {
     this.record = new Record(data.windowSize);
     this.record.actions = data.actions;
     this.record.httpRecords = data.httpRecords;
+    this.record.consoleLogs = data.consoleLogs;
     this.saveUiRecordToLocalStorage();
   }
 
@@ -84,16 +87,22 @@ export class RecorderHistoryService {
     chrome.storage.local.set({ uiRecordActivated: true });
 
     // modif de l'icone du plugin pour le mettre en mode record
-    chrome.runtime.sendMessage({
-      action: 'updateIcon',
-      value: 'tuello-rec-32x32.png',
-    }, () => {});
+    chrome.runtime.sendMessage(
+      {
+        action: 'updateIcon',
+        value: 'tuello-rec-32x32.png'
+      },
+      () => {}
+    );
 
     // on previent background qui va prevenir contentscript qu'on a démarré le recording
-    chrome.runtime.sendMessage({
-      action: 'START_UI_RECORDER',
-      value: true,
-      reset: !append,
-    }, () => {});
+    chrome.runtime.sendMessage(
+      {
+        action: 'START_UI_RECORDER',
+        value: true,
+        reset: !append
+      },
+      () => {}
+    );
   }
 }

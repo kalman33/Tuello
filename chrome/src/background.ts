@@ -4,6 +4,8 @@ import { Player } from './background/player';
 import {
   addComment,
   addHttpUserAction,
+  addConsoleLogs,
+  attachHttpSettledScreenshot,
   addNavigate,
   addRecordByImage,
   addRecordByLabel,
@@ -15,6 +17,7 @@ import {
   flushPendingSave,
   initRecord,
   loadRecordFromStorage,
+  prepareClickScreenshot,
   replaceRecord,
   setActiveTab,
   setPause
@@ -975,6 +978,9 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
     case 'RECORD_USER_ACTION':
       addUserAction(msg.value, sender.tab.id, sender.frameId);
       break;
+    case 'PREPARE_CLICK_SCREENSHOT':
+      prepareClickScreenshot(msg.value, sender.tab?.id);
+      break;
     case 'RECORD_BY_IMAGE_ACTION':
       addRecordByImage(msg.value, sender.tab.id, sender.frameId);
       senderResponse();
@@ -999,6 +1005,12 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       break;
     case 'RECORD_HTTP':
       addHttpUserAction(msg.value, sender.tab?.id);
+      break;
+    case 'RECORD_CONSOLE_LOG':
+      addConsoleLogs(msg.value, sender.tab?.id);
+      break;
+    case 'HTTP_SETTLED_SCREENSHOT':
+      attachHttpSettledScreenshot(msg.value, sender.tab?.id);
       break;
     case 'UI_RECORD_UPDATED':
       // Le panneau a édité le record : synchroniser la copie mémoire du background

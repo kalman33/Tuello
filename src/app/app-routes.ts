@@ -30,6 +30,10 @@ export const routes: Routes = [
     loadChildren: () => import('./mosaic-manager/mosaic-manager-routes').then((m) => m.routes)
   },
   {
+    path: 'report',
+    loadChildren: () => import('./report/report-routes').then((m) => m.routes)
+  },
+  {
     path: '**',
     redirectTo: 'recorder',
     pathMatch: 'full'

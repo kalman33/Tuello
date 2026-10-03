@@ -58,7 +58,7 @@
         </ng-template>
         <mat-list>
           <mat-nav-list dense>
-            @for (httpRecord of recorderHistoryService?.record?.httpRecords; track httpRecord.key) {
+            @for (httpRecord of recorderHistoryService?.record?.httpRecords; track httpRecord.requestId || $index) {
               <mat-list-item style="cursor: pointer" (click)="visualiserFlux(httpRecord)">
                 {{ httpRecord.key }}
               </mat-list-item>
@@ -235,6 +235,12 @@
             <button mat-flat-button color="warn" [routerLink]="['/spy/results']" [skipLocationChange]="true">
               <mat-icon>save</mat-icon>
               {{ 'mmn.spy-http.button.results' | translate }}
+            </button>
+          }
+          @if (actions?.length > 0) {
+            <button mat-flat-button color="accent" style="color: white" [routerLink]="['/report']" [skipLocationChange]="true">
+              <mat-icon>code</mat-icon>
+              {{ 'mmn.spy-http.button.exportPdf' | translate }}
             </button>
           }
         </div>

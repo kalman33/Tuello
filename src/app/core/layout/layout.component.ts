@@ -80,7 +80,7 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
    */
   private updateHelpAvailability(url: string): void {
     // Pages sans guide interactif
-    const pagesWithoutHelp = ['/settings'];
+    const pagesWithoutHelp = ['/settings', '/report'];
     this.helpAvailable = !pagesWithoutHelp.some((page) => url.startsWith(page));
   }
 

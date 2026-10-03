@@ -12,6 +12,9 @@
     </div>
     <div fxFlex="50%">
       <div fxFlex="50%" class="data">{{ domain }}</div>
+      @if (action?.data) {
+        <img style="display: block; width: 40px; height: 40px" (click)="chromeExtentionUtilsService.openImageViewer(action?.data)" [src]="action?.data" alt="Navigation" />
+      }
     </div>
   }
 

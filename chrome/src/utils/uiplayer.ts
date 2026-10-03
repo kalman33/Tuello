@@ -150,8 +150,13 @@ export function run(action: IUserAction) {
         const x = action.x;
         const y = action.y;
         displayEffect(x, y);
-        mouseEvent('click', x, y, 0);
-        resolve(true);
+        // Laisse le navigateur peindre le repère avant de déclencher le clic : sans ce délai,
+        // tout se joue dans la même tâche JS (avant le prochain repaint), et le repère n'est
+        // jamais visible avant que le clic n'ait déjà changé l'écran.
+        setTimeout(() => {
+          mouseEvent('click', x, y, 0);
+          resolve(true);
+        }, 100);
         break;
       case 'mouseup':
         mouseup(action.x, action.y, action.key);
@@ -184,8 +189,10 @@ export function run(action: IUserAction) {
         const clickable = findClickableAncestor(labelElement) ?? labelElement;
         const clickableOffset = getOffset(clickable);
         displayEffect(clickableOffset.left + clickable.offsetWidth / 2, clickableOffset.top + clickable.offsetHeight / 2);
-        clickable.click();
-        resolve(true);
+        setTimeout(() => {
+          clickable.click();
+          resolve(true);
+        }, 100);
         break;
       case 'recordByImg':
         searchImg(action)
@@ -193,8 +200,10 @@ export function run(action: IUserAction) {
             if (img instanceof HTMLElement) {
               const offset = getOffset(img);
               displayEffect(img.offsetWidth / 2 + offset.left, img.offsetHeight / 2 + offset.top);
-              img.click();
-              resolve(true);
+              setTimeout(() => {
+                img.click();
+                resolve(true);
+              }, 100);
             } else {
               resolve(false);
             }

@@ -1,0 +1,29 @@
+<div class="container">
+  <div fxFlex="99%">
+    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+      <button mat-icon-button [attr.aria-label]="'mmn.button.return.aria-label' | translate" (click)="back()">
+        <mat-icon>keyboard_backspace</mat-icon>
+      </button>
+    </div>
+
+    @if (!hasData) {
+      <p class="report-empty">{{ 'mmn.report.empty.message' | translate }}</p>
+    } @else {
+      <h2>{{ 'mmn.report.title' | translate }}</h2>
+      <p class="report-subtitle">{{ 'mmn.report.subtitle' | translate }}</p>
+
+      <ul class="report-summary">
+        <li>{{ 'mmn.report.summary.actions' | translate }} : {{ recorderHistoryService.record.actions?.length ?? 0 }}</li>
+        <li>{{ 'mmn.report.summary.httpRequests' | translate }} : {{ recorderHistoryService.record.httpRecords?.length ?? 0 }}</li>
+        <li>{{ 'mmn.report.summary.httpErrors' | translate }} : {{ httpErrorCount }}</li>
+        <li>{{ 'mmn.report.summary.consoleLogs' | translate }} : {{ consoleLogCount }} ({{ 'mmn.report.summary.consoleErrors' | translate }} : {{ consoleErrorCount }})</li>
+        <li>{{ 'mmn.report.summary.comparisonResults' | translate }} : {{ comparisonCount }}</li>
+      </ul>
+
+      <button mat-flat-button color="primary" [disabled]="generating" (click)="generateReport()">
+        <mat-icon>code</mat-icon>
+        {{ 'mmn.report.generate.button' | translate }}
+      </button>
+    }
+  </div>
+</div>

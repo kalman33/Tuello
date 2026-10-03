@@ -597,7 +597,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           );
         }, 1);
       }
-      sendResponse();
+      // Géométrie au moment de la capture (défilement, taille viewport) : permet de replacer
+      // correctement un repère de clic sur la capture côté rapport (voir uiRecorderHandler.ts).
+      sendResponse({ scrollX: window.scrollX, scrollY: window.scrollY, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
       break;
     case 'SHOW':
       if (window.self === window.top) {

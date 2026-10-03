@@ -83,6 +83,11 @@
           <span mat-line> {{ 'mmn.layout.mosaic' | translate }} </span>
         </a>
 
+        <a [class.selected]="selectedIndex === 7" (click)="selectMenuItem(7)" mat-list-item [routerLink]="['/report']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon> code </mat-icon>
+          <span mat-line> {{ 'mmn.layout.report' | translate }} </span>
+        </a>
+
         <div id="push-bottom">
           <div>
             <button [disableRipple]="true" class="no-ripple-color mat-mdc-button" id="rate" mat-raised-button (click)="openRateSupport()">

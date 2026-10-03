@@ -22,6 +22,9 @@ interface HttpMessage {
   delay?: number;
   status?: number;
   method?: string;
+  duration?: number;
+  timestamp?: number;
+  requestId?: string;
   body?: unknown;
   hrefLocation?: string;
   headers?: Record<string, string>;
@@ -31,6 +34,8 @@ interface ExtendedXMLHttpRequest extends XMLHttpRequest {
   originalURL?: string;
   xhrMethod?: string;
   xhrBody?: Document | XMLHttpRequestBodyInit | null;
+  xhrStartTime?: number;
+  xhrStartTimestamp?: number;
   interceptorManager?: InterceptorManager;
 }
 
@@ -59,8 +64,16 @@ const MESSAGE_TYPES = {
   MOCK_HTTP_ACTIVATED: 'MOCK_HTTP_ACTIVATED',
   RECORD_HTTP_ACTIVATED: 'RECORD_HTTP_ACTIVATED',
   RECORD_HTTP_CALL_FOR_TAGS: 'RECORD_HTTP_CALL_FOR_TAGS',
-  MOCK_HTTP_TUELLO_RECORDS: 'MOCK_HTTP_TUELLO_RECORDS'
+  MOCK_HTTP_TUELLO_RECORDS: 'MOCK_HTTP_TUELLO_RECORDS',
+  RECORD_CONSOLE_LOG_ACTIVATED: 'RECORD_CONSOLE_LOG_ACTIVATED',
+  AUTO_SCREENSHOT_ON_HTTP_ACTIVATED: 'AUTO_SCREENSHOT_ON_HTTP_ACTIVATED'
 } as const;
+
+interface ConsoleLogMessage {
+  level: 'log' | 'warn' | 'error' | 'info';
+  message: string;
+  timestamp: number;
+}
 
 const INTERCEPTOR_NAMES = {
   HTTP_RECORDER: 'intercepteurHTTPRecorder',
@@ -110,7 +123,6 @@ interface NormalizedRecord {
   segments: string[];
   hasWildcard: boolean;
 }
-
 
 // Index pour recherche rapide O(1). Une même URL peut porter plusieurs records
 // (un par méthode HTTP), conservés dans l'ordre du tableau : le premier gagne.
@@ -259,6 +271,8 @@ const buildMockHeaders = (responseBody: string, recordHeaders?: Record<string, s
 // Une origine opaque (page sandboxée, about:blank) vaut "null" : postMessage
 // échouerait avec cette valeur en cible.
 const POST_TARGET_ORIGIN = window.location.origin && window.location.origin !== 'null' ? window.location.origin : '*';
+
+const generateRequestId = (): string => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
 const sendMessage = (targetWindow: Window | null, message: HttpMessage): void => {
   if (!targetWindow) return;
@@ -557,9 +571,7 @@ const findMockRecordOptimized = (url: string, method?: string): TuelloRecord | u
 
   // 4. Vérifier les wildcards, absents des index précédents : d'abord par regex
   // complète, puis par suffixe comme le fait la recherche linéaire de repli.
-  const wildcardMatches = mockWildcardRecords.filter(
-    (wildcardRecord) => getCachedRegex(wildcardRecord.normalizedKey).test(normalized) || matchesBySuffix(wildcardRecord.segments, segments)
-  );
+  const wildcardMatches = mockWildcardRecords.filter((wildcardRecord) => getCachedRegex(wildcardRecord.normalizedKey).test(normalized) || matchesBySuffix(wildcardRecord.segments, segments));
   const wildcardMatch = pickByMethod(wildcardMatches, method);
   if (wildcardMatch) {
     addToCache(cacheKey, wildcardMatch);
@@ -737,8 +749,12 @@ const processPendingMockFetchQueue = (): void => {
     if (record) {
       logData('- Mock HTTP - Mock de ' + url);
       if (record.delay) {
-        setTimeout(() => resolve(createMockedResponse(new Response(), record)), record.delay);
+        setTimeout(() => {
+          decInFlightRequests();
+          resolve(createMockedResponse(new Response(), record));
+        }, record.delay);
       } else {
+        decInFlightRequests();
         resolve(createMockedResponse(new Response(), record));
       }
     } else {
@@ -746,14 +762,19 @@ const processPendingMockFetchQueue = (): void => {
       logData('- Mock HTTP - Pas de mock pour ' + url + ' - Requête envoyée normalement');
       originalFetch(...args)
         .then((response) => manager.runInterceptorsFetch(response, ...args))
-        .then(resolve)
+        .then((response) => {
+          decInFlightRequests();
+          resolve(response);
+        })
         .catch((error) => {
           // Un abort doit rester un abort : seule une erreur réseau/CORS devient une 404
           if (isAbortError(error)) {
+            decInFlightRequests();
             reject(error);
             return;
           }
           logData(`- Tuello HTTP - Erreur fetch en queue (probablement CORS) pour ${url} : ${error}`);
+          decInFlightRequests();
           resolve(buildFallbackResponse(url));
         });
     }
@@ -900,6 +921,26 @@ class InterceptorManager {
 
 const manager = new InterceptorManager();
 
+// Durées des requêtes fetch, indexées par la Response retournée par originalFetch.
+// WeakMap plutôt qu'un paramètre additionnel sur runInterceptorsFetch : cette méthode
+// est partagée positionnellement par les intercepteurs Mock/Tags/Recorder, un paramètre
+// en plus décalerait leurs index et casserait le mock.
+const fetchDurations = new WeakMap<Response, number>();
+// Horodatage absolu (Date.now()) du départ de la requête, pour la chronologie du rapport —
+// `performance.now()` (fetchStartTime) n'est pas convertible en temps absolu sans timeOrigin.
+const fetchStartTimestamps = new WeakMap<Response, number>();
+
+// Compteur de requêtes en vol, utilisé par la détection de stabilisation du DOM
+// (capture auto après clic, voir plus bas). Suivi inconditionnel : coût négligeable,
+// évite d'avoir à activer/désactiver l'instrumentation elle-même.
+let inFlightRequestCount = 0;
+const incInFlightRequests = (): void => {
+  inFlightRequestCount++;
+};
+const decInFlightRequests = (): void => {
+  inFlightRequestCount = Math.max(0, inFlightRequestCount - 1);
+};
+
 // ============================================================================
 // Surcharge XMLHttpRequest
 // ============================================================================
@@ -914,6 +955,14 @@ XMLHttpRequest.prototype.open = function (this: ExtendedXMLHttpRequest, method: 
 XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
   const url = this.originalURL || '';
   this.xhrBody = body;
+  this.xhrStartTime = performance.now();
+  this.xhrStartTimestamp = Date.now();
+
+  // Posé avant toute branche mock pour couvrir aussi bien la requête réseau réelle que les
+  // réponses mockées (applyMockToXhr dispatch aussi 'loadend') et la mise en queue le temps
+  // que les records soient prêts.
+  incInFlightRequests();
+  this.addEventListener('loadend', decInFlightRequests, { once: true });
 
   // Si le mode mock est activé
   if (mockUserActivated) {
@@ -944,6 +993,17 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
   // Comportement normal (mock non activé ou pas de mock trouvé)
   this.interceptorManager?.runInterceptorsXHR(this);
 
+  // Échec réseau complet (CORS, DNS, connexion refusée...) : contrairement à un code HTTP
+  // d'erreur (4xx/5xx), il n'y a alors aucune réponse à enregistrer dans la section HTTP du
+  // rapport. Sans ça, ce type d'échec restait invisible partout.
+  this.addEventListener(
+    'error',
+    () => {
+      pushConsoleEntry('error', `Requête réseau échouée : ${this.xhrMethod || ''} ${url}`);
+    },
+    { once: true }
+  );
+
   // Capturer les erreurs CORS sur XHR pour retourner une 404.
   // Uniquement quand le mock est actif : hors de ce mode Tuello ne doit pas
   // réécrire le statut d'une erreur réseau réelle de l'application.
@@ -968,6 +1028,9 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
 // ============================================================================
 
 window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
+  const fetchStartTime = performance.now();
+  const fetchStartTimestamp = Date.now();
+  incInFlightRequests();
   const input = args[0];
   const url = extractFetchUrl(input);
   const method = extractFetchMethod(args);
@@ -991,6 +1054,7 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
     if (record) {
       logData('- Mock HTTP (Fetch Bypass) - Blocage CORS réussi pour ' + url);
       if (record.delay) await sleepAsync(record.delay);
+      decInFlightRequests();
       return createMockedResponse(new Response(), record);
     }
   }
@@ -999,8 +1063,16 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
   // soit l'URL n'est vraiment pas dans la liste des mocks.
   try {
     const response = await originalFetch(...args);
+    fetchDurations.set(response, Math.round(performance.now() - fetchStartTime));
+    fetchStartTimestamps.set(response, fetchStartTimestamp);
     return manager.runInterceptorsFetch(response, ...args);
   } catch (error) {
+    // Échec réseau complet (CORS, DNS, connexion refusée...) : aucune réponse à enregistrer
+    // dans la section HTTP du rapport, sans ça cet échec restait invisible partout. Un abort
+    // est volontaire (navigation, démontage de composant...) : pas une erreur à remonter.
+    if (!isAbortError(error)) {
+      pushConsoleEntry('error', `Requête réseau échouée : ${method} ${url} — ${error}`);
+    }
     // Hors mode mock, Tuello doit être transparent : une erreur réseau reste une
     // erreur réseau (offline, DNS, CORS...), sinon l'application ne peut plus la
     // distinguer d'une vraie 404. Un abort doit toujours rejeter, mock ou pas.
@@ -1010,6 +1082,8 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
     // Mock actif : une requête non mockée bloquée par CORS ne doit pas casser la page
     logData(`- Tuello HTTP - Erreur fetch (probablement CORS) pour ${url} : ${error}`);
     return buildFallbackResponse(url);
+  } finally {
+    decInFlightRequests();
   }
 };
 
@@ -1106,6 +1180,9 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
             }
           }
 
+          const duration = typeof req.xhrStartTime === 'number' ? Math.round(performance.now() - req.xhrStartTime) : undefined;
+          const requestId = generateRequestId();
+
           const message: HttpMessage = {
             type: MESSAGE_TYPES.RECORD_HTTP,
             url,
@@ -1113,6 +1190,9 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
             response,
             status: req.status,
             method: req.xhrMethod || '',
+            duration,
+            timestamp: req.xhrStartTimestamp ?? Date.now(),
+            requestId,
             body: parsedBody,
             hrefLocation: window.location.href,
             headers
@@ -1120,6 +1200,10 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
 
           if (self.userActivation) {
             sendMessage(window, message);
+            logData(`- Capture auto HTTP - RECORD_HTTP envoyé (XHR) pour ${requestId}, toggle actif : ${autoScreenshotOnHttpActivated}`);
+            if (autoScreenshotOnHttpActivated) {
+              startSettleWatch(requestId);
+            }
           } else {
             // Mettre en queue pour une éventuelle activation utilisateur
             addToQueue(message, messageForHTTPRecorderQueue);
@@ -1162,12 +1246,17 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
   // La méthode peut venir de init (fetch(url, init)) ou du Request
   const method = init?.method || (input instanceof Request ? input.method : undefined) || 'GET';
 
+  const requestId = generateRequestId();
+
   const message: HttpMessage = {
     type: MESSAGE_TYPES.RECORD_HTTP,
     url: response.url || requestUrl,
     delay: 0,
     status: response.status,
     method,
+    duration: fetchDurations.get(response),
+    timestamp: fetchStartTimestamps.get(response) ?? Date.now(),
+    requestId,
     body: init?.body as unknown,
     hrefLocation: window.location.href,
     response: responseData,
@@ -1176,6 +1265,10 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
 
   if (this.userActivation) {
     sendMessage(window, message);
+    logData(`- Capture auto HTTP - RECORD_HTTP envoyé (fetch) pour ${requestId}, toggle actif : ${autoScreenshotOnHttpActivated}`);
+    if (autoScreenshotOnHttpActivated) {
+      startSettleWatch(requestId);
+    }
   } else {
     // Mettre en queue pour une éventuelle activation utilisateur
     addToQueue(message, messageForHTTPRecorderQueue);
@@ -1183,6 +1276,85 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
 
   return response;
 };
+
+// ============================================================================
+// Surcharge console (logs de la page inspectée)
+// ============================================================================
+
+let consoleLogActivated = false;
+let consoleLogBuffer: ConsoleLogMessage[] = [];
+let consoleFlushTimer: ReturnType<typeof setTimeout> | null = null;
+const CONSOLE_FLUSH_DELAY_MS = 500;
+const CONSOLE_MAX_BUFFER = 20;
+
+const stringifyConsoleArg = (arg: unknown): string => {
+  if (typeof arg === 'string') return arg;
+  try {
+    return JSON.stringify(arg);
+  } catch {
+    return String(arg);
+  }
+};
+
+const flushConsoleBuffer = (): void => {
+  if (consoleFlushTimer) {
+    clearTimeout(consoleFlushTimer);
+    consoleFlushTimer = null;
+  }
+  if (!consoleLogBuffer.length) return;
+  window.top?.postMessage({ type: 'RECORD_CONSOLE_LOG_BATCH', entries: consoleLogBuffer }, POST_TARGET_ORIGIN);
+  consoleLogBuffer = [];
+};
+
+const pushConsoleEntry = (level: ConsoleLogMessage['level'], message: string): void => {
+  if (!consoleLogActivated) return;
+  consoleLogBuffer.push({ level, message, timestamp: Date.now() });
+  if (consoleLogBuffer.length >= CONSOLE_MAX_BUFFER) {
+    flushConsoleBuffer();
+    return;
+  }
+  if (!consoleFlushTimer) {
+    consoleFlushTimer = setTimeout(flushConsoleBuffer, CONSOLE_FLUSH_DELAY_MS);
+  }
+};
+
+// Posée inconditionnellement à document_start (comme fetch/XHR) : seul l'émission
+// vers le content script est gatée par `consoleLogActivated`, pour ne rien capturer
+// hors enregistrement Spy.
+(['log', 'warn', 'error', 'info'] as const).forEach((level) => {
+  const original = console[level].bind(console);
+  console[level] = (...args: unknown[]) => {
+    original(...args);
+    pushConsoleEntry(level, args.map(stringifyConsoleArg).join(' '));
+  };
+});
+
+// La grande majorité des "erreurs" qu'un utilisateur voit dans les DevTools ne passent
+// JAMAIS par console.error() : exceptions non interceptées, promesses rejetées sans
+// .catch(), ressources qui échouent à charger (image, script, requête bloquée par CORS
+// avant même d'atteindre fetch/XHR...). Le navigateur les logue lui-même. Sans ces deux
+// listeners, la capture console ratait systématiquement ces cas, les plus utiles à
+// retrouver dans le rapport.
+window.addEventListener(
+  'error',
+  (event: ErrorEvent) => {
+    const isResourceError = !!event.target && event.target !== (window as unknown as EventTarget);
+    if (isResourceError) {
+      const target = event.target as HTMLImageElement | HTMLScriptElement | HTMLLinkElement;
+      const src = (target as any).src || (target as any).href || '';
+      pushConsoleEntry('error', `Ressource non chargée : <${target.tagName?.toLowerCase()}> ${src}`);
+      return;
+    }
+    const location = event.filename ? ` (${event.filename}:${event.lineno}:${event.colno})` : '';
+    pushConsoleEntry('error', `${event.message}${location}`);
+  },
+  // Les erreurs de ressources (img/script/link) ne bubblent pas : la capture est indispensable.
+  true
+);
+
+window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  pushConsoleEntry('error', `Promesse rejetée non gérée : ${stringifyConsoleArg(event.reason)}`);
+});
 
 // --- Tags Interceptor ---
 
@@ -1248,6 +1420,71 @@ intercepteurHTTPTags.interceptFetch = async function (response: Response): Promi
 };
 
 // ============================================================================
+// Détection de stabilisation du DOM après un appel HTTP (capture auto, toggle réglages)
+// ============================================================================
+
+let autoScreenshotOnHttpActivated = false;
+
+interface PendingSettleWatch {
+  pollTimer: ReturnType<typeof setTimeout> | null;
+  timeoutTimer: ReturnType<typeof setTimeout>;
+}
+
+// Plusieurs appels HTTP peuvent être en vol simultanément (contrairement à un clic) : une
+// veille par requête, indexée par requestId, plutôt qu'une veille unique.
+const pendingSettleWatches = new Map<string, PendingSettleWatch>();
+
+// Pas de MutationObserver : une première version observait le DOM pour détecter un "calme"
+// après le réseau, mais masquer/réafficher le panneau pour chaque capture est elle-même une
+// mutation DOM — sur une transition de page qui détruit/recrée beaucoup de DOM (ex. retour à
+// une liste après un détail), ça pouvait se relancer en cascade et geler la page. On se
+// contente désormais d'un réseau calme (`inFlightRequestCount === 0`) + un court délai fixe
+// pour laisser le temps au rendu, vérifié par un simple poll — aucune rétroaction possible.
+const NETWORK_POLL_MS = 200;
+const RENDER_SETTLE_DELAY_MS = 400;
+const SETTLE_TIMEOUT_MS = 3000;
+// Plafond de veilles concurrentes : une page qui enchaîne beaucoup d'appels HTTP (polling,
+// chargement de nombreuses ressources) ne doit pas faire croître indéfiniment la Map.
+const MAX_PENDING_SETTLE_WATCHES = 5;
+
+const finishSettleWatch = (requestId: string): void => {
+  const watch = pendingSettleWatches.get(requestId);
+  if (!watch) return;
+  if (watch.pollTimer) clearTimeout(watch.pollTimer);
+  clearTimeout(watch.timeoutTimer);
+  pendingSettleWatches.delete(requestId);
+  logData(`- Capture auto HTTP - Veille terminée pour ${requestId}, envoi HTTP_SETTLED`);
+  window.top?.postMessage({ type: 'HTTP_SETTLED', requestId }, POST_TARGET_ORIGIN);
+};
+
+const pollNetworkIdle = (requestId: string): void => {
+  const watch = pendingSettleWatches.get(requestId);
+  if (!watch) return;
+  if (inFlightRequestCount === 0) {
+    // Réseau calme : laisser un court délai fixe pour le rendu plutôt que de capturer immédiatement.
+    watch.pollTimer = setTimeout(() => finishSettleWatch(requestId), RENDER_SETTLE_DELAY_MS);
+  } else {
+    watch.pollTimer = setTimeout(() => pollNetworkIdle(requestId), NETWORK_POLL_MS);
+  }
+};
+
+const startSettleWatch = (requestId: string): void => {
+  if (pendingSettleWatches.size >= MAX_PENDING_SETTLE_WATCHES) {
+    logData(`- Capture auto HTTP - Trop de veilles en cours (${pendingSettleWatches.size}), ${requestId} ignoré`);
+    return;
+  }
+
+  logData(`- Capture auto HTTP - Veille démarrée pour ${requestId}`);
+
+  pendingSettleWatches.set(requestId, {
+    pollTimer: null,
+    timeoutTimer: setTimeout(() => finishSettleWatch(requestId), SETTLE_TIMEOUT_MS)
+  });
+
+  pollNetworkIdle(requestId);
+};
+
+// ============================================================================
 // Gestionnaire de messages
 // ============================================================================
 
@@ -1271,7 +1508,7 @@ window.addEventListener(
           try {
             window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
           } catch (e) {
-            console.error('Tuello: tuelloRecords malformé dans MOCK_HTTP_ACTIVATED', e);
+            logData(`Tuello: tuelloRecords malformé dans MOCK_HTTP_ACTIVATED : ${e}`);
             window.tuelloRecords = [];
           }
 
@@ -1359,12 +1596,33 @@ window.addEventListener(
         }
         break;
 
+      case MESSAGE_TYPES.RECORD_CONSOLE_LOG_ACTIVATED:
+        consoleLogActivated = !!data.value;
+        if (!consoleLogActivated) {
+          // Ne rien perdre : vider le buffer vers le content script avant de couper.
+          flushConsoleBuffer();
+        }
+        break;
+
+      case MESSAGE_TYPES.AUTO_SCREENSHOT_ON_HTTP_ACTIVATED:
+        autoScreenshotOnHttpActivated = !!data.value;
+        logData(`- Capture auto HTTP - Toggle reçu, valeur : ${autoScreenshotOnHttpActivated}`);
+        if (!autoScreenshotOnHttpActivated && pendingSettleWatches.size > 0) {
+          // Désactivation en cours de veille(s) : pas de capture, on nettoie juste.
+          pendingSettleWatches.forEach((watch) => {
+            if (watch.pollTimer) clearTimeout(watch.pollTimer);
+            clearTimeout(watch.timeoutTimer);
+          });
+          pendingSettleWatches.clear();
+        }
+        break;
+
       case MESSAGE_TYPES.MOCK_HTTP_TUELLO_RECORDS:
         deepMockLevel = data.deepMockLevel || 0;
         try {
           window.tuelloRecords = typeof data.tuelloRecords === 'string' ? JSON.parse(data.tuelloRecords) : data.tuelloRecords || [];
         } catch (e) {
-          console.error('Tuello: tuelloRecords malformé dans MOCK_HTTP_TUELLO_RECORDS', e);
+          logData(`Tuello: tuelloRecords malformé dans MOCK_HTTP_TUELLO_RECORDS : ${e}`);
           window.tuelloRecords = [];
         }
 
