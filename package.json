@@ -14,6 +14,7 @@
     "analyze:angular": "npx source-map-explorer dist/tuello/**/*.js",
     "analyze:chrome": "webpack-bundle-analyzer dist/tuello/stats-chrome.json",
     "clean": "rimraf dist tmp",
+    "package": "mkdir -p release && rm -f release/tuello-$npm_package_version.zip && cd dist/tuello && zip -r -X ../../release/tuello-$npm_package_version.zip . -x '*.map' && cd ../..",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint"
