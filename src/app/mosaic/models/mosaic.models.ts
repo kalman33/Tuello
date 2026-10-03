@@ -38,6 +38,22 @@ export interface MosaicImportResult {
   droppedReferences: number;
 }
 
+/** Un favori sélectionné dans `BookmarksImportDialogComponent`, prêt à être écrit dans la
+ * config : `categoryName` vaut `null` quand l'utilisateur a choisi d'ignorer la structure des
+ * dossiers (le favori rejoint alors la racine, comme un site ajouté manuellement). */
+export interface MosaicBookmarkEntry {
+  categoryName: string | null;
+  url: string;
+  title: string;
+}
+
+/** Résultat d'un import de favoris, pour le message de confirmation */
+export interface MosaicBookmarksImportResult {
+  imported: number;
+  skippedDuplicates: number;
+  categoriesCreated: number;
+}
+
 /**
  * Mode d'affichage de la mosaïque : `grid` navigue catégorie par catégorie,
  * `tree` déplie toute l'arborescence sur un seul écran.

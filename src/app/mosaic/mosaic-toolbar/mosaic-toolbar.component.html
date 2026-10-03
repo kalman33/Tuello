@@ -53,6 +53,10 @@
         <mat-icon>folder</mat-icon>
         {{ 'mmn.mosaic.category.add' | translate }}
       </button>
+      <button mat-menu-item (click)="importBookmarks.emit()">
+        <mat-icon>bookmark_add</mat-icon>
+        {{ 'mmn.mosaic.bookmarks.import.menu' | translate }}
+      </button>
     </mat-menu>
   }
 

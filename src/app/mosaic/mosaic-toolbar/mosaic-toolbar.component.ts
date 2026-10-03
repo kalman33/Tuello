@@ -31,6 +31,7 @@ export class MosaicToolbarComponent implements AfterViewInit, OnDestroy {
   @Output() editModeChange = new EventEmitter<boolean>();
   @Output() addUrl = new EventEmitter<void>();
   @Output() addCategory = new EventEmitter<void>();
+  @Output() importBookmarks = new EventEmitter<void>();
   @Output() showShortcuts = new EventEmitter<void>();
 
   tuelloTyped = false;

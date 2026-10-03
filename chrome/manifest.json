@@ -6,7 +6,7 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "manifest_version": 3,
-  "permissions": ["storage", "unlimitedStorage", "webNavigation", "tabs", "scripting", "contextMenus", "activeTab", "webRequest"],
+  "permissions": ["storage", "unlimitedStorage", "webNavigation", "tabs", "scripting", "contextMenus", "activeTab", "webRequest", "bookmarks"],
   "host_permissions": ["http://*/", "https://*/", "<all_urls>"],
   "background": {
     "service_worker": "background.js"

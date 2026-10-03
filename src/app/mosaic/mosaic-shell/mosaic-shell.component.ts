@@ -8,6 +8,7 @@ import { ConfirmDialogComponent } from '../../core/confirmation-dialog/confirmat
 import { CategoriesGridComponent, GridItem, UrlDroppedInCategory } from '../categories-grid/categories-grid.component';
 import { AddCategoryDialogComponent } from '../dialogs/add-category-dialog.component';
 import { AddUrlDialogComponent, AddUrlDialogResult } from '../dialogs/add-url-dialog.component';
+import { BookmarksImportDialogComponent } from '../dialogs/bookmarks-import-dialog.component';
 import { KeyboardShortcutsDialogComponent } from '../dialogs/keyboard-shortcuts-dialog.component';
 import { MosaicCategory, MosaicUrl, MosaicViewMode, MOSAIC_VIEW_MODE_KEY } from '../models/mosaic.models';
 import { MosaicToolbarComponent } from '../mosaic-toolbar/mosaic-toolbar.component';
@@ -336,6 +337,10 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
           this.storageService.addCategory(name);
         }
       });
+  }
+
+  openBookmarksImport(): void {
+    this.dialog.open(BookmarksImportDialogComponent, { width: '560px' }).afterClosed().pipe(take(1)).subscribe();
   }
 
   onGridEdit(item: GridItem): void {

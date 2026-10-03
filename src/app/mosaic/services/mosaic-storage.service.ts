@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { ScenarioStorageService } from '../../core/scenarios/scenario-storage.service';
-import { MosaicCategory, MosaicConfig, MosaicExport, MosaicImportResult, MosaicUrl, MOSAIC_CONFIG_KEY } from '../models/mosaic.models';
+import { MosaicBookmarkEntry, MosaicBookmarksImportResult, MosaicCategory, MosaicConfig, MosaicExport, MosaicImportResult, MosaicUrl, MOSAIC_CONFIG_KEY } from '../models/mosaic.models';
 
 @Injectable({ providedIn: 'root' })
 export class MosaicStorageService {
@@ -251,6 +251,53 @@ export class MosaicStorageService {
     };
     await this.saveConfig(config);
     return { importedScenarios, droppedReferences };
+  }
+
+  /**
+   * Importe des favoris du navigateur sélectionnés dans `BookmarksImportDialogComponent`.
+   * Une catégorie existante du même nom est réutilisée plutôt que dupliquée (utile si
+   * l'utilisateur relance l'import après avoir ajouté de nouveaux favoris). Une URL déjà
+   * présente dans la config (racine ou n'importe quelle catégorie) est ignorée, sans quoi
+   * relancer l'import plusieurs fois accumulerait des doublons.
+   */
+  async importBookmarks(entries: MosaicBookmarkEntry[]): Promise<MosaicBookmarksImportResult> {
+    const config = { ...this.configSubject.getValue() };
+    config.categories = config.categories.map((c) => ({ ...c, urls: [...c.urls] }));
+    config.urls = [...(config.urls ?? [])];
+
+    const existingUrls = new Set([...config.urls, ...config.categories.flatMap((c) => c.urls)].map((u) => u.url));
+    const categoryByName = new Map(config.categories.map((c) => [c.name, c] as const));
+
+    let imported = 0;
+    let skippedDuplicates = 0;
+    let categoriesCreated = 0;
+
+    for (const entry of entries) {
+      if (existingUrls.has(entry.url)) {
+        skippedDuplicates++;
+        continue;
+      }
+      existingUrls.add(entry.url);
+
+      if (!entry.categoryName) {
+        config.urls.push({ id: this.generateId(), url: entry.url, title: entry.title, order: config.urls.length });
+        imported++;
+        continue;
+      }
+
+      let category = categoryByName.get(entry.categoryName);
+      if (!category) {
+        category = { id: this.generateId(), name: entry.categoryName, order: config.categories.length, urls: [] };
+        config.categories.push(category);
+        categoryByName.set(entry.categoryName, category);
+        categoriesCreated++;
+      }
+      category.urls.push({ id: this.generateId(), url: entry.url, title: entry.title, order: category.urls.length });
+      imported++;
+    }
+
+    await this.saveConfig(config);
+    return { imported, skippedDuplicates, categoriesCreated };
   }
 
   /** Ids des scénarios associés à au moins un site de la configuration */

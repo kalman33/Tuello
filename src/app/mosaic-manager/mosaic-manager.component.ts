@@ -13,6 +13,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { take } from 'rxjs';
 import { AddCategoryDialogComponent } from '../mosaic/dialogs/add-category-dialog.component';
 import { AddUrlDialogComponent, AddUrlDialogResult } from '../mosaic/dialogs/add-url-dialog.component';
+import { BookmarksImportDialogComponent } from '../mosaic/dialogs/bookmarks-import-dialog.component';
 import { ImportExportDialogComponent } from '../mosaic/dialogs/import-export-dialog.component';
 import { ScenarioStorageService } from '../core/scenarios/scenario-storage.service';
 import { MosaicCategory, MosaicUrl } from '../mosaic/models/mosaic.models';
@@ -66,6 +67,10 @@ export class MosaicManagerComponent implements OnInit {
 
   openImportExport() {
     this.dialog.open(ImportExportDialogComponent).afterClosed().pipe(take(1)).subscribe();
+  }
+
+  openBookmarksImport() {
+    this.dialog.open(BookmarksImportDialogComponent, { width: '560px' }).afterClosed().pipe(take(1)).subscribe();
   }
 
   addCategory() {
