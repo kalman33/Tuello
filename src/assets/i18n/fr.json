@@ -31,7 +31,6 @@
   "mmn.settings.general.desactivate.title": "Désactiver le plugin",
   "mmn.settings.general.verbosemode.title": "Mode verbeux",
   "mmn.settings.general.mouse.title": "Afficher les coordonnées de la souris",
-  "mmn.settings.general.autoScreenshotOnHttp.title": "Capture auto après stabilisation du DOM (requêtes HTTP)",
   "mmn.settings.customize.title": "Personnaliser",
   "mmn.settings.customize.mode": "Mode sombre",
   "mmn.settings.customize.menu.title": "Libellés des menus",

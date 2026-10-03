@@ -22,7 +22,6 @@ let frame;
 let screenshotKeyboardShortcut: KeyboardShortcut;
 let captureImageKeyboardShortcut: KeyboardShortcut;
 let commentKeyboardShortcut: KeyboardShortcut;
-let autoScreenshotOnHttpEnabled = false;
 
 /**
  * Normalise un raccourci stocké : on accepte l'objet { key, code } comme la simple
@@ -39,13 +38,12 @@ function toShortcut(stored: any, fallback: KeyboardShortcut): KeyboardShortcut {
 }
 
 export function launchUIRecorderHandler() {
-  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut', 'tuelloAutoScreenshotOnHttp'], (results: Record<string, any>) => {
+  chrome.storage.local.get(['uiRecordActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
     if (results.uiRecordActivated) {
       const shortcuts = results.tuelloKeyboardShortcut;
       screenshotKeyboardShortcut = toShortcut(shortcuts?.screenshot, { key: 'S', code: 'KeyS' });
       captureImageKeyboardShortcut = toShortcut(shortcuts?.captureImage, { key: 'I', code: 'KeyI' });
       commentKeyboardShortcut = toShortcut(shortcuts?.comment, { key: 'C', code: 'KeyC' });
-      autoScreenshotOnHttpEnabled = !!results.tuelloAutoScreenshotOnHttp;
       // on previent background qu'on a démarré le recording
       chrome.runtime.sendMessage(
         {
@@ -115,7 +113,7 @@ function httpRecordUI(activation: boolean) {
   window.postMessage(
     {
       type: 'AUTO_SCREENSHOT_ON_HTTP_ACTIVATED',
-      value: activation && autoScreenshotOnHttpEnabled
+      value: activation
     },
     window.location.origin
   );
@@ -352,15 +350,13 @@ function mousedownListener(e) {
   // Démarre la capture "avant" dès maintenant, avant que le click qui suit ne laisse la page
   // réagir : attendre l'événement 'click' pour la déclencher était trop tard (round-trip HIDE/
   // captureVisibleTab/SHOW asynchrone, cf. prepareClickScreenshot côté background).
-  if (autoScreenshotOnHttpEnabled) {
-    chrome.runtime.sendMessage(
-      {
-        action: 'PREPARE_CLICK_SCREENSHOT',
-        value: { x: e.pageX, y: e.pageY }
-      },
-      () => {}
-    );
-  }
+  chrome.runtime.sendMessage(
+    {
+      action: 'PREPARE_CLICK_SCREENSHOT',
+      value: { x: e.pageX, y: e.pageY }
+    },
+    () => {}
+  );
 
   // on surveille qu'il ne s'agise pas d'un click sur un bouton submit car l'event click n'est pas remonté dans ce cas
   if (e.target.tagName && e.target.tagName.toLowerCase() === 'input' && e.target.type && e.target.type.toLowerCase() === 'submit') {

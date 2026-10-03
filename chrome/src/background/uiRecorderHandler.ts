@@ -395,22 +395,17 @@ export function prepareClickScreenshot(data: { x: number; y: number }, tabId?: n
 
   const state = getState(tabId);
 
-  chrome.storage.local.get(['tuelloAutoScreenshotOnHttp'], (settings) => {
-    if (!settings['tuelloAutoScreenshotOnHttp']) {
-      return;
-    }
-    const now = Date.now();
-    if (now - (state.lastCaptureAt ?? 0) < CAPTURE_MIN_INTERVAL_MS) {
-      return;
-    }
-    state.lastCaptureAt = now;
-    state.pendingBeforeCapture = {
-      promise: captureTabThumbnail(tabId),
-      pageX: data.x,
-      pageY: data.y,
-      timestamp: now
-    };
-  });
+  const now = Date.now();
+  if (now - (state.lastCaptureAt ?? 0) < CAPTURE_MIN_INTERVAL_MS) {
+    return;
+  }
+  state.lastCaptureAt = now;
+  state.pendingBeforeCapture = {
+    promise: captureTabThumbnail(tabId),
+    pageX: data.x,
+    pageY: data.y,
+    timestamp: now
+  };
 }
 
 /**

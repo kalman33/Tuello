@@ -35,11 +35,6 @@
               <div>{{ 'mmn.settings.general.mouse.title' | translate }}</div>
               <mat-slide-toggle [checked]="mouseCoordinates" [(ngModel)]="mouseCoordinates" class="darkMode" (change)="toggleMouseCoordinatesOption(mouseCoordinates)"> </mat-slide-toggle>
             </div>
-            <div class="icon-form-field">
-              <mat-icon color="accent">photo_camera</mat-icon>
-              <div>{{ 'mmn.settings.general.autoScreenshotOnHttp.title' | translate }}</div>
-              <mat-slide-toggle [(ngModel)]="autoScreenshotOnHttp" class="darkMode" (change)="toggleAutoScreenshotOnHttp(autoScreenshotOnHttp)"> </mat-slide-toggle>
-            </div>
             <h2>{{ 'mmn.settings.mosaic.title' | translate }}</h2>
             <div class="icon-form-field">
               <mat-icon color="accent">grid_view</mat-icon>

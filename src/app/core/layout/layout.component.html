@@ -73,11 +73,6 @@
           <span mat-line> {{ 'mmn.layout.jsonFormatter' | translate }} </span>
         </a>
 
-        <a [class.selected]="selectedIndex === 5" (click)="selectMenuItem(5)" mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
-          <mat-icon color="accent" mat-list-icon> settings </mat-icon>
-          <span mat-line> {{ 'mmn.layout.settings' | translate }} </span>
-        </a>
-
         <a [class.selected]="selectedIndex === 6" (click)="selectMenuItem(6)" mat-list-item [routerLink]="['/mosaic']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon> grid_view </mat-icon>
           <span mat-line> {{ 'mmn.layout.mosaic' | translate }} </span>
@@ -86,6 +81,11 @@
         <a [class.selected]="selectedIndex === 7" (click)="selectMenuItem(7)" mat-list-item [routerLink]="['/report']" [skipLocationChange]="true">
           <mat-icon color="accent" mat-list-icon> code </mat-icon>
           <span mat-line> {{ 'mmn.layout.report' | translate }} </span>
+        </a>
+
+        <a [class.selected]="selectedIndex === 5" (click)="selectMenuItem(5)" mat-list-item [routerLink]="['/settings']" [skipLocationChange]="true">
+          <mat-icon color="accent" mat-list-icon> settings </mat-icon>
+          <span mat-line> {{ 'mmn.layout.settings' | translate }} </span>
         </a>
 
         <div id="push-bottom">

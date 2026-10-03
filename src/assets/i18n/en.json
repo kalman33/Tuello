@@ -26,7 +26,6 @@
   "mmn.settings.general.title": "General",
   "mmn.settings.general.placeholder": "Language",
   "mmn.settings.general.mouse.title": "Display mouse coordinates",
-  "mmn.settings.general.autoScreenshotOnHttp.title": "Auto-capture after DOM settles (HTTP calls)",
   "mmn.settings.general.desactivate.title": "Disable the plugin",
   "mmn.settings.general.verbosemode.title": "Verbose mode",
   "mmn.settings.customize.mode": "Dark mode",

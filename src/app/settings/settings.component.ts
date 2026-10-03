@@ -69,7 +69,6 @@ export class SettingsComponent implements OnInit {
   darkMode: boolean;
   deepMockLevel = 0;
   mouseCoordinates: boolean;
-  autoScreenshotOnHttp: boolean;
   desactivate = false;
   verboseMode: boolean;
   languages = [
@@ -150,7 +149,7 @@ export class SettingsComponent implements OnInit {
   }
 
   init() {
-    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode', 'tuelloAutoScreenshotOnHttp'], (results: Record<string, any>) => {
+    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode'], (results: Record<string, any>) => {
       if (results['language']) {
         this.selectedLanguage = results['language'];
       }
@@ -169,10 +168,6 @@ export class SettingsComponent implements OnInit {
 
       if (results['verboseMode']) {
         this.verboseMode = results['verboseMode'];
-      }
-
-      if (results['tuelloAutoScreenshotOnHttp']) {
-        this.autoScreenshotOnHttp = results['tuelloAutoScreenshotOnHttp'];
       }
 
       if (results['deepMockLevel']) {
@@ -213,10 +208,6 @@ export class SettingsComponent implements OnInit {
       },
       () => {}
     );
-  }
-
-  toggleAutoScreenshotOnHttp(value: boolean) {
-    chrome.storage.local.set({ tuelloAutoScreenshotOnHttp: value });
   }
 
   toggleDesactivate(e) {
