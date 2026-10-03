@@ -148,7 +148,7 @@ ${bodyContent}
 
       if (imageData) {
         // Capture "avant" (clic) : repère dessiné si on connaît la position du clic.
-        const optimized = action.screenshotMarker ? await this.drawScreenshotWithMarker(imageData, action.screenshotMarker, 900) : await this.optimizeImageForReport(imageData, 900);
+        const optimized = action.screenshotMarker ? await this.drawScreenshotWithMarker(imageData, action.screenshotMarker, 600) : await this.optimizeImageForReport(imageData, 600);
         body = `<img class="action-image" src="${optimized}" alt="" />`;
       } else {
         const text = this.actionSummaryText(action);
@@ -168,7 +168,7 @@ ${bodyContent}
       const isError = !Number.isNaN(code) && code >= 400;
 
       // Capture "après" (fin d'appel HTTP, DOM stabilisé) : pas de repère, la page a déjà changé.
-      const screenshotHtml = http.screenshot ? `<img class="action-image" src="${await this.optimizeImageForReport(http.screenshot, 900)}" alt="" />` : '';
+      const screenshotHtml = http.screenshot ? `<img class="action-image" src="${await this.optimizeImageForReport(http.screenshot, 600)}" alt="" />` : '';
 
       const html = `<a class="action-http-link${isError ? ' http-error' : ''}" href="#http-entry-${index}">
   <span class="action-http-badge">HTTP</span>
@@ -638,7 +638,7 @@ details.report-section[open] > summary .report-section-arrow { transform: rotate
 .action-index { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg, #4facfe, #00f2fe); color: #fff; font-size: 11px; font-weight: 700; box-shadow: 0 3px 8px rgba(79, 172, 254, .35); }
 .action-type { background: rgba(127, 140, 141, .14); color: #54656a; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: capitalize; }
 .action-delay { margin-left: auto; color: var(--c-text-muted); font-weight: 400; font-size: 11.5px; white-space: nowrap; }
-.action-image { max-width: 100%; margin-top: 8px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
+.action-image { max-width: 600px; margin-top: 8px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
 .action-text { color: #444; font-size: 13px; margin: 6px 0 0; word-break: break-all; width: 100%; }
 .action-http-link { display: flex; align-items: center; gap: 8px; padding: 8px 14px; margin: 4px 0; border-radius: 14px; background: rgba(255, 255, 255, .55); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, .5); text-decoration: none; color: inherit; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; box-shadow: 0 2px 10px rgba(27, 80, 100, .05); transition: .25s ease; width: 100%; }
 .action-http-link:hover { background: rgba(255, 255, 255, .9); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(27, 80, 100, .14); }
