@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.26.0] - 2026-10-03
+
+    - Rapport HTML de session : actions, requêtes HTTP, logs console et captures d'écran
+    - Rapport HTML : infos de session, export des bouchons, accordéons et design mosaïque
+    - Rapport : images redimensionnées à 600px pour plus de fluidité
+    - Mosaïque : import des favoris du navigateur
+    - Menu : Paramètres déplacé sous Rapport, capture auto HTTP toujours active
+
 ## [1.2.25.0] - 2026-09-12
 
     - Mosaïque : un site de la racine se range dans une catégorie en le glissant sur la tuile du dossier — le dossier visé s'ouvre pour signaler qu'il recevra le site
