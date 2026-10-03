@@ -1,14 +1,17 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MatButton, MatIconButton } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { firstValueFrom } from 'rxjs';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { PlayerService } from '../spy-http/services/player.service';
 import { RecorderHistoryService } from '../spy-http/services/recorder-history.service';
+import { ReportMetadataDialogComponent } from './metadata-dialog/report-metadata-dialog.component';
 import { HtmlReportService } from './services/html-report.service';
 
 @Component({
@@ -29,7 +32,8 @@ export class ReportComponent implements OnInit {
     private translate: TranslateService,
     private snackBar: MatSnackBar,
     private changeDetectorRef: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    private dialog: MatDialog
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -62,18 +66,24 @@ export class ReportComponent implements OnInit {
   }
 
   async generateReport(): Promise<void> {
+    // Demandé avant la génération (plutôt qu'après) pour pouvoir annuler sans produire de
+    // fichier : fermer le dialogue sans valider (croix, clic hors modal, "Annuler") renvoie
+    // `undefined`, qui abandonne la génération.
+    const metadata = await firstValueFrom(this.dialog.open(ReportMetadataDialogComponent, { width: '420px' }).afterClosed());
+    if (!metadata) {
+      return;
+    }
+
     // Même raison qu'en ngOnInit : s'assurer qu'on exporte bien le dernier état persisté,
     // pas une copie en mémoire potentiellement figée avant la fin d'une capture asynchrone.
     await this.recorderHistoryService.loadUiRecordFromLocalStorage();
-    const screenshotCount = (this.recorderHistoryService.record?.httpRecords || []).filter((h) => h.screenshot).length;
-    console.log('[Tuello] ReportComponent.generateReport : record relu depuis le storage,', screenshotCount, 'capture(s) HTTP,', this.recorderHistoryService.record?.httpRecords?.length ?? 0, 'requête(s) au total');
     if (!this.recorderHistoryService.record) {
       return;
     }
     this.generating = true;
     this.changeDetectorRef.detectChanges();
     try {
-      await this.htmlReportService.generateReport(this.recorderHistoryService.record, this.playerService.comparisonResults);
+      await this.htmlReportService.generateReport(this.recorderHistoryService.record, this.playerService.comparisonResults, metadata);
       this.snackBar.open(this.translate.instant('mmn.report.generate.success'), '', { duration: 2000 });
     } finally {
       this.generating = false;

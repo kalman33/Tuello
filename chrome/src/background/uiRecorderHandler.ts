@@ -209,12 +209,8 @@ interface TabCapture {
 const OPTIMIZE_SCREENSHOT_TIMEOUT_MS = 3000;
 
 async function optimizeScreenshotRaw(dataUrl: string, maxWidthPx: number): Promise<string> {
-  console.log('[Tuello] optimizeScreenshot : fetch du data URL, taille brute =', dataUrl.length, 'caractères');
   const blob = await (await fetch(dataUrl)).blob();
-  console.log('[Tuello] optimizeScreenshot : blob obtenu, taille =', blob.size, 'octets, type =', blob.type);
-
   const bitmap = await createImageBitmap(blob);
-  console.log('[Tuello] optimizeScreenshot : bitmap décodé', bitmap.width, 'x', bitmap.height);
 
   const ratio = Math.min(1, maxWidthPx / bitmap.width);
   const targetWidth = Math.max(1, Math.round(bitmap.width * ratio));
@@ -223,33 +219,19 @@ async function optimizeScreenshotRaw(dataUrl: string, maxWidthPx: number): Promi
   const canvas = new OffscreenCanvas(targetWidth, targetHeight);
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    console.log('[Tuello] optimizeScreenshot : pas de contexte 2D disponible');
     return dataUrl;
   }
   ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
-  console.log('[Tuello] optimizeScreenshot : dessiné à', targetWidth, 'x', targetHeight);
 
   const outBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.72 });
-  console.log('[Tuello] optimizeScreenshot : JPEG généré, taille =', outBlob.size, 'octets');
-
-  const result = await blobToDataUrl(outBlob);
-  console.log('[Tuello] optimizeScreenshot : terminé, taille finale =', result.length, 'caractères');
-  return result;
+  return blobToDataUrl(outBlob);
 }
 
 async function optimizeScreenshot(dataUrl: string, maxWidthPx = 1280): Promise<string> {
   try {
-    return await Promise.race([
-      optimizeScreenshotRaw(dataUrl, maxWidthPx),
-      new Promise<string>((resolve) =>
-        setTimeout(() => {
-          console.log('[Tuello] optimizeScreenshot : timeout dépassé, conservation de l’image brute');
-          resolve(dataUrl);
-        }, OPTIMIZE_SCREENSHOT_TIMEOUT_MS)
-      )
-    ]);
+    return await Promise.race([optimizeScreenshotRaw(dataUrl, maxWidthPx), new Promise<string>((resolve) => setTimeout(() => resolve(dataUrl), OPTIMIZE_SCREENSHOT_TIMEOUT_MS))]);
   } catch (e) {
-    console.log('[Tuello] optimizeScreenshot a échoué, conservation de l’image brute :', e);
+    console.warn('[Tuello] Optimisation du screenshot échouée, conservation de l’image brute :', e);
     return dataUrl; // repli : image d'origine, mieux vaut une capture lourde qu'aucune
   }
 }
@@ -289,12 +271,11 @@ function captureVisibleTabWithRetry(attempt = 1): Promise<string | undefined> {
   return new Promise((resolve) => {
     chrome.tabs.captureVisibleTab(chrome.windows.WINDOW_ID_CURRENT, { format: 'png' }, (imgData) => {
       if ((chrome.runtime.lastError || !imgData) && attempt === 1) {
-        console.log('[Tuello] captureVisibleTab a échoué, nouvelle tentative :', chrome.runtime.lastError?.message);
         setTimeout(() => resolve(captureVisibleTabWithRetry(2)), CAPTURE_RETRY_DELAY_MS);
         return;
       }
       if (chrome.runtime.lastError || !imgData) {
-        console.log('[Tuello] captureVisibleTab a échoué après rattrapage :', chrome.runtime.lastError?.message);
+        console.warn('[Tuello] captureVisibleTab a échoué après rattrapage :', chrome.runtime.lastError?.message);
         resolve(undefined);
         return;
       }
@@ -652,28 +633,19 @@ export function addComment(comment: string, tabId?: number): void {
 
 /**
  * Attache une capture d'écran à une requête HTTP déjà enregistrée, une fois le DOM stabilisé
- * (voir la détection dans httpmanager.ts : compteur de requêtes en vol + MutationObserver,
+ * (voir la détection dans httpmanager.ts : compteur de requêtes en vol + délai de rendu,
  * message HTTP_SETTLED). L'entrée a pu être supprimée entre-temps côté panneau : on abandonne
- * alors en silence. `clickX`/`clickY`, s'ils sont fournis, indiquent la position du dernier clic
- * connu avant l'appel (simple indication, pas de garantie de causalité) — stockés avec la
- * géométrie de défilement/viewport au moment de la capture pour que le rapport puisse y
- * dessiner un repère.
+ * alors en silence. Pas de repère de clic ici : la page a déjà changé depuis le clic qui a
+ * potentiellement déclenché cet appel (c'est justement le "résultat", pas l'écran du clic) —
+ * voir `attachPendingBeforeCapture` pour la capture "avant", qui en porte un.
  */
 export async function attachHttpSettledScreenshot(data: { requestId: string }, tabId?: number): Promise<void> {
-  console.log('[Tuello] attachHttpSettledScreenshot reçu', data, 'tabId=', tabId);
   if (!tabId) {
-    console.log('[Tuello] attachHttpSettledScreenshot : pas de tabId, abandon');
     return;
   }
   const state = getState(tabId);
   const http = state.record?.httpRecords?.find((h) => h.requestId === data.requestId);
   if (!http) {
-    console.log(
-      '[Tuello] attachHttpSettledScreenshot : entrée introuvable pour requestId=',
-      data.requestId,
-      '— requestIds connus :',
-      state.record?.httpRecords?.map((h) => h.requestId)
-    );
     return;
   }
 
@@ -682,20 +654,15 @@ export async function attachHttpSettledScreenshot(data: { requestId: string }, t
   // minuteur des autres veilles en attente et peut déclencher une rafale de captures en cascade.
   const now = Date.now();
   if (now - (state.lastCaptureAt ?? 0) < CAPTURE_MIN_INTERVAL_MS) {
-    console.log('[Tuello] attachHttpSettledScreenshot : capture ignorée (trop rapprochée de la précédente)');
     return;
   }
   state.lastCaptureAt = now;
 
   const capture = await captureTabThumbnail(tabId);
   if (!capture.imgData) {
-    console.log('[Tuello] attachHttpSettledScreenshot : capture échouée (pas d’imgData)');
     return;
   }
-  console.log('[Tuello] attachHttpSettledScreenshot : capture réussie, attachement à', data.requestId);
 
-  // Pas de repère ici : la page a déjà changé depuis le clic qui a potentiellement déclenché cet
-  // appel (c'est justement le "résultat", pas l'écran du clic) — un repère n'y aurait aucun sens.
   http.screenshot = capture.imgData;
   saveUiRecordToLocalStorage(state.record!);
 }
@@ -1046,16 +1013,9 @@ function saveUiRecordToLocalStorage(record: Record): void {
         console.warn(`Attention: ${pendingSaveRecord.actions.length} actions enregistrées. Considérez sauvegarder et recommencer.`);
       }
 
-      const screenshotCount = (pendingSaveRecord.httpRecords || []).filter((h) => h.screenshot).length + (pendingSaveRecord.actions || []).filter((a) => typeof a.data === 'string' && a.data.startsWith('data:image')).length;
-      const saveStartedAt = Date.now();
-      console.log('[Tuello] saveUiRecordToLocalStorage : écriture en cours,', screenshotCount, 'capture(s) dans le record');
-      saveCompressed('uiRecord', pendingSaveRecord)
-        .then(() => {
-          console.log('[Tuello] saveUiRecordToLocalStorage : écriture réussie en', Date.now() - saveStartedAt, 'ms');
-        })
-        .catch((err) => {
-          console.error('[Tuello] Erreur sauvegarde uiRecord:', err);
-        });
+      saveCompressed('uiRecord', pendingSaveRecord).catch((err) => {
+        console.error('[Tuello] Erreur sauvegarde uiRecord:', err);
+      });
       pendingSaveRecord = null;
     }
     saveDebounceTimer = null;

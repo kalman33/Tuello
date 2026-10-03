@@ -9,23 +9,51 @@ import { ComparisonResult } from '../../spy-http/models/ComparisonResult';
 import { ConsoleLogEntry } from '../../spy-http/models/ConsoleLogEntry';
 import { Record } from '../../spy-http/models/Record';
 
+/** Informations facultatives saisies avant la génération (voir `ReportMetadataDialogComponent`),
+ * affichées en tête du rapport, avant les actions enregistrées. */
+export interface ReportMetadata {
+  user?: string;
+  comment?: string;
+}
+
+/** Forme attendue par le module "Enregistrer & rejouer HTTP" pour importer des bouchons (voir
+ * `TuelloRecord` dans `chrome/src/httpmanager.ts` et `RecorderHttpComponent.applyImportedData`) :
+ * un simple tableau de `{key, method?, response, httpCode, headers?, delay?}`. */
+interface TuelloMockRecord {
+  key: string;
+  method?: string;
+  response: unknown;
+  httpCode: number;
+  headers?: { [k: string]: string };
+  delay?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class HtmlReportService {
   constructor(private translate: TranslateService) {}
 
-  async generateReport(record: Record, comparisonResults?: ComparisonResult[]): Promise<void> {
+  async generateReport(record: Record, comparisonResults?: ComparisonResult[], metadata?: ReportMetadata): Promise<void> {
     // record.httpRecords est alimenté via unshift (ordre antichronologique) : on calcule l'ordre
     // chronologique une seule fois, partagé entre la section Actions (entrelacement) et la
     // section HTTP (ancres), pour que les index d'ancre correspondent exactement.
     const chronologicalHttp = (record.httpRecords || []).slice().reverse();
 
+    // Même base que le nom du fichier HTML (voir plus bas) : les bouchons exportés depuis le
+    // rapport doivent être facilement associables au rapport dont ils proviennent.
+    const baseFileName = `tuello-report-${formatDate(new Date())}`;
+
     const sections: string[] = [this.buildHeader(record, comparisonResults)];
+
+    const metadataSection = this.buildMetadataSection(metadata);
+    if (metadataSection) {
+      sections.push(metadataSection);
+    }
 
     if (record.actions?.length) {
       sections.push(await this.buildActionsSection(record.actions, chronologicalHttp));
     }
     if (chronologicalHttp.length) {
-      sections.push(await this.buildHttpSection(chronologicalHttp));
+      sections.push(await this.buildHttpSection(chronologicalHttp, baseFileName));
     }
     if (record.consoleLogs?.length) {
       sections.push(this.buildConsoleSection(record.consoleLogs));
@@ -36,7 +64,7 @@ export class HtmlReportService {
 
     const html = this.buildDocument(sections.join('\n'));
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    saveAs(blob, `tuello-report-${formatDate(new Date())}.html`);
+    saveAs(blob, `${baseFileName}.html`);
   }
 
   private buildDocument(bodyContent: string): string {
@@ -50,7 +78,10 @@ export class HtmlReportService {
 <style>${this.buildStyles()}</style>
 </head>
 <body>
+<div class="bg-blobs" aria-hidden="true"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
+<div class="report-container">
 ${bodyContent}
+</div>
 </body>
 </html>`;
   }
@@ -59,17 +90,46 @@ ${bodyContent}
     const httpErrors = (record.httpRecords || []).filter((http) => Number(http.httpCode) >= 400).length;
     const consoleErrors = (record.consoleLogs || []).filter((entry) => entry.level === 'error').length;
 
-    return `<header>
+    const stats: Array<{ label: string; value: number; danger?: boolean }> = [
+      { label: this.translate.instant('mmn.report.summary.actions'), value: record.actions?.length ?? 0 },
+      { label: this.translate.instant('mmn.report.summary.httpRequests'), value: record.httpRecords?.length ?? 0 },
+      { label: this.translate.instant('mmn.report.summary.httpErrors'), value: httpErrors, danger: httpErrors > 0 },
+      { label: this.translate.instant('mmn.report.summary.consoleLogs'), value: record.consoleLogs?.length ?? 0 },
+      { label: this.translate.instant('mmn.report.summary.consoleErrors'), value: consoleErrors, danger: consoleErrors > 0 },
+      { label: this.translate.instant('mmn.report.summary.comparisonResults'), value: comparisonResults?.length ?? 0 }
+    ];
+    const statCards = stats.map((stat) => `<div class="stat-card${stat.danger ? ' stat-card-danger' : ''}"><span class="stat-value">${stat.value}</span><span class="stat-label">${this.escapeHtml(stat.label)}</span></div>`).join('');
+
+    return `<header class="report-header">
   <h1>${this.escapeHtml(this.translate.instant('mmn.report.export.title'))}</h1>
   <p class="generated-on">${this.escapeHtml(this.translate.instant('mmn.report.export.generatedOn'))} ${this.escapeHtml(new Date().toLocaleString())}</p>
-  <ul class="summary">
-    <li>${this.escapeHtml(this.translate.instant('mmn.report.summary.actions'))} : ${record.actions?.length ?? 0}</li>
-    <li>${this.escapeHtml(this.translate.instant('mmn.report.summary.httpRequests'))} : ${record.httpRecords?.length ?? 0}</li>
-    <li>${this.escapeHtml(this.translate.instant('mmn.report.summary.httpErrors'))} : ${httpErrors}</li>
-    <li>${this.escapeHtml(this.translate.instant('mmn.report.summary.consoleLogs'))} : ${record.consoleLogs?.length ?? 0} (${this.escapeHtml(this.translate.instant('mmn.report.summary.consoleErrors'))} : ${consoleErrors})</li>
-    <li>${this.escapeHtml(this.translate.instant('mmn.report.summary.comparisonResults'))} : ${comparisonResults?.length ?? 0}</li>
-  </ul>
+  <div class="stat-grid">${statCards}</div>
 </header>`;
+  }
+
+  /** Vide si ni l'utilisateur ni le commentaire n'ont été renseignés (les deux sont facultatifs
+   * dans `ReportMetadataDialogComponent`) : pas de section vide dans le rapport. */
+  private buildMetadataSection(metadata?: ReportMetadata): string {
+    const user = metadata?.user?.trim();
+    const comment = metadata?.comment?.trim();
+    if (!user && !comment) {
+      return '';
+    }
+
+    const parts: string[] = [];
+    if (user) {
+      parts.push(`<p><strong>${this.escapeHtml(this.translate.instant('mmn.report.metadata.user'))} :</strong> ${this.escapeHtml(user)}</p>`);
+    }
+    if (comment) {
+      // `white-space: pre-wrap` (voir buildStyles) préserve les retours à la ligne du commentaire
+      // sans avoir à les convertir en <br> après l'échappement HTML.
+      parts.push(`<p><strong>${this.escapeHtml(this.translate.instant('mmn.report.metadata.comment'))} :</strong></p><p class="metadata-comment">${this.escapeHtml(comment)}</p>`);
+    }
+
+    return `<section class="section--metadata">
+  <h2><span class="section-icon section-icon--metadata">i</span> ${this.escapeHtml(this.translate.instant('mmn.report.section.metadata.title'))}</h2>
+  ${parts.join('\n')}
+</section>`;
   }
 
   /**
@@ -96,7 +156,7 @@ ${bodyContent}
       }
 
       const html = `<div class="action-entry">
-  <div class="action-header"><span class="action-index">${i + 1}.</span> <span class="action-type">${this.escapeHtml(this.actionTypeLabel(action))}</span> <span class="action-delay">${action.delay} ms</span></div>
+  <div class="action-header"><span class="action-index">${i + 1}</span> <span class="action-type">${this.escapeHtml(this.actionTypeLabel(action))}</span> <span class="action-delay">${action.delay} ms</span></div>
   ${body}
 </div>`;
       timeline.push({ timestamp: action.timestamp ?? 0, html });
@@ -112,8 +172,8 @@ ${bodyContent}
 
       const html = `<a class="action-http-link${isError ? ' http-error' : ''}" href="#http-entry-${index}">
   <span class="action-http-badge">HTTP</span>
-  <span class="http-method">${this.escapeHtml(http.method || '?')}</span>
-  <span class="http-code${isError ? ' http-error' : ''}">[${this.escapeHtml(String(http.httpCode ?? '?'))}]</span>
+  <span class="badge ${this.httpMethodBadgeClass(http.method)}">${this.escapeHtml(http.method || '?')}</span>
+  <span class="badge ${this.httpCodeBadgeClass(code)}">${this.escapeHtml(String(http.httpCode ?? '?'))}</span>
   <span class="http-url">${this.escapeHtml(http.key)}</span>
 </a>
 ${screenshotHtml}`;
@@ -123,14 +183,17 @@ ${screenshotHtml}`;
     // Tri stable (ES2019+) : à timestamp égal, l'ordre d'insertion ci-dessus est conservé.
     timeline.sort((a, b) => a.timestamp - b.timestamp);
 
-    return `<section>
-  <h2>${this.escapeHtml(this.translate.instant('mmn.report.section.actions.title'))}</h2>
+    return `<details class="report-section report-section--actions" open>
+  <summary><span class="report-section-title"><span class="report-section-arrow">▸</span><span class="section-icon section-icon--actions">A</span> ${this.escapeHtml(this.translate.instant('mmn.report.section.actions.title'))}</span></summary>
+  <div class="report-section-body">
   ${timeline.map((item) => item.html).join('\n')}
-</section>`;
+  </div>
+</details>`;
   }
 
-  private async buildHttpSection(chronologicalHttp: HttpReturn[]): Promise<string> {
+  private async buildHttpSection(chronologicalHttp: HttpReturn[], baseFileName: string): Promise<string> {
     const rows: string[] = [];
+    const mocks: TuelloMockRecord[] = [];
 
     for (let index = 0; index < chronologicalHttp.length; index++) {
       const http = chronologicalHttp[index];
@@ -139,23 +202,82 @@ ${screenshotHtml}`;
       const isSlow = typeof http.duration === 'number' && http.duration > 1000;
       const duration = typeof http.duration === 'number' ? `${http.duration} ms` : '—';
 
-      const summary = `<span class="http-method">${this.escapeHtml(http.method || '?')}</span> <span class="http-code${isError ? ' http-error' : ''}">[${this.escapeHtml(String(http.httpCode ?? '?'))}]</span> <span class="http-duration${isSlow ? ' http-slow' : ''}">${this.escapeHtml(duration)}</span> <span class="http-url">${this.escapeHtml(http.key)}</span>`;
+      const summary = `<span class="badge ${this.httpMethodBadgeClass(http.method)}">${this.escapeHtml(http.method || '?')}</span> <span class="badge ${this.httpCodeBadgeClass(code)}">${this.escapeHtml(String(http.httpCode ?? '?'))}</span> <span class="http-duration${isSlow ? ' http-slow' : ''}">${this.escapeHtml(duration)}</span> <span class="http-url">${this.escapeHtml(http.key)}</span>`;
 
       const bodySection = this.renderJsonSection(this.translate.instant('mmn.report.http.requestBody'), http.body);
       const responseSection = this.renderJsonSection(this.translate.instant('mmn.report.http.response'), http.response);
 
+      // Même forme que ce que "Enregistrer & rejouer HTTP" importe/exporte déjà (voir
+      // ExportComponent.save) : quelqu'un qui reproduit le scénario peut réimporter ces bouchons
+      // pour obtenir les mêmes réponses, sans avoir à les reconstituer à la main.
+      mocks.push({
+        key: http.key,
+        method: http.method,
+        response: http.response,
+        httpCode: code,
+        headers: http.headers,
+        delay: typeof http.duration === 'number' ? http.duration : undefined
+      });
+
       rows.push(
         `<details class="http-entry" id="http-entry-${index}">
-  <summary>${summary}</summary>
+  <summary>
+    <span class="http-summary-text">${summary}</span>
+    <button type="button" class="tuello-export-btn" onclick="tuelloExportMock(event, ${index})">${this.escapeHtml(this.translate.instant('mmn.report.http.exportMock'))}</button>
+  </summary>
   ${bodySection}${responseSection}
 </details>`
       );
     }
 
-    return `<section>
-  <h2>${this.escapeHtml(this.translate.instant('mmn.report.section.http.title'))}</h2>
+    return `<details class="report-section report-section--http" open>
+  <summary>
+    <span class="report-section-title"><span class="report-section-arrow">▸</span><span class="section-icon section-icon--http">H</span> ${this.escapeHtml(this.translate.instant('mmn.report.section.http.title'))}</span>
+    <button type="button" class="tuello-export-btn tuello-export-all-btn" onclick="event.preventDefault(); event.stopPropagation(); tuelloExportAllMocks()">${this.escapeHtml(this.translate.instant('mmn.report.http.exportAllMocks'))}</button>
+  </summary>
+  <div class="report-section-body">
   ${rows.join('\n')}
-</section>`;
+  </div>
+</details>
+${this.buildMockExportScript(mocks, baseFileName)}`;
+  }
+
+  /**
+   * Le rapport est une page HTML autonome (pas d'Angular, pas de dépendance externe) : les
+   * bouchons sont donc embarqués tels quels dans un `<script>` inline, et le téléchargement se
+   * fait en JS natif (Blob + lien temporaire). Tous les "<" sont échappés dans le JSON embarqué :
+   * une réponse HTTP arbitraire pourrait contenir la séquence "</script>" et clore la balise
+   * prématurément, cassant le reste de la page. Les fichiers téléchargés reprennent le nom du
+   * rapport HTML (`baseFileName`) pour rester facilement associables entre eux.
+   */
+  private buildMockExportScript(mocks: TuelloMockRecord[], baseFileName: string): string {
+    const json = JSON.stringify(mocks).replace(/</g, '\\u003c');
+    const safeBaseFileName = JSON.stringify(baseFileName);
+    return `<script>
+const TUELLO_MOCKS = ${json};
+const TUELLO_BASE_FILE_NAME = ${safeBaseFileName};
+function tuelloDownloadJson(data, filename) {
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function tuelloExportAllMocks() {
+  tuelloDownloadJson(TUELLO_MOCKS, TUELLO_BASE_FILE_NAME + '.json');
+}
+function tuelloExportMock(event, index) {
+  // Empêche le clic d'ouvrir/fermer le <details> parent (comportement par défaut d'un clic
+  // dans un <summary>).
+  event.preventDefault();
+  event.stopPropagation();
+  tuelloDownloadJson([TUELLO_MOCKS[index]], TUELLO_BASE_FILE_NAME + '-mock-' + (index + 1) + '.json');
+}
+</script>`;
   }
 
   private buildConsoleSection(entries: ConsoleLogEntry[]): string {
@@ -166,10 +288,12 @@ ${screenshotHtml}`;
       })
       .join('\n');
 
-    return `<section>
-  <h2>${this.escapeHtml(this.translate.instant('mmn.report.section.console.title'))}</h2>
+    return `<details class="report-section report-section--console" open>
+  <summary><span class="report-section-title"><span class="report-section-arrow">▸</span><span class="section-icon section-icon--console">C</span> ${this.escapeHtml(this.translate.instant('mmn.report.section.console.title'))}</span></summary>
+  <div class="report-section-body">
   ${rows}
-</section>`;
+  </div>
+</details>`;
   }
 
   private async buildComparisonSection(comparisonResults: ComparisonResult[]): Promise<string> {
@@ -197,8 +321,8 @@ ${screenshotHtml}`;
       );
     }
 
-    return `<section>
-  <h2>${this.escapeHtml(this.translate.instant('mmn.report.section.comparison.title'))}</h2>
+    return `<section class="section--comparison">
+  <h2><span class="section-icon section-icon--comparison">V</span> ${this.escapeHtml(this.translate.instant('mmn.report.section.comparison.title'))}</h2>
   ${parts.join('\n')}
 </section>`;
   }
@@ -263,6 +387,34 @@ ${screenshotHtml}`;
     }
 
     return `<span class="tree-meta">${this.escapeHtml(String(value))}</span>`;
+  }
+
+  /** Classe de couleur du badge méthode HTTP (voir buildStyles) : une couleur par verbe pour
+   * repérer le type d'appel au premier coup d'œil dans la timeline/section HTTP. */
+  private httpMethodBadgeClass(method?: string): string {
+    switch ((method || '').toUpperCase()) {
+      case 'GET':
+        return 'badge-method-get';
+      case 'POST':
+        return 'badge-method-post';
+      case 'PUT':
+      case 'PATCH':
+        return 'badge-method-put';
+      case 'DELETE':
+        return 'badge-method-delete';
+      default:
+        return 'badge-method-other';
+    }
+  }
+
+  /** Classe de couleur du badge code HTTP (2xx vert, 4xx/5xx rouge...), voir buildStyles. */
+  private httpCodeBadgeClass(code: number): string {
+    if (Number.isNaN(code)) return 'badge-code-other';
+    if (code >= 500) return 'badge-code-5xx';
+    if (code >= 400) return 'badge-code-4xx';
+    if (code >= 300) return 'badge-code-3xx';
+    if (code >= 200) return 'badge-code-2xx';
+    return 'badge-code-other';
   }
 
   private escapeHtml(value: string): string {
@@ -406,61 +558,159 @@ ${screenshotHtml}`;
 
   private buildStyles(): string {
     return `
-:root { color-scheme: light; }
+:root {
+  color-scheme: light;
+  --c-bg: #f8faff;
+  --c-text: #2c3e50;
+  --c-text-muted: #7f8c8d;
+  --c-petrol: #1b5064;
+  --c-petrol-light: #417182;
+  --c-petrol-pale: #8facb6;
+  --c-danger: #e74c3c;
+  --c-amber: #d97706;
+}
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 24px; background: #f5f6f8; color: #1a1a1a; line-height: 1.5; }
-header { margin-bottom: 24px; }
-h1 { margin: 0 0 4px; font-size: 24px; }
-.generated-on { color: #666; margin: 0 0 16px; font-size: 13px; }
-.summary { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; max-width: 480px; }
-.summary li { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px 12px; font-size: 14px; }
-section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
-section h2 { margin-top: 0; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-.action-entry { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 32px 16px; background: var(--c-bg); color: var(--c-text); line-height: 1.55; position: relative; }
+
+/* Mêmes bulles flottantes que le fond de la mosaïque, pour une identité visuelle cohérente
+   entre le panneau de l'extension et le rapport exporté. */
+.bg-blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; animation: float 20s infinite alternate ease-in-out; }
+.blob-1 { width: 420px; height: 420px; background: #e0f2f1; top: -120px; right: -120px; }
+.blob-2 { width: 480px; height: 480px; background: #f3e5f5; bottom: -140px; left: -120px; animation-delay: -5s; }
+.blob-3 { width: 320px; height: 320px; background: #e3f2fd; top: 45%; left: 35%; animation-delay: -10s; }
+@keyframes float {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(30px, 50px) rotate(10deg); }
+  66% { transform: translate(-20px, 20px) rotate(-10deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+.report-container { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; }
+
+/* En-tête : même dégradé pétrole que la barre d'outils Tuello, avec les statistiques-clés en
+   puces de verre pour un aperçu immédiat de la session sans avoir à ouvrir les sections. */
+.report-header { background: linear-gradient(to right, #1b5064 0%, #417182 50%, #8facb6 100%); color: #fff; border-radius: 24px; padding: 32px 32px 26px; margin-bottom: 24px; box-shadow: 0 16px 40px rgba(27, 80, 100, .3); }
+.report-header h1 { margin: 0 0 4px; font-size: 26px; font-weight: 800; letter-spacing: -.01em; text-shadow: 0 2px 10px rgba(0, 0, 0, .15); }
+.report-header .generated-on { color: rgba(255, 255, 255, .85); margin: 0 0 22px; font-size: 13px; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; }
+.stat-card { background: rgba(255, 255, 255, .15); border: 1px solid rgba(255, 255, 255, .25); border-radius: 14px; padding: 11px 14px; backdrop-filter: blur(6px); transition: transform .3s cubic-bezier(.175, .885, .32, 1.275); }
+.stat-card.stat-card-danger { background: rgba(231, 76, 60, .3); border-color: rgba(255, 210, 210, .5); }
+.stat-value { display: block; font-size: 21px; font-weight: 700; line-height: 1.2; }
+.stat-label { display: block; font-size: 10.5px; color: rgba(255, 255, 255, .9); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Cartes de section : même verre dépoli que les tuiles/cartes de résultats de la mosaïque
+   (fond translucide + flou), plutôt qu'un simple encadré plat. */
+section, details.report-section { background: rgba(255, 255, 255, .78); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, .6); border-radius: 20px; padding: 20px 24px; margin-bottom: 20px; box-shadow: 0 8px 26px rgba(27, 80, 100, .08); }
+section h2 { margin: 0 0 14px; font-size: 17px; font-weight: 700; color: var(--c-text); display: flex; align-items: center; }
+
+/* Puce-icône monogramme par type de section (mêmes dégradés que les tuiles/catégories de la
+   mosaïque) : repérage visuel immédiat, sans dépendre d'une police d'icônes externe. */
+.section-icon { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; margin-right: 10px; flex-shrink: 0; box-shadow: 0 3px 8px rgba(0, 0, 0, .18); transition: transform .3s cubic-bezier(.175, .885, .32, 1.275); }
+.section-icon--metadata { background: linear-gradient(135deg, var(--c-petrol-pale), var(--c-petrol-light)); }
+.section-icon--actions { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+.section-icon--http { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+.section-icon--console { background: linear-gradient(135deg, #f6d365, #fda085); }
+.section-icon--comparison { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+
+/* Sections repliables (Actions, HTTP, Console) : <details> plutôt que <section>, pour un
+   accordéon natif sans JS (hormis les boutons d'export, qui doivent rester cliquables sans
+   déclencher le repli/dépli — voir leur onclick avec preventDefault/stopPropagation). */
+details.report-section > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+details.report-section[open] > summary { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid rgba(27, 80, 100, .1); }
+details.report-section > summary::-webkit-details-marker { display: none; }
+details.report-section > summary:hover .section-icon { transform: scale(1.1) rotate(-4deg); }
+.report-section-title { flex: 1; min-width: 0; display: flex; align-items: center; font-size: 17px; font-weight: 700; color: var(--c-text); }
+.report-section-arrow { display: inline-block; margin-right: 8px; color: var(--c-text-muted); font-size: 11px; transition: transform .2s ease; }
+details.report-section[open] > summary .report-section-arrow { transform: rotate(90deg); }
+
+.metadata-comment { white-space: pre-wrap; margin: 4px 0 0; color: var(--c-text); }
+.section--metadata p { margin: 0 0 6px; font-size: 14px; }
+
+.tuello-export-btn { font: 700 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 5px 13px; border: 1px solid rgba(27, 80, 100, .15); border-radius: 999px; background: rgba(255, 255, 255, .6); color: var(--c-petrol); cursor: pointer; white-space: nowrap; flex-shrink: 0; backdrop-filter: blur(6px); transition: .2s ease; }
+.tuello-export-btn:hover { background: #fff; box-shadow: 0 4px 14px rgba(27, 80, 100, .18); transform: translateY(-1px); }
+
+/* Timeline des actions : badge numéroté en dégradé + libellé en pastille plutôt qu'en texte
+   brut, lignes HTTP en pilules de verre comme les cartes de résultats de la mosaïque. */
+.action-entry { padding: 10px 2px; border-bottom: 1px solid rgba(27, 80, 100, .06); }
 .action-entry:last-child { border-bottom: none; }
-.action-header { display: flex; gap: 8px; align-items: baseline; font-weight: 600; font-size: 14px; }
-.action-delay { margin-left: auto; color: #888; font-weight: 400; font-size: 12px; }
-.action-image { max-width: 100%; margin-top: 8px; border: 1px solid #ddd; border-radius: 4px; display: block; }
-.action-text { color: #444; font-size: 13px; margin: 6px 0 0; word-break: break-all; }
-.action-http-link { display: flex; align-items: center; gap: 8px; padding: 6px 10px; margin: 4px 0; border-radius: 6px; background: #f1f2f6; text-decoration: none; color: inherit; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; border-left: 3px solid #9aa0ae; }
-.action-http-link:hover { background: #e6e8ee; }
-.action-http-link.http-error { border-left-color: #c81e1e; }
-.action-http-badge { font-size: 10px; font-weight: 700; letter-spacing: .04em; color: #555; background: #e2e4ea; padding: 1px 6px; border-radius: 10px; }
-.http-entry { border: 1px solid #eee; border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; scroll-margin-top: 16px; }
-.http-entry:target { outline: 2px solid #1a56db; outline-offset: 2px; }
-.http-entry summary { cursor: pointer; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; }
-.http-method { font-weight: 700; display: inline-block; min-width: 46px; }
-.http-code.http-error { color: #c81e1e; font-weight: 700; }
-.http-duration.http-slow { color: #c87800; font-weight: 700; }
-.http-url { word-break: break-all; }
-.http-subsection { margin: 10px 0 0 16px; }
-.http-subsection-title { font-weight: 600; font-size: 11px; color: #555; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
-.http-screenshot { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; display: block; }
-.console-entry { font-family: monospace; font-size: 13px; padding: 4px 0; border-bottom: 1px solid #f5f5f5; }
-.console-entry:last-child { border-bottom: none; }
-.console-error { color: #c81e1e; }
-.console-warn { color: #c87800; }
+.action-entry .action-header { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.action-index { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg, #4facfe, #00f2fe); color: #fff; font-size: 11px; font-weight: 700; box-shadow: 0 3px 8px rgba(79, 172, 254, .35); }
+.action-type { background: rgba(127, 140, 141, .14); color: #54656a; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: capitalize; }
+.action-delay { margin-left: auto; color: var(--c-text-muted); font-weight: 400; font-size: 11.5px; white-space: nowrap; }
+.action-image { max-width: 100%; margin-top: 8px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
+.action-text { color: #444; font-size: 13px; margin: 6px 0 0; word-break: break-all; width: 100%; }
+.action-http-link { display: flex; align-items: center; gap: 8px; padding: 8px 14px; margin: 4px 0; border-radius: 14px; background: rgba(255, 255, 255, .55); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, .5); text-decoration: none; color: inherit; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; box-shadow: 0 2px 10px rgba(27, 80, 100, .05); transition: .25s ease; width: 100%; }
+.action-http-link:hover { background: rgba(255, 255, 255, .9); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(27, 80, 100, .14); }
+.action-http-link.http-error { border-color: rgba(231, 76, 60, .35); }
+.action-http-badge { font-size: 10px; font-weight: 700; letter-spacing: .04em; color: var(--c-petrol); background: rgba(79, 172, 254, .18); padding: 1px 7px; border-radius: 10px; }
+
+/* Badges méthode/code HTTP : pilules de verre teintées (même esprit que les chips de la
+   mosaïque), une couleur par verbe/classe de code pour un repérage visuel immédiat. */
+.badge { display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; line-height: 1.6; font-family: 'SFMono-Regular', Consolas, monospace; white-space: nowrap; }
+.badge-method-get { background: rgba(79, 172, 254, .16); color: #1464c2; }
+.badge-method-post { background: rgba(67, 233, 123, .2); color: #15803d; }
+.badge-method-put { background: rgba(253, 187, 45, .22); color: #b45309; }
+.badge-method-delete { background: rgba(231, 76, 60, .18); color: #c0392b; }
+.badge-method-other { background: rgba(127, 140, 141, .16); color: #54656a; }
+.badge-code-2xx { background: rgba(67, 233, 123, .2); color: #15803d; }
+.badge-code-3xx { background: rgba(79, 172, 254, .16); color: #1464c2; }
+.badge-code-4xx { background: rgba(253, 187, 45, .22); color: #b45309; }
+.badge-code-5xx { background: rgba(231, 76, 60, .18); color: #c0392b; }
+.badge-code-other { background: rgba(127, 140, 141, .16); color: #54656a; }
+
+.http-entry { border: 1px solid rgba(255, 255, 255, .6); background: rgba(255, 255, 255, .4); border-radius: 14px; padding: 11px 16px; margin-bottom: 8px; scroll-margin-top: 16px; transition: outline-color .15s ease, background .2s ease; }
+.http-entry:hover { background: rgba(255, 255, 255, .65); }
+.http-entry:target { outline: 2px solid var(--c-petrol-light); outline-offset: 2px; }
+.http-entry summary { cursor: pointer; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.http-summary-text { flex: 1; min-width: 0; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.http-duration.http-slow { color: var(--c-amber); font-weight: 700; }
+.http-url { word-break: break-all; color: var(--c-text); }
+.http-subsection { margin: 12px 0 0 4px; }
+.http-subsection-title { font-weight: 700; font-size: 11px; color: var(--c-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.http-screenshot { max-width: 100%; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
+
+/* Logs console : fond et liseré colorés selon le niveau, pour repérer les erreurs/avertissements
+   sans avoir à lire chaque ligne. */
+.console-entry { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; padding: 7px 12px; border-radius: 10px; margin-bottom: 4px; background: rgba(255, 255, 255, .45); border-left: 3px solid rgba(127, 140, 141, .4); }
+.console-entry:last-child { margin-bottom: 0; }
+.console-entry.console-error { background: rgba(231, 76, 60, .1); border-left-color: var(--c-danger); color: #922b21; }
+.console-entry.console-warn { background: rgba(253, 187, 45, .14); border-left-color: var(--c-amber); color: #92600c; }
+.console-level { font-weight: 700; margin-right: 6px; }
+.console-time { opacity: .65; margin-right: 6px; }
+
 .comparison-entry { margin-bottom: 20px; }
 .comparison-entry:last-child { margin-bottom: 0; }
-.comparison-header { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+.comparison-header { font-weight: 700; margin-bottom: 8px; font-size: 14px; }
 .comparison-images { display: flex; gap: 12px; flex-wrap: wrap; }
 .comparison-images figure { margin: 0; }
-.comparison-images img { max-width: 260px; border: 1px solid #ddd; border-radius: 4px; display: block; }
-.comparison-images figcaption { font-size: 11px; color: #666; margin-bottom: 4px; }
+.comparison-images img { max-width: 260px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
+.comparison-images figcaption { font-size: 11px; color: var(--c-text-muted); margin-bottom: 4px; }
+
 details { margin: 2px 0; }
 summary { outline: none; }
-summary.tree-summary { cursor: pointer; font-family: monospace; font-size: 12px; color: #555; }
-.tree-children { margin-left: 18px; border-left: 1px dashed #ddd; padding-left: 10px; }
+summary.tree-summary { cursor: pointer; font-family: monospace; font-size: 12px; color: var(--c-text-muted); }
+.tree-children { margin-left: 18px; border-left: 1px dashed rgba(27, 80, 100, .2); padding-left: 10px; }
 .tree-row { font-family: monospace; font-size: 12px; margin: 2px 0; }
-.tree-key { color: #8a3ab2; margin-right: 4px; }
+.tree-key { color: var(--c-petrol-light); margin-right: 4px; }
 .tree-string { color: #0a7a2f; }
-.tree-number { color: #1a56db; }
+.tree-number { color: #1464c2; }
 .tree-boolean { color: #b4530a; }
 .tree-null { color: #999; font-style: italic; }
 .tree-meta { color: #999; font-family: monospace; font-size: 12px; }
-.tree-plaintext { white-space: pre-wrap; word-break: break-all; font-size: 12px; background: #f8f8f8; padding: 8px; border-radius: 4px; margin: 0; }
-@media print { body { background: #fff; } section { border: none; } }
+.tree-plaintext { white-space: pre-wrap; word-break: break-all; font-size: 12px; background: rgba(0, 0, 0, .03); padding: 8px; border-radius: 8px; margin: 0; }
+
+@media (max-width: 560px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  section, details.report-section { padding: 16px 18px; }
+}
+@media print {
+  body { background: #fff; padding: 0; }
+  .bg-blobs { display: none; }
+  .report-header { box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  section, details.report-section { box-shadow: none; backdrop-filter: none; background: #fff; }
+  .tuello-export-btn { display: none; }
+}
 `;
   }
 }
