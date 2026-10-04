@@ -383,7 +383,10 @@ function activate() {
           {
             type: 'RECORD_HTTP_ACTIVATED',
             value: true,
-            isRestore: true // Restauration depuis le storage, ne pas flusher la queue
+            isRestore: true, // Restauration depuis le storage, ne pas flusher la queue
+            // Distingue cette activation de celle, indépendante, de Spy (/spy) : voir
+            // httpmanager.ts, qui combine les deux sources plutôt que de les laisser s'écraser.
+            source: 'recorder'
           },
           '*'
         );
@@ -392,10 +395,13 @@ function activate() {
         // Fin de la fenêtre de boot async : l'utilisateur n'a pas activé le record.
         // On désactive l'intercepteur recorder pour ne pas accumuler les requêtes
         // dans messageForHTTPRecorderQueue tant que l'utilisateur ne l'active pas.
+        // Ne porte que sur la fonctionnalité Recorder HTTP : ne doit pas couper un
+        // enregistrement Spy déjà actif sur cette page (voir `source` côté httpmanager.ts).
         window.postMessage(
           {
             type: 'RECORD_HTTP_ACTIVATED',
-            value: false
+            value: false,
+            source: 'recorder'
           },
           '*'
         );
@@ -457,6 +463,9 @@ function desactivate() {
     },
     '*'
   );
+  // Désactivation globale de Tuello sur cet onglet : sans `source`, httpmanager.ts coupe les
+  // deux fonctionnalités (Spy et Recorder HTTP) plutôt qu'une seule — voir `source` ailleurs
+  // dans ce fichier et dans uirecorder.ts.
   window.postMessage(
     {
       type: 'RECORD_HTTP_ACTIVATED',
@@ -637,10 +646,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
 
     case 'HTTP_RECORD_STATE':
+      // Bascule explicite de la fonctionnalité Recorder HTTP (/recorder) depuis le panneau :
+      // ne doit pas couper un enregistrement Spy déjà actif (voir `source` côté httpmanager.ts).
       window.postMessage(
         {
           type: 'RECORD_HTTP_ACTIVATED',
-          value: message.value
+          value: message.value,
+          source: 'recorder'
         },
         '*'
       );

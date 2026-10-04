@@ -97,6 +97,19 @@ let messageForHTTPRecorderQueue: HttpMessage[] = [];
 let messageForHTTPTagsQueue: HttpMessage[] = [];
 let deepMockLevel = 0;
 
+// Deux fonctionnalités indépendantes (Recorder HTTP /recorder, et Spy /spy) partagent ce même
+// hook d'interception et peuvent chacune l'activer/désactiver à tout moment (chacune sur la foi
+// de sa PROPRE clé de storage, lue en parallèle au chargement de chaque frame). Avec un seul
+// booléen partagé, la dernière des deux à répondre écrasait l'état voulu par l'autre — sur une
+// iframe créée PENDANT un enregistrement Spy en cours, le postMessage RECORD_HTTP_ACTIVATED(false)
+// envoyé par Recorder HTTP (flag "httpRecord" à false, cas courant quand seul Spy est utilisé)
+// arrivait souvent après celui de Spy et désactivait silencieusement l'enregistrement HTTP de
+// cette iframe, sans toucher à celui de la page hôte (déjà activé plus tôt, hors de toute
+// course). Un indicateur par fonctionnalité, combiné par OR, rend l'activation finale
+// indépendante de l'ordre d'arrivée des deux messages.
+let recorderHttpWantsActivation = false;
+let spyWantsActivation = false;
+
 // État pour le mock HTTP - gestion de la race condition
 let tuelloRecordsReady = false;
 let mockUserActivated = false;
@@ -1570,8 +1583,19 @@ window.addEventListener(
         }
         break;
 
-      case MESSAGE_TYPES.RECORD_HTTP_ACTIVATED:
-        if (data.value) {
+      case MESSAGE_TYPES.RECORD_HTTP_ACTIVATED: {
+        // Sans `source` (ex. désactivation globale de Tuello sur l'onglet) : les deux
+        // fonctionnalités s'alignent sur la même valeur, pour un arrêt total sans équivoque.
+        if (data.source === 'spy') {
+          spyWantsActivation = !!data.value;
+        } else if (data.source === 'recorder') {
+          recorderHttpWantsActivation = !!data.value;
+        } else {
+          spyWantsActivation = !!data.value;
+          recorderHttpWantsActivation = !!data.value;
+        }
+
+        if (spyWantsActivation || recorderHttpWantsActivation) {
           // Ne flusher la queue que si c'est une activation utilisateur (pas une restauration au chargement)
           if (!data.isRestore) {
             flushQueue(window, messageForHTTPRecorderQueue);
@@ -1585,6 +1609,7 @@ window.addEventListener(
           messageForHTTPRecorderQueue = [];
         }
         break;
+      }
 
       case MESSAGE_TYPES.RECORD_HTTP_CALL_FOR_TAGS:
         if (data.value) {

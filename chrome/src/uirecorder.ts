@@ -12,6 +12,7 @@ import { recordHttpUserActionListener } from './utils/recordUserActionListener';
 import { recordConsoleLogListener } from './utils/recordConsoleLogListener';
 import { recordHttpSettledListener } from './utils/recordHttpSettledListener';
 import { addcss } from './utils/utils';
+import { addFrameOffsetListener, removeFrameOffsetListener, resolveTopPageCoordinates } from './utils/frameOffset';
 
 interface KeyboardShortcut {
   key: string;
@@ -99,7 +100,11 @@ function httpRecordUI(activation: boolean) {
   window.postMessage(
     {
       type: 'RECORD_HTTP_ACTIVATED',
-      value: activation
+      value: activation,
+      // Distingue cette activation de celle, indépendante, de la fonctionnalité Recorder HTTP
+      // (/recorder) : les deux partagent le même hook d'interception côté httpmanager.ts, qui
+      // combine les deux sources plutôt que de laisser la dernière écraser l'autre.
+      source: 'spy'
     },
     window.location.origin
   );
@@ -137,11 +142,17 @@ function removeListeners() {
   // document.removeEventListener('change', listener); // select
   document.removeEventListener('mousedown', mousedownListener);
   window.removeEventListener('resize', resizeListener);
+  removeFrameOffsetListener();
 }
 
 function addListeners() {
   // remove listeners pour etre sur qu'il y en ai pas deux
   removeListeners();
+
+  // Un ancêtre (frame intermédiaire ou top) doit pouvoir répondre à une demande de
+  // conversion de coordonnées même s'il n'est pas lui-même la cible du clic (voir
+  // mousedownListener / frameOffset.ts).
+  addFrameOffsetListener();
 
   document.addEventListener('keydown', keyboardListener);
   // En capture : Maj+clic doit être intercepté avant que la page (et le listener
@@ -350,13 +361,22 @@ function mousedownListener(e) {
   // Démarre la capture "avant" dès maintenant, avant que le click qui suit ne laisse la page
   // réagir : attendre l'événement 'click' pour la déclencher était trop tard (round-trip HIDE/
   // captureVisibleTab/SHOW asynchrone, cf. prepareClickScreenshot côté background).
-  chrome.runtime.sendMessage(
-    {
-      action: 'PREPARE_CLICK_SCREENSHOT',
-      value: { x: e.pageX, y: e.pageY }
-    },
-    () => {}
-  );
+  //
+  // e.pageX/e.pageY sont relatifs au document de CE frame : dans une iframe, ça ignore son
+  // propre décalage dans la page hôte (header, menu...). La capture, elle, est un
+  // screenshot plein-onglet (chrome.tabs.captureVisibleTab) dont la géométrie est celle du
+  // frame top-level : on convertit donc avant d'envoyer, sans quoi le repère dessiné plus
+  // tard sur l'image (voir drawScreenshotWithMarker) apparaît décalé en haut à gauche du
+  // clic réel.
+  resolveTopPageCoordinates(e.pageX, e.pageY).then(({ x, y }) => {
+    chrome.runtime.sendMessage(
+      {
+        action: 'PREPARE_CLICK_SCREENSHOT',
+        value: { x, y }
+      },
+      () => {}
+    );
+  });
 
   // on surveille qu'il ne s'agise pas d'un click sur un bouton submit car l'event click n'est pas remonté dans ce cas
   if (e.target.tagName && e.target.tagName.toLowerCase() === 'input' && e.target.type && e.target.type.toLowerCase() === 'submit') {
