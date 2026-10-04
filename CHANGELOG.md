@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.27.0] - 2026-10-04
+
+    - Rapport : repère de clic corrigé dans les iframes (conversion en coordonnées de page top-level)
+    - Enregistrement HTTP : correction d'une perte de requêtes quand Spy et Recorder HTTP s'activaient en même temps
+    - Ajout du script npm run package pour zipper l'extension Chrome
+
 ## [1.2.26.0] - 2026-10-03
 
     - Rapport HTML de session : actions, requêtes HTTP, logs console et captures d'écran
