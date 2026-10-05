@@ -54,6 +54,7 @@
   "mmn.recorder-http.button.saveAs": "Save",
   "mmn.recorder-http.button.delete": "Delete",
   "mmn.recorder-http.button.delete.message": "Do you really want to delete records ?",
+  "mmn.recorder-http.button.delete.error": "Error while deleting records",
   "mmn.recorder-http.button.copy": "Copy",
   "mmn.recorder-http.button.copyToClipboard": "Copy to clipboard",
   "mmn.recorder-http.button.copied": "copied to clipboard",

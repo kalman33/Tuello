@@ -176,7 +176,9 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     // recupération des enregistrements (avec décompression LZ)
     try {
       const records = await this.recorderService.getJsonRecords();
-      this.records = Array.isArray(records) ? records : [];
+      // .filter(Boolean) : une lecture concurrente avec une écriture en cours côté
+      // storage peut renvoyer des trous (entrées null/undefined) dans le tableau.
+      this.records = Array.isArray(records) ? records.filter(Boolean) : [];
       this.detectDuplicates(this.records);
       // Passer une copie du tableau pour forcer le re-render complet (y compris éléments collapsed)
       this.jsonEditorTree?.update({ json: [...this.records] });
@@ -333,6 +335,7 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     });
 
     try {
+      this.records = Array.isArray(this.records) ? this.records.filter(Boolean) : [];
       this.detectDuplicates(this.records);
       // Passer une copie du tableau pour forcer le re-render complet
       this.jsonEditorTree.update({ json: [...this.records] });
@@ -359,7 +362,10 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       .afterClosed()
       .pipe(take(1))
       .subscribe(async (result) => {
-        if (result) {
+        if (!result) {
+          return;
+        }
+        try {
           await this.recorderService.reset();
           this.jsonEditorTree.update({ json: [] });
           this.records = [];
@@ -368,6 +374,13 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
           // Sans cette notification, les pages ouvertes continuent de servir les
           // mocks supprimés jusqu'à leur prochain rechargement.
           this.notifyRecordsChange();
+        } catch (e) {
+          console.error("Tuello: Erreur lors de l'effacement des enregistrements", e);
+          this.infoBar.open(this.translate.instant('mmn.recorder-http.button.delete.error'), '', {
+            duration: 2000,
+            verticalPosition: 'top'
+          });
+          this.ref.detectChanges();
         }
       });
   }
@@ -468,15 +481,18 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   async updateData() {
     const jsonData = this.jsonEditorTree.get() as JSONContent;
     if (jsonData.json) {
-      this.records = jsonData.json;
+      // Filtre les trous (entrées undefined) qui peuvent apparaître dans l'état
+      // interne du jsoneditor, pour ne jamais les persister dans le storage
+      const sanitizedJson = Array.isArray(jsonData.json) ? jsonData.json.filter((r) => r !== undefined) : jsonData.json;
+      this.records = sanitizedJson;
       // Détecter les doublons après modification
-      this.detectDuplicates(jsonData.json);
+      this.detectDuplicates(sanitizedJson);
       // Force un re-render complet pour que onClassName soit rappelé sur tous les éléments
       // Le spread operator seul ne suffit pas car vanilla-jsoneditor compare les données
       this.forceRefreshEditor();
       // Sauvegarder l'objet directement (pas une chaîne JSON) pour que recordHttpListener
       // puisse correctement vérifier Array.isArray()
-      await this.recorderService.saveToLocalStorage(jsonData.json);
+      await this.recorderService.saveToLocalStorage(sanitizedJson);
       this.notifyRecordsChange();
       this.ref.detectChanges();
     } else {

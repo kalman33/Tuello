@@ -62,6 +62,38 @@ export function appendHttpRecords(batch: HttpRecordEntry[]): Promise<boolean> {
   return result;
 }
 
+/**
+ * Vide tuelloRecords et les mocks du profil actif.
+ *
+ * Chaîné sur `writeChain` comme `appendHttpRecords`, pour éviter qu'un
+ * enregistrement HTTP en cours (persistBatch) ne relise l'état d'avant
+ * l'effacement puis ne le réécrive après coup, ressuscitant les anciens
+ * mocks juste après un clic sur "Effacer".
+ */
+export function clearHttpRecords(): Promise<void> {
+  const result = writeChain.then(() => persistClear());
+  writeChain = result.then(
+    () => undefined,
+    () => undefined
+  );
+  return result;
+}
+
+async function persistClear(): Promise<void> {
+  const mockProfilesData = await loadCompressed<MockProfilesStorage>('tuelloMockProfiles');
+
+  await saveCompressed('tuelloRecords', []);
+
+  if (mockProfilesData?.activeProfileId && mockProfilesData?.profiles) {
+    const activeProfile = mockProfilesData.profiles.find((p) => p.id === mockProfilesData.activeProfileId);
+    if (activeProfile) {
+      activeProfile.mocks = [];
+      activeProfile.updatedAt = Date.now();
+      await saveCompressed('tuelloMockProfiles', mockProfilesData);
+    }
+  }
+}
+
 async function persistBatch(batch: HttpRecordEntry[]): Promise<boolean> {
   const [tuelloRecords, tuelloHTTPOverWrite, tuelloHTTPFilter, mockProfilesData] = await Promise.all([
     loadCompressed<any[]>('tuelloRecords'),
@@ -78,7 +110,10 @@ async function persistBatch(batch: HttpRecordEntry[]): Promise<boolean> {
   // Insérer tout le batch en tête en une seule passe : un unshift() par record
   // recopie tout le tableau à chaque fois (O(n²) sur un gros historique).
   // reverse() pour conserver l'ordre d'origine : le plus récent en tête.
-  let records = accepted.slice().reverse().concat(tuelloRecords || []);
+  let records = accepted
+    .slice()
+    .reverse()
+    .concat(tuelloRecords || []);
 
   // Une seule passe de dédoublonnage pour tout le batch
   records = tuelloHTTPOverWrite === false ? removeDuplicatesKeepLast(records, mockDuplicateKey) : removeDuplicateEntries(records, mockDuplicateKey);

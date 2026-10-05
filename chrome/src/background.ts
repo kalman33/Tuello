@@ -24,7 +24,7 @@ import {
 } from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
 import { loadCompressed, saveCompressed } from './utils/compression';
-import { appendHttpRecords } from './background/httpRecordStore';
+import { appendHttpRecords, clearHttpRecords } from './background/httpRecordStore';
 import { formatShortcut, resolvePlatform } from './utils/platform';
 import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
 import Port = chrome.runtime.Port;
@@ -1030,6 +1030,17 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
         .catch((error) => {
           console.error("Tuello: Erreur lors de l'enregistrement HTTP:", error);
           senderResponse({ added: false });
+        });
+      return true;
+    case 'CLEAR_HTTP_RECORDS':
+      // Passe par le même writeChain que RECORD_HTTP_BATCH : sans ça, un
+      // enregistrement HTTP en cours peut relire les mocks juste avant l'effacement
+      // puis les réécrire juste après, ressuscitant la liste supprimée.
+      clearHttpRecords()
+        .then(() => senderResponse({ success: true }))
+        .catch((error) => {
+          console.error("Tuello: Erreur lors de l'effacement des enregistrements HTTP:", error);
+          senderResponse({ success: false });
         });
       return true;
     case 'RECORD_USER_ACTION_DELETE':
