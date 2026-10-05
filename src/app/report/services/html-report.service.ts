@@ -222,8 +222,11 @@ ${screenshotHtml}`;
       const bodySection = this.renderJsonSection(this.translate.instant('mmn.report.http.requestBody'), http.body);
       const highlightValue = highlightValues[index];
       const highlightSlot = highlightValue ? `<div class="http-highlight">${this.escapeHtml(highlightValue)}</div>` : '';
-      const responseSection = this.renderJsonSection(this.translate.instant('mmn.report.http.response'), http.response);
-      const headersSection = this.renderJsonSection(this.translate.instant('mmn.report.http.headers'), http.headers);
+      // Classe dédiée sur ces deux sous-sections (et seulement celles-ci) : c'est ce que cible la
+      // recherche interactive injectée par `buildHttpSearchScript`, qui ne doit porter que sur
+      // les réponses/headers, pas sur le corps de requête envoyé.
+      const responseSection = this.renderJsonSection(this.translate.instant('mmn.report.http.response'), http.response, 'http-subsection--response');
+      const headersSection = this.renderJsonSection(this.translate.instant('mmn.report.http.headers'), http.headers, 'http-subsection--headers');
 
       // Même forme que ce que "Enregistrer & rejouer HTTP" importe/exporte déjà (voir
       // ExportComponent.save) : quelqu'un qui reproduit le scénario peut réimporter ces bouchons
@@ -254,10 +257,28 @@ ${screenshotHtml}`;
     <button type="button" class="tuello-export-btn tuello-export-all-btn" onclick="event.preventDefault(); event.stopPropagation(); tuelloExportAllMocks()">${this.escapeHtml(this.translate.instant('mmn.report.http.exportAllMocks'))}</button>
   </summary>
   <div class="report-section-body">
+  ${this.buildHttpSearchBar()}
   ${rows.join('\n')}
   </div>
 </details>
 ${this.buildMockExportScript(mocks, baseFileName)}`;
+  }
+
+  /** Barre de recherche live (voir `buildHttpSearchScript`) : contrairement à la mise en évidence
+   * (`ReportHighlight`, figée à la génération sur une seule clé), elle fonctionne après coup, dans
+   * le rapport déjà exporté, sur un texte libre recherché dans les réponses et les headers de
+   * toutes les requêtes. `onclick` avec `stopPropagation` évite qu'un clic dans la barre
+   * replie/déplie le `<details>` parent (comportement par défaut d'un clic dans un `<summary>`). */
+  private buildHttpSearchBar(): string {
+    const placeholder = this.escapeHtml(this.translate.instant('mmn.report.http.search.placeholder'));
+    const prevLabel = this.escapeHtml(this.translate.instant('mmn.report.http.search.prev'));
+    const nextLabel = this.escapeHtml(this.translate.instant('mmn.report.http.search.next'));
+    return `<div class="tuello-http-search" onclick="event.stopPropagation()">
+    <input type="search" id="tuelloHttpSearchInput" class="tuello-http-search-input" placeholder="${placeholder}" oninput="tuelloHttpSearch(this.value)" onkeydown="tuelloHttpSearchKeydown(event)" />
+    <span id="tuelloHttpSearchCount" class="tuello-http-search-count" aria-live="polite"></span>
+    <button type="button" class="tuello-http-search-nav" aria-label="${prevLabel}" title="${prevLabel}" onclick="tuelloHttpSearchNav(-1)">▲</button>
+    <button type="button" class="tuello-http-search-nav" aria-label="${nextLabel}" title="${nextLabel}" onclick="tuelloHttpSearchNav(1)">▼</button>
+  </div>`;
   }
 
   /** Calcule, une seule fois à la génération, la valeur à mettre en évidence pour une requête
@@ -363,7 +384,147 @@ function tuelloExportMock(event, index) {
   event.stopPropagation();
   tuelloDownloadJson([TUELLO_MOCKS[index]], TUELLO_BASE_FILE_NAME + '-mock-' + (index + 1) + '.json');
 }
+${this.buildHttpSearchScript()}
 </script>`;
+  }
+
+  /**
+   * Recherche interactive dans le rapport déjà exporté (JS natif, pas de dépendance externe) :
+   * contrairement à `ReportHighlight`, qui fige UNE valeur à la génération, cette recherche
+   * fonctionne sur un texte libre, après coup, sur TOUTES les requêtes HTTP affichées. Elle ne
+   * porte que sur `.http-subsection--response`/`.http-subsection--headers` (voir `renderJsonSection`),
+   * jamais sur le corps de requête envoyé.
+   *
+   * Chaque correspondance découpe le texte du nœud concerné et l'entoure d'un `<mark>` (le DOM
+   * est donc réécrit à chaque recherche : `tuelloHttpSearchClearMarks` défait ce découpage avant
+   * toute nouvelle recherche, via `Node.normalize()`, pour repartir d'un texte intact).
+   */
+  private buildHttpSearchScript(): string {
+    return `let tuelloSearchMatches = [];
+let tuelloSearchIndex = -1;
+let tuelloSearchDebounce = null;
+
+function tuelloHttpSearchClearMarks() {
+  document.querySelectorAll('mark.tuello-search-mark').forEach((mark) => {
+    const parent = mark.parentNode;
+    if (!parent) return;
+    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+    parent.normalize();
+  });
+  document.querySelectorAll('.http-entry.tuello-dimmed').forEach((entry) => entry.classList.remove('tuello-dimmed'));
+  tuelloSearchMatches = [];
+  tuelloSearchIndex = -1;
+}
+
+function tuelloHttpSearchUpdateCount() {
+  const countEl = document.getElementById('tuelloHttpSearchCount');
+  const inputEl = document.getElementById('tuelloHttpSearchInput');
+  if (!countEl) return;
+  if (!tuelloSearchMatches.length) {
+    countEl.textContent = inputEl && inputEl.value.trim() ? '0' : '';
+    return;
+  }
+  countEl.textContent = (tuelloSearchIndex + 1) + ' / ' + tuelloSearchMatches.length;
+}
+
+function tuelloHttpSearchGoTo(index) {
+  if (!tuelloSearchMatches.length) return;
+  const previous = tuelloSearchMatches[tuelloSearchIndex];
+  if (previous) previous.classList.remove('tuello-search-mark--active');
+  tuelloSearchIndex = ((index % tuelloSearchMatches.length) + tuelloSearchMatches.length) % tuelloSearchMatches.length;
+  const current = tuelloSearchMatches[tuelloSearchIndex];
+  current.classList.add('tuello-search-mark--active');
+  current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  tuelloHttpSearchUpdateCount();
+}
+
+function tuelloHttpSearchRun(term) {
+  tuelloHttpSearchClearMarks();
+  const normalized = term.trim().toLowerCase();
+  if (!normalized) {
+    tuelloHttpSearchUpdateCount();
+    return;
+  }
+
+  document.querySelectorAll('.http-entry').forEach((entry) => {
+    const sections = entry.querySelectorAll('.http-subsection--response, .http-subsection--headers');
+    let entryHasMatch = false;
+
+    sections.forEach((section) => {
+      const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        textNodes.push(node);
+      }
+
+      textNodes.forEach((textNode) => {
+        const text = textNode.textContent;
+        const lower = text.toLowerCase();
+        let matchIndex = lower.indexOf(normalized);
+        if (matchIndex === -1 || !textNode.parentNode) return;
+
+        entryHasMatch = true;
+        const frag = document.createDocumentFragment();
+        let cursor = 0;
+        while (matchIndex !== -1) {
+          frag.appendChild(document.createTextNode(text.slice(cursor, matchIndex)));
+          const mark = document.createElement('mark');
+          mark.className = 'tuello-search-mark';
+          mark.textContent = text.slice(matchIndex, matchIndex + normalized.length);
+          frag.appendChild(mark);
+          tuelloSearchMatches.push(mark);
+          cursor = matchIndex + normalized.length;
+          matchIndex = lower.indexOf(normalized, cursor);
+        }
+        frag.appendChild(document.createTextNode(text.slice(cursor)));
+        textNode.parentNode.replaceChild(frag, textNode);
+      });
+    });
+
+    entry.classList.toggle('tuello-dimmed', !entryHasMatch);
+
+    if (entryHasMatch) {
+      // Déplie l'entrée et chaque <details> ancêtre d'une correspondance (sous-section, nœuds de
+      // l'arbre JSON) : une correspondance repliée resterait invisible malgré le surlignage.
+      entry.open = true;
+      entry.querySelectorAll('mark.tuello-search-mark').forEach((mark) => {
+        let ancestor = mark.parentElement;
+        while (ancestor && ancestor !== entry) {
+          if (ancestor.tagName === 'DETAILS') ancestor.open = true;
+          ancestor = ancestor.parentElement;
+        }
+      });
+    }
+  });
+
+  if (tuelloSearchMatches.length) {
+    tuelloSearchIndex = 0;
+    tuelloSearchMatches[0].classList.add('tuello-search-mark--active');
+    tuelloSearchMatches[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  tuelloHttpSearchUpdateCount();
+}
+
+function tuelloHttpSearch(value) {
+  clearTimeout(tuelloSearchDebounce);
+  tuelloSearchDebounce = setTimeout(() => tuelloHttpSearchRun(value), 120);
+}
+
+function tuelloHttpSearchNav(direction) {
+  tuelloHttpSearchGoTo(tuelloSearchIndex + direction);
+}
+
+function tuelloHttpSearchKeydown(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    tuelloHttpSearchNav(event.shiftKey ? -1 : 1);
+  } else if (event.key === 'Escape') {
+    event.target.value = '';
+    tuelloHttpSearchClearMarks();
+    tuelloHttpSearchUpdateCount();
+  }
+}`;
   }
 
   private buildConsoleSection(entries: ConsoleLogEntry[]): string {
@@ -413,25 +574,28 @@ function tuelloExportMock(event, index) {
 </section>`;
   }
 
-  /** Affiche `raw` (déjà parsé, ou chaîne JSON à parser, ou texte brut en repli) comme sous-section repliable. */
-  private renderJsonSection(label: string, raw: unknown): string {
+  /** Affiche `raw` (déjà parsé, ou chaîne JSON à parser, ou texte brut en repli) comme sous-section repliable.
+   * `extraClass` (ex: `http-subsection--response`) permet de cibler cette sous-section précisément
+   * depuis le script de recherche interactive (voir `buildHttpSearchScript`). */
+  private renderJsonSection(label: string, raw: unknown, extraClass?: string): string {
     if (raw === undefined || raw === null || raw === '') {
       return '';
     }
+    const cssClass = extraClass ? `http-subsection ${extraClass}` : 'http-subsection';
 
     let value: unknown = raw;
     if (typeof raw === 'string') {
       try {
         value = JSON.parse(raw);
       } catch {
-        return `<div class="http-subsection">
+        return `<div class="${cssClass}">
   <div class="http-subsection-title">${this.escapeHtml(label)}</div>
   <pre class="tree-plaintext">${this.escapeHtml(raw)}</pre>
 </div>`;
       }
     }
 
-    return `<div class="http-subsection">
+    return `<div class="${cssClass}">
   <div class="http-subsection-title">${this.escapeHtml(label)}</div>
   ${this.renderJsonTree(value)}
 </div>`;
@@ -750,6 +914,18 @@ details.report-section[open] > summary .report-section-arrow { transform: rotate
 .badge-code-5xx { background: rgba(231, 76, 60, .18); color: #c0392b; }
 .badge-code-other { background: rgba(127, 140, 141, .16); color: #54656a; }
 
+/* Barre de recherche live (voir buildHttpSearchScript) : même esprit "pilule de verre" que le
+   reste du rapport, fixée en haut de la section HTTP pour rester visible en faisant défiler
+   la liste des requêtes. */
+.tuello-http-search { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 6px 8px; background: rgba(255, 255, 255, .85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, .6); border-radius: 12px; box-shadow: 0 4px 14px rgba(27, 80, 100, .08); }
+.tuello-http-search-input { flex: 1; min-width: 0; border: none; background: transparent; font: 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--c-text); outline: none; padding: 4px 6px; }
+.tuello-http-search-count { font-size: 11px; color: var(--c-text-muted); white-space: nowrap; min-width: 32px; text-align: right; }
+.tuello-http-search-nav { border: 1px solid rgba(27, 80, 100, .15); background: rgba(255, 255, 255, .6); color: var(--c-petrol); border-radius: 8px; width: 26px; height: 26px; line-height: 1; cursor: pointer; font-size: 10px; flex-shrink: 0; transition: .2s ease; }
+.tuello-http-search-nav:hover { background: #fff; box-shadow: 0 3px 10px rgba(27, 80, 100, .15); }
+mark.tuello-search-mark { background: rgba(253, 187, 45, .55); color: inherit; border-radius: 3px; padding: 0 1px; }
+mark.tuello-search-mark--active { background: var(--c-amber); color: #fff; }
+.http-entry.tuello-dimmed { opacity: .35; }
+
 .http-entry { border: 1px solid rgba(255, 255, 255, .6); background: rgba(255, 255, 255, .4); border-radius: 14px; padding: 11px 16px; margin-bottom: 8px; scroll-margin-top: 16px; transition: outline-color .15s ease, background .2s ease; }
 .http-entry:hover { background: rgba(255, 255, 255, .65); }
 .http-entry:target { outline: 2px solid var(--c-petrol-light); outline-offset: 2px; }
@@ -801,6 +977,8 @@ summary.tree-summary { cursor: pointer; font-family: monospace; font-size: 12px;
   .report-header { box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   section, details.report-section { box-shadow: none; backdrop-filter: none; background: #fff; }
   .tuello-export-btn { display: none; }
+  .tuello-http-search { display: none; }
+  .http-entry.tuello-dimmed { opacity: 1; }
 }
 `;
   }
