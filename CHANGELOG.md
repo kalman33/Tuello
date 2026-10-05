@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.28.0] - 2026-10-05
+
+    - Fix : effacement des bouchons HTTP corrompu par une course avec l'enregistrement actif
+    - Rapport : headers HTTP enregistrés et mise en évidence d'une donnée (réponse/header)
+    - Rapport : recherche interactive dans les réponses/headers HTTP
+    - Rapport : autocomplétion de l'utilisateur à partir de l'historique
+
 ## [1.2.27.0] - 2026-10-04
 
     - Rapport : repère de clic corrigé dans les iframes (conversion en coordonnées de page top-level)
