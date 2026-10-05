@@ -1,7 +1,11 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
@@ -12,18 +16,23 @@ import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { PlayerService } from '../spy-http/services/player.service';
 import { RecorderHistoryService } from '../spy-http/services/recorder-history.service';
 import { ReportMetadataDialogComponent } from './metadata-dialog/report-metadata-dialog.component';
-import { HtmlReportService } from './services/html-report.service';
+import { HtmlReportService, ReportHighlight } from './services/html-report.service';
 
 @Component({
   selector: 'mmn-report',
   templateUrl: './report.component.html',
   styleUrls: ['./report.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FlexModule, ExtendedModule, MatButton, MatIconButton, MatIcon, TranslatePipe]
+  imports: [FlexModule, ExtendedModule, MatButton, MatIconButton, MatIcon, TranslatePipe, FormsModule, MatFormFieldModule, MatSelectModule, MatInputModule]
 })
 export class ReportComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
   generating = false;
+
+  /** Donnée à mettre en évidence dans le rapport (voir `ReportHighlight`), saisie ici avant
+   * génération : la valeur est figée dans le rapport HTML, pas de recherche interactive dedans. */
+  highlightSource: ReportHighlight['source'] = 'response';
+  highlightKey = '';
 
   constructor(
     public recorderHistoryService: RecorderHistoryService,
@@ -42,7 +51,30 @@ export class ReportComponent implements OnInit {
     // ici ne met donc jamais à jour la copie en mémoire du service — on relit depuis le storage
     // à chaque arrivée sur cette page pour refléter l'état réellement persisté.
     await this.recorderHistoryService.loadUiRecordFromLocalStorage();
+
+    // Mémorisé d'une session à l'autre (comme darkMode/language, voir SettingsComponent) : on
+    // ne veut pas ressaisir la même donnée à chaque génération de rapport.
+    chrome.storage.local.get(['reportHighlightSource', 'reportHighlightKey'], (results) => {
+      if (results['reportHighlightSource']) {
+        this.highlightSource = results['reportHighlightSource'] as ReportHighlight['source'];
+      }
+      if (results['reportHighlightKey']) {
+        this.highlightKey = results['reportHighlightKey'] as string;
+      }
+      this.changeDetectorRef.detectChanges();
+    });
+
     this.changeDetectorRef.detectChanges();
+  }
+
+  onHighlightSourceChange(value: ReportHighlight['source']): void {
+    this.highlightSource = value;
+    chrome.storage.local.set({ reportHighlightSource: value });
+  }
+
+  onHighlightKeyChange(value: string): void {
+    this.highlightKey = value;
+    chrome.storage.local.set({ reportHighlightKey: value });
   }
 
   get hasData(): boolean {
@@ -82,8 +114,9 @@ export class ReportComponent implements OnInit {
     }
     this.generating = true;
     this.changeDetectorRef.detectChanges();
+    const highlight: ReportHighlight = { source: this.highlightSource, key: this.highlightKey };
     try {
-      await this.htmlReportService.generateReport(this.recorderHistoryService.record, this.playerService.comparisonResults, metadata);
+      await this.htmlReportService.generateReport(this.recorderHistoryService.record, this.playerService.comparisonResults, metadata, highlight);
       this.snackBar.open(this.translate.instant('mmn.report.generate.success'), '', { duration: 2000 });
     } finally {
       this.generating = false;

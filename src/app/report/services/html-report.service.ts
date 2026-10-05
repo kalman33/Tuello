@@ -16,6 +16,14 @@ export interface ReportMetadata {
   comment?: string;
 }
 
+/** Donnée à mettre en évidence, saisie sur la page Rapport avant génération (voir
+ * `ReportComponent`) : la valeur correspondante est recherchée dans chaque requête HTTP et figée
+ * dans le rapport HTML généré (pas de recherche interactive dans le fichier exporté). */
+export interface ReportHighlight {
+  source: 'response' | 'header';
+  key: string;
+}
+
 /** Forme attendue par le module "Enregistrer & rejouer HTTP" pour importer des bouchons (voir
  * `TuelloRecord` dans `chrome/src/httpmanager.ts` et `RecorderHttpComponent.applyImportedData`) :
  * un simple tableau de `{key, method?, response, httpCode, headers?, delay?}`. */
@@ -32,11 +40,15 @@ interface TuelloMockRecord {
 export class HtmlReportService {
   constructor(private translate: TranslateService) {}
 
-  async generateReport(record: Record, comparisonResults?: ComparisonResult[], metadata?: ReportMetadata): Promise<void> {
+  async generateReport(record: Record, comparisonResults?: ComparisonResult[], metadata?: ReportMetadata, highlight?: ReportHighlight): Promise<void> {
     // record.httpRecords est alimenté via unshift (ordre antichronologique) : on calcule l'ordre
     // chronologique une seule fois, partagé entre la section Actions (entrelacement) et la
     // section HTTP (ancres), pour que les index d'ancre correspondent exactement.
     const chronologicalHttp = (record.httpRecords || []).slice().reverse();
+
+    // Recherche faite une seule fois ici (pas dans le rapport exporté, voir ReportComponent) :
+    // même index que `chronologicalHttp`, pour partager le résultat entre les sections Actions et HTTP.
+    const highlightValues = chronologicalHttp.map((http) => this.computeHighlightValue(http, highlight));
 
     // Même base que le nom du fichier HTML (voir plus bas) : les bouchons exportés depuis le
     // rapport doivent être facilement associables au rapport dont ils proviennent.
@@ -50,10 +62,10 @@ export class HtmlReportService {
     }
 
     if (record.actions?.length) {
-      sections.push(await this.buildActionsSection(record.actions, chronologicalHttp));
+      sections.push(await this.buildActionsSection(record.actions, chronologicalHttp, highlightValues));
     }
     if (chronologicalHttp.length) {
-      sections.push(await this.buildHttpSection(chronologicalHttp, baseFileName));
+      sections.push(await this.buildHttpSection(chronologicalHttp, baseFileName, highlightValues));
     }
     if (record.consoleLogs?.length) {
       sections.push(this.buildConsoleSection(record.consoleLogs));
@@ -138,7 +150,7 @@ ${bodyContent}
    * cliquable vers son ancre dans la section "Requêtes HTTP" (même index que `buildHttpSection`,
    * les deux méthodes reçoivent le même tableau `chronologicalHttp`).
    */
-  private async buildActionsSection(actions: Action[], chronologicalHttp: HttpReturn[]): Promise<string> {
+  private async buildActionsSection(actions: Action[], chronologicalHttp: HttpReturn[], highlightValues: Array<string | undefined>): Promise<string> {
     const timeline: Array<{ timestamp: number; html: string }> = [];
 
     for (let i = 0; i < actions.length; i++) {
@@ -169,12 +181,15 @@ ${bodyContent}
 
       // Capture "après" (fin d'appel HTTP, DOM stabilisé) : pas de repère, la page a déjà changé.
       const screenshotHtml = http.screenshot ? `<img class="action-image" src="${await this.optimizeImageForReport(http.screenshot, 600)}" alt="" />` : '';
+      const highlightValue = highlightValues[index];
+      const highlightHtml = highlightValue ? `<span class="action-http-highlight">${this.escapeHtml(highlightValue)}</span>` : '';
 
       const html = `<a class="action-http-link${isError ? ' http-error' : ''}" href="#http-entry-${index}">
   <span class="action-http-badge">HTTP</span>
   <span class="badge ${this.httpMethodBadgeClass(http.method)}">${this.escapeHtml(http.method || '?')}</span>
   <span class="badge ${this.httpCodeBadgeClass(code)}">${this.escapeHtml(String(http.httpCode ?? '?'))}</span>
   <span class="http-url">${this.escapeHtml(http.key)}</span>
+  ${highlightHtml}
 </a>
 ${screenshotHtml}`;
       timeline.push({ timestamp: http.timestamp ?? 0, html });
@@ -191,7 +206,7 @@ ${screenshotHtml}`;
 </details>`;
   }
 
-  private async buildHttpSection(chronologicalHttp: HttpReturn[], baseFileName: string): Promise<string> {
+  private async buildHttpSection(chronologicalHttp: HttpReturn[], baseFileName: string, highlightValues: Array<string | undefined>): Promise<string> {
     const rows: string[] = [];
     const mocks: TuelloMockRecord[] = [];
 
@@ -205,7 +220,10 @@ ${screenshotHtml}`;
       const summary = `<span class="badge ${this.httpMethodBadgeClass(http.method)}">${this.escapeHtml(http.method || '?')}</span> <span class="badge ${this.httpCodeBadgeClass(code)}">${this.escapeHtml(String(http.httpCode ?? '?'))}</span> <span class="http-duration${isSlow ? ' http-slow' : ''}">${this.escapeHtml(duration)}</span> <span class="http-url">${this.escapeHtml(http.key)}</span>`;
 
       const bodySection = this.renderJsonSection(this.translate.instant('mmn.report.http.requestBody'), http.body);
+      const highlightValue = highlightValues[index];
+      const highlightSlot = highlightValue ? `<div class="http-highlight">${this.escapeHtml(highlightValue)}</div>` : '';
       const responseSection = this.renderJsonSection(this.translate.instant('mmn.report.http.response'), http.response);
+      const headersSection = this.renderJsonSection(this.translate.instant('mmn.report.http.headers'), http.headers);
 
       // Même forme que ce que "Enregistrer & rejouer HTTP" importe/exporte déjà (voir
       // ExportComponent.save) : quelqu'un qui reproduit le scénario peut réimporter ces bouchons
@@ -225,7 +243,7 @@ ${screenshotHtml}`;
     <span class="http-summary-text">${summary}</span>
     <button type="button" class="tuello-export-btn" onclick="tuelloExportMock(event, ${index})">${this.escapeHtml(this.translate.instant('mmn.report.http.exportMock'))}</button>
   </summary>
-  ${bodySection}${responseSection}
+  ${bodySection}${highlightSlot}${responseSection}${headersSection}
 </details>`
       );
     }
@@ -240,6 +258,74 @@ ${screenshotHtml}`;
   </div>
 </details>
 ${this.buildMockExportScript(mocks, baseFileName)}`;
+  }
+
+  /** Calcule, une seule fois à la génération, la valeur à mettre en évidence pour une requête
+   * HTTP donnée (voir `ReportHighlight`) : pas de recherche interactive dans le rapport exporté. */
+  private computeHighlightValue(http: HttpReturn, highlight?: ReportHighlight): string | undefined {
+    const key = highlight?.key?.trim();
+    if (!key) {
+      return undefined;
+    }
+
+    let value: unknown;
+    if (highlight!.source === 'header') {
+      value = this.findHeaderValue(http.headers, key);
+    } else {
+      let response: unknown = http.response;
+      if (typeof response === 'string') {
+        try {
+          response = JSON.parse(response);
+        } catch {
+          response = undefined;
+        }
+      }
+      value = this.findValueRecursive(response, key);
+    }
+
+    if (value === undefined) {
+      return undefined;
+    }
+    const display = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    return `${key} : ${display}`;
+  }
+
+  /** Recherche récursive d'une clé (insensible à la casse) dans un objet/tableau JSON arbitraire :
+   * la donnée à mettre en évidence peut se trouver à n'importe quel niveau de la réponse. */
+  private findValueRecursive(value: unknown, key: string): unknown {
+    if (value === null || typeof value !== 'object') {
+      return undefined;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = this.findValueRecursive(item, key);
+        if (found !== undefined) {
+          return found;
+        }
+      }
+      return undefined;
+    }
+    const obj = value as { [k: string]: unknown };
+    for (const k of Object.keys(obj)) {
+      if (k.toLowerCase() === key.toLowerCase()) {
+        return obj[k];
+      }
+    }
+    for (const k of Object.keys(obj)) {
+      const found = this.findValueRecursive(obj[k], key);
+      if (found !== undefined) {
+        return found;
+      }
+    }
+    return undefined;
+  }
+
+  private findHeaderValue(headers: { [k: string]: string } | undefined, key: string): string | undefined {
+    if (!headers) {
+      return undefined;
+    }
+    const foundKey = Object.keys(headers).find((k) => k.toLowerCase() === key.toLowerCase());
+    return foundKey !== undefined ? headers[foundKey] : undefined;
   }
 
   /**
@@ -644,6 +730,11 @@ details.report-section[open] > summary .report-section-arrow { transform: rotate
 .action-http-link:hover { background: rgba(255, 255, 255, .9); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(27, 80, 100, .14); }
 .action-http-link.http-error { border-color: rgba(231, 76, 60, .35); }
 .action-http-badge { font-size: 10px; font-weight: 700; letter-spacing: .04em; color: var(--c-petrol); background: rgba(79, 172, 254, .18); padding: 1px 7px; border-radius: 10px; }
+.action-http-highlight { font-size: 11px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .22); padding: 1px 9px; border-radius: 10px; word-break: break-all; }
+
+/* Donnée mise en évidence (choisie sur la page Rapport avant génération, voir ReportComponent) :
+   pastille ambre cohérente avec le reste du rapport. */
+.http-highlight { margin: 10px 0 0 4px; font-size: 12px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .18); padding: 6px 10px; border-radius: 10px; word-break: break-all; }
 
 /* Badges méthode/code HTTP : pilules de verre teintées (même esprit que les chips de la
    mosaïque), une couleur par verbe/classe de code pour un repérage visuel immédiat. */

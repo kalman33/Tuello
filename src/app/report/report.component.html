@@ -20,6 +20,20 @@
         <li>{{ 'mmn.report.summary.comparisonResults' | translate }} : {{ comparisonCount }}</li>
       </ul>
 
+      <div class="highlight-fields" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
+        <mat-form-field class="highlight-source">
+          <mat-label>{{ 'mmn.report.http.highlight.label' | translate }}</mat-label>
+          <mat-select [ngModel]="highlightSource" (ngModelChange)="onHighlightSourceChange($event)">
+            <mat-option value="response">{{ 'mmn.report.http.highlight.source.response' | translate }}</mat-option>
+            <mat-option value="header">{{ 'mmn.report.http.highlight.source.header' | translate }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field class="highlight-key">
+          <mat-label>{{ 'mmn.report.http.highlight.placeholder' | translate }}</mat-label>
+          <input matInput [ngModel]="highlightKey" (ngModelChange)="onHighlightKeyChange($event)" />
+        </mat-form-field>
+      </div>
+
       <button mat-flat-button color="primary" [disabled]="generating" (click)="generateReport()">
         <mat-icon>code</mat-icon>
         {{ 'mmn.report.generate.button' | translate }}
