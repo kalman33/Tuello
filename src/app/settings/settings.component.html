@@ -16,6 +16,7 @@
             <div class="icon-form-field">
               <mat-icon color="accent">draw</mat-icon>
               <div>{{ 'mmn.settings.general.verbosemode.title' | translate }}</div>
+              <mat-icon class="info-icon" [matTooltip]="'mmn.settings.general.verbosemode.information' | translate">info_outline</mat-icon>
               <mat-slide-toggle [(ngModel)]="verboseMode" class="darkMode" (change)="toggleVerboseMode(verboseMode)"> </mat-slide-toggle>
             </div>
             <div class="icon-form-field">

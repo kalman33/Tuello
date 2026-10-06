@@ -227,6 +227,13 @@ const normalizeHttpStatus = (code: unknown): number => {
   return truncated < 200 || truncated > 599 ? 200 : truncated;
 };
 
+// Log unique pour toute application de mock (XHR et fetch, direct ou via file d'attente) :
+// garder un seul format détaillé évite d'avoir des logs plus pauvres que ceux de la
+// librairie exportée (cf. exportTuelloTemplate.ts), qui affiche clé/statut/délai.
+const logMockApplied = (context: string, method: string | undefined, url: string, record: TuelloRecord): void => {
+  logData(`- Mock HTTP (${context}) - ${method || '?'} ${url} → clé : ${record.key} | statut : ${normalizeHttpStatus(record.httpCode)} | délai : ${record.delay || 0}ms`);
+};
+
 // JSON.stringify(undefined) renvoie undefined : on garantit toujours une chaîne.
 const serializeMockBody = (response: unknown): string => {
   const serialized = JSON.stringify(response);
@@ -722,7 +729,7 @@ const applyMockToXhr = (xhr: ExtendedXMLHttpRequest, record: TuelloRecord, url: 
       .map(([key, value]) => `${key}: ${value}`)
       .join('\r\n');
 
-  logData('- Mock HTTP - Mock de ' + url);
+  logMockApplied('XHR', xhr.xhrMethod, url, record);
 
   // dispatchEvent('readystatechange') déclenche déjà le handler xhr.onreadystatechange
   // — ne pas appeler originalCallback manuellement, sinon il est invoqué 2 fois.
@@ -786,7 +793,7 @@ const processPendingMockFetchQueue = (): void => {
     const record = findMockRecord(url, method);
 
     if (record) {
-      logData('- Mock HTTP - Mock de ' + url);
+      logMockApplied("Fetch, file d'attente", method, url, record);
       if (record.delay) {
         setTimeout(() => {
           decInFlightRequests();
@@ -1033,8 +1040,7 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
     // Records prêts, chercher le mock
     const record = findMockRecord(url, this.xhrMethod);
     if (record) {
-      // Mock trouvé - intercepter la requête
-      logData(`- Mock HTTP (XHR) - Mock trouvé pour : ${url}`);
+      // Mock trouvé - intercepter la requête (log détaillé posé dans applyMockToXhr)
       applyMockToXhr(this, record, url);
       return; // Ne pas envoyer la requête réelle
     }
@@ -1105,7 +1111,7 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
 
     const record = findMockRecord(url, method);
     if (record) {
-      logData('- Mock HTTP (Fetch Bypass) - Blocage CORS réussi pour ' + url);
+      logMockApplied('Fetch', method, url, record);
       if (record.delay) await sleepAsync(record.delay);
       decInFlightRequests();
       return createMockedResponse(new Response(), record);
@@ -1190,7 +1196,7 @@ intercepteurHTTPMock.interceptFetch = async function (response: Response, ...arg
     await sleepAsync(record.delay);
   }
 
-  logData('- Mock HTTP - Mock de ' + url);
+  logMockApplied('Fetch, filet de sécurité', extractFetchMethod(args as Parameters<typeof fetch>), url, record);
   return createMockedResponse(response, record);
 };
 
@@ -1205,67 +1211,76 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
   // pour capturer les requêtes même quand l'app utilise addEventListener
   req.addEventListener('loadend', function () {
     const url = req.responseURL;
-    if (url && typeof url === 'string' && !isExcludedUrl(url)) {
-      const contentType = req.getResponseHeader('Content-Type');
-      if (!contentType || contentType.includes('json')) {
+    if (!url || typeof url !== 'string') return;
+
+    if (isExcludedUrl(url)) {
+      logData(`- Capture auto HTTP - URL exclue, non enregistrée : ${url}`);
+      return;
+    }
+
+    const contentType = req.getResponseHeader('Content-Type');
+    if (contentType && !contentType.includes('json')) {
+      logData(`- Capture auto HTTP - Réponse non-JSON ignorée (Content-Type : ${contentType}) pour ${url}`);
+      return;
+    }
+
+    try {
+      const response = req.responseText ? JSON.parse(req.responseText) : '';
+
+      // Capturer les headers de réponse (en conservant la casse originale)
+      const headers: Record<string, string> = {};
+      const allHeaders = req.getAllResponseHeaders();
+      if (allHeaders) {
+        allHeaders.split('\r\n').forEach((line) => {
+          const idx = line.indexOf(': ');
+          if (idx > 0) {
+            headers[line.substring(0, idx)] = line.substring(idx + 2);
+          }
+        });
+      }
+
+      // Tenter de parser le body si c'est du JSON string
+      let parsedBody: unknown = req.xhrBody;
+      if (typeof req.xhrBody === 'string') {
         try {
-          const response = req.responseText ? JSON.parse(req.responseText) : '';
-
-          // Capturer les headers de réponse (en conservant la casse originale)
-          const headers: Record<string, string> = {};
-          const allHeaders = req.getAllResponseHeaders();
-          if (allHeaders) {
-            allHeaders.split('\r\n').forEach((line) => {
-              const idx = line.indexOf(': ');
-              if (idx > 0) {
-                headers[line.substring(0, idx)] = line.substring(idx + 2);
-              }
-            });
-          }
-
-          // Tenter de parser le body si c'est du JSON string
-          let parsedBody: unknown = req.xhrBody;
-          if (typeof req.xhrBody === 'string') {
-            try {
-              parsedBody = JSON.parse(req.xhrBody);
-            } catch {
-              // Garder le body tel quel s'il n'est pas du JSON
-            }
-          }
-
-          const duration = typeof req.xhrStartTime === 'number' ? Math.round(performance.now() - req.xhrStartTime) : undefined;
-          const requestId = generateRequestId();
-
-          const message: HttpMessage = {
-            type: MESSAGE_TYPES.RECORD_HTTP,
-            url,
-            delay: 0,
-            response,
-            status: req.status,
-            method: req.xhrMethod || '',
-            duration,
-            timestamp: req.xhrStartTimestamp ?? Date.now(),
-            requestId,
-            body: parsedBody,
-            hrefLocation: window.location.href,
-            headers,
-            requestHeaders: req.xhrRequestHeaders
-          };
-
-          if (self.userActivation) {
-            sendMessage(window, message);
-            logData(`- Capture auto HTTP - RECORD_HTTP envoyé (XHR) pour ${requestId}, toggle actif : ${autoScreenshotOnHttpActivated}`);
-            if (autoScreenshotOnHttpActivated) {
-              startSettleWatch(requestId);
-            }
-          } else {
-            // Mettre en queue pour une éventuelle activation utilisateur
-            addToQueue(message, messageForHTTPRecorderQueue);
-          }
+          parsedBody = JSON.parse(req.xhrBody);
         } catch {
-          logData('- Mock HTTP - Problème non bloquant de parsing de la reponse pour l url : ' + url);
+          // Garder le body tel quel s'il n'est pas du JSON
         }
       }
+
+      const duration = typeof req.xhrStartTime === 'number' ? Math.round(performance.now() - req.xhrStartTime) : undefined;
+      const requestId = generateRequestId();
+
+      const message: HttpMessage = {
+        type: MESSAGE_TYPES.RECORD_HTTP,
+        url,
+        delay: 0,
+        response,
+        status: req.status,
+        method: req.xhrMethod || '',
+        duration,
+        timestamp: req.xhrStartTimestamp ?? Date.now(),
+        requestId,
+        body: parsedBody,
+        hrefLocation: window.location.href,
+        headers,
+        requestHeaders: req.xhrRequestHeaders
+      };
+
+      if (self.userActivation) {
+        sendMessage(window, message);
+        logData(`- Capture auto HTTP - RECORD_HTTP envoyé (XHR) pour ${requestId}, toggle actif : ${autoScreenshotOnHttpActivated}`);
+        if (autoScreenshotOnHttpActivated) {
+          startSettleWatch(requestId);
+        }
+      } else {
+        // Mettre en queue pour une éventuelle activation utilisateur
+        logData(`- Capture auto HTTP - Enregistrement non activé, requête mise en file d'attente (${requestId}) pour ${url}`);
+        addToQueue(message, messageForHTTPRecorderQueue);
+      }
+    } catch {
+      logData('- Mock HTTP - Problème non bloquant de parsing de la reponse pour l url : ' + url);
     }
   });
 };
@@ -1279,9 +1294,17 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
   const requestUrl = extractFetchUrl(input);
   if (!requestUrl) return response;
 
+  if (isExcludedUrl(requestUrl)) {
+    logData(`- Capture auto HTTP - URL exclue, non enregistrée : ${requestUrl}`);
+    return response;
+  }
+
   const init = args[1] as RequestInit | undefined;
   const contentType = response.headers.get('Content-Type');
-  if (contentType && !contentType.includes('json')) return response;
+  if (contentType && !contentType.includes('json')) {
+    logData(`- Capture auto HTTP - Réponse non-JSON ignorée (Content-Type : ${contentType}) pour ${requestUrl}`);
+    return response;
+  }
 
   let responseData: unknown;
 
@@ -1326,6 +1349,7 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
     }
   } else {
     // Mettre en queue pour une éventuelle activation utilisateur
+    logData(`- Capture auto HTTP - Enregistrement non activé, requête mise en file d'attente (${requestId}) pour ${response.url || requestUrl}`);
     addToQueue(message, messageForHTTPRecorderQueue);
   }
 

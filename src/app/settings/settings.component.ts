@@ -11,6 +11,7 @@ import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatSlider, MatSliderThumb } from '@angular/material/slider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTab, MatTabGroup, MatTabLabel } from '@angular/material/tabs';
+import { MatTooltip } from '@angular/material/tooltip';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -61,7 +62,8 @@ export interface StorageStats {
     MatSliderThumb,
     SettingsMenuComponent,
     MatButton,
-    TranslatePipe
+    TranslatePipe,
+    MatTooltip
   ]
 })
 export class SettingsComponent implements OnInit {

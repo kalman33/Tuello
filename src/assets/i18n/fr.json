@@ -30,6 +30,7 @@
   "mmn.settings.deeprecord.title": "Profondeur pour le mock HTTP",
   "mmn.settings.general.desactivate.title": "Désactiver le plugin",
   "mmn.settings.general.verbosemode.title": "Mode verbeux",
+  "mmn.settings.general.verbosemode.information": "Affiche dans la console du navigateur les étapes détaillées de l'enregistrement et du rejeu HTTP : bouchons trouvés ou non, requêtes mises en attente, URLs exclues, réponses non-JSON ignorées, erreurs CORS.",
   "mmn.settings.general.mouse.title": "Afficher les coordonnées de la souris",
   "mmn.settings.customize.title": "Personnaliser",
   "mmn.settings.customize.mode": "Mode sombre",

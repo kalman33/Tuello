@@ -20,7 +20,6 @@ h2 {
 .button-row {
   padding-top: 15px;
   padding-bottom: 15px;
-  
 }
 
 .button-row button {
@@ -46,7 +45,7 @@ h2 {
   div {
     flex: 1; /* Permet au texte de prendre tout l'espace disponible */
   }
-  
+
   mat-slide-toggle {
     margin-left: auto; /* Pousse le slide-toggle complètement à droite */
   }
@@ -61,6 +60,12 @@ mat-icon {
   font-size: 20px;
 }
 
+.info-icon {
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 18px;
+  cursor: help;
+}
+
 mat-form-field {
   flex: 1 0 auto;
 }
@@ -68,7 +73,7 @@ mat-form-field {
 .bold {
   font-weight: bolder;
   font-size: 15px;
-  color: #F9690E;
+  color: #f9690e;
 }
 
 /* Partie de l'URL jamais prise en compte dans la comparaison des mocks */

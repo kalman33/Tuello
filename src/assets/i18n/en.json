@@ -28,6 +28,7 @@
   "mmn.settings.general.mouse.title": "Display mouse coordinates",
   "mmn.settings.general.desactivate.title": "Disable the plugin",
   "mmn.settings.general.verbosemode.title": "Verbose mode",
+  "mmn.settings.general.verbosemode.information": "Shows detailed HTTP record/replay steps in the browser console: mocks found or not, queued requests, excluded URLs, ignored non-JSON responses, CORS errors.",
   "mmn.settings.customize.mode": "Dark mode",
   "mmn.settings.deeprecord.title": "Deep for the HTTP mock",
   "mmn.settings.customize.title": "Customize",
