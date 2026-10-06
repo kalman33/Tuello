@@ -28,12 +28,16 @@ interface HttpMessage {
   body?: unknown;
   hrefLocation?: string;
   headers?: Record<string, string>;
+  // Headers posés par l'application sur la requête (setRequestHeader / init.headers / Request) :
+  // ceux ajoutés par le navigateur lui-même (Cookie, User-Agent...) ne sont pas visibles en JS.
+  requestHeaders?: Record<string, string>;
 }
 
 interface ExtendedXMLHttpRequest extends XMLHttpRequest {
   originalURL?: string;
   xhrMethod?: string;
   xhrBody?: Document | XMLHttpRequestBodyInit | null;
+  xhrRequestHeaders?: Record<string, string>;
   xhrStartTime?: number;
   xhrStartTimestamp?: number;
   interceptorManager?: InterceptorManager;
@@ -87,6 +91,7 @@ const INTERCEPTOR_NAMES = {
 
 const originalOpen = XMLHttpRequest.prototype.open;
 const originalSend = XMLHttpRequest.prototype.send;
+const originalSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
 const originalFetch = window.fetch.bind(window);
 
 // ============================================================================
@@ -254,6 +259,27 @@ const extractFetchMethod = (args: Parameters<typeof fetch>): string => {
   const input = args[0];
   if (input instanceof Request) return input.method.toUpperCase();
   return 'GET';
+};
+
+// Extrait les headers de requête d'un appel fetch : ceux du Request éventuel, surchargés par
+// init.headers (même priorité que fetch lui-même). Noms en minuscules, comme les expose Headers.
+const extractFetchRequestHeaders = (input: unknown, init?: RequestInit): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  try {
+    if (input instanceof Request) {
+      input.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+    }
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => {
+        headers[key] = value;
+      });
+    }
+  } catch {
+    // Headers invalides : fetch lui-même échouera, rien à enregistrer de plus
+  }
+  return headers;
 };
 
 // Extrait l'URL d'un input fetch qui peut être une string, un URL ou un Request.
@@ -962,7 +988,21 @@ XMLHttpRequest.prototype.open = function (this: ExtendedXMLHttpRequest, method: 
   this.interceptorManager = manager;
   this.originalURL = url.toString();
   this.xhrMethod = method;
+  // open() réinitialise les headers côté navigateur : idem ici pour un XHR réutilisé
+  this.xhrRequestHeaders = {};
   return originalOpen.call(this, method, url, ...(args as [boolean?, string?, string?]));
+};
+
+XMLHttpRequest.prototype.setRequestHeader = function (this: ExtendedXMLHttpRequest, name: string, value: string): void {
+  // Le navigateur concatène les valeurs d'un même header posé plusieurs fois : on fait pareil
+  const headers = (this.xhrRequestHeaders ??= {});
+  const existingKey = Object.keys(headers).find((k) => k.toLowerCase() === name.toLowerCase());
+  if (existingKey !== undefined) {
+    headers[existingKey] = `${headers[existingKey]}, ${value}`;
+  } else {
+    headers[name] = value;
+  }
+  return originalSetRequestHeader.call(this, name, value);
 };
 
 XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
@@ -1208,7 +1248,8 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
             requestId,
             body: parsedBody,
             hrefLocation: window.location.href,
-            headers
+            headers,
+            requestHeaders: req.xhrRequestHeaders
           };
 
           if (self.userActivation) {
@@ -1273,7 +1314,8 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
     body: init?.body as unknown,
     hrefLocation: window.location.href,
     response: responseData,
-    headers
+    headers,
+    requestHeaders: extractFetchRequestHeaders(input, init)
   };
 
   if (this.userActivation) {

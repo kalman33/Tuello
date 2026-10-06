@@ -3,6 +3,7 @@ export interface HttpReturn {
   response: any;
   httpCode: any;
   headers?: Record<string, string>;
+  requestHeaders?: Record<string, string>; // headers posés par l'application sur la requête (pas ceux ajoutés par le navigateur)
   method?: string;
   duration?: number; // en millisecondes
   body?: any; // corps envoyé (POST/PUT...), pour l'affichage en arbre dans le rapport

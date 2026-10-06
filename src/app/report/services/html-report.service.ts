@@ -20,7 +20,7 @@ export interface ReportMetadata {
  * `ReportComponent`) : la valeur correspondante est recherchée dans chaque requête HTTP et figée
  * dans le rapport HTML généré (pas de recherche interactive dans le fichier exporté). */
 export interface ReportHighlight {
-  source: 'response' | 'header';
+  source: 'response' | 'header' | 'requestHeader';
   key: string;
 }
 
@@ -219,6 +219,7 @@ ${screenshotHtml}`;
 
       const summary = `<span class="badge ${this.httpMethodBadgeClass(http.method)}">${this.escapeHtml(http.method || '?')}</span> <span class="badge ${this.httpCodeBadgeClass(code)}">${this.escapeHtml(String(http.httpCode ?? '?'))}</span> <span class="http-duration${isSlow ? ' http-slow' : ''}">${this.escapeHtml(duration)}</span> <span class="http-url">${this.escapeHtml(http.key)}</span>`;
 
+      const requestHeadersSection = this.renderJsonSection(this.translate.instant('mmn.report.http.requestHeaders'), http.requestHeaders);
       const bodySection = this.renderJsonSection(this.translate.instant('mmn.report.http.requestBody'), http.body);
       const highlightValue = highlightValues[index];
       const highlightSlot = highlightValue ? `<div class="http-highlight">${this.escapeHtml(highlightValue)}</div>` : '';
@@ -246,7 +247,7 @@ ${screenshotHtml}`;
     <span class="http-summary-text">${summary}</span>
     <button type="button" class="tuello-export-btn" onclick="tuelloExportMock(event, ${index})">${this.escapeHtml(this.translate.instant('mmn.report.http.exportMock'))}</button>
   </summary>
-  ${bodySection}${highlightSlot}${responseSection}${headersSection}
+  ${requestHeadersSection}${bodySection}${highlightSlot}${responseSection}${headersSection}
 </details>`
       );
     }
@@ -292,6 +293,8 @@ ${this.buildMockExportScript(mocks, baseFileName)}`;
     let value: unknown;
     if (highlight!.source === 'header') {
       value = this.findHeaderValue(http.headers, key);
+    } else if (highlight!.source === 'requestHeader') {
+      value = this.findHeaderValue(http.requestHeaders, key);
     } else {
       let response: unknown = http.response;
       if (typeof response === 'string') {

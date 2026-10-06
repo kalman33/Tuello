@@ -26,6 +26,7 @@
           <mat-select [ngModel]="highlightSource" (ngModelChange)="onHighlightSourceChange($event)">
             <mat-option value="response">{{ 'mmn.report.http.highlight.source.response' | translate }}</mat-option>
             <mat-option value="header">{{ 'mmn.report.http.highlight.source.header' | translate }}</mat-option>
+            <mat-option value="requestHeader">{{ 'mmn.report.http.highlight.source.requestHeader' | translate }}</mat-option>
           </mat-select>
         </mat-form-field>
         <mat-form-field class="highlight-key">
