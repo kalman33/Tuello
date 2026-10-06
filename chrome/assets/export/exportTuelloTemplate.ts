@@ -12,6 +12,9 @@
 
     interface TuelloRecord {
       key: string;
+      // Méthode HTTP enregistrée. Absente sur les mocks antérieurs et sur les fichiers
+      // importés : le mock s'applique alors à toutes les méthodes (joker).
+      method?: string;
       response: unknown;
       httpCode: number;
       delay?: number;
@@ -69,7 +72,7 @@
     // Index optimisé pour recherche rapide
     // ============================================================================
 
-    const mockIndexExact: Map<string, TuelloRecord> = new Map();
+    const mockIndexExact: Map<string, NormalizedRecord[]> = new Map();
     const mockIndexSuffix: Map<string, NormalizedRecord[]> = new Map();
     let mockWildcardRecords: NormalizedRecord[] = [];
     const CACHE_MAX_SIZE = 500;
@@ -118,6 +121,15 @@
       if (input instanceof URL) return input.href;
       if (input instanceof Request) return input.url;
       return '';
+    };
+
+    // Extrait la méthode d'un appel fetch : soit de l'init, soit du Request, sinon GET.
+    const extractFetchMethod = (args: Parameters<typeof fetch>): string => {
+      const init = args[1] as RequestInit | undefined;
+      if (init?.method) return init.method.toUpperCase();
+      const input = args[0];
+      if (input instanceof Request) return input.method.toUpperCase();
+      return 'GET';
     };
 
     // Fusionne les headers par défaut avec ceux du record en normalisant la casse
@@ -226,7 +238,14 @@
         if (hasWildcard) {
           mockWildcardRecords.push(normalizedRecord);
         } else {
-          mockIndexExact.set(normalized, record);
+          // On empile au lieu d'écraser : plusieurs méthodes peuvent partager la même
+          // URL, et le premier record du tableau reste prioritaire (pickByMethod).
+          const exactBucket = mockIndexExact.get(normalized);
+          if (exactBucket) {
+            exactBucket.push(normalizedRecord);
+          } else {
+            mockIndexExact.set(normalized, [normalizedRecord]);
+          }
         }
 
         for (let i = 1; i <= Math.min(3, segments.length); i++) {
@@ -254,8 +273,68 @@
     };
 
     // ============================================================================
+    // Méthode HTTP
+    // ============================================================================
+
+    /**
+     * Choisit, parmi des records dont l'URL correspond déjà, celui qui répond à la
+     * méthode HTTP de la requête :
+     *  - une correspondance exacte de méthode est prioritaire ;
+     *  - à défaut, un mock sans méthode (ancien format ou import) sert de joker ;
+     *  - les candidats sont parcourus dans l'ordre du tableau, donc le premier gagne.
+     */
+    const pickByMethod = (candidates: NormalizedRecord[] | undefined, method?: string): TuelloRecord | undefined => {
+      if (!candidates || candidates.length === 0) return undefined;
+      // Méthode inconnue côté requête : on ne filtre pas (comportement historique)
+      if (!method) return candidates[0].record;
+
+      const requestMethod = method.toUpperCase();
+      let genericMatch: TuelloRecord | undefined;
+
+      for (const candidate of candidates) {
+        const recordMethod = candidate.record.method;
+        if (!recordMethod) {
+          if (!genericMatch) genericMatch = candidate.record;
+        } else if (recordMethod.toUpperCase() === requestMethod) {
+          return candidate.record;
+        }
+      }
+
+      return genericMatch;
+    };
+
+    /**
+     * Un record correspond-il à la méthode de la requête ? (utilisé par la recherche
+     * linéaire de repli, qui n'a pas de notion de priorité)
+     */
+    const methodMatches = (record: TuelloRecord, method?: string): boolean => !record.method || !method || record.method.toUpperCase() === method.toUpperCase();
+
+    // ============================================================================
     // Comparaison avec support suffixe et wildcards (fallback)
     // ============================================================================
+
+    /**
+     * Compare les segments d'un mock à ceux d'une URL plus courte (contextRoot absent
+     * de la requête). Au moins un segment doit correspondre littéralement : sans cette
+     * garde, un mock terminé par "/*" intercepte n'importe quelle URL d'un seul segment.
+     */
+    const matchesBySuffix = (candidateSegments: string[], segments: string[]): boolean => {
+      if (segments.length === 0 || candidateSegments.length <= segments.length) return false;
+
+      const mockSuffix = candidateSegments.slice(-segments.length);
+      let hasLiteralMatch = false;
+
+      const allMatch = segments.every((seg, idx) => {
+        const mockSeg = mockSuffix[idx];
+        if (mockSeg.includes('*')) {
+          return getCachedRegex(mockSeg).test(seg);
+        }
+        hasLiteralMatch = true;
+        return seg === mockSeg;
+      });
+
+      return allMatch && hasLiteralMatch;
+    };
 
     const compareWithMockLevel = (url1: string, url2: string): boolean => {
       if (!url1 || !url2 || typeof url1 !== 'string' || typeof url2 !== 'string') {
@@ -285,34 +364,25 @@
       const segments1 = normalizedUrl1.split('/').filter((s) => s);
       const segments2 = normalizedUrl2.split('/').filter((s) => s);
 
-      if (segments1.length < segments2.length) {
-        const mockSuffix = segments2.slice(-segments1.length);
-        return segments1.every((seg, i) => {
-          const mockSeg = mockSuffix[i];
-          if (mockSeg.includes('*')) {
-            return getCachedRegex(mockSeg).test(seg);
-          }
-          return seg === mockSeg;
-        });
-      }
-
-      return false;
+      return matchesBySuffix(segments2, segments1);
     };
 
     // ============================================================================
     // Recherche optimisée d'un mock
     // ============================================================================
 
-    const findMockRecordOptimized = (url: string): TuelloRecord | undefined => {
+    const findMockRecordOptimized = (url: string, method?: string): TuelloRecord | undefined => {
       const { normalized, segments } = normalizeUrlForIndex(url);
-      const cacheKey = normalized;
+      // La méthode fait partie de la clé de cache : deux verbes sur la même URL
+      // peuvent répondre des mocks différents.
+      const cacheKey = `${(method || '').toUpperCase()}:${normalized}`;
 
       if (mockSearchCache.has(cacheKey)) {
         const cached = mockSearchCache.get(cacheKey);
         return cached ?? undefined;
       }
 
-      const exactMatch = mockIndexExact.get(normalized);
+      const exactMatch = pickByMethod(mockIndexExact.get(normalized), method);
       if (exactMatch) {
         addToCache(cacheKey, exactMatch);
         return exactMatch;
@@ -323,46 +393,35 @@
         const candidates = mockIndexSuffix.get(suffixKey);
 
         if (candidates) {
-          for (const candidate of candidates) {
-            if (candidate.segments.length > segments.length) {
-              const mockSuffix = candidate.segments.slice(-segments.length);
-              const isMatch = segments.every((seg, idx) => {
-                const mockSeg = mockSuffix[idx];
-                if (mockSeg.includes('*')) {
-                  return getCachedRegex(mockSeg).test(seg);
-                }
-                return seg === mockSeg;
-              });
-
-              if (isMatch) {
-                addToCache(cacheKey, candidate.record);
-                return candidate.record;
-              }
-            }
+          const suffixMatches = candidates.filter((candidate) => matchesBySuffix(candidate.segments, segments));
+          const suffixMatch = pickByMethod(suffixMatches, method);
+          if (suffixMatch) {
+            addToCache(cacheKey, suffixMatch);
+            return suffixMatch;
           }
         }
       }
 
-      for (const wildcardRecord of mockWildcardRecords) {
-        if (getCachedRegex(wildcardRecord.normalizedKey).test(normalized)) {
-          addToCache(cacheKey, wildcardRecord.record);
-          return wildcardRecord.record;
-        }
+      const wildcardMatches = mockWildcardRecords.filter((wildcardRecord) => getCachedRegex(wildcardRecord.normalizedKey).test(normalized) || matchesBySuffix(wildcardRecord.segments, segments));
+      const wildcardMatch = pickByMethod(wildcardMatches, method);
+      if (wildcardMatch) {
+        addToCache(cacheKey, wildcardMatch);
+        return wildcardMatch;
       }
 
       addToCache(cacheKey, null);
       return undefined;
     };
 
-    const findMockRecord = (url: string): TuelloRecord | undefined => {
+    const findMockRecord = (url: string, method?: string): TuelloRecord | undefined => {
       const records = window['tuelloRecords'] as TuelloRecord[] | string | undefined;
       if (!records || typeof records === 'string') return undefined;
 
       if (mockIndexExact.size > 0 || mockWildcardRecords.length > 0) {
-        return findMockRecordOptimized(url);
+        return findMockRecordOptimized(url, method);
       }
 
-      return records.find(({ key }) => compareWithMockLevel(url, key));
+      return records.find((record) => compareWithMockLevel(url, record.key) && methodMatches(record, method));
     };
 
     // ============================================================================
@@ -432,7 +491,7 @@
     (window as any).XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
       const url = this['originalURL'] || '';
       const method = this['xhrMethod'] || 'GET';
-      const record = findMockRecord(url);
+      const record = findMockRecord(url, method);
 
       if (record) {
         logVerbose('XHR bouchonné :', method, url, '→ clé :', record.key, '| statut :', record.httpCode, '| délai :', record.delay || 0, 'ms');
@@ -471,7 +530,8 @@
 
     (window as any).fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
       const url = extractFetchUrl(args[0]);
-      const record = findMockRecord(url);
+      const method = extractFetchMethod(args);
+      const record = findMockRecord(url, method);
 
       if (record) {
         logVerbose('Fetch bouchonné :', url, '→ clé :', record.key, '| statut :', record.httpCode, '| délai :', record.delay || 0, 'ms');
