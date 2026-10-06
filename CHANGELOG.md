@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.29.0] - 2026-10-06
+
+    - Rapport : mise en évidence d'un header de requête
+    - Fix : import HTTP écrasant un verbe différent sur la même clé
+    - Fix : export des bouchons HTTP désynchronisé de la prise en compte du verbe
+    - Verbose : logs du mock/record HTTP plus complets et alignés XHR/fetch
+
 ## [1.2.28.0] - 2026-10-05
 
     - Fix : effacement des bouchons HTTP corrompu par une course avec l'enregistrement actif
