@@ -675,18 +675,20 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       const currentData = (this.jsonEditorTree.get() as JSONContent).json;
       const existingRecords: any[] = Array.isArray(currentData) ? currentData : [];
 
-      // Créer un Map avec les enregistrements existants (clé = key)
+      // Créer un Map avec les enregistrements existants (clé = méthode + key, pour
+      // qu'un GET et un POST partageant la même URL ne s'écrasent pas mutuellement)
+      const mergeKey = (record: any): string => `${(record.method || '').toUpperCase()} ${record.key}`;
       const recordsMap = new Map<string, any>();
       for (const record of existingRecords) {
         if (record.key) {
-          recordsMap.set(record.key, record);
+          recordsMap.set(mergeKey(record), record);
         }
       }
 
       // Ajouter/Remplacer avec les données importées
       for (const record of importedData) {
         if (record.key) {
-          recordsMap.set(record.key, record);
+          recordsMap.set(mergeKey(record), record);
         }
       }
 
