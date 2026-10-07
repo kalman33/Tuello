@@ -358,6 +358,8 @@
   "mmn.report.http.highlight.source.header": "Response header",
   "mmn.report.http.highlight.source.requestHeader": "Request header",
   "mmn.report.http.highlight.placeholder": "Field name (e.g. userId)",
+  "mmn.report.http.highlight.copy": "Copy",
+  "mmn.report.http.highlight.copied": "Copied!",
   "mmn.report.http.screenshot": "Screenshot after settling",
   "mmn.report.http.exportMock": "Export this mock",
   "mmn.report.http.exportAllMocks": "Export all mocks (Tuello format)",

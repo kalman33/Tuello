@@ -24,6 +24,13 @@ export interface ReportHighlight {
   key: string;
 }
 
+/** Résultat d'une mise en évidence pour une requête HTTP donnée : `text` est le libellé affiché
+ * (`clé : valeur`), `value` la valeur brute seule, utilisée pour la copie dans le presse-papier. */
+interface ReportHighlightResult {
+  text: string;
+  value: string;
+}
+
 /** Forme attendue par le module "Enregistrer & rejouer HTTP" pour importer des bouchons (voir
  * `TuelloRecord` dans `chrome/src/httpmanager.ts` et `RecorderHttpComponent.applyImportedData`) :
  * un simple tableau de `{key, method?, response, httpCode, headers?, delay?}`. */
@@ -48,7 +55,7 @@ export class HtmlReportService {
 
     // Recherche faite une seule fois ici (pas dans le rapport exporté, voir ReportComponent) :
     // même index que `chronologicalHttp`, pour partager le résultat entre les sections Actions et HTTP.
-    const highlightValues = chronologicalHttp.map((http) => this.computeHighlightValue(http, highlight));
+    const highlightResults = chronologicalHttp.map((http) => this.computeHighlightValue(http, highlight));
 
     // Même base que le nom du fichier HTML (voir plus bas) : les bouchons exportés depuis le
     // rapport doivent être facilement associables au rapport dont ils proviennent.
@@ -62,10 +69,10 @@ export class HtmlReportService {
     }
 
     if (record.actions?.length) {
-      sections.push(await this.buildActionsSection(record.actions, chronologicalHttp, highlightValues));
+      sections.push(await this.buildActionsSection(record.actions, chronologicalHttp, highlightResults));
     }
     if (chronologicalHttp.length) {
-      sections.push(await this.buildHttpSection(chronologicalHttp, baseFileName, highlightValues));
+      sections.push(await this.buildHttpSection(chronologicalHttp, baseFileName, highlightResults));
     }
     if (record.consoleLogs?.length) {
       sections.push(this.buildConsoleSection(record.consoleLogs));
@@ -150,7 +157,7 @@ ${bodyContent}
    * cliquable vers son ancre dans la section "Requêtes HTTP" (même index que `buildHttpSection`,
    * les deux méthodes reçoivent le même tableau `chronologicalHttp`).
    */
-  private async buildActionsSection(actions: Action[], chronologicalHttp: HttpReturn[], highlightValues: Array<string | undefined>): Promise<string> {
+  private async buildActionsSection(actions: Action[], chronologicalHttp: HttpReturn[], highlightResults: Array<ReportHighlightResult | undefined>): Promise<string> {
     const timeline: Array<{ timestamp: number; html: string }> = [];
 
     for (let i = 0; i < actions.length; i++) {
@@ -181,16 +188,17 @@ ${bodyContent}
 
       // Capture "après" (fin d'appel HTTP, DOM stabilisé) : pas de repère, la page a déjà changé.
       const screenshotHtml = http.screenshot ? `<img class="action-image" src="${await this.optimizeImageForReport(http.screenshot, 600)}" alt="" />` : '';
-      const highlightValue = highlightValues[index];
-      const highlightHtml = highlightValue ? `<span class="action-http-highlight">${this.escapeHtml(highlightValue)}</span>` : '';
+      // En dehors du <a> (pas dans son contenu) : un bouton de copie imbriqué dans un lien serait
+      // invalide en HTML et son clic déclencherait aussi la navigation de l'ancre.
+      const highlightHtml = this.buildHighlightPill(highlightResults[index], 'tuello-highlight--action');
 
       const html = `<a class="action-http-link${isError ? ' http-error' : ''}" href="#http-entry-${index}">
   <span class="action-http-badge">HTTP</span>
   <span class="badge ${this.httpMethodBadgeClass(http.method)}">${this.escapeHtml(http.method || '?')}</span>
   <span class="badge ${this.httpCodeBadgeClass(code)}">${this.escapeHtml(String(http.httpCode ?? '?'))}</span>
   <span class="http-url">${this.escapeHtml(http.key)}</span>
-  ${highlightHtml}
 </a>
+${highlightHtml}
 ${screenshotHtml}`;
       timeline.push({ timestamp: http.timestamp ?? 0, html });
     }
@@ -206,7 +214,7 @@ ${screenshotHtml}`;
 </details>`;
   }
 
-  private async buildHttpSection(chronologicalHttp: HttpReturn[], baseFileName: string, highlightValues: Array<string | undefined>): Promise<string> {
+  private async buildHttpSection(chronologicalHttp: HttpReturn[], baseFileName: string, highlightResults: Array<ReportHighlightResult | undefined>): Promise<string> {
     const rows: string[] = [];
     const mocks: TuelloMockRecord[] = [];
 
@@ -221,8 +229,10 @@ ${screenshotHtml}`;
 
       const requestHeadersSection = this.renderJsonSection(this.translate.instant('mmn.report.http.requestHeaders'), http.requestHeaders);
       const bodySection = this.renderJsonSection(this.translate.instant('mmn.report.http.requestBody'), http.body);
-      const highlightValue = highlightValues[index];
-      const highlightSlot = highlightValue ? `<div class="http-highlight">${this.escapeHtml(highlightValue)}</div>` : '';
+      // Sous l'URL, dans le <summary> lui-même (et non dans le corps repliable) : visible même
+      // quand l'entrée est fermée. Rien n'est rendu si la donnée n'a pas été trouvée pour cette
+      // requête (voir computeHighlightValue).
+      const highlightSlot = this.buildHighlightPill(highlightResults[index], 'tuello-highlight--http');
       // Classe dédiée sur ces deux sous-sections (et seulement celles-ci) : c'est ce que cible la
       // recherche interactive injectée par `buildHttpSearchScript`, qui ne doit porter que sur
       // les réponses/headers, pas sur le corps de requête envoyé.
@@ -244,10 +254,13 @@ ${screenshotHtml}`;
       rows.push(
         `<details class="http-entry" id="http-entry-${index}">
   <summary>
-    <span class="http-summary-text">${summary}</span>
-    <button type="button" class="tuello-export-btn" onclick="tuelloExportMock(event, ${index})">${this.escapeHtml(this.translate.instant('mmn.report.http.exportMock'))}</button>
+    <div class="http-summary-row">
+      <span class="http-summary-text">${summary}</span>
+      <button type="button" class="tuello-export-btn" onclick="tuelloExportMock(event, ${index})">${this.escapeHtml(this.translate.instant('mmn.report.http.exportMock'))}</button>
+    </div>
+    ${highlightSlot}
   </summary>
-  ${requestHeadersSection}${bodySection}${highlightSlot}${responseSection}${headersSection}
+  ${requestHeadersSection}${bodySection}${responseSection}${headersSection}
 </details>`
       );
     }
@@ -282,9 +295,23 @@ ${this.buildMockExportScript(mocks, baseFileName)}`;
   </div>`;
   }
 
+  /** Pastille de mise en évidence + bouton de copie (juste la valeur brute, pas le libellé
+   * `clé : valeur`), réutilisée à l'identique dans la timeline Actions et la section Requêtes
+   * HTTP. Ne rend rien si la donnée n'a pas été trouvée pour cette requête précise. */
+  private buildHighlightPill(result: ReportHighlightResult | undefined, variantClass: string): string {
+    if (!result) {
+      return '';
+    }
+    const copyLabel = this.escapeHtml(this.translate.instant('mmn.report.http.highlight.copy'));
+    return `<div class="tuello-highlight ${variantClass}">
+    <span class="tuello-highlight-text">${this.escapeHtml(result.text)}</span>
+    <button type="button" class="tuello-copy-btn" data-copy-value="${this.escapeHtml(result.value)}" onclick="tuelloCopyHighlight(event, this)" title="${copyLabel}" aria-label="${copyLabel}">${copyLabel}</button>
+  </div>`;
+  }
+
   /** Calcule, une seule fois à la génération, la valeur à mettre en évidence pour une requête
    * HTTP donnée (voir `ReportHighlight`) : pas de recherche interactive dans le rapport exporté. */
-  private computeHighlightValue(http: HttpReturn, highlight?: ReportHighlight): string | undefined {
+  private computeHighlightValue(http: HttpReturn, highlight?: ReportHighlight): ReportHighlightResult | undefined {
     const key = highlight?.key?.trim();
     if (!key) {
       return undefined;
@@ -311,7 +338,7 @@ ${this.buildMockExportScript(mocks, baseFileName)}`;
       return undefined;
     }
     const display = typeof value === 'object' ? JSON.stringify(value) : String(value);
-    return `${key} : ${display}`;
+    return { text: `${key} : ${display}`, value: display };
   }
 
   /** Recherche récursive d'une clé (insensible à la casse) dans un objet/tableau JSON arbitraire :
@@ -363,9 +390,53 @@ ${this.buildMockExportScript(mocks, baseFileName)}`;
   private buildMockExportScript(mocks: TuelloMockRecord[], baseFileName: string): string {
     const json = JSON.stringify(mocks).replace(/</g, '\\u003c');
     const safeBaseFileName = JSON.stringify(baseFileName);
+    const copyLabel = JSON.stringify(this.translate.instant('mmn.report.http.highlight.copy'));
+    const copiedLabel = JSON.stringify(this.translate.instant('mmn.report.http.highlight.copied'));
     return `<script>
 const TUELLO_MOCKS = ${json};
 const TUELLO_BASE_FILE_NAME = ${safeBaseFileName};
+const TUELLO_COPY_LABEL = ${copyLabel};
+const TUELLO_COPIED_LABEL = ${copiedLabel};
+// Le rapport exporté est le plus souvent ouvert en file:// (double-clic depuis le dossier de
+// téléchargements) : ce n'est pas un contexte sécurisé, navigator.clipboard y est indisponible.
+// Repli sur un textarea hors-écran + execCommand('copy'), qui fonctionne aussi en file://.
+function tuelloCopyFallback(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } catch {
+    copied = false;
+  }
+  textarea.remove();
+  return copied;
+}
+function tuelloCopyHighlight(event, btn) {
+  // Même raison que tuelloExportMock : ne pas replier/déplier le <details> parent.
+  event.preventDefault();
+  event.stopPropagation();
+  const text = btn.getAttribute('data-copy-value') || '';
+  const onDone = (success) => {
+    if (!success) return;
+    btn.textContent = TUELLO_COPIED_LABEL;
+    btn.classList.add('tuello-copy-btn--done');
+    setTimeout(() => {
+      btn.textContent = TUELLO_COPY_LABEL;
+      btn.classList.remove('tuello-copy-btn--done');
+    }, 1500);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => onDone(true)).catch(() => onDone(tuelloCopyFallback(text)));
+  } else {
+    onDone(tuelloCopyFallback(text));
+  }
+}
 function tuelloDownloadJson(data, filename) {
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -897,11 +968,18 @@ details.report-section[open] > summary .report-section-arrow { transform: rotate
 .action-http-link:hover { background: rgba(255, 255, 255, .9); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(27, 80, 100, .14); }
 .action-http-link.http-error { border-color: rgba(231, 76, 60, .35); }
 .action-http-badge { font-size: 10px; font-weight: 700; letter-spacing: .04em; color: var(--c-petrol); background: rgba(79, 172, 254, .18); padding: 1px 7px; border-radius: 10px; }
-.action-http-highlight { font-size: 11px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .22); padding: 1px 9px; border-radius: 10px; word-break: break-all; }
 
 /* Donnée mise en évidence (choisie sur la page Rapport avant génération, voir ReportComponent) :
-   pastille ambre cohérente avec le reste du rapport. */
-.http-highlight { margin: 10px 0 0 4px; font-size: 12px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .18); padding: 6px 10px; border-radius: 10px; word-break: break-all; }
+   pastille ambre cohérente avec le reste du rapport, réutilisée telle quelle sous le lien HTTP
+   de la timeline (variante --action) et sous l'URL de la section Requêtes HTTP (variante --http,
+   toujours visible même accordéon fermé puisqu'elle vit dans le <summary>, voir buildHttpSection). */
+.tuello-highlight { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .18); padding: 6px 10px; border-radius: 10px; }
+.tuello-highlight--action { margin: 4px 0 0; font-size: 11px; padding: 4px 9px; }
+.tuello-highlight--http { margin: 8px 0 0; }
+.tuello-highlight-text { word-break: break-all; }
+.tuello-copy-btn { font: 700 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 3px 10px; border: 1px solid rgba(146, 96, 12, .3); border-radius: 999px; background: rgba(255, 255, 255, .5); color: #92600c; cursor: pointer; white-space: nowrap; flex-shrink: 0; margin-left: auto; transition: .2s ease; }
+.tuello-copy-btn:hover { background: #fff; }
+.tuello-copy-btn--done { background: rgba(67, 233, 123, .3); border-color: rgba(21, 128, 61, .3); color: #15803d; }
 
 /* Badges méthode/code HTTP : pilules de verre teintées (même esprit que les chips de la
    mosaïque), une couleur par verbe/classe de code pour un repérage visuel immédiat. */
@@ -932,7 +1010,13 @@ mark.tuello-search-mark--active { background: var(--c-amber); color: #fff; }
 .http-entry { border: 1px solid rgba(255, 255, 255, .6); background: rgba(255, 255, 255, .4); border-radius: 14px; padding: 11px 16px; margin-bottom: 8px; scroll-margin-top: 16px; transition: outline-color .15s ease, background .2s ease; }
 .http-entry:hover { background: rgba(255, 255, 255, .65); }
 .http-entry:target { outline: 2px solid var(--c-petrol-light); outline-offset: 2px; }
-.http-entry summary { cursor: pointer; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* Pas de triangle natif : avant, le display flex posé directement sur <summary> le supprimait
+   déjà comme effet de bord (un sommaire flex n'est plus "list-item"). Depuis que le flex est sur
+   .http-summary-row (pour empiler la pastille en dessous), il faut le neutraliser explicitement,
+   sinon le marqueur par défaut du navigateur revient, mal aligné au-dessus du contenu empilé. */
+.http-entry summary { cursor: pointer; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; list-style: none; }
+.http-entry summary::-webkit-details-marker { display: none; }
+.http-summary-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .http-summary-text { flex: 1; min-width: 0; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .http-duration.http-slow { color: var(--c-amber); font-weight: 700; }
 .http-url { word-break: break-all; color: var(--c-text); }
@@ -980,6 +1064,7 @@ summary.tree-summary { cursor: pointer; font-family: monospace; font-size: 12px;
   .report-header { box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   section, details.report-section { box-shadow: none; backdrop-filter: none; background: #fff; }
   .tuello-export-btn { display: none; }
+  .tuello-copy-btn { display: none; }
   .tuello-http-search { display: none; }
   .http-entry.tuello-dimmed { opacity: 1; }
 }
