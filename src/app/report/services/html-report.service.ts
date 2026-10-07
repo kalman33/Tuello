@@ -304,8 +304,12 @@ ${this.buildMockExportScript(mocks, baseFileName)}`;
     }
     const copyLabel = this.escapeHtml(this.translate.instant('mmn.report.http.highlight.copy'));
     const copiedLabel = this.escapeHtml(this.translate.instant('mmn.report.http.highlight.copied'));
-    return `<div class="tuello-highlight ${variantClass}">
-    <span class="tuello-highlight-text">${this.escapeHtml(result.text)}</span>
+    // Le bouton de copie est un sibling de la pastille ambre, pas un enfant : il ne doit pas
+    // hériter de son fond coloré, seulement partager la même ligne.
+    return `<div class="tuello-highlight-wrap ${variantClass}">
+    <div class="tuello-highlight">
+      <span class="tuello-highlight-text">${this.escapeHtml(result.text)}</span>
+    </div>
     <button type="button" class="tuello-copy-btn" data-copy-value="${this.escapeHtml(result.value)}" onclick="tuelloCopyHighlight(event, this)" title="${copyLabel}" aria-label="${copyLabel}">
       <svg class="tuello-copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="9" y="9" width="11" height="11" rx="2"></rect>
@@ -980,12 +984,15 @@ details.report-section[open] > summary .report-section-arrow { transform: rotate
    pastille ambre cohérente avec le reste du rapport, réutilisée telle quelle sous le lien HTTP
    de la timeline (variante --action) et sous l'URL de la section Requêtes HTTP (variante --http,
    toujours visible même accordéon fermé puisqu'elle vit dans le <summary>, voir buildHttpSection). */
-/* inline-flex (pas flex) : la pastille se dimensionne à son contenu au lieu de prendre toute la
-   largeur de la ligne, sinon le bouton de copie (dernier enfant) se retrouve collé au bord droit
-   plutôt que juste après la valeur. */
-.tuello-highlight { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .18); padding: 6px 10px; border-radius: 10px; max-width: 100%; }
-.tuello-highlight--action { margin: 4px 0 0; font-size: 11px; padding: 4px 9px; }
-.tuello-highlight--http { margin: 8px 0 0; }
+/* inline-flex (pas flex) sur le wrap : il se dimensionne à son contenu au lieu de prendre toute
+   la largeur de la ligne, sinon le bouton de copie (second enfant) se retrouve collé au bord
+   droit plutôt que juste après la pastille. Le bouton est un sibling de la pastille ambre,
+   pas un enfant, pour ne pas hériter de son fond coloré. */
+.tuello-highlight-wrap { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; }
+.tuello-highlight-wrap.tuello-highlight--action { margin: 4px 0 0; }
+.tuello-highlight-wrap.tuello-highlight--http { margin: 8px 0 0; }
+.tuello-highlight-wrap.tuello-highlight--action .tuello-highlight { font-size: 11px; padding: 4px 9px; }
+.tuello-highlight { display: inline-flex; align-items: center; min-width: 0; font-size: 12px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .18); padding: 6px 10px; border-radius: 10px; }
 .tuello-highlight-text { word-break: break-all; }
 .tuello-copy-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; padding: 4px; border: 1px solid rgba(146, 96, 12, .3); border-radius: 999px; background: rgba(255, 255, 255, .5); color: #92600c; cursor: pointer; flex-shrink: 0; transition: .2s ease; }
 .tuello-copy-btn:hover { background: #fff; }
