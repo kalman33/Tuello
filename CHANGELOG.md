@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.30.0] - 2026-10-08
+
+    - Rapport : copie rapide et mise en évidence toujours visible, avertissement si header inaccessible en JS
+    - Fix : requêtes HTTP en erreur non-JSON capturées et chronologie actions/HTTP corrigée
+    - Navigation : onglets Paramètres et Raccourcis intervertis
+
 ## [1.2.29.0] - 2026-10-06
 
     - Rapport : mise en évidence d'un header de requête
