@@ -158,7 +158,7 @@ async function addTargetedAction(userAction: IUserAction, tabId: number, frameId
   if (userAction.frame && userAction.frame.frameIndex !== undefined) {
     // on est dans le cas devtools
     const action = new Action(delay, actionType, userAction);
-    action.timestamp = now;
+    action.timestamp = userAction.eventTimestamp ?? now;
     state.record.actions.push(action);
     state.last = now;
     state.record.last = state.last;
@@ -172,7 +172,7 @@ async function addTargetedAction(userAction: IUserAction, tabId: number, frameId
       userAction.frame = { src: '', frameId: 0 };
     }
     const action = new Action(delay, actionType, userAction);
-    action.timestamp = now;
+    action.timestamp = userAction.eventTimestamp ?? now;
     state.record.actions.push(action);
     state.last = now;
     state.record.last = state.last;
@@ -465,7 +465,10 @@ export async function addUserAction(userAction: IUserAction, tabId: number, fram
   const now = Date.now();
   const delay = isNaN(now - state.last) ? 0 : now - state.last;
   const action = new Action(delay, ActionType.EVENT, userAction);
-  action.timestamp = now;
+  // Horodatage pris dans la page : `now` est celui de la réception par le service worker,
+  // qui arrive souvent APRÈS le départ de la requête HTTP déclenchée par ce même clic
+  // (round-trip de messagerie, capture "avant" en cours de compression...).
+  action.timestamp = userAction.eventTimestamp ?? now;
 
   // Résoudre le frame de manière synchrone avant de traiter l'action
   if (!(userAction.frame && userAction.frame.frameIndex !== undefined)) {
@@ -733,13 +736,20 @@ export function addHttpUserAction(data: HttpReturn, tabId?: number): void {
     state.record.httpRecords = [];
   }
 
-  state.record.httpRecords.unshift(data);
+  state.record.httpRecords.push(data);
   // Dédoublonner par requestId (unique par appel réel), pas par URL seule : un même endpoint
   // appelé plusieurs fois (recherche répétée, polling...) doit rester un appel par entrée,
   // sinon un appel en cours de stabilisation (capture d'écran différée, voir
   // attachHttpSettledScreenshot) perd silencieusement son entrée dès l'appel suivant sur la
   // même URL. Repli sur `key` pour les entrées plus anciennes, enregistrées avant ce champ.
   state.record.httpRecords = removeDuplicateEntries(state.record.httpRecords, (item: HttpReturn) => item.requestId ?? item.key);
+
+  // Trier par horodatage de DÉPART (décroissant, le plus récent en premier - lu tel quel par
+  // le panneau Spy et par le rapport HTML). Un simple ajout en tête (ordre d'arrivée des
+  // messages RECORD_HTTP, donc ordre de FIN des requêtes) plaçait mal les appels concurrents :
+  // une requête lente démarrée en premier mais qui répond après une requête rapide démarrée
+  // plus tard apparaissait après elle au lieu d'avant.
+  state.record.httpRecords.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
 
   saveUiRecordToLocalStorage(state.record);
 }

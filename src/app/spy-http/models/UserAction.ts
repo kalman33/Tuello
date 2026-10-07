@@ -27,6 +27,10 @@ export interface IUserAction {
   htmlCoordinates?: ICoordinates;
   clientWidth?: number;
   clientHeight?: number;
+  /** Date.now() pris dans la page au moment de l'évènement, et non à sa réception par le
+   * service worker : sert à placer l'action par rapport aux requêtes HTTP qu'elle déclenche,
+   * horodatées elles aussi dans la page. */
+  eventTimestamp?: number;
 }
 
 export enum ImageType {

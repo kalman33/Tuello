@@ -28,6 +28,8 @@ export interface IUserAction {
   htmlCoordinates?: ICoordinates;
   clientWidth?: number;
   clientHeight?: number;
+  /** Date.now() pris dans la page au moment de l'évènement (voir IUserAction côté Angular) */
+  eventTimestamp?: number;
 }
 
 export class UserAction implements IUserAction {
@@ -51,6 +53,7 @@ export class UserAction implements IUserAction {
   public element: string;
   public clientWidth: number;
   public clientHeight: number;
+  public eventTimestamp = Date.now();
 
   constructor(e: MouseEvent) {
     if (e) {

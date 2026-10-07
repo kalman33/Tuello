@@ -59,6 +59,13 @@ declare global {
 // "tuello", qui rendait impossible l'enregistrement d'une API contenant ce mot.
 const EXCLUDED_URL_PATTERNS = ['chrome-extension://', 'moz-extension://', 'sockjs'] as const;
 
+// Réponses binaires que l'on ne tente pas de stocker (assets statiques, téléchargements) : une
+// erreur HTTP (4xx/5xx) renvoie elle très souvent du HTML ou du texte brut sans l'être, donc ce
+// filtre ne porte plus que sur les types réellement non exploitables, pas sur "pas du JSON".
+const EXCLUDED_RESPONSE_CONTENT_TYPES = ['image/', 'video/', 'audio/', 'font/', 'application/octet-stream', 'application/pdf', 'application/zip'] as const;
+
+const isBinaryContentType = (contentType: string | null): boolean => !!contentType && EXCLUDED_RESPONSE_CONTENT_TYPES.some((pattern) => contentType.includes(pattern));
+
 // Nombre maximum de messages conservés tant que l'utilisateur n'a pas activé
 // l'enregistrement : borne la mémoire si la fenêtre de boot ne se referme jamais.
 const MAX_QUEUED_MESSAGES = 200;
@@ -1219,13 +1226,16 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
     }
 
     const contentType = req.getResponseHeader('Content-Type');
-    if (contentType && !contentType.includes('json')) {
-      logData(`- Capture auto HTTP - Réponse non-JSON ignorée (Content-Type : ${contentType}) pour ${url}`);
+    if (isBinaryContentType(contentType)) {
+      logData(`- Capture auto HTTP - Réponse binaire ignorée (Content-Type : ${contentType}) pour ${url}`);
       return;
     }
 
     try {
-      const response = req.responseText ? JSON.parse(req.responseText) : '';
+      // tryParseJson ne lève jamais : un corps d'erreur non-JSON (page HTML, texte brut — très
+      // fréquent sur un 4xx/5xx) est quand même enregistré, avec le texte brut comme réponse,
+      // plutôt que d'être perdu silencieusement comme le faisait JSON.parse ici auparavant.
+      const response = req.responseText ? tryParseJson(req.responseText) : '';
 
       // Capturer les headers de réponse (en conservant la casse originale)
       const headers: Record<string, string> = {};
@@ -1280,7 +1290,9 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
         addToQueue(message, messageForHTTPRecorderQueue);
       }
     } catch {
-      logData('- Mock HTTP - Problème non bloquant de parsing de la reponse pour l url : ' + url);
+      // req.responseText (ou getAllResponseHeaders) peut lever une InvalidStateError quand
+      // responseType vaut 'blob'/'arraybuffer'/'document' : rien d'exploitable à enregistrer.
+      logData('- Capture auto HTTP - Problème non bloquant de lecture de la réponse pour l url : ' + url);
     }
   });
 };
@@ -1301,16 +1313,21 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
 
   const init = args[1] as RequestInit | undefined;
   const contentType = response.headers.get('Content-Type');
-  if (contentType && !contentType.includes('json')) {
-    logData(`- Capture auto HTTP - Réponse non-JSON ignorée (Content-Type : ${contentType}) pour ${requestUrl}`);
+  if (isBinaryContentType(contentType)) {
+    logData(`- Capture auto HTTP - Réponse binaire ignorée (Content-Type : ${contentType}) pour ${requestUrl}`);
     return response;
   }
 
   let responseData: unknown;
 
+  // Un corps d'erreur (4xx/5xx) est très souvent du HTML ou du texte brut plutôt que du JSON :
+  // response.json() lèverait et toute la requête serait perdue (c'était le cas auparavant).
+  // On retombe sur le texte brut, comme pour XHR via tryParseJson.
   try {
-    responseData = await response.clone().json();
+    const text = await response.clone().text();
+    responseData = text ? tryParseJson(text) : '';
   } catch {
+    // Corps illisible (déjà consommé, stream cassé...) : rien d'exploitable à enregistrer.
     return response;
   }
 
