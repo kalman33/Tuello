@@ -36,9 +36,9 @@
       </div>
 
       @if (highlightKeyForbidden) {
-        <p class="highlight-warning" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="6px">
+        <p class="highlight-warning">
           <mat-icon inline="true">warning</mat-icon>
-          {{ 'mmn.report.http.highlight.forbiddenHeader' | translate }}
+          <span>{{ 'mmn.report.http.highlight.forbiddenHeader' | translate }}</span>
         </p>
       }
 

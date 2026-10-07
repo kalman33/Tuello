@@ -26,11 +26,15 @@
 }
 
 .highlight-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: -4px 0 16px;
   font-size: 13px;
   color: #92600c;
 
   mat-icon {
+    flex-shrink: 0;
     font-size: 18px;
     width: 18px;
     height: 18px;
