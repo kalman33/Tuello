@@ -303,9 +303,16 @@ ${this.buildMockExportScript(mocks, baseFileName)}`;
       return '';
     }
     const copyLabel = this.escapeHtml(this.translate.instant('mmn.report.http.highlight.copy'));
+    const copiedLabel = this.escapeHtml(this.translate.instant('mmn.report.http.highlight.copied'));
     return `<div class="tuello-highlight ${variantClass}">
     <span class="tuello-highlight-text">${this.escapeHtml(result.text)}</span>
-    <button type="button" class="tuello-copy-btn" data-copy-value="${this.escapeHtml(result.value)}" onclick="tuelloCopyHighlight(event, this)" title="${copyLabel}" aria-label="${copyLabel}">${copyLabel}</button>
+    <button type="button" class="tuello-copy-btn" data-copy-value="${this.escapeHtml(result.value)}" onclick="tuelloCopyHighlight(event, this)" title="${copyLabel}" aria-label="${copyLabel}">
+      <svg class="tuello-copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span class="tuello-copy-feedback">${copiedLabel}</span>
+    </button>
   </div>`;
   }
 
@@ -424,11 +431,11 @@ function tuelloCopyHighlight(event, btn) {
   const text = btn.getAttribute('data-copy-value') || '';
   const onDone = (success) => {
     if (!success) return;
-    btn.textContent = TUELLO_COPIED_LABEL;
     btn.classList.add('tuello-copy-btn--done');
+    btn.setAttribute('aria-label', TUELLO_COPIED_LABEL);
     setTimeout(() => {
-      btn.textContent = TUELLO_COPY_LABEL;
       btn.classList.remove('tuello-copy-btn--done');
+      btn.setAttribute('aria-label', TUELLO_COPY_LABEL);
     }, 1500);
   };
   if (navigator.clipboard && window.isSecureContext) {
@@ -973,13 +980,22 @@ details.report-section[open] > summary .report-section-arrow { transform: rotate
    pastille ambre cohérente avec le reste du rapport, réutilisée telle quelle sous le lien HTTP
    de la timeline (variante --action) et sous l'URL de la section Requêtes HTTP (variante --http,
    toujours visible même accordéon fermé puisqu'elle vit dans le <summary>, voir buildHttpSection). */
-.tuello-highlight { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .18); padding: 6px 10px; border-radius: 10px; }
+/* inline-flex (pas flex) : la pastille se dimensionne à son contenu au lieu de prendre toute la
+   largeur de la ligne, sinon le bouton de copie (dernier enfant) se retrouve collé au bord droit
+   plutôt que juste après la valeur. */
+.tuello-highlight { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #92600c; background: rgba(253, 187, 45, .18); padding: 6px 10px; border-radius: 10px; max-width: 100%; }
 .tuello-highlight--action { margin: 4px 0 0; font-size: 11px; padding: 4px 9px; }
 .tuello-highlight--http { margin: 8px 0 0; }
 .tuello-highlight-text { word-break: break-all; }
-.tuello-copy-btn { font: 700 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 3px 10px; border: 1px solid rgba(146, 96, 12, .3); border-radius: 999px; background: rgba(255, 255, 255, .5); color: #92600c; cursor: pointer; white-space: nowrap; flex-shrink: 0; margin-left: auto; transition: .2s ease; }
+.tuello-copy-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; padding: 4px; border: 1px solid rgba(146, 96, 12, .3); border-radius: 999px; background: rgba(255, 255, 255, .5); color: #92600c; cursor: pointer; flex-shrink: 0; transition: .2s ease; }
 .tuello-copy-btn:hover { background: #fff; }
 .tuello-copy-btn--done { background: rgba(67, 233, 123, .3); border-color: rgba(21, 128, 61, .3); color: #15803d; }
+.tuello-copy-icon { display: block; }
+/* Petite bulle "Copié !" au-dessus du bouton, visible seulement pendant --done (voir
+   tuelloCopyHighlight) : un retour visuel temporaire plutôt qu'un texte permanent à côté de l'icône. */
+.tuello-copy-feedback { position: absolute; left: 50%; bottom: calc(100% + 7px); transform: translate(-50%, 4px); font: 700 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; background: #1b5064; padding: 3px 8px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: .18s ease; }
+.tuello-copy-feedback::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: #1b5064; }
+.tuello-copy-btn--done .tuello-copy-feedback { opacity: 1; transform: translate(-50%, 0); }
 
 /* Badges méthode/code HTTP : pilules de verre teintées (même esprit que les chips de la
    mosaïque), une couleur par verbe/classe de code pour un repérage visuel immédiat. */
