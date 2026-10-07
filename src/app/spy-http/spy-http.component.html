@@ -103,6 +103,36 @@
 
       <mat-tab>
         <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">import_export</mat-icon>
+          {{ 'mmn.spy-http.tabs.parameters' | translate }}
+        </ng-template>
+        <div class="button-row" [ngClass]="routeAnimationsElements">
+          <button mat-flat-button color="accent" (click)="save()" style="color: white">
+            <mat-icon>save</mat-icon>
+            {{ 'mmn.spy-http.button.saveAs' | translate }}
+          </button>
+          <button mat-flat-button color="accent" style="color: white" (click)="selectFile()">
+            <mat-icon>save_alt</mat-icon>
+            {{ 'mmn.spy-http.button.import' | translate }}
+          </button>
+          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
+          @if (this.playerService.comparisonResults) {
+            <button mat-flat-button color="warn" [routerLink]="['/spy/results']" [skipLocationChange]="true">
+              <mat-icon>save</mat-icon>
+              {{ 'mmn.spy-http.button.results' | translate }}
+            </button>
+          }
+          @if (actions?.length > 0) {
+            <button mat-flat-button color="accent" style="color: white" [routerLink]="['/report']" [skipLocationChange]="true">
+              <mat-icon>code</mat-icon>
+              {{ 'mmn.spy-http.button.exportPdf' | translate }}
+            </button>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
           <mat-icon class="tab-icon">help_outline</mat-icon>
           {{ 'mmn.spy-http.tabs.shortcuts' | translate }}
         </ng-template>
@@ -213,36 +243,6 @@
               </mat-form-field>
             </span>
           </div>
-        </div>
-      </mat-tab>
-
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">import_export</mat-icon>
-          {{ 'mmn.spy-http.tabs.parameters' | translate }}
-        </ng-template>
-        <div class="button-row" [ngClass]="routeAnimationsElements">
-          <button mat-flat-button color="accent" (click)="save()" style="color: white">
-            <mat-icon>save</mat-icon>
-            {{ 'mmn.spy-http.button.saveAs' | translate }}
-          </button>
-          <button mat-flat-button color="accent" style="color: white" (click)="selectFile()">
-            <mat-icon>save_alt</mat-icon>
-            {{ 'mmn.spy-http.button.import' | translate }}
-          </button>
-          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
-          @if (this.playerService.comparisonResults) {
-            <button mat-flat-button color="warn" [routerLink]="['/spy/results']" [skipLocationChange]="true">
-              <mat-icon>save</mat-icon>
-              {{ 'mmn.spy-http.button.results' | translate }}
-            </button>
-          }
-          @if (actions?.length > 0) {
-            <button mat-flat-button color="accent" style="color: white" [routerLink]="['/report']" [skipLocationChange]="true">
-              <mat-icon>code</mat-icon>
-              {{ 'mmn.spy-http.button.exportPdf' | translate }}
-            </button>
-          }
         </div>
       </mat-tab>
     </mat-tab-group>
