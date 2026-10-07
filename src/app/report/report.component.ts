@@ -34,6 +34,34 @@ export class ReportComponent implements OnInit {
   highlightSource: ReportHighlight['source'] = 'response';
   highlightKey = '';
 
+  /** Noms de headers de requête que l'application ne peut jamais poser elle-même (spec Fetch,
+   * "forbidden request-header name") : le navigateur les gère au niveau réseau et masque leur
+   * valeur à tout JS, y compris aux hooks XHR/fetch de httpmanager.ts qui alimentent
+   * `requestHeaders`. Choisir l'un d'eux en mise en évidence ne trouvera donc jamais rien. */
+  private static readonly FORBIDDEN_REQUEST_HEADERS = new Set([
+    'accept-charset',
+    'accept-encoding',
+    'access-control-request-headers',
+    'access-control-request-method',
+    'connection',
+    'content-length',
+    'cookie',
+    'cookie2',
+    'date',
+    'dnt',
+    'expect',
+    'host',
+    'keep-alive',
+    'origin',
+    'referer',
+    'set-cookie',
+    'te',
+    'trailer',
+    'transfer-encoding',
+    'upgrade',
+    'via'
+  ]);
+
   constructor(
     public recorderHistoryService: RecorderHistoryService,
     public playerService: PlayerService,
@@ -75,6 +103,20 @@ export class ReportComponent implements OnInit {
   onHighlightKeyChange(value: string): void {
     this.highlightKey = value;
     chrome.storage.local.set({ reportHighlightKey: value });
+  }
+
+  /** `true` quand la clé saisie ne pourra jamais être trouvée dans `requestHeaders` (voir
+   * FORBIDDEN_REQUEST_HEADERS) : affiche l'avertissement sous le champ plutôt que de laisser
+   * l'utilisateur découvrir après génération que la mise en évidence est restée vide. */
+  get highlightKeyForbidden(): boolean {
+    if (this.highlightSource !== 'requestHeader') {
+      return false;
+    }
+    const key = this.highlightKey.trim().toLowerCase();
+    if (!key) {
+      return false;
+    }
+    return ReportComponent.FORBIDDEN_REQUEST_HEADERS.has(key) || key.startsWith('proxy-') || key.startsWith('sec-');
   }
 
   get hasData(): boolean {

@@ -359,6 +359,7 @@
   "mmn.report.http.highlight.placeholder": "Nom de la donnée (ex : userId)",
   "mmn.report.http.highlight.copy": "Copier",
   "mmn.report.http.highlight.copied": "Copié !",
+  "mmn.report.http.highlight.forbiddenHeader": "Ce header est posé par le navigateur lui-même, pas par l'application : Tuello ne peut pas le lire (ex. Cookie, Host, Referer, Accept-Encoding...).",
   "mmn.report.http.screenshot": "Capture après stabilisation",
   "mmn.report.http.exportMock": "Exporter ce bouchon",
   "mmn.report.http.exportAllMocks": "Exporter tous les bouchons (format Tuello)",

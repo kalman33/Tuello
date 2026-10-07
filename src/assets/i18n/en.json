@@ -360,6 +360,7 @@
   "mmn.report.http.highlight.placeholder": "Field name (e.g. userId)",
   "mmn.report.http.highlight.copy": "Copy",
   "mmn.report.http.highlight.copied": "Copied!",
+  "mmn.report.http.highlight.forbiddenHeader": "This header is set by the browser itself, not the application: Tuello cannot read it (e.g. Cookie, Host, Referer, Accept-Encoding...).",
   "mmn.report.http.screenshot": "Screenshot after settling",
   "mmn.report.http.exportMock": "Export this mock",
   "mmn.report.http.exportAllMocks": "Export all mocks (Tuello format)",

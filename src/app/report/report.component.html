@@ -35,6 +35,13 @@
         </mat-form-field>
       </div>
 
+      @if (highlightKeyForbidden) {
+        <p class="highlight-warning" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="6px">
+          <mat-icon inline="true">warning</mat-icon>
+          {{ 'mmn.report.http.highlight.forbiddenHeader' | translate }}
+        </p>
+      }
+
       <button mat-flat-button color="primary" [disabled]="generating" (click)="generateReport()">
         <mat-icon>code</mat-icon>
         {{ 'mmn.report.generate.button' | translate }}
