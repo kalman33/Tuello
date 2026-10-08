@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.31.0] - 2026-10-08
+
+    - Ajout du mode side panel
+
 ## [1.2.30.0] - 2026-10-08
 
     - Rapport : copie rapide et mise en évidence toujours visible, avertissement si header inaccessible en JS
