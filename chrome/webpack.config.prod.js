@@ -12,6 +12,7 @@ module.exports = {
     contentscript: join(__dirname, 'src/contentscript.ts'),
     httpmanager: join(__dirname, 'src/httpmanager.ts'),
     popup: join(__dirname, 'src/popup/popup.ts'),
+    sidepanel: join(__dirname, 'src/sidepanel/sidepanel.ts'),
     exportTuelloTemplate: join(__dirname, 'assets/export/exportTuelloTemplate.ts')
   },
   output: {
@@ -31,6 +32,7 @@ module.exports = {
       patterns: [
         { from: './chrome/src/popup/popup.html', to: '.' },
         { from: './chrome/src/popup/popup.css', to: '.' },
+        { from: './chrome/src/sidepanel/sidepanel.html', to: '.' },
         { from: './chrome/assets/comment.css', to: '.' },
         { from: './chrome/assets/default.css', to: '.' },
         { from: './chrome/assets/tags.css', to: '.' },

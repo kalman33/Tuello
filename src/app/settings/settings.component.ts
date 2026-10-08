@@ -23,6 +23,7 @@ import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ConfigurationService } from '../core/configuration/configuration.service';
 import { CompressionService, CompressionStats } from '../core/compression/compression.service';
 import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
+import { ChromeExtentionUtilsService } from '../core/utils/chrome-extention-utils.service';
 import { formatDate } from '../core/utils/date-utils';
 import { ThemeService } from '../theme/theme.service';
 import { GuideTourService } from '../core/guide-tour/guide-tour.service';
@@ -93,6 +94,7 @@ export class SettingsComponent implements OnInit {
 
   private cdr = inject(ChangeDetectorRef);
   private mosaicStorageService = inject(MosaicStorageService);
+  private chromeExtentionUtilsService = inject(ChromeExtentionUtilsService);
 
   constructor(
     private themeService: ThemeService,
@@ -223,16 +225,20 @@ export class SettingsComponent implements OnInit {
         },
         () => {}
       );
-      chrome.tabs.getCurrent((tab) => {
-        chrome.tabs.sendMessage(
-          tab.id,
-          'toggle',
-          {
-            frameId: 0
-          },
-          () => {}
-        );
-      });
+      if (this.chromeExtentionUtilsService.isSidePanel) {
+        this.chromeExtentionUtilsService.closeSidePanel();
+      } else {
+        chrome.tabs.getCurrent((tab) => {
+          chrome.tabs.sendMessage(
+            tab.id,
+            'toggle',
+            {
+              frameId: 0
+            },
+            () => {}
+          );
+        });
+      }
       e.source.checked = false;
       this.desactivate = false;
     } else {

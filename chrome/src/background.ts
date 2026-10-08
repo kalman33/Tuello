@@ -40,18 +40,41 @@ function isRestrictedUrl(url: string): boolean {
   return url.startsWith('chrome://') || url.startsWith('about:') || url.startsWith('edge://') || url.startsWith('chrome-extension://');
 }
 
+/** Paramètre d'URL qui distingue l'app ouverte dans le panneau latéral de Chrome. */
+const SIDE_PANEL_PARAM = 'sidepanel';
+
 function applyBadgeForTab(tabId: number, url: string): void {
-  if (isRestrictedUrl(url)) {
-    // Page sans site (nouvel onglet, chrome://, page d'extension) : Tuello ne peut pas
-    // s'injecter, mais l'action reste cliquable pour ouvrir la mosaïque. Le badge "OFF"
-    // signale l'inactivité (une action désactivée n'ouvrirait pas le popup).
-    chrome.action.setBadgeText({ text: 'OFF', tabId });
-    chrome.action.setBadgeBackgroundColor({ color: 'gray', tabId });
-    chrome.action.enable(tabId);
-  } else {
-    chrome.action.setBadgeText({ text: '', tabId });
-    chrome.action.enable(tabId);
+  chrome.action.setBadgeText({ text: '', tabId });
+  chrome.action.enable(tabId);
+  // Page sans site (nouvel onglet, chrome://, page d'extension) : le content script ne
+  // peut pas y injecter le panneau. Sans popup, le clic sur l'action déclenche
+  // action.onClicked, qui ouvre Tuello dans le panneau latéral de Chrome à la place.
+  chrome.action.setPopup({ tabId, popup: isRestrictedUrl(url) ? '' : 'popup.html' });
+}
+
+/**
+ * Panneau latéral propre à l'onglet : il reste ouvert quand l'utilisateur quitte le
+ * nouvel onglet pour un site, et l'app sait quel onglet piloter via l'URL.
+ */
+chrome.action.onClicked.addListener((tab) => {
+  if (tab.id === undefined) {
+    return;
   }
+  // Pas d'await avant open() : l'ouverture doit rester dans le geste utilisateur
+  chrome.sidePanel.setOptions({ tabId: tab.id, path: `sidepanel.html?${SIDE_PANEL_PARAM}=${tab.id}`, enabled: true });
+  chrome.sidePanel.open({ tabId: tab.id }).catch(console.error);
+});
+
+/**
+ * Onglet piloté par l'app quand elle tourne dans le panneau latéral, null sinon.
+ * Dans l'iframe injectée, sender.tab désigne déjà la page.
+ */
+function getSidePanelTabId(sender: chrome.runtime.MessageSender): number | null {
+  if (sender.tab || !sender.url?.startsWith(chrome.runtime.getURL('index.html'))) {
+    return null;
+  }
+  const tabId = Number(new URL(sender.url).searchParams.get(SIDE_PANEL_PARAM));
+  return Number.isInteger(tabId) && tabId >= 0 ? tabId : null;
 }
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
@@ -77,6 +100,16 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url || changeInfo.status === 'loading') {
     applyBadgeForTab(tabId, tab.url ?? '');
+  }
+});
+
+// Onglets déjà ouverts à l'installation ou au rechargement de l'extension : sans ça,
+// un nouvel onglet existant garderait le popup et n'ouvrirait pas le panneau latéral.
+chrome.tabs.query({}, (tabs) => {
+  for (const tab of tabs) {
+    if (tab.id !== undefined && tab.id >= 0) {
+      applyBadgeForTab(tab.id, tab.url ?? '');
+    }
   }
 });
 
@@ -496,6 +529,24 @@ chrome.commands.onCommand.addListener((command) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
+  const sidePanelTabId = getSidePanelTabId(sender);
+  if (sidePanelTabId === null) {
+    return handleMessage(msg, sender, senderResponse);
+  }
+  // Message du panneau latéral : il n'a pas de sender.tab. On le traite comme s'il
+  // venait de l'iframe injectée dans l'onglet piloté, pour que les relais vers le
+  // content script et l'état d'enregistrement par onglet visent la bonne page.
+  chrome.tabs.get(sidePanelTabId, (tab) => {
+    if (chrome.runtime.lastError || !tab) {
+      senderResponse();
+      return;
+    }
+    handleMessage(msg, { ...sender, tab }, senderResponse);
+  });
+  return true;
+});
+
+function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse: (response?: any) => void): boolean | void {
   switch (msg.action) {
     case 'updateIcon':
       chrome.action.setIcon({ path: `/assets/logos/${msg.value}` });
@@ -1090,7 +1141,7 @@ chrome.runtime.onMessage.addListener((msg, sender, senderResponse) => {
       return true;
   }
   return true;
-});
+}
 
 /**
  * Recherche un scénario enregistré (clé compressée tuelloScenarios).

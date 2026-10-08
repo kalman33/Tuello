@@ -610,6 +610,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // correctement un repère de clic sur la capture côté rapport (voir uiRecorderHandler.ts).
       sendResponse({ scrollX: window.scrollX, scrollY: window.scrollY, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
       break;
+    case 'TUELLO_PING':
+      // Le panneau latéral vérifie que la page a un content script vivant : après un
+      // rechargement de l'extension, les pages déjà ouvertes n'en ont plus.
+      sendResponse(true);
+      break;
     case 'SHOW':
       if (window.self === window.top) {
         show = true;

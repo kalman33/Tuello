@@ -32,15 +32,29 @@
     </button>
 
     @if (!this.chromeExtentionUtilsService.devtoolsOpened && !this.chromeExtentionUtilsService.isStandaloneTab) {
-      <button mat-icon-button color="basic" class="toolbar-action" (click)="toggleDockPosition()" [matTooltip]="'mmn.layout.dock.tooltip' | translate" aria-label="Changer position">
-        <mat-icon>{{ dockedLeft ? 'chevron_right' : 'chevron_left' }}</mat-icon>
-      </button>
+      <!-- Le panneau latéral de Chrome gère lui-même son côté -->
+      @if (!this.chromeExtentionUtilsService.isSidePanel) {
+        <button mat-icon-button color="basic" class="toolbar-action" (click)="toggleDockPosition()" [matTooltip]="'mmn.layout.dock.tooltip' | translate" aria-label="Changer position">
+          <mat-icon>{{ dockedLeft ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+        </button>
+      }
       <button class="toolbar-action" mat-icon-button color="basic" (click)="close()" aria-label="Fermer"><mat-icon>close</mat-icon></button>
     }
     @if (this.chromeExtentionUtilsService.isStandaloneTab) {
       <button class="toolbar-action" mat-icon-button color="basic" (click)="close()" [matTooltip]="'mmn.layout.close.tooltip' | translate" aria-label="Fermer l'onglet"><mat-icon>close</mat-icon></button>
     }
   </mat-toolbar>
+
+  @if (reloadNeeded) {
+    <div class="sidepanel-reload-banner" role="alert">
+      <mat-icon>warning_amber</mat-icon>
+      <span class="sidepanel-reload-message">{{ 'mmn.layout.sidepanel.reload.message' | translate }}</span>
+      <button mat-stroked-button (click)="reloadTargetTab()">
+        <mat-icon>refresh</mat-icon>
+        {{ 'mmn.layout.sidepanel.reload.button' | translate }}
+      </button>
+    </div>
+  }
 
   <mat-sidenav-container class="navbar-sidenav-container">
     <!-- Side nav -->

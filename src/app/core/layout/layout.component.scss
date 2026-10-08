@@ -321,3 +321,33 @@ button#rate {
     overflow-y: auto !important;
   }
 }
+
+// Panneau latéral ouvert sur une page privée de content script
+.sidepanel-reload-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #92600c;
+  background: #fff4dc;
+  border-bottom: 1px solid #f0d49a;
+
+  > mat-icon {
+    flex-shrink: 0;
+  }
+
+  .sidepanel-reload-message {
+    flex: 1;
+  }
+
+  button {
+    flex-shrink: 0;
+  }
+}
+
+.black-theme .sidepanel-reload-banner {
+  color: #f3c97a;
+  background: #3a2e17;
+  border-bottom-color: #5c4a24;
+}

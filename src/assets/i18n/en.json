@@ -9,6 +9,8 @@
   "mmn.layout.dock.tooltip": "Switch side",
   "mmn.layout.close.tooltip": "Close tab",
   "mmn.layout.mosaic.tooltip": "Open Mosaic",
+  "mmn.layout.sidepanel.reload.message": "Tuello is not active on this page: reload it to use Tuello.",
+  "mmn.layout.sidepanel.reload.button": "Reload",
   "mmn.layout.rate.title": "Rate and feedback",
   "mmn.layout.rate.github": "Star on github",
   "mmn.layout.rate.chrome": "Rate on Chrome WebStore",

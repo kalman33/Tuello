@@ -41,6 +41,9 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   statesSlideInMenuAnimation = 'inactive';
   dockedLeft = false;
   helpAvailable = true;
+  /** Panneau latéral sur une page sans content script vivant (ouverte avant un rechargement de l'extension) */
+  reloadNeeded = false;
+  private tabUpdatedListener: (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => void;
 
   @ViewChild('snav') sidenav: MatSidenav;
 
@@ -66,6 +69,10 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
       }
       this.changeDetectorRef.detectChanges();
     });
+
+    if (this.chromeExtentionUtilsService.isSidePanel) {
+      this.watchContentScript();
+    }
 
     // Écouter les changements de route pour désactiver l'aide sur certaines pages
     this.updateHelpAvailability(this.router.url);
@@ -95,6 +102,10 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
   close() {
     if (this.chromeExtentionUtilsService.isStandaloneTab) {
       window.close();
+      return;
+    }
+    if (this.chromeExtentionUtilsService.isSidePanel) {
+      this.chromeExtentionUtilsService.closeSidePanel();
       return;
     }
     chrome.tabs.getCurrent((tab) => {
@@ -127,16 +138,20 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
         },
         () => {}
       );
-      chrome.tabs.getCurrent((tab) => {
-        chrome.tabs.sendMessage(
-          tab.id,
-          'toggle',
-          {
-            frameId: 0
-          },
-          () => {}
-        );
-      });
+      if (this.chromeExtentionUtilsService.isSidePanel) {
+        this.chromeExtentionUtilsService.closeSidePanel();
+      } else {
+        chrome.tabs.getCurrent((tab) => {
+          chrome.tabs.sendMessage(
+            tab.id,
+            'toggle',
+            {
+              frameId: 0
+            },
+            () => {}
+          );
+        });
+      }
       // on previent background
       chrome.runtime.sendMessage(
         {
@@ -161,7 +176,69 @@ export class LayoutComponent implements AfterViewInit, OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {}
+  ngOnDestroy(): void {
+    if (this.tabUpdatedListener) {
+      chrome.tabs.onUpdated.removeListener(this.tabUpdatedListener);
+    }
+  }
+
+  /**
+   * Panneau latéral : vérifie que l'onglet piloté a un content script, à l'ouverture
+   * puis à chaque chargement de page. Après un rechargement de l'extension, les pages
+   * déjà ouvertes en sont privées et rien n'y fonctionne jusqu'à leur rechargement.
+   */
+  private watchContentScript(): void {
+    const tabId = this.chromeExtentionUtilsService.sidePanelTabId;
+    this.tabUpdatedListener = (updatedTabId, changeInfo) => {
+      if (updatedTabId !== tabId || !changeInfo.status) {
+        return;
+      }
+      if (changeInfo.status === 'complete') {
+        this.checkContentScript(tabId);
+      } else {
+        // Page en cours de chargement : son content script n'est pas encore prêt
+        this.setReloadNeeded(false);
+      }
+    };
+    chrome.tabs.onUpdated.addListener(this.tabUpdatedListener);
+    this.checkContentScript(tabId);
+  }
+
+  private checkContentScript(tabId: number): void {
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError || !tab || tab.status !== 'complete') {
+        return;
+      }
+      // Pages où Chrome n'injecte aucun content script (nouvel onglet, chrome://,
+      // Web Store) : les recharger n'y changerait rien.
+      if (!this.canHostContentScript(tab.url ?? '')) {
+        this.setReloadNeeded(false);
+        return;
+      }
+      chrome.tabs.sendMessage(tabId, { action: 'TUELLO_PING' }, { frameId: 0 }, (response) => {
+        this.setReloadNeeded(!!chrome.runtime.lastError || response !== true);
+      });
+    });
+  }
+
+  private canHostContentScript(url: string): boolean {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return false;
+    }
+    const { hostname, pathname } = new URL(url);
+    return hostname !== 'chromewebstore.google.com' && !(hostname === 'chrome.google.com' && pathname.startsWith('/webstore'));
+  }
+
+  private setReloadNeeded(value: boolean): void {
+    if (this.reloadNeeded !== value) {
+      this.reloadNeeded = value;
+      this.changeDetectorRef.detectChanges();
+    }
+  }
+
+  reloadTargetTab(): void {
+    chrome.tabs.reload(this.chromeExtentionUtilsService.sidePanelTabId);
+  }
 
   // Fonction pour gérer la sélection d'un élément
   selectMenuItem(index: number): void {

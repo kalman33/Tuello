@@ -9,6 +9,8 @@
   "mmn.layout.dock.tooltip": "Changer de côté",
   "mmn.layout.close.tooltip": "Fermer l'onglet",
   "mmn.layout.mosaic.tooltip": "Ouvrir la mosaïque",
+  "mmn.layout.sidepanel.reload.message": "Tuello n'est pas actif sur cette page : rechargez-la pour l'utiliser.",
+  "mmn.layout.sidepanel.reload.button": "Recharger",
   "mmn.layout.rate.title": "Évaluation et commentaires",
   "mmn.layout.rate.github": "Noter sur GitHub",
   "mmn.layout.rate.chrome": "Évaluer sur Chrome Web Store",
