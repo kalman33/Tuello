@@ -3,7 +3,7 @@ import { MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe } from '@ngx-translate/core';
-import { SearchElement } from '../models/SearchElement';
+import { getDisplayModeLabelKeys, SearchElement } from '../models/SearchElement';
 
 @Component({
   selector: 'mmn-element',
@@ -16,6 +16,10 @@ export class ElementComponent {
   @Input() element: SearchElement;
   @Input() index: number;
   @Output() delete: EventEmitter<number> = new EventEmitter<number>();
+
+  get displayKeys(): string[] {
+    return getDisplayModeLabelKeys(this.element.displayMode, this.element.type);
+  }
 
   removeElement() {
     this.delete.emit(this.index);

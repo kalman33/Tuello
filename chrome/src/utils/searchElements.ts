@@ -1,4 +1,4 @@
-import { SearchElement, SearchElementType } from '../../../src/app/search-elements/models/SearchElement';
+import { SearchElement, SearchElementType, usesDisplayAttribute } from '../../../src/app/search-elements/models/SearchElement';
 import { HTML_TAGS } from '../constantes/htmlTags.constantes';
 import { DEBOUNCE_DELAY_MS } from './constants';
 
@@ -240,7 +240,7 @@ function runPendingSearch() {
 }
 
 function configKey(config: SearchElement, index: number): string {
-  return `${index}|${config?.type ?? 'auto'}|${config?.name}|${config?.displayAttribute}`;
+  return `${index}|${config?.type ?? 'auto'}|${config?.name}|${config?.displayAttribute}|${config?.displayMode}`;
 }
 
 function searchAndDisplay() {
@@ -344,11 +344,45 @@ function createOverlayEntry(config: SearchElement, target: HTMLElement): Overlay
   return entry;
 }
 
+/** Valeur associée à l'élément trouvé : attribut recherché, ou displayAttribute (balise, sélecteur) */
+function getDisplayValue(entry: OverlayEntry): string | null {
+  const config = entry.config;
+  const type = config?.type ?? 'auto';
+  const attribute = type === 'attribute' ? config.name?.trim() : usesDisplayAttribute(type) ? config?.displayAttribute?.trim() : '';
+  return attribute ? entry.target.getAttribute(attribute) : null;
+}
+
+/** Nom affiché : `<h1>` pour une balise, le nom recherché sinon */
+function getDisplayName(config: SearchElement): string {
+  const name = config?.name?.trim() || '';
+  return config?.type === 'tag' ? `<${name.replace(/[<>/]/g, ' ').trim().split(/\s+/)[0]}>` : name;
+}
+
+function getLabel(entry: OverlayEntry, value: string | null): string {
+  const name = getDisplayName(entry.config);
+  switch (entry.config?.displayMode) {
+    case 'none':
+      return '';
+    case 'name':
+      return name;
+    case 'value':
+      return value || '';
+    case 'both':
+      return value ? `${name} : ${value}` : name;
+    default:
+      // Anciennes listes sans displayMode : valeur si présente, sinon le nom
+      return value || entry.config?.name || '';
+  }
+}
+
 function updateLabel(entry: OverlayEntry) {
   if (entry.copiedTimer !== null) return; // « Copié » reste affiché jusqu'à la fin de son délai
-  const attrValue = entry.config?.displayAttribute ? entry.target.getAttribute(entry.config.displayAttribute) : null;
-  const label = attrValue || entry.config?.name || '';
-  const title = `${entry.config?.name}${attrValue ? ' : ' + attrValue : ''} (${translate('mmn.search.click.to.copy')})`;
+  const value = getDisplayValue(entry);
+  const label = getLabel(entry, value);
+  const title = `${getDisplayName(entry.config)}${value ? ' : ' + value : ''} (${translate('mmn.search.click.to.copy')})`;
+  // Pas de libellé (mode « aucun » ou valeur absente) : pas de pastille, seulement le cadre
+  const display = label ? '' : 'none';
+  if (entry.chip.style.display !== display) entry.chip.style.display = display;
   if (entry.chip.textContent !== label) entry.chip.textContent = label;
   if (entry.chip.title !== title) entry.chip.title = title;
 }
@@ -612,8 +646,7 @@ function isVisible(el: HTMLElement) {
 }
 
 async function copyToClipBoard(entry: OverlayEntry) {
-  const attr = entry.config?.displayAttribute;
-  const text = (attr && entry.target.getAttribute(attr)) || entry.target.innerText || '';
+  const text = getDisplayValue(entry) || entry.target.innerText || '';
   if (!text) return;
 
   try {

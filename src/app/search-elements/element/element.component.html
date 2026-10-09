@@ -1,7 +1,14 @@
 <div fxLayout="row">
-  <div fxFlex="20%" class="data type">{{ 'mmn.search.type.' + (element.type || 'auto') | translate }}</div>
-  <div fxFlex="40%" class="data" [title]="element.name">{{ element.name }}</div>
-  <div fxFlex="30%" class="data">{{ element.displayAttribute }}</div>
+  <div fxFlex="18%" class="data type">{{ 'mmn.search.type.' + (element.type || 'auto') | translate }}</div>
+  <div fxFlex="34%" class="data" [title]="element.name">{{ element.name }}</div>
+  <div fxFlex="38%" class="data display">
+    @for (key of displayKeys; track key; let last = $last) {
+      {{ key | translate }}{{ last ? '' : ' + ' }}
+    }
+    @if (element.displayAttribute) {
+      ({{ element.displayAttribute }})
+    }
+  </div>
   <div fxFlex="10%" fxLayoutAlign="end center" class="actions">
     <button mat-icon-button color="primary" (click)="removeElement()">
       <mat-icon>remove_circle_outline</mat-icon>

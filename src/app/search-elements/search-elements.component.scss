@@ -46,14 +46,20 @@ mat-form-field {
   padding-right: 10px;
 }
 
+// Ligne 1 : quoi chercher
 .search-type {
-  width: 22%;
+  width: 30%;
 }
 
 .search-name {
+  width: 62%;
+}
+
+// Ligne 2 : quoi afficher
+.search-display {
   width: 40%;
 }
 
 .search-attribute {
-  width: 30%;
+  width: 40%;
 }

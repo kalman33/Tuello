@@ -1,11 +1,54 @@
 /**
  * Façon d'interpréter `SearchElement.name` :
- * - auto : balise si `<x>` ou nom de balise connu, sinon attribut s'il existe dans la page, sinon texte
  * - tag / attribute / text / css : interprétation forcée
+ * - auto : listes enregistrées avant l'ajout du type (plus proposé dans le panneau) :
+ *   balise si `<x>` ou nom de balise connu, sinon attribut s'il existe dans la page, sinon texte
  */
 export type SearchElementType = 'auto' | 'tag' | 'attribute' | 'text' | 'css';
 
-export const SEARCH_ELEMENT_TYPES: SearchElementType[] = ['auto', 'tag', 'attribute', 'text', 'css'];
+/** Types proposés dans le panneau */
+export const SEARCH_ELEMENT_TYPES: SearchElementType[] = ['tag', 'attribute', 'text', 'css'];
+
+/**
+ * Contenu de la pastille affichée sur chaque élément trouvé :
+ * - name : ce qui est recherché (balise, nom d'attribut, texte, sélecteur)
+ * - value : la valeur (attribut recherché, ou `displayAttribute` pour une balise / un sélecteur)
+ * - both : les deux ; none : pas de pastille, seulement le cadre
+ */
+export type SearchElementDisplayMode = 'name' | 'value' | 'both' | 'none';
+
+/** Modes d'affichage possibles selon le type : une recherche texte n'a pas de valeur */
+export function getDisplayModes(type: SearchElementType): SearchElementDisplayMode[] {
+  return type === 'text' ? ['name', 'none'] : ['name', 'value', 'both', 'none'];
+}
+
+/**
+ * Clés de traduction du libellé d'un mode (« Balise », « Attribut + valeur »...), à joindre par « + »
+ */
+export function getDisplayModeLabelKeys(mode: SearchElementDisplayMode | undefined, type: SearchElementType = 'auto'): string[] {
+  const nameKey = `mmn.search.display.name.${type}`;
+  switch (mode) {
+    case 'name':
+      return [nameKey];
+    case 'value':
+      return ['mmn.search.display.value'];
+    case 'both':
+      return [nameKey, 'mmn.search.display.value'];
+    case 'none':
+      return ['mmn.search.display.none'];
+    default:
+      // Anciennes listes : valeur, sinon nom
+      return ['mmn.search.type.auto'];
+  }
+}
+
+/**
+ * La valeur affichée vient de `displayAttribute` pour une balise ou un sélecteur CSS.
+ * Pour un attribut, c'est la valeur de l'attribut recherché ; pour un texte, il n'y en a pas.
+ */
+export function usesDisplayAttribute(type: SearchElementType): boolean {
+  return type === 'tag' || type === 'css' || type === 'auto';
+}
 
 /**
  * Élément recherché (partagé avec le content script, chrome/src/utils/searchElements.ts)
@@ -15,4 +58,6 @@ export class SearchElement {
   displayAttribute: string;
   /** Absent sur les listes enregistrées avant l'ajout du type : équivaut à 'auto' */
   type?: SearchElementType;
+  /** Absent sur les anciennes listes : valeur de displayAttribute, sinon le nom (ancien comportement) */
+  displayMode?: SearchElementDisplayMode;
 }
