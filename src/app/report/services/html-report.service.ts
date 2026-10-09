@@ -536,7 +536,11 @@ function tuelloHttpSearchRun(term) {
     let entryHasMatch = false;
 
     sections.forEach((section) => {
-      const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+      // Les résumés de l'arbre ("{ 3 clé(s) }", "[ 2 élément(s) ]") sont générés par le rapport,
+      // pas issus de la réponse : les exclure évite des correspondances parasites.
+      const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => (n.parentElement && n.parentElement.closest('.tree-summary') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT)
+      });
       const textNodes = [];
       let node;
       while ((node = walker.nextNode())) {
@@ -705,7 +709,9 @@ function tuelloHttpSearchKeydown(event) {
       if (!keys.length) {
         return '<span class="tree-meta">{ }</span>';
       }
-      const rows = keys.map((key) => `<div class="tree-row"><span class="tree-key">${this.escapeHtml(key)}:</span> ${this.renderJsonTree((value as { [k: string]: unknown })[key])}</div>`).join('');
+      // Clé entre guillemets, comme dans le JSON source et comme les valeurs chaîne : une recherche
+      // collée depuis le JSON brut (`"userId"`, `"userId":`) doit aussi trouver les clés.
+      const rows = keys.map((key) => `<div class="tree-row"><span class="tree-key">"${this.escapeHtml(key)}":</span> ${this.renderJsonTree((value as { [k: string]: unknown })[key])}</div>`).join('');
       return `<details><summary class="tree-summary">{ ${keys.length} clé(s) }</summary><div class="tree-children">${rows}</div></details>`;
     }
 
