@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.32.0] - 2026-10-09
+
+    - Recherche d'éléments : corrections, performances, sélecteur de type et choix de l'affichage
+    - Rapport : recherche HTTP trouve aussi les clés JSON
+
 ## [1.2.31.0] - 2026-10-08
 
     - Ajout du mode side panel
