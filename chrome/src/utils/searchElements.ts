@@ -595,7 +595,8 @@ function updateCountBadge(visibleCount: number) {
       color: 'white',
       padding: '10px 16px',
       borderRadius: '30px',
-      zIndex: '2147483647',
+      // Sous l'iframe Tuello (2147483647) et les cadres de recherche (2147483646)
+      zIndex: '2147483645',
       fontFamily: 'Segoe UI, Roboto, sans-serif',
       fontSize: '13px',
       fontWeight: '600',
