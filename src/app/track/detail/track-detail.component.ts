@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { JsonViewerComponent } from '../../core/json-viewer/json-viewer.component';
 import { Track } from '../models/Track';
@@ -15,15 +15,22 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [FlexModule, MatIcon, MatTooltip, MatIconButton]
 })
-export class TrackDetailComponent {
+export class TrackDetailComponent implements OnChanges {
   @Input() track: Track;
   @Input() index: number;
   @Input() dataDisplay: string;
   @Input() dataDisplayType: string;
+  // Calculé à chaque changement d'entrée plutôt qu'à chaque détection de changements :
+  // la recherche JsonFind parcourt tout le body
+  displayData: string;
 
   constructor(public dialog: MatDialog) { }
 
-  get displayData(): string {
+  ngOnChanges() {
+    this.displayData = this.computeDisplayData();
+  }
+
+  private computeDisplayData(): string {
     let data = this.track?.url?.length > 50 ? this.track?.url?.slice(0, 50) + ' ...' : this.track?.url;
     if (this.dataDisplay) {
       if (this.dataDisplayType === 'body') {

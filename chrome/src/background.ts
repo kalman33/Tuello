@@ -23,18 +23,17 @@ import {
   setPause
 } from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
-import { loadCompressed, saveCompressed } from './utils/compression';
+import { loadCompressed } from './utils/compression';
 import { appendHttpRecords, clearHttpRecords } from './background/httpRecordStore';
+import { appendTrack, clearTracks, initTrackStore } from './background/trackStore';
 import { formatShortcut, resolvePlatform } from './utils/platform';
-import { getBodyFromData, removeDuplicateEntries } from './utils/utils';
 import Port = chrome.runtime.Port;
 
 let port;
 let player = null;
 
-// Cache local pour tuelloTracksBody (évite les appels répétés à chrome.storage pour chaque requête HTTP)
-let tracksBodyCache: Array<{ key: string; body: any }> = [];
-const TRACKS_BODY_MAX_SIZE = 10;
+// Enregistré au niveau racine pour survivre aux mises en veille du service worker
+initTrackStore();
 
 function isRestrictedUrl(url: string): boolean {
   return url.startsWith('chrome://') || url.startsWith('about:') || url.startsWith('edge://') || url.startsWith('chrome-extension://');
@@ -418,16 +417,6 @@ async function updateContextMenus(msgs?: Record<string, string>): Promise<void> 
 }
 
 async function init() {
-  // Charger le cache tracksBody depuis chrome.storage au démarrage (avec décompression LZ)
-  try {
-    const tracks = await loadCompressed<Array<{ key: string; body: any }>>('tuelloTracksBody');
-    if (Array.isArray(tracks)) {
-      tracksBodyCache = tracks;
-    }
-  } catch {
-    tracksBodyCache = [];
-  }
-
   await dynamicallyInjectContentScripts();
 
   const results = await chrome.storage.local.get<Record<string, any>>(['messages']);
@@ -435,36 +424,6 @@ async function init() {
 
   const msgs = results.messages?.default;
   await createContextMenus(msgs);
-
-  chrome.webRequest.onBeforeRequest.addListener(
-    (details) => {
-      if (details.method === 'POST') {
-        let requestBody;
-        try {
-          requestBody = getBodyFromData(details.requestBody?.raw[0]?.bytes);
-        } catch (e) {
-          // Le parsing du body a échoué - on continue avec requestBody = undefined
-        }
-
-        // Utiliser le cache local au lieu d'appeler chrome.storage pour chaque requête
-        tracksBodyCache.unshift({
-          key: details.url,
-          body: requestBody
-        });
-        if (tracksBodyCache.length > TRACKS_BODY_MAX_SIZE) {
-          tracksBodyCache.pop();
-        }
-        tracksBodyCache = removeDuplicateEntries(tracksBodyCache);
-
-        // Synchroniser avec chrome.storage de manière asynchrone (avec compression LZ)
-        saveCompressed('tuelloTracksBody', tracksBodyCache).catch(console.error);
-      }
-      // listener non bloquant (extraInfoSpec sans 'blocking') : il observe seulement
-      return undefined;
-    },
-    { urls: ['<all_urls>'] },
-    ['requestBody']
-  );
 }
 
 // listerner pour le pause et le resume du recorder (les commandes sont déclarées dans le manifest)
@@ -739,44 +698,6 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
       break;
     case 'TRACK_PLAY_STATE':
       if (sender && sender.tab && sender.tab.id >= 0) {
-        /** 
-        if (msg.value) {
-          chrome.webRequest.onBeforeRequest.addListener(
-            (details) => {
-              if (details.method === 'POST') {
-                let requestBody;
-                try {
-                  requestBody = getBodyFromData(details.requestBody?.raw[0]?.bytes);
-                } catch (e) {
-
-                }
-                chrome.storage.local.get(['tuelloTracksBody'], items => {
-                  if (!chrome.runtime.lastError) {
-                    if (!items.tuelloTracksBody || !Array.isArray(items.tuelloTracksBody)) {
-                      items.tuelloTracksBody = [];
-                    }
-
-                    items.tuelloTracksBody.unshift({
-                      key: details.url,
-                      body: requestBody
-                    });
-                    if (items.tuelloTracksBody.length > 10) {
-                      items.tuelloTracksBody.pop();
-                    }
-                  }
-
-                  chrome.storage.local.set({ tuelloTracksBody: removeDuplicateEntries(items.tuelloTracksBody) });
-                });
-              }
-            },
-            {urls: ["<all_urls>"]},
-            ["requestBody"]
-          );
-        } else {
-          chrome.storage.local.remove(['tuelloTracksBody']);
-        }
-        */
-
         // on envoie un message au content scrip
         chrome.tabs.sendMessage(
           sender.tab.id,
@@ -1068,6 +989,29 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
         .catch((error) => {
           console.error("Tuello: Erreur lors de l'enregistrement HTTP:", error);
           senderResponse({ added: false });
+        });
+      return true;
+    case 'APPEND_TRACK':
+      // Persistance centralisée : plusieurs frames et onglets traquent en même temps
+      appendTrack(msg.value)
+        .then((added) => {
+          if (added) {
+            // Prévenir le panneau Angular (s'il est ouvert) de rafraîchir sa vue
+            chrome.runtime.sendMessage({ refreshTrackData: true }, () => chrome.runtime.lastError);
+          }
+          senderResponse({ added });
+        })
+        .catch((error) => {
+          console.error("Tuello: Erreur lors de l'ajout du track:", error);
+          senderResponse({ added: false });
+        });
+      return true;
+    case 'CLEAR_TRACKS':
+      clearTracks()
+        .then(() => senderResponse({ success: true }))
+        .catch((error) => {
+          console.error("Tuello: Erreur lors de l'effacement des tracks:", error);
+          senderResponse({ success: false });
         });
       return true;
     case 'CLEAR_HTTP_RECORDS':

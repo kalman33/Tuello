@@ -10,7 +10,7 @@ import { MatList, MatListItem } from '@angular/material/list';
 import { MatRadioButton, MatRadioGroup } from '@angular/material/radio';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -37,7 +37,8 @@ export class TrackComponent implements OnInit, OnDestroy {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
   trackPlayActivated: boolean;
   tracks;
-  _trackData: string;
+  // Persisté seulement à la sortie du champ (voir focusOut)
+  trackData: string;
   _trackDataDisplay: string;
   _trackDataDisplayType: string;
   selectedTrackId: string;
@@ -52,19 +53,9 @@ export class TrackComponent implements OnInit, OnDestroy {
     private ref: ChangeDetectorRef,
     private infoBar: MatSnackBar,
     private route: ActivatedRoute,
-    private router: Router,
     private trackService: TrackService,
     private compressionService: CompressionService
   ) { }
-
-  get trackData(): string {
-    return this._trackData;
-  }
-
-  set trackData(value: string) {
-    this._trackData = value;
-    chrome.storage.local.set({ tuelloTrackData: value });
-  }
 
   get trackDataDisplayType(): string {
     return this._trackDataDisplayType;
@@ -85,11 +76,12 @@ export class TrackComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.router.routeReuseStrategy.shouldReuseRoute = () => false;
-    this.router.onSameUrlNavigation = 'reload';
-
+    // Le composant est réutilisé quand on clique une autre pastille : la sélection suit
+    // les queryParams (auparavant, la stratégie de réutilisation des routes de toute
+    // l'application était modifiée pour forcer la recréation du composant).
     this.sub = this.route.queryParams.subscribe(params => {
       this.selectedTrackId = params['trackId'];
+      this.ref.markForCheck();
     });
 
     // Chargement des données non compressées
@@ -106,7 +98,7 @@ export class TrackComponent implements OnInit, OnDestroy {
           value: true
         }, () => { });
       }
-      this._trackData = results['tuelloTrackData'];
+      this.trackData = results['tuelloTrackData'];
       this._trackDataDisplay = results['tuelloTrackDataDisplay'];
       this._trackDataDisplayType = results['tuelloTrackDataDisplayType'];
       this.ref.detectChanges();
@@ -152,25 +144,31 @@ export class TrackComponent implements OnInit, OnDestroy {
    * Efface les enregistrements stockés dans le localstorage
    */
   effacerEnregistrements() {
-    chrome.storage.local.remove(['tuelloTracks']);
+    // Passe par le background, qui sérialise avec les ajouts en cours : sinon un
+    // track en cours d'écriture ressuscitait la liste juste après l'effacement.
+    chrome.runtime.sendMessage({ action: 'CLEAR_TRACKS' }, () => chrome.runtime.lastError);
     this.tracks = null;
     this.ref.detectChanges();
   }
 
   /** Sortie du champs input */
   focusOut() {
+    // Écrire à chaque frappe faisait traquer les valeurs intermédiaires ("j", "jq"…)
+    // par le content script, qui enregistrait des tracks parasites.
+    const values: Record<string, any> = { tuelloTrackData: this.trackData };
     if (!this.trackData) {
       this.trackPlayActivated = false;
+      // Sans cela, trackPlay restait à true : au rechargement de la page le tracking
+      // reprenait avec un champ vide
+      values['trackPlay'] = false;
       // il faut que l'input des données à tracker soit renseigné
       this.infoBar.open(this.translate.instant('mmn.track.input.required'), '', {
         duration: 2000,
         verticalPosition: 'top',
         horizontalPosition: 'center'
       });
-    } else if (!this.trackPlayActivated) {
-      // this.trackPlayActivated = true;
-      // chrome.storage.local.set({ trackPlay: this.trackPlayActivated }); 
     }
+    chrome.storage.local.set(values);
     chrome.runtime.sendMessage({
       action: 'TRACK_PLAY_STATE',
       value: this.trackPlayActivated
