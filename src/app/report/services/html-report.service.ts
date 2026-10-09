@@ -9,6 +9,15 @@ import { ComparisonResult } from '../../spy-http/models/ComparisonResult';
 import { ConsoleLogEntry } from '../../spy-http/models/ConsoleLogEntry';
 import { Record } from '../../spy-http/models/Record';
 
+/** Largeur d'affichage (CSS) des captures dans le rapport, voir `.action-image`. */
+const REPORT_IMAGE_DISPLAY_WIDTH = 600;
+/** Largeur embarquée : ~2x l'affichage, pour un texte lisible sur écran retina et au zoom
+ * (même plafond que la capture, voir `optimizeScreenshot` dans uiRecorderHandler.ts). */
+const REPORT_IMAGE_MAX_WIDTH = 1280;
+/** Les images de comparaison sont affichées plus petites (260 px) mais restent zoomables. */
+const REPORT_COMPARISON_IMAGE_MAX_WIDTH = 1000;
+const REPORT_IMAGE_QUALITY = 0.8;
+
 /** Informations facultatives saisies avant la génération (voir `ReportMetadataDialogComponent`),
  * affichées en tête du rapport, avant les actions enregistrées. */
 export interface ReportMetadata {
@@ -101,8 +110,35 @@ export class HtmlReportService {
 <div class="report-container">
 ${bodyContent}
 </div>
+${this.buildImageZoomScript()}
 </body>
 </html>`;
+  }
+
+  /**
+   * Zoom au clic sur les captures (`.tuello-zoomable`) : elles sont embarquées en ~2x leur
+   * taille d'affichage, l'overlay les montre à leur résolution réelle (bornée au viewport).
+   * Un seul overlay, réutilisé, et une délégation d'événement plutôt qu'un listener par image.
+   */
+  private buildImageZoomScript(): string {
+    return `<div class="tuello-zoom-overlay" role="dialog" aria-modal="true"><img alt="" /></div>
+<script>
+(function () {
+  const overlay = document.querySelector('.tuello-zoom-overlay');
+  const zoomed = overlay.querySelector('img');
+  const close = () => { overlay.classList.remove('tuello-zoom-open'); zoomed.removeAttribute('src'); };
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target instanceof HTMLImageElement && target.classList.contains('tuello-zoomable')) {
+      zoomed.src = target.src;
+      overlay.classList.add('tuello-zoom-open');
+    } else if (overlay.contains(target)) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+})();
+</script>`;
   }
 
   private buildHeader(record: Record, comparisonResults?: ComparisonResult[]): string {
@@ -167,8 +203,8 @@ ${bodyContent}
 
       if (imageData) {
         // Capture "avant" (clic) : repère dessiné si on connaît la position du clic.
-        const optimized = action.screenshotMarker ? await this.drawScreenshotWithMarker(imageData, action.screenshotMarker, 600) : await this.optimizeImageForReport(imageData, 600);
-        body = `<img class="action-image" src="${optimized}" alt="" />`;
+        const optimized = action.screenshotMarker ? await this.drawScreenshotWithMarker(imageData, action.screenshotMarker, REPORT_IMAGE_MAX_WIDTH) : await this.optimizeImageForReport(imageData, REPORT_IMAGE_MAX_WIDTH);
+        body = `<img class="action-image tuello-zoomable" src="${optimized}" alt="" />`;
       } else {
         const text = this.actionSummaryText(action);
         body = text ? `<p class="action-text">${this.escapeHtml(text)}</p>` : '';
@@ -187,7 +223,7 @@ ${bodyContent}
       const isError = !Number.isNaN(code) && code >= 400;
 
       // Capture "après" (fin d'appel HTTP, DOM stabilisé) : pas de repère, la page a déjà changé.
-      const screenshotHtml = http.screenshot ? `<img class="action-image" src="${await this.optimizeImageForReport(http.screenshot, 600)}" alt="" />` : '';
+      const screenshotHtml = http.screenshot ? `<img class="action-image tuello-zoomable" src="${await this.optimizeImageForReport(http.screenshot, REPORT_IMAGE_MAX_WIDTH)}" alt="" />` : '';
       // En dehors du <a> (pas dans son contenu) : un bouton de copie imbriqué dans un lien serait
       // invalide en HTML et son clic déclencherait aussi la navigation de l'ancre.
       const highlightHtml = this.buildHighlightPill(highlightResults[index], 'tuello-highlight--action');
@@ -645,8 +681,8 @@ function tuelloHttpSearchKeydown(event) {
       const figures: string[] = [];
       for (const candidate of candidates) {
         if (!candidate.src) continue;
-        const optimized = await this.optimizeImageForReport(candidate.src, 400);
-        figures.push(`<figure><figcaption>${this.escapeHtml(candidate.label)}</figcaption><img src="${optimized}" alt="" /></figure>`);
+        const optimized = await this.optimizeImageForReport(candidate.src, REPORT_COMPARISON_IMAGE_MAX_WIDTH);
+        figures.push(`<figure><figcaption>${this.escapeHtml(candidate.label)}</figcaption><img class="tuello-zoomable" src="${optimized}" alt="" /></figure>`);
       }
 
       parts.push(
@@ -765,10 +801,50 @@ function tuelloHttpSearchKeydown(event) {
   /**
    * `chrome.tabs.captureVisibleTab` capture à la résolution native de l'écran (souvent 2x/3x
    * sur un écran retina) : sans redimensionnement, une session avec plusieurs captures produit
-   * un fichier énorme. On redimensionne à une largeur d'affichage raisonnable puis on
-   * recompresse en JPEG, nettement plus compact qu'un PNG pour ce type de contenu.
+   * un fichier énorme. On plafonne la largeur puis on recompresse en WebP, plus compact qu'un
+   * JPEG à qualité égale et sans artefacts autour du texte. L'image reste affichée réduite en CSS
+   * (voir `.action-image`) : la résolution supplémentaire sert à la netteté (écrans retina) et au
+   * zoom au clic (voir `buildImageZoomScript`).
    */
   private optimizeImageForReport(dataUrl: string, maxWidthPx: number): Promise<string> {
+    return this.renderImageForReport(dataUrl, maxWidthPx);
+  }
+
+  /**
+   * Même redimensionnement/recompression que `optimizeImageForReport`, avec en plus un repère
+   * dessiné à la position du clic. `marker` donne la position en coordonnées de PAGE
+   * (`pageX`/`pageY`) ainsi que le défilement et la taille du viewport au moment de la capture
+   * "avant" (quasi simultanée au clic) — si le repère tombe hors de l'image capturée, on ne le
+   * dessine pas plutôt que de placer un repère incohérent.
+   */
+  private drawScreenshotWithMarker(dataUrl: string, marker: NonNullable<Action['screenshotMarker']>, maxWidthPx: number): Promise<string> {
+    return this.renderImageForReport(dataUrl, maxWidthPx, (ctx, naturalWidth, naturalHeight, ratio) => {
+      // Coordonnées de page -> position dans le viewport capturé -> échelle de l'image finale.
+      const viewportX = marker.pageX - marker.scrollX;
+      const viewportY = marker.pageY - marker.scrollY;
+      const scaleX = (naturalWidth / marker.viewportWidth) * ratio;
+      const scaleY = (naturalHeight / marker.viewportHeight) * ratio;
+      const markerX = viewportX * scaleX;
+      const markerY = viewportY * scaleY;
+
+      if (viewportX >= 0 && viewportX <= marker.viewportWidth && viewportY >= 0 && viewportY <= marker.viewportHeight) {
+        // Repère proportionnel à la largeur d'affichage : il garde la même taille visuelle
+        // quelle que soit la résolution embarquée.
+        const markerScale = Math.max(1, (naturalWidth * ratio) / REPORT_IMAGE_DISPLAY_WIDTH);
+        ctx.beginPath();
+        ctx.arc(markerX, markerY, 11 * markerScale, 0, Math.PI * 2);
+        ctx.strokeStyle = '#e02424';
+        ctx.lineWidth = 3 * markerScale;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(markerX, markerY, 3 * markerScale, 0, Math.PI * 2);
+        ctx.fillStyle = '#e02424';
+        ctx.fill();
+      }
+    });
+  }
+
+  private renderImageForReport(dataUrl: string, maxWidthPx: number, decorate?: (ctx: CanvasRenderingContext2D, naturalWidth: number, naturalHeight: number, ratio: number) => void): Promise<string> {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -786,64 +862,17 @@ function tuelloHttpSearchKeydown(event) {
           resolve(dataUrl); // repli : image d'origine si le canvas n'est pas disponible
           return;
         }
+        // Le lissage par défaut ('low') rend le texte pixelisé dès que la réduction dépasse ~2x.
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-        resolve(canvas.toDataURL('image/jpeg', 0.72));
+        decorate?.(ctx, naturalWidth, naturalHeight, ratio);
+
+        const webp = canvas.toDataURL('image/webp', REPORT_IMAGE_QUALITY);
+        // Un navigateur sans encodeur WebP renvoie silencieusement du PNG (très lourd) : repli JPEG.
+        resolve(webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', REPORT_IMAGE_QUALITY));
       };
       img.onerror = () => resolve(dataUrl); // repli : image d'origine, le rapport reste utilisable
-      img.src = dataUrl;
-    });
-  }
-
-  /**
-   * Même redimensionnement/recompression que `optimizeImageForReport`, avec en plus un repère
-   * dessiné à la position du clic. `marker` donne la position en coordonnées de PAGE
-   * (`pageX`/`pageY`) ainsi que le défilement et la taille du viewport au moment de la capture
-   * "avant" (quasi simultanée au clic) — si le repère tombe hors de l'image capturée, on ne le
-   * dessine pas plutôt que de placer un repère incohérent.
-   */
-  private drawScreenshotWithMarker(dataUrl: string, marker: NonNullable<Action['screenshotMarker']>, maxWidthPx: number): Promise<string> {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const naturalWidth = img.naturalWidth || img.width;
-        const naturalHeight = img.naturalHeight || img.height;
-        const ratio = Math.min(1, maxWidthPx / naturalWidth);
-        const targetWidth = Math.max(1, Math.round(naturalWidth * ratio));
-        const targetHeight = Math.max(1, Math.round(naturalHeight * ratio));
-
-        const canvas = document.createElement('canvas');
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(dataUrl);
-          return;
-        }
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-        // Coordonnées de page -> position dans le viewport capturé -> échelle de l'image finale.
-        const viewportX = marker.pageX - marker.scrollX;
-        const viewportY = marker.pageY - marker.scrollY;
-        const scaleX = (naturalWidth / marker.viewportWidth) * ratio;
-        const scaleY = (naturalHeight / marker.viewportHeight) * ratio;
-        const markerX = viewportX * scaleX;
-        const markerY = viewportY * scaleY;
-
-        if (viewportX >= 0 && viewportX <= marker.viewportWidth && viewportY >= 0 && viewportY <= marker.viewportHeight) {
-          ctx.beginPath();
-          ctx.arc(markerX, markerY, 11, 0, Math.PI * 2);
-          ctx.strokeStyle = '#e02424';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(markerX, markerY, 3, 0, Math.PI * 2);
-          ctx.fillStyle = '#e02424';
-          ctx.fill();
-        }
-
-        resolve(canvas.toDataURL('image/jpeg', 0.78));
-      };
-      img.onerror = () => resolve(dataUrl);
       img.src = dataUrl;
     });
   }
@@ -979,7 +1008,7 @@ details.report-section[open] > summary .report-section-arrow { transform: rotate
 .action-index { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg, #4facfe, #00f2fe); color: #fff; font-size: 11px; font-weight: 700; box-shadow: 0 3px 8px rgba(79, 172, 254, .35); }
 .action-type { background: rgba(127, 140, 141, .14); color: #54656a; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: capitalize; }
 .action-delay { margin-left: auto; color: var(--c-text-muted); font-weight: 400; font-size: 11.5px; white-space: nowrap; }
-.action-image { max-width: 600px; margin-top: 8px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
+.action-image { max-width: min(600px, 100%); height: auto; margin-top: 8px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
 .action-text { color: #444; font-size: 13px; margin: 6px 0 0; word-break: break-all; width: 100%; }
 .action-http-link { display: flex; align-items: center; gap: 8px; padding: 8px 14px; margin: 4px 0; border-radius: 14px; background: rgba(255, 255, 255, .55); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, .5); text-decoration: none; color: inherit; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; box-shadow: 0 2px 10px rgba(27, 80, 100, .05); transition: .25s ease; width: 100%; }
 .action-http-link:hover { background: rgba(255, 255, 255, .9); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(27, 80, 100, .14); }
@@ -1067,7 +1096,7 @@ mark.tuello-search-mark--active { background: var(--c-amber); color: #fff; }
 .comparison-header { font-weight: 700; margin-bottom: 8px; font-size: 14px; }
 .comparison-images { display: flex; gap: 12px; flex-wrap: wrap; }
 .comparison-images figure { margin: 0; }
-.comparison-images img { max-width: 260px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
+.comparison-images img { max-width: min(260px, 100%); height: auto; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
 .comparison-images figcaption { font-size: 11px; color: var(--c-text-muted); margin-bottom: 4px; }
 
 details { margin: 2px 0; }
@@ -1082,6 +1111,10 @@ summary.tree-summary { cursor: pointer; font-family: monospace; font-size: 12px;
 .tree-null { color: #999; font-style: italic; }
 .tree-meta { color: #999; font-family: monospace; font-size: 12px; }
 .tree-plaintext { white-space: pre-wrap; word-break: break-all; font-size: 12px; background: rgba(0, 0, 0, .03); padding: 8px; border-radius: 8px; margin: 0; }
+.tuello-zoomable { cursor: zoom-in; }
+.tuello-zoom-overlay { position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(10, 20, 30, .85); cursor: zoom-out; overflow: auto; }
+.tuello-zoom-overlay.tuello-zoom-open { display: flex; }
+.tuello-zoom-overlay img { max-width: 100%; max-height: 100%; height: auto; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); background: #fff; }
 
 @media (max-width: 560px) {
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1095,6 +1128,7 @@ summary.tree-summary { cursor: pointer; font-family: monospace; font-size: 12px;
   .tuello-export-btn { display: none; }
   .tuello-copy-btn { display: none; }
   .tuello-http-search { display: none; }
+  .tuello-zoom-overlay { display: none !important; }
   .http-entry.tuello-dimmed { opacity: 1; }
 }
 `;

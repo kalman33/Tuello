@@ -200,7 +200,7 @@ interface TabCapture {
  * 2x/3x sur un écran retina) : stocké tel quel, un seul screenshot peut peser plusieurs Mo en
  * base64. `JSON.stringify` + la compression LZ-string de plusieurs Mo dans le service worker
  * sont lentes, et un redémarrage du service worker (normal en Manifest V3) en plein milieu peut
- * faire perdre la sauvegarde silencieusement. On redimensionne et recompresse en JPEG dès la
+ * faire perdre la sauvegarde silencieusement. On redimensionne et recompresse en WebP dès la
  * capture, avant tout stockage — pas seulement à la génération du rapport.
  */
 /** Filet de sécurité : si une étape (createImageBitmap, convertToBlob...) ne se termine
@@ -221,9 +221,14 @@ async function optimizeScreenshotRaw(dataUrl: string, maxWidthPx: number): Promi
   if (!ctx) {
     return dataUrl;
   }
+  // Le lissage par défaut ('low') rend le texte illisible sur une réduction 2x/3x (écran retina).
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
 
-  const outBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.72 });
+  // WebP plutôt que JPEG : plus compact à qualité égale et sans artefacts autour du texte.
+  // Cette capture est la source des images du rapport, autant éviter une perte précoce.
+  const outBlob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.82 });
   return blobToDataUrl(outBlob);
 }
 
