@@ -27,6 +27,26 @@ mat-icon {
   opacity: 0.7;
 }
 
+// Pastille de couleur des cadres affichés sur la page
+.color {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  &::-webkit-color-swatch {
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+  }
+}
+
 ::ng-deep .mat-mdc-tooltip {
   font-size: 10px;
 }

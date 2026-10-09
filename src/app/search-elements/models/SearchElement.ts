@@ -50,6 +50,18 @@ export function usesDisplayAttribute(type: SearchElementType): boolean {
   return type === 'tag' || type === 'css' || type === 'auto';
 }
 
+/** Couleur des éléments enregistrés avant le choix de la couleur (couleur de Tuello) */
+export const DEFAULT_SEARCH_COLOR = '#d12566';
+
+/** Couleurs attribuées tour à tour aux éléments ajoutés : distinctes pour les repérer rapidement sur la page */
+export const SEARCH_COLORS = [DEFAULT_SEARCH_COLOR, '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00897b', '#e53935', '#3949ab', '#6d4c41', '#c0ca33'];
+
+/** Première couleur de la palette non utilisée (la moins utilisée si toutes le sont) */
+export function getNextSearchColor(elements: SearchElement[]): string {
+  const counts = SEARCH_COLORS.map((color) => elements.filter((element) => (element.color || DEFAULT_SEARCH_COLOR).toLowerCase() === color).length);
+  return SEARCH_COLORS[counts.indexOf(Math.min(...counts))];
+}
+
 /**
  * Élément recherché (partagé avec le content script, chrome/src/utils/searchElements.ts)
  */
@@ -60,4 +72,6 @@ export class SearchElement {
   type?: SearchElementType;
   /** Absent sur les anciennes listes : valeur de displayAttribute, sinon le nom (ancien comportement) */
   displayMode?: SearchElementDisplayMode;
+  /** Couleur du cadre et de la pastille (#rrggbb) ; absente sur les anciennes listes : DEFAULT_SEARCH_COLOR */
+  color?: string;
 }

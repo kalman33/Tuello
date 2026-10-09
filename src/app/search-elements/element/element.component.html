@@ -1,7 +1,7 @@
 <div fxLayout="row">
-  <div fxFlex="18%" class="data type">{{ 'mmn.search.type.' + (element.type || 'auto') | translate }}</div>
-  <div fxFlex="34%" class="data" [title]="element.name">{{ element.name }}</div>
-  <div fxFlex="38%" class="data display">
+  <div fxFlex="17%" class="data type">{{ 'mmn.search.type.' + (element.type || 'auto') | translate }}</div>
+  <div fxFlex="32%" class="data" [title]="element.name">{{ element.name }}</div>
+  <div fxFlex="35%" class="data display">
     @for (key of displayKeys; track key; let last = $last) {
       {{ key | translate }}{{ last ? '' : ' + ' }}
     }
@@ -9,7 +9,8 @@
       ({{ element.displayAttribute }})
     }
   </div>
-  <div fxFlex="10%" fxLayoutAlign="end center" class="actions">
+  <div fxFlex="16%" fxLayoutAlign="end center" class="actions">
+    <input type="color" class="color" [value]="color" (change)="changeColor($event)" [title]="'mmn.search.color.tooltip' | translate" />
     <button mat-icon-button color="primary" (click)="removeElement()">
       <mat-icon>remove_circle_outline</mat-icon>
     </button>

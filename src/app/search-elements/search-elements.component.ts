@@ -2,6 +2,7 @@ import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
+import { MatCheckbox } from '@angular/material/checkbox';
 import { MatOption } from '@angular/material/core';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
@@ -16,7 +17,7 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ElementComponent } from './element/element.component';
-import { getDisplayModeLabelKeys, getDisplayModes, SEARCH_ELEMENT_TYPES, SearchElement, SearchElementDisplayMode, SearchElementType, usesDisplayAttribute } from './models/SearchElement';
+import { getDisplayModeLabelKeys, getDisplayModes, getNextSearchColor, SEARCH_ELEMENT_TYPES, SearchElement, SearchElementDisplayMode, SearchElementType, usesDisplayAttribute } from './models/SearchElement';
 
 /** Exemple affiché dans le champ de saisie selon le type choisi */
 const PLACEHOLDERS: Record<SearchElementType, string> = {
@@ -32,7 +33,7 @@ const PLACEHOLDERS: Record<SearchElementType, string> = {
   templateUrl: './search-elements.component.html',
   styleUrls: ['./search-elements.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatSlideToggle, MatFormField, MatLabel, MatInput, MatSelect, MatOption, MatIconButton, MatTooltip, MatIcon, MatList, MatListItem, ElementComponent, TranslatePipe]
+  imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatSlideToggle, MatCheckbox, MatFormField, MatLabel, MatInput, MatSelect, MatOption, MatIconButton, MatTooltip, MatIcon, MatList, MatListItem, ElementComponent, TranslatePipe]
 })
 export class SearchElementsComponent implements OnInit {
   readonly types = SEARCH_ELEMENT_TYPES;
@@ -40,6 +41,8 @@ export class SearchElementsComponent implements OnInit {
 
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
   searchElementsActivated = false;
+  /** Masque le compteur « n élément(s) détecté(s) » affiché en bas à droite de la page */
+  hideCount = false;
   elements: SearchElement[] = [];
   searchData: string;
   searchType: SearchElementType = 'tag';
@@ -74,9 +77,10 @@ export class SearchElementsComponent implements OnInit {
   }
 
   ngOnInit() {
-    chrome.storage.local.get(['tuelloElements', 'searchElementsActivated', 'searchAttributeDisplay', 'searchElementType', 'searchElementDisplayMode'], (results: Record<string, any>) => {
+    chrome.storage.local.get(['tuelloElements', 'searchElementsActivated', 'searchAttributeDisplay', 'searchElementType', 'searchElementDisplayMode', 'searchElementsHideCount'], (results: Record<string, any>) => {
       this.elements = Array.isArray(results['tuelloElements']) ? results['tuelloElements'] : [];
       this.searchElementsActivated = !!results['searchElementsActivated'];
+      this.hideCount = !!results['searchElementsHideCount'];
       // Derniers attribut, type et affichage utilisés : pré-remplis pour l'ajout suivant
       this.searchAttributeDisplay = results['searchAttributeDisplay'];
       if (SEARCH_ELEMENT_TYPES.includes(results['searchElementType'])) {
@@ -109,6 +113,10 @@ export class SearchElementsComponent implements OnInit {
     chrome.storage.local.set({ searchElementsActivated: this.searchElementsActivated });
   }
 
+  toggleHideCount() {
+    chrome.storage.local.set({ searchElementsHideCount: this.hideCount });
+  }
+
   addElement() {
     const name = this.searchData?.trim();
     // Attribut gardé seulement s'il sert : sinon il fausserait la détection des doublons
@@ -131,7 +139,7 @@ export class SearchElementsComponent implements OnInit {
       return;
     }
 
-    this.elements = [...this.elements, { name, type: this.searchType, displayAttribute, displayMode: this.displayMode }];
+    this.elements = [...this.elements, { name, type: this.searchType, displayAttribute, displayMode: this.displayMode, color: getNextSearchColor(this.elements) }];
     // Le champ est vidé ; type, affichage et attribut sont gardés (et mémorisés) pour les ajouts suivants
     this.searchData = '';
     chrome.storage.local.set({
@@ -149,6 +157,14 @@ export class SearchElementsComponent implements OnInit {
     if (index >= 0 && index < this.elements.length) {
       this.elements = this.elements.filter((_, i) => i !== index);
       // on sauvegarde
+      chrome.storage.local.set({ tuelloElements: this.elements });
+    }
+  }
+
+  /** Couleur du cadre et de la pastille de l'élément sur la page */
+  changeColor(index: number, color: string) {
+    if (index >= 0 && index < this.elements.length) {
+      this.elements = this.elements.map((element, i) => (i === index ? { ...element, color } : element));
       chrome.storage.local.set({ tuelloElements: this.elements });
     }
   }

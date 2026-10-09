@@ -199,6 +199,8 @@
   "mmn.search.display.value": "Valeur",
   "mmn.search.display.none": "Aucun",
   "mmn.search.elements.attribute.required": "Renseigner l’attribut dont afficher la valeur",
+  "mmn.search.hide.count": "Masquer le nombre d’éléments trouvés",
+  "mmn.search.color.tooltip": "Couleur de l’élément sur la page",
 
   "mmn.json-formatter.button.format": "Formater JSON",
   "mmn.json-formatter.button.copy": "Copier",

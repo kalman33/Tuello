@@ -1,4 +1,4 @@
-import { SearchElement, SearchElementType, usesDisplayAttribute } from '../../../src/app/search-elements/models/SearchElement';
+import { DEFAULT_SEARCH_COLOR, SearchElement, SearchElementType, usesDisplayAttribute } from '../../../src/app/search-elements/models/SearchElement';
 import { HTML_TAGS } from '../constantes/htmlTags.constantes';
 import { DEBOUNCE_DELAY_MS } from './constants';
 
@@ -13,6 +13,14 @@ const SEARCH_UI_SELECTOR = `[id^="${TUELLO_PREFIX}"], #${TUELLO_BADGE_ID}, #${TU
  */
 const TUELLO_UI_SELECTOR = [SEARCH_UI_SELECTOR, '#iframeTuello', '#tuelloTags', '#mouseCoordinates', '#cover-spin', '#jsonViewerLightbox', '#tuello-toast', '#tuello-comment-banner', '[id^="tuelloTrack"]'].join(', ');
 const THEME_COLOR = '#D12566';
+/** Largeur max de la pastille : indépendante de la largeur de l'élément trouvé */
+const CHIP_MAX_WIDTH = 400;
+/** Hauteur de la pastille (lineHeight + padding) : sert à la placer hors du cadre */
+const CHIP_HEIGHT = 16;
+/** Durée pendant laquelle le compteur reste caché après avoir été survolé */
+const BADGE_HIDDEN_MS = 2000;
+/** Durée des animations de disparition/réapparition du compteur */
+const BADGE_FADE_MS = 300;
 const MAX_RESULTS_PER_SEARCH = 200;
 /** Nom pouvant désigner un attribut en mode auto */
 const ATTRIBUTE_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
@@ -39,6 +47,8 @@ interface OverlayEntry {
   clipAncestors: Element[];
   box: Box | null;
   copiedTimer: number | null;
+  /** Pastille déplacée hors du cadre (survolée) : l'élément qu'elle recouvrait redevient cliquable */
+  chipMoved: boolean;
 }
 
 // Overlays affichés, par config (clé : configKey) puis par élément ciblé
@@ -51,6 +61,12 @@ let debounceStart: number | null = null;
 let refreshRafId: number | null = null;
 let overlayCounter = 0;
 let lastBadgeCount = -1;
+let hideCount = false;
+// Compteur survolé : caché pendant BADGE_HIDDEN_MS pour voir et cliquer ce qu'il recouvre
+let badgeHiddenTimer: number | null = null;
+let lastMouse: { x: number; y: number } | null = null;
+// Entrées dont la pastille est déplacée : remise en place quand la souris quitte le cadre
+const movedChips = new Set<OverlayEntry>();
 let isActive = false;
 let syncStarted = false;
 // Incrémenté à chaque recherche : seule la dernière lecture du storage est rendue
@@ -106,6 +122,10 @@ export function initSearchElementsSync() {
       currentLang = (changes['language'].newValue as string) || 'fr';
       lastBadgeCount = -1;
       searchAndDisplay();
+    } else if (changes['searchElementsHideCount']) {
+      hideCount = !!changes['searchElementsHideCount'].newValue;
+      lastBadgeCount = -1;
+      refreshOverlayPositions();
     }
   });
 }
@@ -123,9 +143,10 @@ export function activateSearchElements() {
   injectStyles(); // Injecte l'animation CSS
 
   // Récupère la langue configurée et les attributs recherchés (à surveiller)
-  chrome.storage.local.get(['language', 'tuelloElements'], (result: Record<string, any>) => {
+  chrome.storage.local.get(['language', 'tuelloElements', 'searchElementsHideCount'], (result: Record<string, any>) => {
     if (!isActive) return;
     currentLang = result['language'] || 'fr';
+    hideCount = !!result['searchElementsHideCount'];
     startMutationObserver(result['tuelloElements']);
     searchAndDisplay();
   });
@@ -269,6 +290,9 @@ function searchAndDisplay() {
         let entry = previous?.get(target);
         if (entry) {
           previous.delete(target);
+          // La couleur ne fait pas partie de la clé : l'overlay est conservé et recoloré
+          entry.config = config;
+          applyColor(entry);
         } else {
           entry = createOverlayEntry(config, target);
           fragment.appendChild(entry.overlay);
@@ -303,7 +327,6 @@ function createOverlayEntry(config: SearchElement, target: HTMLElement): Overlay
     position: 'fixed',
     zIndex: '2147483646',
     pointerEvents: 'none',
-    border: `2px dashed ${THEME_COLOR}`,
     left: '0',
     top: '0',
     display: 'none', // Positionné par refreshOverlayPositions
@@ -318,23 +341,27 @@ function createOverlayEntry(config: SearchElement, target: HTMLElement): Overlay
     position: 'absolute',
     top: '0',
     left: '0',
-    maxWidth: '200px',
+    // max-content : sans cela la largeur dépend de celle de l'élément trouvé, et le libellé
+    // d'un élément étroit est tronqué alors que la place ne manque pas sur la page
+    width: 'max-content',
+    maxWidth: `${CHIP_MAX_WIDTH}px`,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     padding: '1px 5px',
-    backgroundColor: THEME_COLOR,
-    color: 'white',
     fontFamily: 'Segoe UI, Roboto, sans-serif',
     fontSize: '10px',
     lineHeight: '14px',
-    borderBottomRightRadius: '4px',
+    borderRadius: '0 0 4px 0',
     pointerEvents: 'auto',
     cursor: 'copy'
   });
   overlay.appendChild(chip);
 
-  const entry: OverlayEntry = { target, config, overlay, chip, clipAncestors: [], box: null, copiedTimer: null };
+  const entry: OverlayEntry = { target, config, overlay, chip, clipAncestors: [], box: null, copiedTimer: null, chipMoved: false };
+  applyColor(entry);
+  // La pastille masque le haut de l'élément : survolée, elle sort du cadre pour libérer le clic
+  chip.addEventListener('mouseenter', () => moveChip(entry));
   chip.addEventListener('click', (e) => {
     // Pas de target.click() : copier ne doit pas déclencher d'action sur la page
     e.preventDefault();
@@ -342,6 +369,64 @@ function createOverlayEntry(config: SearchElement, target: HTMLElement): Overlay
     copyToClipBoard(entry);
   });
   return entry;
+}
+
+function getColor(config: SearchElement): string {
+  return /^#[0-9a-f]{6}$/i.test(config?.color || '') ? config.color : DEFAULT_SEARCH_COLOR;
+}
+
+/** Texte noir ou blanc selon la clarté du fond (luminance relative WCAG) */
+function getTextColor(background: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(background.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.179 ? '#000' : '#fff';
+}
+
+function applyColor(entry: OverlayEntry) {
+  const color = getColor(entry.config);
+  // style.border est normalisé en rgb() par le navigateur : la couleur appliquée est mémorisée à part
+  if (entry.overlay.dataset['color'] === color) return;
+  entry.overlay.dataset['color'] = color;
+  entry.overlay.style.border = `2px dashed ${color}`;
+  entry.chip.style.backgroundColor = color;
+  entry.chip.style.color = getTextColor(color);
+}
+
+/** Place la pastille au-dessus du cadre (en dessous si l'élément touche le haut de la fenêtre) */
+function moveChip(entry: OverlayEntry) {
+  if (entry.chipMoved || !entry.box) return;
+  entry.chipMoved = true;
+  const above = entry.box.y >= CHIP_HEIGHT;
+  Object.assign(entry.chip.style, {
+    top: above ? `-${CHIP_HEIGHT}px` : '100%',
+    borderRadius: above ? '4px 4px 0 0' : '0 0 4px 4px'
+  });
+  if (!movedChips.size) document.addEventListener('mousemove', onMouseMove, { passive: true, capture: true });
+  movedChips.add(entry);
+}
+
+function restoreChip(entry: OverlayEntry) {
+  if (!entry.chipMoved) return;
+  entry.chipMoved = false;
+  Object.assign(entry.chip.style, { top: '0', borderRadius: '0 0 4px 0' });
+  movedChips.delete(entry);
+  if (!movedChips.size) document.removeEventListener('mousemove', onMouseMove, { capture: true });
+}
+
+function contains(rect: { left: number; top: number; right: number; bottom: number }, x: number, y: number): boolean {
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+/** La pastille reste déplacée tant que la souris est sur le cadre ou sur la pastille elle-même (pour copier) */
+function onMouseMove(e: MouseEvent) {
+  movedChips.forEach((entry) => {
+    const box = entry.box;
+    const onBox = !!box && contains({ left: box.x, top: box.y, right: box.x + box.w, bottom: box.y + box.h }, e.clientX, e.clientY);
+    if (!onBox && !contains(entry.chip.getBoundingClientRect(), e.clientX, e.clientY)) restoreChip(entry);
+  });
 }
 
 /** Valeur associée à l'élément trouvé : attribut recherché, ou displayAttribute (balise, sélecteur) */
@@ -389,6 +474,7 @@ function updateLabel(entry: OverlayEntry) {
 
 function removeEntry(entry: OverlayEntry) {
   if (entry.copiedTimer !== null) window.clearTimeout(entry.copiedTimer);
+  restoreChip(entry);
   entry.overlay.remove();
 }
 
@@ -470,6 +556,7 @@ function refreshOverlayPositions() {
     const style = entry.overlay.style;
     if (!box) {
       if (previous) style.display = 'none';
+      restoreChip(entry);
       return;
     }
     if (!previous) style.display = '';
@@ -483,12 +570,14 @@ function refreshOverlayPositions() {
   updateCountBadge(visibleCount);
 }
 
-function updateCountBadge(count: number) {
+function updateCountBadge(visibleCount: number) {
+  // Compteur masqué par l'utilisateur : traité comme « aucun élément » (badge retiré)
+  const count = hideCount ? 0 : visibleCount;
   if (count === lastBadgeCount && (count === 0 || document.getElementById(TUELLO_BADGE_ID))) return;
   lastBadgeCount = count;
   let badge = document.getElementById(TUELLO_BADGE_ID);
   if (count === 0) {
-    if (badge) badge.remove();
+    removeBadge();
     return;
   }
   if (!badge) {
@@ -496,6 +585,9 @@ function updateCountBadge(count: number) {
     badge.id = TUELLO_BADGE_ID;
     badge.className = 'tuello-animate';
     Object.assign(badge.style, {
+      opacity: '1',
+      transform: 'none',
+      transition: `opacity ${BADGE_FADE_MS}ms ease, transform ${BADGE_FADE_MS}ms ease`,
       position: 'fixed',
       bottom: '20px',
       right: '20px',
@@ -511,8 +603,46 @@ function updateCountBadge(count: number) {
       boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
     });
     document.body.appendChild(badge);
+    // Le compteur laisse passer les clics (pointer-events: none) : pas de mouseenter, le survol est détecté ici
+    document.addEventListener('mousemove', onBadgeMouseMove, { passive: true, capture: true });
   }
   badge.textContent = `${count} ${translate('mmn.search.elements.found')}`;
+}
+
+function removeBadge() {
+  document.removeEventListener('mousemove', onBadgeMouseMove, { capture: true });
+  if (badgeHiddenTimer !== null) window.clearTimeout(badgeHiddenTimer);
+  badgeHiddenTimer = null;
+  lastMouse = null;
+  document.getElementById(TUELLO_BADGE_ID)?.remove();
+}
+
+function isMouseOverBadge(badge: HTMLElement): boolean {
+  return !!lastMouse && contains(badge.getBoundingClientRect(), lastMouse.x, lastMouse.y);
+}
+
+function onBadgeMouseMove(e: MouseEvent) {
+  lastMouse = { x: e.clientX, y: e.clientY };
+  const badge = document.getElementById(TUELLO_BADGE_ID);
+  if (!badge || badgeHiddenTimer !== null || !isMouseOverBadge(badge)) return;
+  // L'animation d'apparition (fill-mode forwards) l'emporterait sur l'opacité en ligne
+  badge.classList.remove('tuello-animate');
+  badge.style.opacity = '0';
+  badge.style.transform = 'translateY(10px) scale(0.9)';
+  badgeHiddenTimer = window.setTimeout(showBadgeAgain, BADGE_HIDDEN_MS);
+}
+
+function showBadgeAgain() {
+  const badge = document.getElementById(TUELLO_BADGE_ID);
+  // Souris toujours à cet endroit : il reste caché, sinon il réapparaîtrait sous le curseur
+  if (badge && isMouseOverBadge(badge)) {
+    badgeHiddenTimer = window.setTimeout(showBadgeAgain, BADGE_HIDDEN_MS);
+    return;
+  }
+  badgeHiddenTimer = null;
+  if (!badge) return;
+  badge.style.opacity = '1';
+  badge.style.transform = 'none';
 }
 
 // ==========================================
@@ -533,6 +663,7 @@ export function removeAllSearchElements() {
   observedTargets.forEach((target) => resizeObserver?.unobserve(target));
   observedTargets.clear();
   lastBadgeCount = -1;
+  removeBadge();
   const existing = document.querySelectorAll(`[id^="${TUELLO_PREFIX}"], #${TUELLO_BADGE_ID}`);
   existing.forEach((el) => el.remove());
 }
