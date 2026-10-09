@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.33.0] - 2026-10-09
+
+    - Tracker de ressources : corrections et performances
+
 ## [1.2.32.0] - 2026-10-09
 
     - Recherche d'éléments : corrections, performances, sélecteur de type et choix de l'affichage
