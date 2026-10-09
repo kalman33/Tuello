@@ -788,19 +788,6 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
         );
       }
       break;
-    case 'SEARCH_ELEMENTS_ACTIVATED':
-      if (sender && sender.tab && sender.tab.id >= 0) {
-        // on envoie un message au content scrip
-        chrome.tabs.sendMessage(
-          sender.tab.id,
-          {
-            action: 'SEARCH_ELEMENTS_ACTIVATED',
-            value: msg.value
-          },
-          () => {}
-        );
-      }
-      break;
     case 'VIEW_CLICK_ACTION':
       if (sender && sender.tab && sender.tab.id >= 0) {
         const action: UserAction = msg.value;

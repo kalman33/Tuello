@@ -17,14 +17,6 @@ mat-list {
 }
 
 mmn-element {
-  width: 92vh;
-}
-cdk-virtual-scroll-viewport {
-  height: 92vh;
-}
-
-
-:host ::ng-deep cdk-virtual-scroll-viewport .cdk-virtual-scroll-content-wrapper {
   width: 100%;
 }
 
@@ -54,6 +46,14 @@ mat-form-field {
   padding-right: 10px;
 }
 
-.search-width {
+.search-type {
+  width: 22%;
+}
+
+.search-name {
   width: 40%;
+}
+
+.search-attribute {
+  width: 30%;
 }

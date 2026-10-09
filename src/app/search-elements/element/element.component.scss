@@ -17,10 +17,14 @@ mat-icon {
 }
 
 .data {
-  marging-left: 5px;
+  margin-left: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.type {
+  opacity: 0.7;
 }
 
 ::ng-deep .mat-mdc-tooltip {

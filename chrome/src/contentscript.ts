@@ -4,7 +4,7 @@ import * as lightboxImg from './utils/imageviewer';
 import * as jsonViewer from './utils/jsonViewer';
 import { addMouseCoordinates, removeMouseCoordinates } from './utils/mouse';
 import { recordHttpListener, flushPendingRecords } from './utils/recordHttpListener';
-import { activateSearchElements, desactivateSearchElements } from './utils/searchElements';
+import { activateSearchElements, desactivateSearchElements, initSearchElementsSync } from './utils/searchElements';
 import { addTagsPanel, deleteTagsPanel, initTagsHandler } from './utils/tags';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
@@ -171,6 +171,9 @@ loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tu
 
 // Ajouter le listener mousedown au chargement
 addMousedownListener();
+
+// La recherche d'éléments suit ses réglages via chrome.storage.onChanged (tous les onglets)
+initSearchElementsSync();
 
 document.onreadystatechange = () => {
   if (document.readyState === 'interactive') {
@@ -730,14 +733,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         desactivateRecordTracks();
       }
 
-      sendResponse();
-      break;
-    case 'SEARCH_ELEMENTS_ACTIVATED':
-      if (message.value) {
-        activateSearchElements();
-      } else {
-        desactivateSearchElements();
-      }
       sendResponse();
       break;
 

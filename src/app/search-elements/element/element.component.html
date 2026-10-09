@@ -1,11 +1,10 @@
 <div fxLayout="row">
-  <div fxFlex="40%" class="data">{{element.name}}</div>
-  <div fxFlex="40%" class="data">{{element.displayAttribute}}</div>
-  <div fxFlex="19%" fxLayoutAlign="end center" class="actions">
-    <button mat-icon-button color="primary" (click)='removeElement()'>
+  <div fxFlex="20%" class="data type">{{ 'mmn.search.type.' + (element.type || 'auto') | translate }}</div>
+  <div fxFlex="40%" class="data" [title]="element.name">{{ element.name }}</div>
+  <div fxFlex="30%" class="data">{{ element.displayAttribute }}</div>
+  <div fxFlex="10%" fxLayoutAlign="end center" class="actions">
+    <button mat-icon-button color="primary" (click)="removeElement()">
       <mat-icon>remove_circle_outline</mat-icon>
     </button>
   </div>
 </div>
-
-
