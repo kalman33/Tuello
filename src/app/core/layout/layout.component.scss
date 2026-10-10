@@ -41,6 +41,16 @@
 
   mat-sidenav mat-nav-list {
     padding-top: 0;
+    // Le bloc "Notez et soutenez-nous" / version se place sous les entrées du menu :
+    // en position absolue, il les recouvrait quand la fenêtre est peu haute.
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    box-sizing: border-box;
+
+    > * {
+      flex-shrink: 0;
+    }
   }
 }
 
@@ -138,9 +148,8 @@ mat-nav-list a.mat-mdc-list-item:hover span {
 }
 
 #push-bottom {
-  position: absolute;
-  bottom: 10px;
-  padding: 0 16px !important;
+  margin-top: auto;
+  padding: 16px 16px 10px !important;
 
   #rate span {
     padding-left: 0 !important;

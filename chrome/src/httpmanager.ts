@@ -1,4 +1,4 @@
-import { logData } from './utils/utils';
+import { logData, setVerboseLogging } from './utils/utils';
 
 // ============================================================================
 // Types et Interfaces
@@ -77,7 +77,8 @@ const MESSAGE_TYPES = {
   RECORD_HTTP_CALL_FOR_TAGS: 'RECORD_HTTP_CALL_FOR_TAGS',
   MOCK_HTTP_TUELLO_RECORDS: 'MOCK_HTTP_TUELLO_RECORDS',
   RECORD_CONSOLE_LOG_ACTIVATED: 'RECORD_CONSOLE_LOG_ACTIVATED',
-  AUTO_SCREENSHOT_ON_HTTP_ACTIVATED: 'AUTO_SCREENSHOT_ON_HTTP_ACTIVATED'
+  AUTO_SCREENSHOT_ON_HTTP_ACTIVATED: 'AUTO_SCREENSHOT_ON_HTTP_ACTIVATED',
+  VERBOSE_MODE: 'TUELLO_VERBOSE_MODE'
 } as const;
 
 interface ConsoleLogMessage {
@@ -1416,11 +1417,14 @@ const pushConsoleEntry = (level: ConsoleLogMessage['level'], message: string): v
 
 // Posée inconditionnellement à document_start (comme fetch/XHR) : seul l'émission
 // vers le content script est gatée par `consoleLogActivated`, pour ne rien capturer
-// hors enregistrement Spy.
+// hors enregistrement Spy. Le test précède la sérialisation : sinon chaque log de la
+// page passait par JSON.stringify même capture coupée, un coût permanent sur les apps
+// qui loguent beaucoup d'objets.
 (['log', 'warn', 'error', 'info'] as const).forEach((level) => {
   const original = console[level].bind(console);
   console[level] = (...args: unknown[]) => {
     original(...args);
+    if (!consoleLogActivated) return;
     pushConsoleEntry(level, args.map(stringifyConsoleArg).join(' '));
   };
 });
@@ -1598,6 +1602,9 @@ window.addEventListener(
     if (!data?.type) return;
 
     switch (data.type) {
+      case MESSAGE_TYPES.VERBOSE_MODE:
+        setVerboseLogging(!!data.value);
+        break;
       case MESSAGE_TYPES.MOCK_HTTP_ACTIVATED:
         if (data.value) {
           deepMockLevel = data.deepMockLevel || 0;

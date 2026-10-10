@@ -1,7 +1,18 @@
 import { ICoordinates } from '../models/UserAction';
 
 
+// Mode verbeux tel que transmis par le content script (TUELLO_VERBOSE_MODE). Tant qu'il
+// est inconnu (démarrage de la page) on émet, pour ne pas perdre les logs du boot ; une
+// fois connu et coupé, plus aucun postMessage : chacun traversait les frames et coûtait
+// une lecture du storage côté content script, pour un log jeté dans 99 % des cas.
+let verboseLogging: boolean | undefined;
+
+export function setVerboseLogging(value: boolean) {
+  verboseLogging = value;
+}
+
 export function logData(...args: any[]) {
+  if (verboseLogging === false) return;
   window.top.postMessage({
     action: 'LOG_DATA',
     value: args

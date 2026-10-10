@@ -9,7 +9,7 @@ import { addTagsPanel, deleteTagsPanel, initTagsHandler } from './utils/tags';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
 import { hideComment, showComment } from './utils/commentBanner';
-import { displayEffect } from './utils/utils';
+import { displayEffect, setVerboseLogging } from './utils/utils';
 import { loadCompressedMultiple } from './utils/compression';
 import { IFRAME_OFFSET_PX, IFRAME_WIDTH_PX } from './utils/constants';
 
@@ -18,6 +18,8 @@ let clickedElement: string;
 const prefix: string = '[ TUELLO ]';
 let mousedownListenerAdded = false;
 let dockedLeft = false;
+// undefined tant que la lecture du storage n'a pas abouti (démarrage de la page)
+let verboseMode: boolean | undefined;
 
 /**
  * Applique la position du dock (gauche ou droite)
@@ -171,6 +173,23 @@ loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tu
 
 // Ajouter le listener mousedown au chargement
 addMousedownListener();
+
+/**
+ * Mode verbeux gardé en mémoire et transmis à httpmanager.js : auparavant chaque log
+ * déclenchait une lecture de chrome.storage, et httpmanager.js postait ses logs même
+ * mode verbeux coupé.
+ */
+function applyVerboseMode(value: unknown): void {
+  verboseMode = !!value;
+  setVerboseLogging(verboseMode);
+  window.postMessage({ type: 'TUELLO_VERBOSE_MODE', value: verboseMode }, '*');
+}
+chrome.storage.local.get(['verboseMode'], (results) => applyVerboseMode(results.verboseMode));
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes['verboseMode']) {
+    applyVerboseMode(changes['verboseMode'].newValue);
+  }
+});
 
 // La recherche d'éléments suit ses réglages via chrome.storage.onChanged (tous les onglets)
 initSearchElementsSync();
@@ -852,11 +871,16 @@ window.addEventListener(
           break;
       }
     } else if (event.data?.action === 'LOG_DATA') {
-      chrome.storage.local.get(['verboseMode'], (results) => {
-        if (results.verboseMode) {
-          console.log(prefix, ...event.data.value);
-        }
-      });
+      if (verboseMode) {
+        console.log(prefix, ...event.data.value);
+      } else if (verboseMode === undefined) {
+        // Logs du démarrage, arrivés avant la lecture du réglage
+        chrome.storage.local.get(['verboseMode'], (results) => {
+          if (results.verboseMode) {
+            console.log(prefix, ...event.data.value);
+          }
+        });
+      }
     }
   },
   false
