@@ -320,65 +320,108 @@ function init() {
         document.body.prepend(spinner);
       }
 
-      let iframe;
-
-      // création de l'iframe portant l'app
-
+      // L'iframe portant l'app n'est créée qu'une fois la page chargée et au repos :
+      // voir scheduleIframeCreation
       if (window.self === window.top) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'iframeTuello';
-        iframe.style.setProperty('height', '100%', 'important');
-        iframe.style.setProperty('width', `${IFRAME_WIDTH_PX}px`, 'important');
-        iframe.style.setProperty('min-width', '1px', 'important');
-        iframe.style.setProperty('position', 'fixed', 'important');
-        iframe.style.setProperty('top', '0', 'important');
-        iframe.style.setProperty('z-index', '2147483647', 'important');
-        // Transition désactivée initialement pour éviter le flash lors du positionnement
-        iframe.style.setProperty('transition', 'none', 'important');
-        iframe.style.setProperty('will-change', 'transform', 'important');
-        iframe.style.setProperty('box-shadow', '0 0 15px 2px rgba(0,0,0,0.12)', 'important');
-        iframe.style.setProperty('contain', 'strict', 'important');
-        // Position par défaut cachée à droite
-        iframe.style.setProperty('right', '0', 'important');
-        iframe.style.setProperty('left', 'auto', 'important');
-        iframe.style.setProperty('transform', `translateX(${IFRAME_OFFSET_PX}px)`, 'important');
-        iframe.frameBorder = 'none';
-        iframe.src = chrome.runtime.getURL('index.html');
-
-        /**iframe.onreadystatechange = () => {
-              if ( iframe.readyState == 'complete' ) {
-                resolve(true);
-              }
-            }*/
-        iframe.addEventListener('load', (event) => {
-          resolve(true);
-        });
-
-        // Charger la préférence de position AVANT d'insérer l'iframe dans le DOM
-        // pour éviter le flash (l'iframe est ajouté directement avec la bonne position)
-        chrome.storage.local.get(['tuelloDockedLeft'], (results: Record<string, any>) => {
-          dockedLeft = results['tuelloDockedLeft'] || false;
-          applyDockPosition(iframe, false);
-          document.body.appendChild(iframe);
-          // Activer la transition après le positionnement initial
-          requestAnimationFrame(() => {
-            iframe.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
-          });
-        });
-
-        /** 
-        chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-          if (msg === 'toggle') {
-            show = !show;
-            iframe.style.setProperty('transform', show ? 'translateX(0)' : 'translateX(570px)', 'important');
-          }
-          sendResponse();
-          return true;
-        });*/
+        iframeLoaded.then(() => resolve(true));
+        scheduleIframeCreation();
       }
 
       activate();
     }
+  });
+}
+
+/** Délai maximal d'attente du repos de la page (requestIdleCallback) */
+const IFRAME_IDLE_TIMEOUT_MS = 3000;
+/** Filet de sécurité : page dont l'événement load n'arrive jamais (ressources en streaming...) */
+const IFRAME_MAX_DELAY_MS = 5000;
+
+let iframePromise: Promise<HTMLIFrameElement> | null = null;
+let resolveIframeLoaded: () => void;
+const iframeLoaded = new Promise<void>((resolve) => (resolveIframeLoaded = resolve));
+
+/**
+ * Crée l'iframe portant l'app Angular, une seule fois. Résolue dès son insertion dans
+ * la page (iframeLoaded signale la fin de son chargement).
+ */
+function createIframe(): Promise<HTMLIFrameElement> {
+  if (!iframePromise) {
+    iframePromise = new Promise((resolve) => {
+      const iframe = document.createElement('iframe');
+      iframe.id = 'iframeTuello';
+      iframe.style.setProperty('height', '100%', 'important');
+      iframe.style.setProperty('width', `${IFRAME_WIDTH_PX}px`, 'important');
+      iframe.style.setProperty('min-width', '1px', 'important');
+      iframe.style.setProperty('position', 'fixed', 'important');
+      iframe.style.setProperty('top', '0', 'important');
+      iframe.style.setProperty('z-index', '2147483647', 'important');
+      // Transition désactivée initialement pour éviter le flash lors du positionnement
+      iframe.style.setProperty('transition', 'none', 'important');
+      iframe.style.setProperty('will-change', 'transform', 'important');
+      iframe.style.setProperty('box-shadow', '0 0 15px 2px rgba(0,0,0,0.12)', 'important');
+      iframe.style.setProperty('contain', 'strict', 'important');
+      // Position par défaut cachée à droite
+      iframe.style.setProperty('right', '0', 'important');
+      iframe.style.setProperty('left', 'auto', 'important');
+      iframe.style.setProperty('transform', `translateX(${IFRAME_OFFSET_PX}px)`, 'important');
+      iframe.frameBorder = 'none';
+      iframe.src = chrome.runtime.getURL('index.html');
+      iframe.addEventListener('load', () => resolveIframeLoaded());
+
+      // Charger la préférence de position AVANT d'insérer l'iframe dans le DOM
+      // pour éviter le flash (l'iframe est ajouté directement avec la bonne position)
+      chrome.storage.local.get(['tuelloDockedLeft'], (results: Record<string, any>) => {
+        dockedLeft = results?.['tuelloDockedLeft'] || false;
+        applyDockPosition(iframe, false);
+        document.body.appendChild(iframe);
+        // Activer la transition après le positionnement initial
+        requestAnimationFrame(() => {
+          iframe.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
+        });
+        resolve(iframe);
+      });
+    });
+  }
+  return iframePromise;
+}
+
+/**
+ * L'app Angular (plus d'1 Mo de JS) était démarrée dès que la page devenait interactive,
+ * en concurrence avec son propre chargement, dans chaque onglet. Elle attend désormais la
+ * fin du chargement et un moment de repos : elle est prête bien avant qu'on ouvre Tuello.
+ * Toute demande d'affichage arrivant avant la crée immédiatement (voir createIframe).
+ */
+function scheduleIframeCreation(): void {
+  chrome.storage.local.get(['uiPlayActivated', 'uiRecordActivated'], (results: Record<string, any>) => {
+    // Rejeu ou enregistrement Spy en cours : l'app doit recevoir ses messages (fin de
+    // rejeu, pause, résultats de comparaison) dès le chargement de la page, comme avant.
+    if (results?.['uiPlayActivated'] || results?.['uiRecordActivated']) {
+      createIframe();
+      return;
+    }
+    const createWhenIdle = () => {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(() => createIframe(), { timeout: IFRAME_IDLE_TIMEOUT_MS });
+      } else {
+        createIframe();
+      }
+    };
+    if (document.readyState === 'complete') {
+      createWhenIdle();
+    } else {
+      window.addEventListener('load', createWhenIdle, { once: true });
+    }
+    setTimeout(() => createIframe(), IFRAME_MAX_DELAY_MS);
+  });
+}
+
+/** Affiche le panneau, en créant l'iframe si la page ne l'a pas encore fait */
+function showIframe(): void {
+  createIframe().then((iframe) => {
+    iframe.style.display = '';
+    show = true;
+    applyDockPosition(iframe, true);
   });
 }
 
@@ -560,7 +603,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message === 'toggle') {
     const iframe = document.getElementById('iframeTuello') as HTMLIFrameElement;
-    if (iframe) {
+    if (!iframe && window.self === window.top) {
+      // Pas encore créée (page tout juste chargée) : elle est forcément masquée
+      showIframe();
+    } else if (iframe) {
       const transform = window.getComputedStyle(iframe).transform;
       // Vérifier si l'iframe est cachée (IFRAME_OFFSET_PX pour droite, -IFRAME_OFFSET_PX pour gauche)
       const isHidden = transform.indexOf(String(IFRAME_OFFSET_PX)) >= 0 || transform === 'none';
@@ -582,6 +628,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (iframe) {
       show = true;
       applyDockPosition(iframe, true);
+    } else if (window.self === window.top) {
+      showIframe();
     }
     sendResponse();
   }
@@ -619,8 +667,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'DEACTIVATE':
       desactivate();
       break;
-    case 'ACTIVATE':
-      init().then(() => {
+    case 'ACTIVATE': {
+      const initialized = init();
+      if (window.self === window.top) {
+        // Réactivation juste après le chargement : ne pas attendre le repos de la page
+        createIframe();
+      }
+      initialized.then(() => {
         if (window.self === window.top) {
           const iframeActivate = document.getElementById('iframeTuello');
           if (iframeActivate) iframeActivate.style.display = '';
@@ -628,6 +681,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse();
       });
       return true;
+    }
     case 'VIEW_IMAGE':
       if (window.self === window.top) {
         lightboxImg.open(message.value);
@@ -784,12 +838,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // le bandeau de commentaire ne doit pas survivre à la fin du rejeu
         hideComment();
         // SHOW
-        const iframeResult = document.getElementById('iframeTuello') as HTMLIFrameElement;
-        if (iframeResult) {
-          iframeResult.style.display = '';
-          show = true;
-          applyDockPosition(iframeResult, true);
-        }
+        showIframe();
 
         chrome.runtime.sendMessage(
           {
