@@ -146,13 +146,30 @@ try {
  */
 function cacheTuelloRecords(tuelloRecords: unknown, deepMockLevel: number): void {
   try {
-    localStorage.setItem('TUELLO_RECORDS', JSON.stringify({ tuelloRecords, deepMockLevel }));
+    const json = JSON.stringify({ tuelloRecords, deepMockLevel });
+    // Écriture synchrone et coûteuse (tous les mocks, dans chaque frame, à chaque
+    // chargement) : inutile quand le cache est déjà à jour, le cas courant.
+    if (localStorage.getItem('TUELLO_RECORDS') === json) return;
+    localStorage.setItem('TUELLO_RECORDS', json);
   } catch (error) {
     // Ignorer les erreurs localStorage (peut échouer si quota dépassé ou contexte cross-origin)
   }
 }
 
-loadCompressedMultiple<{ tuelloRecords?: unknown; deepMockLevel?: number }>(['tuelloRecords', 'deepMockLevel'])
+type MockRecordsData = { tuelloRecords?: unknown; deepMockLevel?: number };
+
+// Lecture des mocks au chargement de la page, réutilisée par la première activation :
+// chaque lecture coûte une décompression LZ de tous les mocks, dans chaque frame.
+let bootRecordsPromise: Promise<MockRecordsData> | null = loadCompressedMultiple<MockRecordsData>(['tuelloRecords', 'deepMockLevel']);
+
+/** Mocks de la lecture de démarrage (une seule fois), puis relus depuis le storage */
+function loadMockRecords(): Promise<MockRecordsData> {
+  const promise = bootRecordsPromise ?? loadCompressedMultiple<MockRecordsData>(['tuelloRecords', 'deepMockLevel']);
+  bootRecordsPromise = null;
+  return promise;
+}
+
+bootRecordsPromise
   .then((result) => {
     if (result.tuelloRecords && Array.isArray(result.tuelloRecords)) {
       cacheTuelloRecords(result.tuelloRecords, result.deepMockLevel || 0);
@@ -369,17 +386,18 @@ function activate() {
   // Réactiver le listener mousedown (supprimé lors de la désactivation)
   addMousedownListener();
 
-  const loadPromise = loadCompressedMultiple<{
-    mouseCoordinates?: boolean;
-    tuelloHTTPTags?: unknown;
-    httpRecord?: boolean;
-    httpMock?: boolean;
-    tuelloRecords?: unknown;
-    deepMockLevel?: number;
-    trackPlay?: boolean;
-    disabled?: boolean;
-    searchElementsActivated?: boolean;
-  }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'tuelloRecords', 'deepMockLevel', 'trackPlay', 'disabled', 'searchElementsActivated']);
+  const loadPromise = Promise.all([
+    loadCompressedMultiple<{
+      mouseCoordinates?: boolean;
+      tuelloHTTPTags?: unknown;
+      httpRecord?: boolean;
+      httpMock?: boolean;
+      trackPlay?: boolean;
+      disabled?: boolean;
+      searchElementsActivated?: boolean;
+    }>(['mouseCoordinates', 'tuelloHTTPTags', 'httpRecord', 'httpMock', 'trackPlay', 'disabled', 'searchElementsActivated']),
+    loadMockRecords()
+  ]).then(([settings, records]) => ({ ...settings, ...records }));
 
   loadPromise.then((results) => {
     if (!results.disabled) {
@@ -429,7 +447,9 @@ function activate() {
         );
       }
 
-      if (results['tuelloHTTPTags']) {
+      // Une liste vide ([]) est truthy : sans le test de longueur, l'intercepteur restait
+      // actif et relisait chaque réponse HTTP de la page pour rien.
+      if (Array.isArray(results['tuelloHTTPTags']) && results['tuelloHTTPTags'].length > 0) {
         // On initialise le gestionnaire des tags
         initTagsHandler(results['tuelloHTTPTags']);
       } else {
@@ -742,6 +762,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           addTagsPanel(results['tuelloHTTPTags']).then(() => {
             sendResponse();
           });
+        }
+        if (!Array.isArray(results['tuelloHTTPTags']) || results['tuelloHTTPTags'].length === 0) {
+          // Tous les tags supprimés : l'intercepteur n'a plus rien à alimenter
+          window.postMessage({ type: 'RECORD_HTTP_CALL_FOR_TAGS', value: false }, '*');
         }
       });
       break;
