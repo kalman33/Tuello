@@ -60,26 +60,29 @@
 
   <!-- début du test (export Playwright) -->
   @if (action.actionType === 'TEST_START') {
-    <div fxFlex="15%" class="label testStart">
+    <!-- explication au survol : affichée en ligne, elle empiétait sur les boutons d'action -->
+    <div fxFlex="15%" class="label testStart" [matTooltip]="'mmn.spy-http.actions.test-start.hint' | translate">
       <mat-icon class="v-align-middle">flag</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.test-start' | translate }}</span>
     </div>
-    <div fxFlex="50%" class="data">{{ 'mmn.spy-http.actions.test-start.hint' | translate }}</div>
+    <div fxFlex="50%"></div>
   }
 
   <!-- vérification -->
   @if (action.actionType === 'ASSERTION') {
-    <div fxFlex="15%" class="label assertion">
+    <div
+      fxFlex="15%"
+      class="label assertion"
+      [matTooltip]="
+        action.userAction?.type === 'assertVisible'
+          ? ('mmn.spy-http.actions.assertion.visible' | translate: { name: assertionSubject })
+          : ('mmn.spy-http.actions.assertion.text' | translate: { text: action.userAction?.value })
+      "
+    >
       <mat-icon class="v-align-middle">fact_check</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.assertion' | translate }}</span>
     </div>
-    <div fxFlex="50%" class="data">
-      @if (action.userAction?.type === 'assertVisible') {
-        {{ 'mmn.spy-http.actions.assertion.visible' | translate: { name: assertionSubject } }}
-      } @else {
-        {{ 'mmn.spy-http.actions.assertion.text' | translate: { text: action.userAction?.value } }}
-      }
-    </div>
+    <div fxFlex="50%"></div>
   }
 
   <!-- event -->
