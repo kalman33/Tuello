@@ -103,3 +103,10 @@ mat-form-field {
 ::ng-deep .mat-mdc-tab-group {
   max-width: 100%;
 }
+
+/* Liste d'hôtes : assez large pour plusieurs noms, avec l'aide sous le champ */
+.playwright-hosts {
+  flex: 1 1 auto;
+  min-width: 260px;
+  margin-left: 12px;
+}

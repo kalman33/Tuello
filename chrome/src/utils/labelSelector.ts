@@ -147,6 +147,23 @@ function collectByAttribute(expected: string, found: Set<HTMLElement>): void {
   }
 }
 
+/**
+ * Tous les éléments visibles affichant exactement ce texte, dans l'ordre du document,
+ * en ne gardant que les plus profonds (leurs ancêtres partagent le même texte).
+ * Sert à l'export Playwright pour savoir si un texte désigne un élément de façon unique.
+ */
+export function findAllByText(text: string): HTMLElement[] {
+  const expected = normalizeLabel(text);
+  if (!expected || !document.body) {
+    return [];
+  }
+  const found = new Set<HTMLElement>();
+  collectByText(expected, found);
+  const candidates = Array.from(found).filter(isVisible);
+  candidates.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+  return candidates.filter((candidate) => !candidates.some((other) => other !== candidate && candidate.contains(other)));
+}
+
 /** Élément déjà résolu pour ce libellé, s'il est toujours affiché et inchangé */
 function readCache(key: string, expected: string): HTMLElement | null {
   const element = resolvedLabels.get(key)?.deref();

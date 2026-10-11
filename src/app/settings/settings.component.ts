@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { MatButton, MatButtonModule } from '@angular/material/button';
 import { MatOption } from '@angular/material/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatFormField } from '@angular/material/form-field';
+import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
 import { MatIcon } from '@angular/material/icon';
 import { MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
@@ -57,6 +58,9 @@ export interface StorageStats {
     ExtendedModule,
     MatSlideToggle,
     MatFormField,
+    MatHint,
+    MatLabel,
+    MatInput,
     MatSelect,
     MatOption,
     MatSlider,
@@ -74,6 +78,8 @@ export class SettingsComponent implements OnInit {
   mouseCoordinates: boolean;
   desactivate = false;
   verboseMode: boolean;
+  /** Hôtes considérés comme locaux par l'export Playwright, en plus de localhost (saisie libre, séparés par des virgules) */
+  playwrightLocalHosts = '';
   languages = [
     { value: 'en', label: 'en' },
     { value: 'fr', label: 'fr' }
@@ -153,7 +159,8 @@ export class SettingsComponent implements OnInit {
   }
 
   init() {
-    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode'], (results: Record<string, any>) => {
+    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode', 'playwrightLocalHosts'], (results: Record<string, any>) => {
+      this.playwrightLocalHosts = (results['playwrightLocalHosts'] ?? []).join(', ');
       if (results['language']) {
         this.selectedLanguage = results['language'];
       }
@@ -179,6 +186,14 @@ export class SettingsComponent implements OnInit {
       }
       this.cdr.detectChanges();
     });
+  }
+
+  savePlaywrightLocalHosts() {
+    const hosts = this.playwrightLocalHosts
+      .split(/[\s,;]+/)
+      .map((host) => host.trim().toLowerCase())
+      .filter((host) => !!host);
+    chrome.storage.local.set({ playwrightLocalHosts: hosts });
   }
 
   /**

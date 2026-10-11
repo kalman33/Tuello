@@ -2,6 +2,7 @@ import { Scenario, SCENARIOS_KEY, stripLeadingNavigations } from '../../src/app/
 import { Action } from '../../src/app/spy-http/models/Action';
 import { Player } from './background/player';
 import {
+  addAssertion,
   addComment,
   addHttpUserAction,
   addConsoleLogs,
@@ -20,7 +21,9 @@ import {
   prepareClickScreenshot,
   replaceRecord,
   setActiveTab,
-  setPause
+  setInitialState,
+  setPause,
+  addTestStart
 } from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
 import { loadCompressed } from './utils/compression';
@@ -203,6 +206,45 @@ chrome.runtime.onStartup.addListener(async () => {
   }
 });
 
+/** Menus de l'export Playwright : n'ont de sens que pendant un enregistrement */
+const RECORDING_MENU_IDS = ['tuelloAssertText', 'tuelloAssertVisible', 'tuelloTestStart'];
+
+/** Affiche ou masque les menus réservés à l'enregistrement */
+function updateRecordingMenus(recording: boolean): void {
+  for (const id of RECORDING_MENU_IDS) {
+    chrome.contextMenus.update(id, { visible: recording }, () => chrome.runtime.lastError);
+  }
+}
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes['uiRecordActivated']) {
+    updateRecordingMenus(!!changes['uiRecordActivated'].newValue);
+  }
+});
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (!tab?.id || !RECORDING_MENU_IDS.includes(String(info.menuItemId))) {
+    return;
+  }
+  const msgs = (await chrome.storage.local.get<Record<string, any>>(['messages'])).messages?.default;
+  if (info.menuItemId === 'tuelloTestStart') {
+    const added = addTestStart(tab.id);
+    const text = added ? msgs?.['mmn.spy-http.menu.test-start.done'] || 'Tuello : début du test marqué ici' : msgs?.['mmn.spy-http.menu.not-recording'] || 'Tuello : aucun enregistrement en cours';
+    chrome.tabs.sendMessage(tab.id, { action: 'SHOW_TOAST', value: text }, { frameId: 0 }, () => chrome.runtime.lastError);
+    return;
+  }
+  chrome.tabs.sendMessage(
+    tab.id,
+    {
+      action: 'CAPTURE_ASSERTION',
+      value: info.menuItemId === 'tuelloAssertText' ? 'text' : 'visible',
+      messages: { done: msgs?.['mmn.spy-http.menu.assert.done'], empty: msgs?.['mmn.spy-http.menu.assert.empty'] }
+    },
+    { frameId: info.frameId ?? 0 },
+    () => chrome.runtime.lastError
+  );
+});
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'sel') {
     chrome.tabs.sendMessage(
@@ -383,7 +425,10 @@ async function buildMenuItems(msgs?: Record<string, string>): Promise<Array<{ id
       id: 'id5',
       title: `${msgs?.['mmn.spy-http.tabs.shortcuts.record.by.label'] || 'Record by label'} : ${combo('shift', click)}`
     },
-    { id: 'id4', title: `${msgs?.['mmn.spy-http.tabs.shortcuts.add.comment'] || 'Add comment'} : ${combo('alt', 'shift', commentKey)}` }
+    { id: 'id4', title: `${msgs?.['mmn.spy-http.tabs.shortcuts.add.comment'] || 'Add comment'} : ${combo('alt', 'shift', commentKey)}` },
+    { id: 'tuelloAssertText', title: msgs?.['mmn.spy-http.menu.assert.text'] || 'Check this text' },
+    { id: 'tuelloAssertVisible', title: msgs?.['mmn.spy-http.menu.assert.visible'] || 'Check that this element is visible' },
+    { id: 'tuelloTestStart', title: msgs?.['mmn.spy-http.menu.test-start'] || 'Start the test here' }
   ];
 }
 
@@ -392,13 +437,15 @@ async function buildMenuItems(msgs?: Record<string, string>): Promise<Array<{ id
  */
 async function createContextMenus(msgs?: Record<string, string>): Promise<void> {
   const menuItems = await buildMenuItems(msgs);
+  const recording = !!(await chrome.storage.local.get<Record<string, any>>(['uiRecordActivated'])).uiRecordActivated;
 
   for (const item of menuItems) {
     chrome.contextMenus.create(
       {
         id: item.id,
         title: item.title,
-        contexts: ['all']
+        contexts: ['all'],
+        visible: !RECORDING_MENU_IDS.includes(item.id) || recording
       },
       () => chrome.runtime.lastError
     ); // ignore errors about an existing id
@@ -584,7 +631,16 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
                 action.hrefLocation = tab.url;
                 // Même onglet que la taille de fenêtre : l'état d'enregistrement est
                 // indexé par onglet, l'action irait sinon dans un autre record.
-                addNavigate(action, recorderTabId ?? tab.id, 0);
+                const stateTabId = recorderTabId ?? tab.id;
+                addNavigate(action, stateTabId, 0).then(() => {
+                  // Stockage de la page de départ, pour que le test Playwright exporté
+                  // démarre dans le même contexte (utilisateur connecté...)
+                  chrome.tabs.sendMessage(tab.id, { action: 'CAPTURE_INITIAL_STATE' }, { frameId: 0 }, (initialState) => {
+                    if (!chrome.runtime.lastError && initialState) {
+                      setInitialState(initialState, stateTabId);
+                    }
+                  });
+                });
               });
             });
           });
@@ -946,6 +1002,10 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
       break;
     case 'RECORD_BY_LABEL_ACTION':
       addRecordByLabel(msg.value, sender.tab.id, sender.frameId);
+      senderResponse();
+      break;
+    case 'RECORD_ASSERTION_ACTION':
+      addAssertion(msg.value, sender.tab.id, sender.frameId);
       senderResponse();
       break;
     case 'SCREENSHOT_ACTION':

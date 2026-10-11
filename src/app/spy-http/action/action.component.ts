@@ -27,12 +27,17 @@ export class ActionComponent implements OnChanges {
     @Output() modify: EventEmitter<[number, Action]> = new EventEmitter<[number, Action]>();
     @Output() preview: EventEmitter<number> = new EventEmitter<number>();
     @Output() decreaseDelay: EventEmitter<number> = new EventEmitter<number>();
+    /** Place le repère « Début du test » juste avant cette action */
+    @Output() testStart: EventEmitter<number> = new EventEmitter<number>();
 
     /** Domain extrait de l'URL (calculé une seule fois quand l'action change) */
     domain: string = '';
 
     /** Rechargement de page (F5) : même action que la navigation, mais rejouée sur place */
     isReload = false;
+
+    /** Élément d'une vérification de visibilité, tel que l'utilisateur le reconnaît */
+    assertionSubject = '';
 
     constructor(
         public dialog: MatDialog,
@@ -43,6 +48,8 @@ export class ActionComponent implements OnChanges {
         if (changes['action']) {
             this.domain = this.extractDomain();
             this.isReload = this.action?.userAction?.type === 'reload';
+            const target = this.action?.userAction?.target;
+            this.assertionSubject = target?.name || target?.label || target?.text || target?.placeholder || this.action?.userAction?.selector || '';
         }
     }
 
@@ -65,6 +72,10 @@ export class ActionComponent implements OnChanges {
 
     previewAction() {
         this.preview.emit(this.index);
+    }
+
+    markTestStart() {
+        this.testStart.emit(this.index);
     }
 
     reduceDelay() {

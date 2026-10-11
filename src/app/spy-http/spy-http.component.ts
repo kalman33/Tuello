@@ -31,7 +31,10 @@ import { ChromeExtentionUtilsService } from '../core/utils/chrome-extention-util
 import { formatDate } from '../core/utils/date-utils';
 import { HttpReturn } from '../recorder-http/models/http.return';
 import { ActionComponent } from './action/action.component';
+import { ExportChoice, ExportDialogComponent } from './export-dialog/export-dialog.component';
+import { PlaywrightExportDialogComponent, PlaywrightExportDialogData } from './playwright-export/playwright-export-dialog.component';
 import { Action } from './models/Action';
+import { ActionType } from './models/ActionType';
 import { RecordDialogComponent } from './record-dialog/record-dialog.component';
 import { SaveScenarioDialogComponent, SaveScenarioDialogData } from './scenario-dialog/save-scenario-dialog.component';
 import { PlayerService } from './services/player.service';
@@ -323,6 +326,44 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Bouton « Exporter » : la fenêtre propose les destinations, l'export lui-même est fait ici */
+  openExport() {
+    if (!this.recorderHistoryService.record || !this.actions?.length) {
+      return;
+    }
+    this.dialog
+      .open<ExportDialogComponent, void, ExportChoice>(ExportDialogComponent)
+      .afterClosed()
+      .pipe(take(1))
+      .subscribe((choice) => {
+        switch (choice) {
+          case 'report':
+            this.router.navigate(['/report'], { skipLocationChange: true });
+            break;
+          case 'playwright':
+            this.exportPlaywright();
+            break;
+          case 'scenario':
+            this.saveScenario();
+            break;
+          case 'file':
+            this.save();
+            break;
+        }
+      });
+  }
+
+  /** Exporte l'enregistrement courant en test Playwright */
+  exportPlaywright() {
+    const record = this.recorderHistoryService.record;
+    if (!record || !this.actions?.length) {
+      return;
+    }
+    // Même règle que la sauvegarde de scénario : la liste affichée fait foi
+    const data: PlaywrightExportDialogData = { record: { ...record, actions: this.actions } };
+    this.dialog.open(PlaywrightExportDialogComponent, { data, maxWidth: '640px' });
+  }
+
   /** Charge un scénario dans l'éditeur, en remplacement de l'enregistrement courant */
   loadScenario(scenario: Scenario) {
     this.playerService.comparisonResults = null;
@@ -496,6 +537,24 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
       // on sauvegarde
       this.saveActionsOnLocalStorage();
     }
+  }
+
+  /**
+   * Place le repère « Début du test » avant l'action choisie : les actions qui le
+   * précèdent deviennent la mise en place du test Playwright exporté. Un seul repère.
+   */
+  markTestStart(index: number) {
+    const target = this.actions[index];
+    if (!target) {
+      return;
+    }
+    const actions = this.actions.filter((action) => action.actionType !== ActionType.TEST_START);
+    const marker = new Action(0, ActionType.TEST_START, null);
+    marker.timestamp = target.timestamp;
+    actions.splice(actions.indexOf(target), 0, marker);
+    this.actions = actions;
+    this.saveActionsOnLocalStorage();
+    this.changeDetectorRef.detectChanges();
   }
 
   modifyAction(tuple: [number, Action]) {

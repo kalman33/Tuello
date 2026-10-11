@@ -8,6 +8,8 @@ import { activateSearchElements, desactivateSearchElements, initSearchElementsSy
 import { addTagsPanel, deleteTagsPanel, initTagsHandler } from './utils/tags';
 import { activateRecordTracks, desactivateRecordTracks } from './utils/tracker';
 import { run } from './utils/uiplayer';
+import { captureAssertion, captureInitialState, trackContextMenuTarget } from './utils/playwrightCapture';
+import { showToast } from './utils/toast';
 import { hideComment, showComment } from './utils/commentBanner';
 import { displayEffect, setVerboseLogging } from './utils/utils';
 import { loadCompressedMultiple } from './utils/compression';
@@ -577,6 +579,9 @@ function desactivate() {
   );
 }
 
+// Élément visé par le dernier clic droit : sert aux vérifications de l'export Playwright
+trackContextMenuTarget();
+
 // gestion de l'activation et la désactivation du devtools et du record ui
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message === 'JSON_VIEWER') {
@@ -737,6 +742,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'START_UI_RECORDER':
       launchUIRecorderHandler();
       break;
+    case 'SHOW_TOAST':
+      showToast(message.value);
+      sendResponse();
+      break;
+    case 'CAPTURE_INITIAL_STATE':
+      // Le stockage photographié est celui de l'application testée : la page principale
+      if (window.self === window.top) {
+        sendResponse(captureInitialState());
+      }
+      break;
+    case 'CAPTURE_ASSERTION': {
+      const assertion = captureAssertion(message.value);
+      if (!assertion) {
+        showToast(message.messages?.empty || 'Tuello : aucun élément à vérifier ici');
+        sendResponse(false);
+        break;
+      }
+      chrome.runtime.sendMessage({ action: 'RECORD_ASSERTION_ACTION', value: assertion }, () => {
+        showToast(message.messages?.done || 'Tuello : vérification enregistrée');
+      });
+      sendResponse(true);
+      break;
+    }
     case 'MOUSE_COORDINATES':
       if (message.value) {
         addMouseCoordinates();

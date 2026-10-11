@@ -3,6 +3,7 @@ import { searchImg } from './imageRecorder';
 import { findBySelector } from './cssSelector';
 import { findClickableAncestor, findElementByLabel } from './labelSelector';
 import { displayEffect, getOffset, getParentByTagName } from './utils';
+import { playAssertion } from './playwrightCapture';
 
 /**
  * Convertit des coordonnées absolues (document) en coordonnées relatives (viewport)
@@ -193,6 +194,17 @@ export function run(action: IUserAction) {
           clickable.click();
           resolve(true);
         }, 100);
+        break;
+      case 'assertText':
+      case 'assertVisible':
+        playAssertion(action).then((ok) => {
+          if (ok) {
+            resolve(true);
+            return;
+          }
+          // Même traitement qu'un élément introuvable : le rejeu se met en pause sur l'action
+          chrome.runtime.sendMessage({ action: 'PLAY_ACTION_ERROR' }, () => resolve(false));
+        });
         break;
       case 'recordByImg':
         searchImg(action)

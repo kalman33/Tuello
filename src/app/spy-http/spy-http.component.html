@@ -1,26 +1,43 @@
 <div class="container">
   <div fxFlex="99%">
-    <div class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+    <div class="button-row" fxLayout="row wrap" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
       <button id="guide-spy-record" [disabled]="spyActif || playing" mat-flat-button color="primary" (click)="startRecording()">
         <mat-icon>mic</mat-icon>
         {{ 'mmn.spy-http.button.record' | translate }}
       </button>
-      <button [disabled]="playing" mat-flat-button color="primary" (click)="deleteRecords()">
-        <mat-icon>delete</mat-icon>
-        {{ 'mmn.spy-http.button.delete' | translate }}
+      <!-- Jouer et Arrêter occupent la même place : Arrêter tant qu'un enregistrement ou un rejeu est en cours -->
+      @if (spyActif || playing) {
+        <button mat-flat-button color="primary" (click)="stop()">
+          <mat-icon>stop</mat-icon>
+          {{ 'mmn.spy-http.button.stop' | translate }}
+        </button>
+      } @else {
+        <button id="guide-spy-play" [disabled]="!actions?.length" mat-flat-button color="primary" (click)="startPlaying()">
+          <mat-icon>play_circle_outline</mat-icon>
+          {{ 'mmn.spy-http.button.play' | translate }}
+        </button>
+      }
+      @if (actions?.length > 0) {
+        <button [disabled]="playing" mat-flat-button color="primary" (click)="deleteRecords()">
+          <mat-icon>delete</mat-icon>
+          {{ 'mmn.spy-http.button.delete' | translate }}
+        </button>
+      }
+      <button id="guide-spy-scenario" [disabled]="spyActif || playing || !actions?.length" mat-flat-button color="primary" (click)="openExport()">
+        <mat-icon>ios_share</mat-icon>
+        {{ 'mmn.spy-http.button.export' | translate }}
       </button>
-      <button id="guide-spy-play" [disabled]="spyActif || playing || actions?.length <= 0" mat-flat-button color="primary" (click)="startPlaying()">
-        <mat-icon>play_circle_outline</mat-icon>
-        {{ 'mmn.spy-http.button.play' | translate }}
+      <button [disabled]="spyActif || playing" mat-flat-button color="primary" (click)="selectFile()">
+        <mat-icon>upload_file</mat-icon>
+        {{ 'mmn.spy-http.button.import' | translate }}
       </button>
-      <button [disabled]="!spyActif && !playing" mat-flat-button color="primary" (click)="stop()">
-        <mat-icon>stop</mat-icon>
-        {{ 'mmn.spy-http.button.stop' | translate }}
-      </button>
-      <button id="guide-spy-scenario" [disabled]="spyActif || playing || actions?.length <= 0" mat-flat-button color="primary" (click)="saveScenario()">
-        <mat-icon>bookmark_add</mat-icon>
-        {{ 'mmn.spy-http.button.save-scenario' | translate }}
-      </button>
+      <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
+      @if (playerService.comparisonResults) {
+        <button mat-flat-button color="warn" [routerLink]="['/spy/results']" [skipLocationChange]="true">
+          <mat-icon>compare</mat-icon>
+          {{ 'mmn.spy-http.button.results' | translate }}
+        </button>
+      }
     </div>
 
     <mat-tab-group #tabGrp id="guide-spy-actions">
@@ -44,6 +61,7 @@
                   (modify)="modifyAction($event)"
                   (preview)="previewAction($event)"
                   (decreaseDelay)="decreaseDelayAction($event)"
+                  (testStart)="markTestStart($event)"
                 ></mmn-action>
               </mat-list-item>
             }
@@ -99,36 +117,6 @@
             }
           </mat-list>
         }
-      </mat-tab>
-
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">import_export</mat-icon>
-          {{ 'mmn.spy-http.tabs.parameters' | translate }}
-        </ng-template>
-        <div class="button-row" [ngClass]="routeAnimationsElements">
-          <button mat-flat-button color="accent" (click)="save()" style="color: white">
-            <mat-icon>save</mat-icon>
-            {{ 'mmn.spy-http.button.saveAs' | translate }}
-          </button>
-          <button mat-flat-button color="accent" style="color: white" (click)="selectFile()">
-            <mat-icon>save_alt</mat-icon>
-            {{ 'mmn.spy-http.button.import' | translate }}
-          </button>
-          <input style="display: none" #fileInput type="file" (change)="onChange($event)" accept=".json" />
-          @if (this.playerService.comparisonResults) {
-            <button mat-flat-button color="warn" [routerLink]="['/spy/results']" [skipLocationChange]="true">
-              <mat-icon>save</mat-icon>
-              {{ 'mmn.spy-http.button.results' | translate }}
-            </button>
-          }
-          @if (actions?.length > 0) {
-            <button mat-flat-button color="accent" style="color: white" [routerLink]="['/report']" [skipLocationChange]="true">
-              <mat-icon>code</mat-icon>
-              {{ 'mmn.spy-http.button.exportPdf' | translate }}
-            </button>
-          }
-        </div>
       </mat-tab>
 
       <mat-tab>

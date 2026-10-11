@@ -182,3 +182,18 @@ mmn-action {
   display: flex;
   align-items: center;
 }
+
+/* Barre d'actions : espacée et repliée sur plusieurs lignes quand le panneau est étroit,
+   pour que les boutons ne se chevauchent jamais. Préfixée par le sélecteur du composant,
+   ses styles n'étant pas encapsulés. */
+mmn-spy-http .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 15px 0 0;
+
+  button {
+    margin: 0 !important;
+  }
+}

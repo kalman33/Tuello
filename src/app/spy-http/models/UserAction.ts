@@ -1,4 +1,5 @@
 import { IFrame } from './IFrame';
+import { ITargetDescriptor } from '../../../../chrome/src/models/TargetDescriptor';
 
 export interface ICoordinates {
   top: number;
@@ -31,6 +32,9 @@ export interface IUserAction {
    * service worker : sert à placer l'action par rapport aux requêtes HTTP qu'elle déclenche,
    * horodatées elles aussi dans la page. */
   eventTimestamp?: number;
+  /** Élément visé (rôle, libellé, texte), pris à l'enregistrement : sert uniquement à
+   * l'export Playwright, le rejeu Tuello garde coordonnées et sélecteur. */
+  target?: ITargetDescriptor;
 }
 
 export enum ImageType {

@@ -6,6 +6,7 @@ import { UserAction } from './models/UserAction';
 import { convertElementToBase64, findImageHover } from './utils/imageRecorder';
 import { buildSelector } from './utils/cssSelector';
 import { extractLabel, findClickableAncestor } from './utils/labelSelector';
+import { describeTarget } from './utils/targetDescriptor';
 import * as lightbox from './utils/lightbox';
 import { showToast } from './utils/toast';
 import { recordHttpUserActionListener } from './utils/recordUserActionListener';
@@ -340,6 +341,7 @@ function keyboardListener(e) {
     action.x = Math.ceil(rect.left + window.scrollX);
     action.y = Math.ceil(rect.top + window.scrollY);
     action.selector = buildSelector(e.target as Element);
+    action.target = describeTarget(e.target as Element);
     action.frame = frame;
     chrome.runtime.sendMessage(
       {
@@ -385,6 +387,7 @@ function mousedownListener(e) {
     useraction.x = e.pageX;
     useraction.y = e.pageY;
     useraction.hrefLocation = window.location.href;
+    useraction.target = describeTarget(e.target as Element);
     useraction.frame = frame;
     chrome.runtime.sendMessage(
       {

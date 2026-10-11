@@ -114,6 +114,10 @@ export class Player {
         actionSuccess = await this.compareImage(action.value);
       } else if (action.value.actionType === 'COMMENT') {
         actionSuccess = await this.showComment(action.value);
+      } else if (action.value.actionType === 'TEST_START') {
+        // Simple repère pour l'export Playwright : rien à rejouer. Sans ce cas, il partait
+        // dans handleUserAction sans userAction et le rejeu échouait sur cette étape.
+        actionSuccess = true;
       } else {
         actionSuccess = await this.handleUserAction(userAction);
       }

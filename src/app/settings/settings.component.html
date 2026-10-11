@@ -62,6 +62,15 @@
                 ><input name="deepMockLevel" [(ngModel)]="deepMockLevel" matSliderThumb (input)="updateDeepMockLevel({ source: ngSliderThumb, parent: ngSlider, value: ngSliderThumb.value })" #ngSliderThumb="matSliderThumb" />
               </mat-slider>
             </div>
+            <h2>{{ 'mmn.settings.playwright.title' | translate }}</h2>
+            <div class="icon-form-field">
+              <mat-icon color="accent">science</mat-icon>
+              <mat-form-field class="playwright-hosts">
+                <mat-label>{{ 'mmn.settings.playwright.hosts' | translate }}</mat-label>
+                <input matInput name="playwrightLocalHosts" [(ngModel)]="playwrightLocalHosts" (change)="savePlaywrightLocalHosts()" placeholder="local.monapp.fr, dev.local" />
+                <mat-hint>{{ 'mmn.settings.playwright.hosts.hint' | translate }}</mat-hint>
+              </mat-form-field>
+            </div>
           </div>
         </div>
       </mat-tab>

@@ -1,4 +1,5 @@
 import { HttpReturn } from '../../../src/app/recorder-http/models/http.return';
+import { InitialState } from '../../../src/app/spy-http/models/InitialState';
 import { Action } from '../../../src/app/spy-http/models/Action';
 import { ConsoleLogEntry } from '../../../src/app/spy-http/models/ConsoleLogEntry';
 import { ActionType } from '../../../src/app/spy-http/models/ActionType';
@@ -133,6 +134,43 @@ export function addRecordByImage(userAction: IUserAction, tabId: number, frameId
 
 export function addRecordByLabel(userAction: IUserAction, tabId: number, frameId: number): Promise<void> {
   return addTargetedAction(userAction, tabId, frameId, ActionType.RECORD_BY_LABEL);
+}
+
+/** Vérification posée au clic droit (export Playwright, contrôlée aussi au rejeu Tuello) */
+export function addAssertion(userAction: IUserAction, tabId: number, frameId: number): Promise<void> {
+  return addTargetedAction(userAction, tabId, frameId, ActionType.ASSERTION);
+}
+
+/**
+ * Repère « Début du test » : un seul par enregistrement, le nouveau remplace l'ancien.
+ * Les actions qui le précèdent forment la mise en place du test Playwright exporté.
+ */
+export function addTestStart(tabId?: number): boolean {
+  const state = getState(tabId);
+  if (!state.record || !canAddAction(state)) {
+    return false;
+  }
+  const now = Date.now();
+  const delay = isNaN(now - state.last) ? 0 : now - state.last;
+  state.record.actions = state.record.actions.filter((action) => action.actionType !== ActionType.TEST_START);
+  const action = new Action(delay, ActionType.TEST_START, null);
+  action.timestamp = now;
+  state.record.actions.push(action);
+  state.lastAction = action;
+  state.last = now;
+  state.record.last = state.last;
+  saveUiRecordToLocalStorage(state.record);
+  return true;
+}
+
+/** Photo du stockage prise au démarrage de l'enregistrement (voir InitialState) */
+export function setInitialState(initialState: InitialState, tabId?: number): void {
+  const state = getState(tabId);
+  if (!state.record || !initialState) {
+    return;
+  }
+  state.record.initialState = initialState;
+  saveUiRecordToLocalStorage(state.record);
 }
 
 /**
@@ -503,7 +541,10 @@ export async function addUserAction(userAction: IUserAction, tabId: number, fram
       }
       break;
     case 'input':
-      if (state.lastAction && state.lastAction.userAction && state.lastAction.userAction.type === userAction.type && state.lastAction.userAction.frame?.frameId === compareFrameId) {
+      // Seules les frappes successives dans le MÊME champ sont fusionnées : sans comparer le
+      // sélecteur, remplir deux champs à la suite (Tab entre les deux) écrasait la valeur du
+      // premier avec celle du second.
+      if (state.lastAction && state.lastAction.userAction && state.lastAction.userAction.type === userAction.type && state.lastAction.userAction.frame?.frameId === compareFrameId && state.lastAction.userAction.selector === userAction.selector) {
         state.lastAction.userAction.value = userAction.value;
       } else {
         state.record.actions.push(action);

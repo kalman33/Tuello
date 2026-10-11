@@ -1,5 +1,8 @@
 import { IFrame } from './IFrame';
+import { ITargetDescriptor } from './TargetDescriptor';
 import { buildSelector } from '../utils/cssSelector';
+import { findClickableAncestor } from '../utils/labelSelector';
+import { describeTarget } from '../utils/targetDescriptor';
 
 export interface ICoordinates {
   top: number;
@@ -30,6 +33,8 @@ export interface IUserAction {
   clientHeight?: number;
   /** Date.now() pris dans la page au moment de l'évènement (voir IUserAction côté Angular) */
   eventTimestamp?: number;
+  /** Élément visé (rôle, libellé, texte) : sert uniquement à l'export Playwright */
+  target?: ITargetDescriptor;
 }
 
 export class UserAction implements IUserAction {
@@ -54,6 +59,7 @@ export class UserAction implements IUserAction {
   public clientWidth: number;
   public clientHeight: number;
   public eventTimestamp = Date.now();
+  public target: ITargetDescriptor;
 
   constructor(e: MouseEvent) {
     if (e) {
@@ -63,6 +69,8 @@ export class UserAction implements IUserAction {
           this.x = e.pageX;
           this.y = e.pageY;
           this.hrefLocation = window.location.href;
+          // Le texte cliqué est souvent un <span> : c'est le bouton qui l'englobe qu'on décrit
+          this.target = describeTarget(findClickableAncestor(e.target as Element));
           break;
         case 'scroll':
           this.scrollX = (window as any).scrollX;
@@ -77,6 +85,7 @@ export class UserAction implements IUserAction {
           this.value = (e.target as any).value;
           // Les coordonnées seules ne suffisent pas : cf. buildSelector.
           this.selector = buildSelector(e.target as Element);
+          this.target = describeTarget(e.target as Element);
           break;
       }
     }

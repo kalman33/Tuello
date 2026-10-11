@@ -899,6 +899,10 @@ function tuelloHttpSearchKeydown(event) {
         return this.translate.instant('mmn.spy-http.actions.type.record.by.label');
       case ActionType.COMMENT:
         return this.translate.instant('mmn.spy-http.actions.type.comment');
+      case ActionType.TEST_START:
+        return this.translate.instant('mmn.spy-http.actions.type.test-start');
+      case ActionType.ASSERTION:
+        return this.translate.instant('mmn.spy-http.actions.type.assertion');
       case ActionType.EVENT:
       default:
         return (action.userAction?.type || '').toLowerCase();
