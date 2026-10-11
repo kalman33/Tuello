@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.34.0] - 2026-10-11
+
+    - Export Playwright : test exécutable en CI GitLab
+    - Liste des actions : détails du test et des vérifications en infobulle
+
 ## [1.2.33.0] - 2026-10-09
 
     - Tracker de ressources : corrections et performances
