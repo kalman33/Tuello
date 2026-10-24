@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.35.0] - 2026-10-24
+
+    - Paramètres : sauvegarde et import sélectifs par catégorie
+
 ## [1.2.34.0] - 2026-10-11
 
     - Export Playwright : test exécutable en CI GitLab
