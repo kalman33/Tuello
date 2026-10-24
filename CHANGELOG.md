@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.36.0] - 2026-10-24
+
+    - UI : champs, boutons et dialogs modernisés
+    - Dépendances : mises à jour mineures
+
 ## [1.2.35.0] - 2026-10-24
 
     - Paramètres : sauvegarde et import sélectifs par catégorie
