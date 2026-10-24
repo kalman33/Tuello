@@ -1,0 +1,40 @@
+.all {
+  font-weight: 500;
+}
+
+.categories {
+  display: flex;
+  flex-direction: column;
+  margin-left: 16px;
+}
+
+.category {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.details {
+  display: block;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.size {
+  font-size: 12px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.warning {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.8;
+}

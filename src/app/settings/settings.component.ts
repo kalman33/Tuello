@@ -30,6 +30,8 @@ import { ThemeService } from '../theme/theme.service';
 import { GuideTourService } from '../core/guide-tour/guide-tour.service';
 import { MosaicStorageService } from '../mosaic/services/mosaic-storage.service';
 import { SettingsMenuComponent } from './menus/settings-menu.component';
+import { filterStorageByCategories, StorageCategoryId } from './storage-transfer/storage-categories';
+import { StorageTransferDialogComponent, StorageTransferDialogData } from './storage-transfer/storage-transfer-dialog.component';
 
 export interface StorageStats {
   key: string;
@@ -283,9 +285,24 @@ export class SettingsComponent implements OnInit {
 
   async save() {
     const all = await chrome.storage.local.get();
+    const categories = await this.selectCategories({ mode: 'export', data: all });
+    if (!categories?.length) {
+      return;
+    }
     const value = formatDate(new Date());
-    const txtBlob = new Blob([JSON.stringify(all)], { type: 'text/plain;charset=utf-8' });
+    const txtBlob = new Blob([JSON.stringify(filterStorageByCategories(all, categories))], { type: 'text/plain;charset=utf-8' });
     saveAs(txtBlob, `tuello-global.${value}.json`);
+  }
+
+  /**
+   * Ouvre la sélection des catégories à sauvegarder / importer.
+   */
+  private selectCategories(data: StorageTransferDialogData): Promise<StorageCategoryId[] | undefined> {
+    return new Promise((resolve) => {
+      this.zone.run(() => {
+        this.dialog.open<StorageTransferDialogComponent, StorageTransferDialogData, StorageCategoryId[]>(StorageTransferDialogComponent, { width: '480px', data }).afterClosed().pipe(take(1)).subscribe(resolve);
+      });
+    });
   }
 
   clear() {
@@ -307,25 +324,45 @@ export class SettingsComponent implements OnInit {
   public onChange(fileList: any): void {
     const file = fileList.target.files[0];
     const fileReader: FileReader = new FileReader();
-    fileReader.onloadend = (x) => {
+    fileReader.onloadend = async () => {
       try {
         this.jsonContent = JSON.parse(fileReader.result as string);
-        chrome.storage.local.set(this.jsonContent, () => {
-          this.init();
-          this.configurationService.init();
-          this.zone.run(() => {
-            this.snackBar.open(this.translate.instant('mmn.spy-http.import.message'), this.translate.instant('mmn.recorder-http.export.saveAsLib.information.success.action'), { duration: 2000 });
-          });
-        });
       } catch (e) {
-        this.snackBar.open(this.translate.instant('mmn.settings.import.message'), this.translate.instant('mmn.settings.import.error.action'), { duration: 1000, verticalPosition: 'bottom' });
+        this.showImportError();
+        return;
       }
+      const categories = await this.selectCategories({ mode: 'import', data: this.jsonContent });
+      if (!categories?.length) {
+        return;
+      }
+      chrome.storage.local.set(filterStorageByCategories(this.jsonContent, categories), () => {
+        this.init();
+        this.configurationService.init();
+        this.loadCompressionStats();
+        if (categories.includes('mocks') || categories.includes('config')) {
+          // Reconstruit l'index des mocks (bouchons et profondeur de comparaison)
+          chrome.runtime.sendMessage({ action: 'MMA_RECORDS_CHANGE' }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn('Tuello:', chrome.runtime.lastError.message);
+            }
+          });
+        }
+        this.zone.run(() => {
+          this.snackBar.open(this.translate.instant('mmn.spy-http.import.message'), this.translate.instant('mmn.recorder-http.export.saveAsLib.information.success.action'), { duration: 2000 });
+        });
+      });
     };
-    fileReader.onerror = (event) => {
-      this.snackBar.open(this.translate.instant('mmn.settings.import.message'), this.translate.instant('mmn.settings.import.error.action'), { duration: 1000, verticalPosition: 'bottom' });
+    fileReader.onerror = () => {
+      this.showImportError();
       fileReader.abort();
     };
     fileReader.readAsText(file);
+  }
+
+  private showImportError() {
+    this.zone.run(() => {
+      this.snackBar.open(this.translate.instant('mmn.settings.import.message'), this.translate.instant('mmn.settings.import.error.action'), { duration: 1000, verticalPosition: 'bottom' });
+    });
   }
 
   selectFile() {

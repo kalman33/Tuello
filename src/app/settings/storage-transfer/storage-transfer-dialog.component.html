@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>{{ 'mmn.settings.transfer.' + dialogData.mode + '.title' | translate }}</h2>
+<mat-dialog-content>
+  @if (rows.length === 0) {
+    <p>{{ 'mmn.settings.transfer.empty' | translate }}</p>
+  } @else {
+    <p>{{ 'mmn.settings.transfer.' + dialogData.mode + '.message' | translate }}</p>
+    <mat-checkbox class="all" [checked]="allChecked" [indeterminate]="someChecked && !allChecked" (change)="toggleAll($event.checked)">
+      {{ 'mmn.settings.transfer.all' | translate }}
+    </mat-checkbox>
+    <div class="categories">
+      @for (row of rows; track row.category.id) {
+        <div class="category">
+          <mat-checkbox [checked]="row.checked" (change)="row.checked = $event.checked">
+            <span class="label">
+              <mat-icon color="accent">{{ row.category.icon }}</mat-icon>
+              <span>
+                {{ 'mmn.settings.transfer.category.' + row.category.id | translate }}
+                <span class="details">{{ 'mmn.settings.transfer.category.' + row.category.id + '.description' | translate }}</span>
+              </span>
+            </span>
+          </mat-checkbox>
+          <span class="size">{{ row.size }}</span>
+        </div>
+      }
+    </div>
+    @if (dialogData.mode === 'import') {
+      <p class="warning">{{ 'mmn.settings.transfer.import.warning' | translate }}</p>
+    }
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-flat-button (click)="onCancel()"><mat-icon>cancel</mat-icon>{{ 'mmn.settings.setup.button.clear.cancel' | translate }}</button>
+  <button mat-flat-button color="accent" style="color: white" [disabled]="!someChecked" (click)="onConfirm()">
+    <mat-icon>{{ dialogData.mode === 'export' ? 'save' : 'save_alt' }}</mat-icon>
+    {{ 'mmn.settings.setup.button.' + (dialogData.mode === 'export' ? 'saveAs' : 'import') | translate }}
+  </button>
+</mat-dialog-actions>
