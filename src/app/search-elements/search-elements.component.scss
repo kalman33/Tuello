@@ -42,8 +42,13 @@ mmn-element {
   margin-right: 20px;
 }
 
-mat-form-field {
+.mmn-field {
   padding-right: 10px;
+  box-sizing: border-box;
+}
+
+.search-fields {
+  margin-bottom: 16px;
 }
 
 // Ligne 1 : quoi chercher

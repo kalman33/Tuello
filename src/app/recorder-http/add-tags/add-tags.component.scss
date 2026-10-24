@@ -1,72 +1,75 @@
 .-tab-icon {
-    margin-right: 8px;
-  }
-  
-  .mat-mdc-tab-group {
-    margin-top: 15px;
-  }
-  
-  /* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version. */
-  mat-tab mat-icon {
-    margin-right: 10px;
-  }
-  
-  /* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version. */
-  mat-list {
-    height: auto;
-  }
-  
-  mmn-header {
-    width: 92vh;
-  }
-  cdk-virtual-scroll-viewport {
-    height: 92vh;
-  }
-  
-  
-  :host ::ng-deep cdk-virtual-scroll-viewport .cdk-virtual-scroll-content-wrapper {
-    width: 100%;
-  }
-  
-  .selected {
-    font-weight: bolder;
-    background-color: linen;
-  }
-  
-  .button-row {
-    padding-top: 15px;
-    padding-bottom: 15px;
-  }
-  
-  .button-row button {
-    display: inline-flex;
-    align-items: center; /* Centre verticalement le texte et l'icône */
-    justify-content: center; /* Centre horizontalement le contenu */
-    margin-right: 20px;
-    line-height: 30px;
-  }
-  
-  .button-row mat-slide-toggle {
-    margin-right: 20px;
-  }
-  
-  mat-form-field {
-    padding-top: 15px;
-    padding-right: 10px;
-  }
+  margin-right: 8px;
+}
 
-  #back {
-    margin-top: 0.3em;
-  }
-  
-  .tag-width {
-    width: 40%;
-  }
+.mat-mdc-tab-group {
+  margin-top: 15px;
+}
 
-  .mat-expansion-panel {
-    margin-bottom: 15px !important;
-  }
+/* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version. */
+mat-tab mat-icon {
+  margin-right: 10px;
+}
 
-  #tagPanel input {
-    margin-left: 10px !important;
-  }
+/* TODO(mdc-migration): The following rule targets internal classes of list that may no longer apply for the MDC version. */
+mat-list {
+  height: auto;
+}
+
+mmn-header {
+  width: 92vh;
+}
+cdk-virtual-scroll-viewport {
+  height: 92vh;
+}
+
+:host ::ng-deep cdk-virtual-scroll-viewport .cdk-virtual-scroll-content-wrapper {
+  width: 100%;
+}
+
+.selected {
+  font-weight: bolder;
+  background-color: linen;
+}
+
+.button-row {
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+.button-row button {
+  display: inline-flex;
+  align-items: center; /* Centre verticalement le texte et l'icône */
+  justify-content: center; /* Centre horizontalement le contenu */
+  margin-right: 20px;
+  line-height: 30px;
+}
+
+.button-row mat-slide-toggle {
+  margin-right: 20px;
+}
+
+.mmn-field {
+  padding-top: 12px;
+  padding-right: 10px;
+}
+
+.tags-add-row {
+  margin-bottom: 16px;
+}
+
+#back {
+  margin-top: 0.3em;
+}
+
+.tag-width {
+  width: 40%;
+}
+
+.mat-expansion-panel {
+  margin-bottom: 15px !important;
+}
+
+#tagPanel input {
+  margin-left: 10px !important;
+}

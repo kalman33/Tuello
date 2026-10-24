@@ -463,6 +463,16 @@ mmn-mosaic-tile.cdk-drag-placeholder {
   --mat-button-text-container-shape: 8px;
   --mat-button-tonal-container-shape: 8px;
 
+  /* Libellés des boutons : sans l'espacement de lettres M2 (~1px), qui fait daté */
+  --mat-button-filled-label-text-tracking: 0.01em;
+  --mat-button-protected-label-text-tracking: 0.01em;
+  --mat-button-outlined-label-text-tracking: 0.01em;
+  --mat-button-text-label-text-tracking: 0.01em;
+  --mat-button-outlined-outline-color: rgba(18, 61, 79, 0.28);
+
+  /* Survol des boutons icônes : fond teinté plus lisible que les 4 % de M2 */
+  --mat-icon-button-hover-state-layer-opacity: 0.08;
+
   /* Champs en apparence "outline" : coins arrondis + contour adouci */
   --mat-form-field-outlined-container-shape: 8px;
   --mat-form-field-outlined-outline-color: rgba(18, 61, 79, 0.28);
@@ -481,17 +491,27 @@ mmn-mosaic-tile.cdk-drag-placeholder {
 /* --- Boutons pleins (mat-flat-button) et surelevés (mat-raised-button) --- */
 .mat-mdc-unelevated-button:not(:disabled),
 .mat-mdc-raised-button:not(:disabled) {
-  box-shadow:
-    0 1px 2px rgba(18, 61, 79, 0.16),
-    0 2px 6px rgba(18, 61, 79, 0.12);
+  box-shadow: 0 1px 2px rgba(18, 61, 79, 0.14);
 }
 
 .mat-mdc-unelevated-button:not(:disabled):hover,
 .mat-mdc-raised-button:not(:disabled):hover {
   box-shadow:
-    0 2px 4px rgba(18, 61, 79, 0.2),
-    0 6px 14px rgba(18, 61, 79, 0.18);
+    0 2px 4px rgba(18, 61, 79, 0.14),
+    0 4px 10px rgba(18, 61, 79, 0.14);
   transform: translateY(-1px);
+}
+
+/* --- Boutons pleins sans couleur (Annuler, Fermer…) : bouton secondaire à contour fin --- */
+.mat-mdc-unelevated-button.mat-unthemed:not(:disabled) {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px rgba(18, 61, 79, 0.28);
+}
+
+.mat-mdc-unelevated-button.mat-unthemed:not(:disabled):hover {
+  background-color: rgba(18, 61, 79, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(18, 61, 79, 0.5);
+  transform: none;
 }
 
 .mat-mdc-unelevated-button:not(:disabled):active,
@@ -505,19 +525,22 @@ mmn-mosaic-tile.cdk-drag-placeholder {
   box-shadow: 0 2px 6px rgba(18, 61, 79, 0.14);
 }
 
-/* --- Boutons icônes : pas d'ombre, juste une réaction douce --- */
-.mat-mdc-icon-button:not(:disabled):hover {
-  transform: scale(1.08);
+/* --- Boutons icônes : fond teinté au survol (token), léger enfoncement au clic --- */
+.mat-mdc-icon-button:not(:disabled):active {
+  transform: scale(0.94);
 }
 
-.mat-mdc-icon-button:not(:disabled):active {
-  transform: scale(0.96);
+/* --- Focus clavier : même halo que les champs --- */
+.mat-mdc-button-base:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(31, 88, 108, 0.28);
 }
 
 /* --- Theme sombre : ombres et contours adaptés --- */
 body.black-theme {
   --mat-form-field-outlined-outline-color: rgba(255, 255, 255, 0.32);
   --mat-form-field-outlined-hover-outline-color: rgba(255, 255, 255, 0.66);
+  --mat-button-outlined-outline-color: rgba(255, 255, 255, 0.32);
 
   .mat-mdc-unelevated-button:not(:disabled),
   .mat-mdc-raised-button:not(:disabled) {
@@ -536,6 +559,91 @@ body.black-theme {
   .mat-mdc-outlined-button:not(:disabled):hover {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   }
+
+  .mat-mdc-unelevated-button.mat-unthemed:not(:disabled) {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+  }
+
+  .mat-mdc-unelevated-button.mat-unthemed:not(:disabled):hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  }
+
+  .mat-mdc-button-base:focus-visible {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.24);
+  }
+}
+
+/* ========================================
+   Champs "modernes" (opt-in)
+   Label au-dessus du champ, hauteur compacte, halo au focus.
+   Avec label : <div class="mmn-field"><label class="mmn-field-label">…</label>
+                <mat-form-field subscriptSizing="dynamic">…</mat-form-field></div>
+   Sans label : <mat-form-field class="mmn-field-control" subscriptSizing="dynamic">
+   ======================================== */
+
+@mixin mmn-field-control($focus-color, $halo-color, $background) {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
+  --mat-form-field-container-text-size: 13px;
+  --mat-form-field-container-text-line-height: 24px;
+  --mat-form-field-outlined-focus-outline-width: 1px;
+  --mat-form-field-outlined-focus-outline-color: #{$focus-color};
+
+  .mat-mdc-text-field-wrapper {
+    background-color: $background;
+    border-radius: 8px;
+    transition: box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.mat-focused .mat-mdc-text-field-wrapper {
+    box-shadow: 0 0 0 3px $halo-color;
+  }
+
+  .mat-mdc-form-field-hint-wrapper,
+  .mat-mdc-form-field-error-wrapper {
+    padding: 0 2px;
+  }
+}
+
+.mmn-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  .mmn-field-label {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    color: rgba(0, 0, 0, 0.72);
+  }
+
+  .mat-mdc-form-field {
+    width: 100%;
+  }
+}
+
+.mmn-field .mat-mdc-form-field,
+.mat-mdc-form-field.mmn-field-control {
+  @include mmn-field-control(#1f586c, rgba(31, 88, 108, 0.18), #fff);
+}
+
+body.black-theme {
+  .mmn-field .mmn-field-label {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .mmn-field .mat-mdc-form-field,
+  .mat-mdc-form-field.mmn-field-control {
+    @include mmn-field-control(#fff, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
+  }
+}
+
+/* Bouton icône (48px) à côté d'un champ de 40px aligné par le bas : on le recentre sur le champ */
+.mmn-field-button.mat-mdc-icon-button {
+  margin-bottom: -4px;
 }
 
 /* Champs dont le <mat-label> est vide : pas d'encoche dans le contour */
@@ -561,19 +669,25 @@ body.black-theme .cdk-overlay-dark-backdrop {
 
 /* Panneau des modales : coins arrondis et ombre portée cohérents (tokens Material) */
 :root {
-  --mat-dialog-container-shape: 14px;
+  --mat-dialog-container-shape: 16px;
+  /* Titre : plus gros, plus gras, sans espacement de lettres */
+  --mat-dialog-headline-padding: 20px 24px 8px;
+  --mat-dialog-subhead-size: 18px;
+  --mat-dialog-subhead-weight: 600;
+  --mat-dialog-subhead-line-height: 26px;
+  --mat-dialog-subhead-tracking: 0;
+  /* Contenu : texte un peu plus lisible */
+  --mat-dialog-supporting-text-size: 13px;
+  --mat-dialog-supporting-text-line-height: 20px;
+  --mat-dialog-supporting-text-tracking: 0;
   /* Le theme M2 pose 8px : les boutons se retrouvent colles au bord,
      desalignes du contenu qui, lui, a 24px */
   --mat-dialog-actions-padding: 8px 24px 20px;
-  --mat-dialog-container-elevation-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.22),
-    0 4px 10px rgba(0, 0, 0, 0.12);
+  --mat-dialog-container-elevation-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
 body.black-theme {
-  --mat-dialog-container-elevation-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.65),
-    0 4px 10px rgba(0, 0, 0, 0.45);
+  --mat-dialog-container-elevation-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 4px 10px rgba(0, 0, 0, 0.45);
 }
 
 /* ========================================

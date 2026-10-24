@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatButton, MatButtonModule } from '@angular/material/button';
 import { MatOption } from '@angular/material/core';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
+import { MatFormField, MatHint } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatIcon } from '@angular/material/icon';
 import { MatSelect } from '@angular/material/select';
@@ -61,7 +61,6 @@ export interface StorageStats {
     MatSlideToggle,
     MatFormField,
     MatHint,
-    MatLabel,
     MatInput,
     MatSelect,
     MatOption,

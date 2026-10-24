@@ -19,17 +19,20 @@
               <mat-icon class="info-icon" [matTooltip]="'mmn.settings.general.verbosemode.information' | translate">info_outline</mat-icon>
               <mat-slide-toggle [(ngModel)]="verboseMode" class="darkMode" (change)="toggleVerboseMode(verboseMode)"> </mat-slide-toggle>
             </div>
-            <div class="icon-form-field">
+            <div class="icon-form-field mmn-field-row">
               <mat-icon color="accent">language</mat-icon>
-              <mat-form-field>
-                <mat-select [placeholder]="'mmn.settings.general.placeholder' | translate" [(value)]="selectedLanguage" (selectionChange)="onLanguageSelect($event)" name="language">
-                  @for (l of languages; track l) {
-                    <mat-option [value]="l.value">
-                      {{ 'mmn.settings.general.language.' + l.label | translate }}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <div class="mmn-field">
+                <label class="mmn-field-label" id="language-label">{{ 'mmn.settings.general.placeholder' | translate }}</label>
+                <mat-form-field subscriptSizing="dynamic">
+                  <mat-select aria-labelledby="language-label" [(value)]="selectedLanguage" (selectionChange)="onLanguageSelect($event)" name="language">
+                    @for (l of languages; track l) {
+                      <mat-option [value]="l.value">
+                        {{ 'mmn.settings.general.language.' + l.label | translate }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
             </div>
             <div class="icon-form-field">
               <mat-icon color="accent">gamepad</mat-icon>
@@ -63,13 +66,15 @@
               </mat-slider>
             </div>
             <h2>{{ 'mmn.settings.playwright.title' | translate }}</h2>
-            <div class="icon-form-field">
+            <div class="icon-form-field mmn-field-row">
               <mat-icon color="accent">science</mat-icon>
-              <mat-form-field class="playwright-hosts">
-                <mat-label>{{ 'mmn.settings.playwright.hosts' | translate }}</mat-label>
-                <input matInput name="playwrightLocalHosts" [(ngModel)]="playwrightLocalHosts" (change)="savePlaywrightLocalHosts()" placeholder="local.monapp.fr, dev.local" />
-                <mat-hint>{{ 'mmn.settings.playwright.hosts.hint' | translate }}</mat-hint>
-              </mat-form-field>
+              <div class="mmn-field playwright-hosts">
+                <label class="mmn-field-label" for="playwright-hosts">{{ 'mmn.settings.playwright.hosts' | translate }}</label>
+                <mat-form-field subscriptSizing="dynamic">
+                  <input matInput id="playwright-hosts" name="playwrightLocalHosts" [(ngModel)]="playwrightLocalHosts" (change)="savePlaywrightLocalHosts()" placeholder="local.monapp.fr, dev.local" />
+                  <mat-hint>{{ 'mmn.settings.playwright.hosts.hint' | translate }}</mat-hint>
+                </mat-form-field>
+              </div>
             </div>
           </div>
         </div>

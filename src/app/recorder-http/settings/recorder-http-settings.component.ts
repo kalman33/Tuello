@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { MatDialogActions, MatDialogContent, MatDialogRef, MatDialogTitle } from '@angular/material/dialog';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -13,7 +13,7 @@ import { TranslatePipe } from '@ngx-translate/core';
   templateUrl: './recorder-http-settings.component.html',
   styleUrls: ['./recorder-http-settings.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatDialogTitle, MatDialogContent, MatCheckbox, MatFormField, MatLabel, MatInput, MatDialogActions, MatButton, MatIcon, TranslatePipe]
+  imports: [FormsModule, MatDialogTitle, MatDialogContent, MatCheckbox, MatFormField, MatInput, MatDialogActions, MatButton, MatIcon, TranslatePipe]
 })
 export class RecorderHttpSettingsComponent {
   private cdr = inject(ChangeDetectorRef);

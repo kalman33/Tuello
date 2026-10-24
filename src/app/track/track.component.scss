@@ -24,10 +24,14 @@ mat-list {
   height: 92vh;
 }
 
-mat-form-field {
+.mmn-field {
   padding-right: 10px;
+  box-sizing: border-box;
 }
 
+.track-fields {
+  margin-bottom: 16px;
+}
 
 :host ::ng-deep mat-list mat-list-item span.mat-mdc-list-item-content {
   padding-right: 0px !important;
@@ -64,5 +68,5 @@ mat-form-field {
 }
 
 .plm {
-padding-left: 10px;
+  padding-left: 10px;
 }

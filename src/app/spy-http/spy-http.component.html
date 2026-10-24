@@ -138,7 +138,7 @@
               <span class="shortcut-plus">+</span>
               <kbd class="shortcut-key" [matTooltip]="shiftTooltip">{{ shiftLabel }}</kbd>
               <span class="shortcut-plus">+</span>
-              <mat-form-field class="shortcut-input" subscriptSizing="dynamic">
+              <mat-form-field class="shortcut-input mmn-field-control" subscriptSizing="dynamic">
                 <input [(ngModel)]="screenshot" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #screenshotModel="ngModel" pattern="^[a-zA-Z]" required />
                 @if (screenshotModel.errors?.['required']) {
                   <mat-error>
@@ -191,7 +191,7 @@
                 <span class="shortcut-plus">+</span>
                 <kbd class="shortcut-key" [matTooltip]="shiftTooltip">{{ shiftLabel }}</kbd>
                 <span class="shortcut-plus">+</span>
-                <mat-form-field class="shortcut-input" subscriptSizing="dynamic">
+                <mat-form-field class="shortcut-input mmn-field-control" subscriptSizing="dynamic">
                   <input [(ngModel)]="captureImage" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #captureImageModel="ngModel" pattern="^[a-zA-Z]" required />
                   @if (captureImageModel.errors?.['required']) {
                     <mat-error>
@@ -221,7 +221,7 @@
               <span class="shortcut-plus">+</span>
               <kbd class="shortcut-key" [matTooltip]="shiftTooltip">{{ shiftLabel }}</kbd>
               <span class="shortcut-plus">+</span>
-              <mat-form-field class="shortcut-input" subscriptSizing="dynamic">
+              <mat-form-field class="shortcut-input mmn-field-control" subscriptSizing="dynamic">
                 <input [(ngModel)]="comment" (ngModelChange)="keyboardShortcutChange($event)" matInput type="text" maxlength="1" #commentModel="ngModel" pattern="^[a-zA-Z]" required />
                 @if (commentModel.errors?.['required']) {
                   <mat-error>

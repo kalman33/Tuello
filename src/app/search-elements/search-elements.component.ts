@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { MatOption } from '@angular/material/core';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatList, MatListItem } from '@angular/material/list';
@@ -33,7 +33,7 @@ const PLACEHOLDERS: Record<SearchElementType, string> = {
   templateUrl: './search-elements.component.html',
   styleUrls: ['./search-elements.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatSlideToggle, MatCheckbox, MatFormField, MatLabel, MatInput, MatSelect, MatOption, MatIconButton, MatTooltip, MatIcon, MatList, MatListItem, ElementComponent, TranslatePipe]
+  imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatSlideToggle, MatCheckbox, MatFormField, MatInput, MatSelect, MatOption, MatIconButton, MatTooltip, MatIcon, MatList, MatListItem, ElementComponent, TranslatePipe]
 })
 export class SearchElementsComponent implements OnInit {
   readonly types = SEARCH_ELEMENT_TYPES;

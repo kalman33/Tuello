@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, Input, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { TranslatePipe } from "@ngx-translate/core";
@@ -11,7 +11,7 @@ import { TranslatePipe } from "@ngx-translate/core";
     templateUrl: './settings-menu.component.html',
     styleUrls: ['./settings-menu.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FormsModule, MatIcon, MatFormField, MatLabel, MatInput, MatIconButton, TranslatePipe]
+    imports: [FormsModule, MatIcon, MatFormField, MatInput, MatIconButton, TranslatePipe]
 })
 export class SettingsMenuComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);

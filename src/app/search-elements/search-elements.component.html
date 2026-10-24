@@ -6,42 +6,50 @@
     </div>
 
     <!-- Quoi chercher -->
-    <div fxLayout="row" fxLayoutAlign="start center">
-      <mat-form-field class="search-type">
-        <mat-label>{{ 'mmn.search.type' | translate }}</mat-label>
-        <mat-select [ngModel]="searchType" (ngModelChange)="onTypeChange($event)">
-          @for (type of types; track type) {
-            <mat-option [value]="type">{{ 'mmn.search.type.' + type | translate }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field id="guide-search-input" class="search-name">
-        <mat-label>{{ 'mmn.search.input' | translate }}</mat-label>
-        <input [(ngModel)]="searchData" matInput [placeholder]="placeholder" (keyup.enter)="addElement()" />
-      </mat-form-field>
+    <div class="search-fields" fxLayout="row" fxLayoutAlign="start end">
+      <div class="mmn-field search-type">
+        <label class="mmn-field-label" id="search-type-label">{{ 'mmn.search.type' | translate }}</label>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-select aria-labelledby="search-type-label" [ngModel]="searchType" (ngModelChange)="onTypeChange($event)">
+            @for (type of types; track type) {
+              <mat-option [value]="type">{{ 'mmn.search.type.' + type | translate }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div id="guide-search-input" class="mmn-field search-name">
+        <label class="mmn-field-label" for="search-input">{{ 'mmn.search.input' | translate }}</label>
+        <mat-form-field subscriptSizing="dynamic">
+          <input id="search-input" [(ngModel)]="searchData" matInput [placeholder]="placeholder" (keyup.enter)="addElement()" />
+        </mat-form-field>
+      </div>
     </div>
 
     <!-- Quoi afficher sur les éléments trouvés -->
-    <div fxLayout="row" fxLayoutAlign="start center">
-      <mat-form-field class="search-display">
-        <mat-label>{{ 'mmn.search.display' | translate }}</mat-label>
-        <mat-select [(ngModel)]="displayMode">
-          @for (mode of displayModes; track mode) {
-            <mat-option [value]="mode">
-              @for (key of getDisplayModeLabelKeys(mode, searchType); track key; let last = $last) {
-                {{ key | translate }}{{ last ? '' : ' + ' }}
-              }
-            </mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-      @if (showAttributeField) {
-        <mat-form-field class="search-attribute">
-          <mat-label>{{ 'mmn.search.input.attribute.display' | translate }}</mat-label>
-          <input [(ngModel)]="searchAttributeDisplay" matInput placeholder="Ex. id" (keyup.enter)="addElement()" />
+    <div class="search-fields" fxLayout="row" fxLayoutAlign="start end">
+      <div class="mmn-field search-display">
+        <label class="mmn-field-label" id="search-display-label">{{ 'mmn.search.display' | translate }}</label>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-select aria-labelledby="search-display-label" [(ngModel)]="displayMode">
+            @for (mode of displayModes; track mode) {
+              <mat-option [value]="mode">
+                @for (key of getDisplayModeLabelKeys(mode, searchType); track key; let last = $last) {
+                  {{ key | translate }}{{ last ? '' : ' + ' }}
+                }
+              </mat-option>
+            }
+          </mat-select>
         </mat-form-field>
+      </div>
+      @if (showAttributeField) {
+        <div class="mmn-field search-attribute">
+          <label class="mmn-field-label" for="search-attribute">{{ 'mmn.search.input.attribute.display' | translate }}</label>
+          <mat-form-field subscriptSizing="dynamic">
+            <input id="search-attribute" [(ngModel)]="searchAttributeDisplay" matInput placeholder="Ex. id" (keyup.enter)="addElement()" />
+          </mat-form-field>
+        </div>
       }
-      <button id="guide-search-add" mat-icon-button color="primary" (click)="addElement()" matTooltip="{{ 'mmn.search.input.add.tooltip' | translate }}">
+      <button id="guide-search-add" class="mmn-field-button" mat-icon-button color="primary" (click)="addElement()" matTooltip="{{ 'mmn.search.input.add.tooltip' | translate }}">
         <mat-icon>add_circle_outline</mat-icon>
       </button>
     </div>

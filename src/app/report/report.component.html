@@ -20,19 +20,23 @@
         <li>{{ 'mmn.report.summary.comparisonResults' | translate }} : {{ comparisonCount }}</li>
       </ul>
 
-      <div class="highlight-fields" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="12px">
-        <mat-form-field class="highlight-source">
-          <mat-label>{{ 'mmn.report.http.highlight.label' | translate }}</mat-label>
-          <mat-select [ngModel]="highlightSource" (ngModelChange)="onHighlightSourceChange($event)">
-            <mat-option value="response">{{ 'mmn.report.http.highlight.source.response' | translate }}</mat-option>
-            <mat-option value="header">{{ 'mmn.report.http.highlight.source.header' | translate }}</mat-option>
-            <mat-option value="requestHeader">{{ 'mmn.report.http.highlight.source.requestHeader' | translate }}</mat-option>
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field class="highlight-key">
-          <mat-label>{{ 'mmn.report.http.highlight.placeholder' | translate }}</mat-label>
-          <input matInput [ngModel]="highlightKey" (ngModelChange)="onHighlightKeyChange($event)" />
-        </mat-form-field>
+      <div class="highlight-fields" fxLayout="row" fxLayoutAlign="start end" fxLayoutGap="12px">
+        <div class="mmn-field highlight-source">
+          <label class="mmn-field-label" id="highlight-source-label">{{ 'mmn.report.http.highlight.label' | translate }}</label>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-select aria-labelledby="highlight-source-label" [ngModel]="highlightSource" (ngModelChange)="onHighlightSourceChange($event)">
+              <mat-option value="response">{{ 'mmn.report.http.highlight.source.response' | translate }}</mat-option>
+              <mat-option value="header">{{ 'mmn.report.http.highlight.source.header' | translate }}</mat-option>
+              <mat-option value="requestHeader">{{ 'mmn.report.http.highlight.source.requestHeader' | translate }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div class="mmn-field highlight-key">
+          <label class="mmn-field-label" for="highlight-key">{{ 'mmn.report.http.highlight.placeholder' | translate }}</label>
+          <mat-form-field subscriptSizing="dynamic">
+            <input id="highlight-key" matInput [ngModel]="highlightKey" (ngModelChange)="onHighlightKeyChange($event)" />
+          </mat-form-field>
+        </div>
       </div>
 
       @if (highlightKeyForbidden) {

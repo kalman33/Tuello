@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inje
 import { FormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatList, MatListItem } from '@angular/material/list';
@@ -29,7 +29,7 @@ import { TrackService } from './services/track.service';
     templateUrl: './track.component.html',
     styleUrls: ['./track.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, MatRadioGroup, MatRadioButton, MatFormField, MatLabel, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslatePipe]
+    imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, MatRadioGroup, MatRadioButton, MatFormField, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslatePipe]
 })
 export class TrackComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput: ElementRef;

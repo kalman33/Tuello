@@ -1,9 +1,9 @@
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatButton, MatIconButton } from '@angular/material/button';
+import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatFormField } from '@angular/material/form-field';
+import { MatFormField, MatSuffix } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
@@ -37,7 +37,7 @@ const SAVE_DEBOUNCE_MS = 500;
   styleUrls: ['./recorder-http.component.scss'],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIconButton, MatIcon, MatTooltip, MatSlideToggle, MatFormField, MatSelect, MatOption, TranslatePipe]
+  imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatTooltip, MatSlideToggle, MatFormField, MatSuffix, MatSelect, MatOption, TranslatePipe]
 })
 export class RecorderHttpComponent implements OnInit, OnDestroy {
   constructor(

@@ -1,45 +1,53 @@
 <div class="container">
-    <div fxFlex="99%">
-        <div id="guide-recorder-controls" class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
-            <button mat-flat-button color="primary" (click)="save()">
-                <mat-icon>save</mat-icon>
-                {{ 'mmn.recorder-http.button.saveAs' | translate }}
-            </button>
+  <div fxFlex="99%">
+    <div id="guide-recorder-controls" class="button-row" fxLayout="row" fxLayoutAlign="start center" [ngClass]="routeAnimationsElements">
+      <button mat-flat-button color="primary" (click)="save()">
+        <mat-icon>save</mat-icon>
+        {{ 'mmn.recorder-http.button.saveAs' | translate }}
+      </button>
 
-            <button mat-flat-button color="primary" (click)="selectFile()">
-                <mat-icon>save_alt</mat-icon>
-                {{ 'mmn.recorder-http.button.import' | translate }}
-            </button>
-            <input style="display: none" id="inputImport" #fileInput type="file" (change)="onChange($event)" accept=".json,.js" />
-            <button mat-flat-button color="primary" (click)="effacerEnregistrements()">
-                <mat-icon>delete_outline</mat-icon>
-                {{ 'mmn.recorder-http.button.delete' | translate }}
-            </button>
+      <button mat-flat-button color="primary" (click)="selectFile()">
+        <mat-icon>save_alt</mat-icon>
+        {{ 'mmn.recorder-http.button.import' | translate }}
+      </button>
+      <input style="display: none" id="inputImport" #fileInput type="file" (change)="onChange($event)" accept=".json,.js" />
+      <button mat-flat-button color="primary" (click)="effacerEnregistrements()">
+        <mat-icon>delete_outline</mat-icon>
+        {{ 'mmn.recorder-http.button.delete' | translate }}
+      </button>
 
-            <mat-form-field id="guide-recorder-profiles" class="profile-select">
-                <mat-select [value]="activeProfileId" (selectionChange)="onProfileChange($event.value)">
-                    @for (profile of profiles; track profile.id) {
-                        <mat-option [value]="profile.id">{{ profile.name }}</mat-option>
-                    }
-                </mat-select>
-            </mat-form-field>
-            <button mat-icon-button (click)="openProfilesDialog()" [matTooltip]="'mmn.recorder-http.profiles.manage' | translate">
-                <mat-icon>folder_open</mat-icon>
-            </button>
-        </div>
-        <div class="button-row mtn ptn" fxLayout="row" fxLayoutAlign="start center">
-            <mat-slide-toggle id="guide-recorder-mock" [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>
-            <mat-slide-toggle id="guide-recorder-record" [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
-            <button class="noLabel" mat-button (click)="addTags()" [matTooltip]="'mmn.recorder-http.button.addTags.tooltip' | translate" [attr.aria-label]="'mmn.recorder-http.button.addTags.tooltip' | translate">
-                <mat-icon>favorite_border</mat-icon>
-            </button>
-            <button class="noLabel" mat-button (click)="openSettings()">
-                <mat-icon>settings</mat-icon>
-            </button>
-        </div>
-
-        <div id="guide-recorder-editor">
-            <div id="jsonEditorTree" [class.jse-theme-dark]="isBlackTheme"></div>
-        </div>
+      <mat-form-field id="guide-recorder-profiles" class="profile-select mmn-field-control" subscriptSizing="dynamic">
+        <mat-select [value]="activeProfileId" (selectionChange)="onProfileChange($event.value)">
+          @for (profile of profiles; track profile.id) {
+            <mat-option [value]="profile.id">{{ profile.name }}</mat-option>
+          }
+        </mat-select>
+        <!-- stopPropagation : sinon le clic sur le conteneur du champ ouvre aussi la liste des profils -->
+        <button
+          type="button"
+          class="profile-manage"
+          matIconSuffix
+          (click)="openProfilesDialog(); $event.stopPropagation()"
+          [matTooltip]="'mmn.recorder-http.profiles.manage' | translate"
+          [attr.aria-label]="'mmn.recorder-http.profiles.manage' | translate"
+        >
+          <mat-icon>folder_open</mat-icon>
+        </button>
+      </mat-form-field>
     </div>
+    <div class="button-row mtn ptn" fxLayout="row" fxLayoutAlign="start center">
+      <mat-slide-toggle id="guide-recorder-mock" [checked]="httpMockActivated" [(ngModel)]="httpMockActivated" (change)="toggleHttpMock()">{{ 'mmn.recorder-http.button.mock' | translate }}</mat-slide-toggle>
+      <mat-slide-toggle id="guide-recorder-record" [checked]="httpRecordActivated" [(ngModel)]="httpRecordActivated" (change)="toggleHttpRecord()">{{ 'mmn.recorder-http.button.record' | translate }}</mat-slide-toggle>
+      <button class="noLabel" mat-button (click)="addTags()" [matTooltip]="'mmn.recorder-http.button.addTags.tooltip' | translate" [attr.aria-label]="'mmn.recorder-http.button.addTags.tooltip' | translate">
+        <mat-icon>favorite_border</mat-icon>
+      </button>
+      <button class="noLabel" mat-button (click)="openSettings()">
+        <mat-icon>settings</mat-icon>
+      </button>
+    </div>
+
+    <div id="guide-recorder-editor">
+      <div id="jsonEditorTree" [class.jse-theme-dark]="isBlackTheme"></div>
+    </div>
+  </div>
 </div>

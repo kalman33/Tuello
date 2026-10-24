@@ -19,9 +19,15 @@
   display: inline-flex;
   align-items: center; /* Centre verticalement le texte et l'icône */
   justify-content: center; /* Centre horizontalement le contenu */
-  padding: 0 12px !important;
-  margin-right: 20px;
+  flex-shrink: 0; /* Faute de place, les boutons ne sont pas comprimés : c'est le sélecteur de profil qui rétrécit */
+  padding: 0 16px !important;
+  margin-right: 12px;
   line-height: 30px;
+}
+
+/* Les boutons icônes gardent leur padding Material (icône centrée dans le rond) */
+.button-row > button.mat-mdc-icon-button {
+  padding: 8px !important;
 }
 
 .button-row mat-slide-toggle button {
@@ -37,10 +43,13 @@
 }
 
 // Style du dropdown de profils
-.profile-select {
-  width: 140px;
+// .mat-mdc-form-field : l'emporte sur les tokens globaux de .mmn-field-control (hauteur 36px, alignée sur les boutons)
+.profile-select.mat-mdc-form-field {
+  /* Occupe toute la place restante jusqu'au bord ; rétrécit faute de place (le nom du profil passe en "…") */
+  flex: 1 1 auto;
+  min-width: 120px;
+  width: auto;
   margin-left: 8px;
-  margin-right: 4px;
 
   // Réduire la hauteur du mat-form-field (tokens Material : gère aussi le label flottant)
   --mat-form-field-container-height: 36px;
@@ -56,6 +65,46 @@
 
   .mat-mdc-select-value {
     font-size: 13px;
+  }
+
+  // Bouton "Gérer les profils" : segment collé au bord droit du champ, séparé par un trait fin
+  .mat-mdc-form-field-icon-suffix {
+    align-self: stretch;
+    display: flex;
+    padding: 0;
+    margin-left: 8px;
+  }
+
+  .profile-manage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    /* 1px de retrait : le fond au survol ne recouvre pas le contour du champ */
+    margin: 1px 1px 1px 0;
+    padding: 0;
+    border: none;
+    border-left: 1px solid var(--mat-form-field-outlined-outline-color);
+    border-radius: 0 7px 7px 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background-color: color-mix(in srgb, currentColor 10%, transparent);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, currentColor 40%, transparent);
+    }
+
+    .mat-icon {
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+    }
   }
 }
 
@@ -79,10 +128,8 @@
   }
 }
 
-
-
 #jsonEditorTree div.jsoneditor-frame input {
-	width: 200px;
-  padding: 2px; 
+  width: 200px;
+  padding: 2px;
   font-size: revert;
 }

@@ -10,26 +10,27 @@
     </div>
 
     <div [ngClass]="routeAnimationsElements" fxLayout="column" fxLayout.sm="column" fxLayout.xs="column">
-      <mat-form-field>
-        <mat-label>{{ 'mmn.recorder-http.addTags.input.httpKey' | translate }}</mat-label>
-        <input [(ngModel)]="httpKey" matInput placeholder="Ex. https://my-server/api/*/users" />
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>{{ 'mmn.recorder-http.addTags.input.jsonKey' | translate }}</mat-label>
-        <input [(ngModel)]="jsonKey" matInput placeholder="Ex. key1" />
-      </mat-form-field>
-      <div fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
-        <mat-form-field fxFlex="80%" class="tag-width">
-          <mat-label>{{ 'mmn.recorder-http.addTags.input.display' | translate }}</mat-label>
-          <input [(ngModel)]="display" matInput placeholder="Ex. User id" />
+      <div class="mmn-field">
+        <label class="mmn-field-label" for="tags-http-key">{{ 'mmn.recorder-http.addTags.input.httpKey' | translate }}</label>
+        <mat-form-field subscriptSizing="dynamic">
+          <input id="tags-http-key" [(ngModel)]="httpKey" matInput placeholder="Ex. https://my-server/api/*/users" />
         </mat-form-field>
-        <div fxFlex fxLayoutAlign="end center">
-          <button
-            mat-icon-button
-            color="primary"
-            (click)="addElement()"
-            matTooltip="{{ 'mmn.recorder-http.addTags.add.tooltip' | translate }}"
-            >
+      </div>
+      <div class="mmn-field">
+        <label class="mmn-field-label" for="tags-json-key">{{ 'mmn.recorder-http.addTags.input.jsonKey' | translate }}</label>
+        <mat-form-field subscriptSizing="dynamic">
+          <input id="tags-json-key" [(ngModel)]="jsonKey" matInput placeholder="Ex. key1" />
+        </mat-form-field>
+      </div>
+      <div class="tags-add-row" fxLayout="row" fxLayout.sm="row" fxLayout.xs="row">
+        <div fxFlex="80%" class="mmn-field tag-width">
+          <label class="mmn-field-label" for="tags-display">{{ 'mmn.recorder-http.addTags.input.display' | translate }}</label>
+          <mat-form-field subscriptSizing="dynamic">
+            <input id="tags-display" [(ngModel)]="display" matInput placeholder="Ex. User id" />
+          </mat-form-field>
+        </div>
+        <div fxFlex fxLayoutAlign="end end">
+          <button class="mmn-field-button" mat-icon-button color="primary" (click)="addElement()" matTooltip="{{ 'mmn.recorder-http.addTags.add.tooltip' | translate }}">
             <mat-icon>add_circle_outline</mat-icon>
           </button>
         </div>
@@ -59,7 +60,6 @@
           }
         </mat-accordion>
       }
-
     </div>
   </div>
 </div>

@@ -4,15 +4,17 @@
   @if (dataloaded) {
     <div mat-dialog-content>
       <mat-checkbox [(ngModel)]="overwrite" class="example-margin">{{ 'mmn.recorder-http.settings.input.overwrite' | translate }}</mat-checkbox>
-      <mat-form-field class="settingsForm full-width">
-        <mat-label>{{ 'mmn.recorder-http.settings.input.filter' | translate }}</mat-label>
-        <input [(ngModel)]="filter" matInput placeholder="Ex: *.fr" />
-      </mat-form-field>
+      <div class="mmn-field full-width">
+        <label class="mmn-field-label" for="recorder-filter">{{ 'mmn.recorder-http.settings.input.filter' | translate }}</label>
+        <mat-form-field subscriptSizing="dynamic">
+          <input id="recorder-filter" [(ngModel)]="filter" matInput placeholder="Ex: *.fr" />
+        </mat-form-field>
+      </div>
     </div>
 
     <div mat-dialog-actions align="end">
       <button mat-flat-button (click)="annuler()"><mat-icon>cancel</mat-icon>{{ 'mmn.recorder-http.settings.button.cancel' | translate }}</button>
-      <button cdkFocusInitial mat-flat-button (click)="valider()" class="right"><mat-icon>done</mat-icon>{{ 'mmn.recorder-http.settings.button.ok' | translate }}</button>
+      <button cdkFocusInitial mat-flat-button color="primary" (click)="valider()" class="right"><mat-icon>done</mat-icon>{{ 'mmn.recorder-http.settings.button.ok' | translate }}</button>
     </div>
   }
 </div>

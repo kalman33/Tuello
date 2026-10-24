@@ -12,38 +12,33 @@
       </button>
     </div>
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center">
-      <mat-slide-toggle id="guide-track-toggle" fxFlex="50%" [checked]="trackPlayActivated" [(ngModel)]="trackPlayActivated" (change)="toggleTrackPlay($event)">{{
-        'mmn.track.button.play' | translate
-      }}</mat-slide-toggle>
+      <mat-slide-toggle id="guide-track-toggle" fxFlex="50%" [checked]="trackPlayActivated" [(ngModel)]="trackPlayActivated" (change)="toggleTrackPlay($event)">{{ 'mmn.track.button.play' | translate }}</mat-slide-toggle>
 
       <mat-radio-group [(ngModel)]="trackDataDisplayType" fxFlex="49%" aria-label="Select an option">
         <mat-radio-button value="querystring">Query string</mat-radio-button>
         <mat-radio-button class="plm" value="body">Body</mat-radio-button>
       </mat-radio-group>
     </div>
-    <div fxLayout="row" fxLayoutAlign="start center">
-      <mat-form-field id="guide-track-input" fxFlex="50%" class="track-width">
-        <mat-label>{{ 'mmn.track.input' | translate }}</mat-label>
-        <input [(ngModel)]="trackData" (focusout)="focusOut()" matInput placeholder="Ex. jquery" />
-      </mat-form-field>
+    <div class="track-fields" fxLayout="row" fxLayoutAlign="start end">
+      <div id="guide-track-input" fxFlex="50%" class="mmn-field track-width">
+        <label class="mmn-field-label" for="track-input">{{ 'mmn.track.input' | translate }}</label>
+        <mat-form-field subscriptSizing="dynamic">
+          <input id="track-input" [(ngModel)]="trackData" (focusout)="focusOut()" matInput placeholder="Ex. jquery" />
+        </mat-form-field>
+      </div>
 
-      <mat-form-field fxFlex="49%" class="track-width">
-        <mat-label>{{ 'mmn.track.input.data.display' | translate }}</mat-label>
-        <input [(ngModel)]="trackDataDisplay" matInput placeholder="Ex. name or name, name1" />
-      </mat-form-field>
+      <div fxFlex="49%" class="mmn-field track-width">
+        <label class="mmn-field-label" for="track-data-display">{{ 'mmn.track.input.data.display' | translate }}</label>
+        <mat-form-field subscriptSizing="dynamic">
+          <input id="track-data-display" [(ngModel)]="trackDataDisplay" matInput placeholder="Ex. name or name, name1" />
+        </mat-form-field>
+      </div>
     </div>
     @if (tracks) {
       <mat-list id="guide-track-results" [selectTrack]="selectedTrackId">
         @for (track of tracks; track track.id; let i = $index) {
           <mat-list-item [class.selected]="isSelected(track)">
-            <mmn-track-detail
-              [id]="'list-' + track.id"
-              [index]="i"
-              [track]="track"
-              [dataDisplay]="_trackDataDisplay"
-              [dataDisplayType]="_trackDataDisplayType"
-              class="animated lightSpeedIn"
-            ></mmn-track-detail>
+            <mmn-track-detail [id]="'list-' + track.id" [index]="i" [track]="track" [dataDisplay]="_trackDataDisplay" [dataDisplayType]="_trackDataDisplayType" class="animated lightSpeedIn"></mmn-track-detail>
           </mat-list-item>
         }
       </mat-list>
