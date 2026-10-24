@@ -455,6 +455,61 @@ mmn-mosaic-tile.cdk-drag-placeholder {
    (purement visuel : aucun impact sur les gabarits)
    ======================================== */
 
+/* ----------------------------------------
+   Couleurs de l'habillage : définies une seule fois par thème.
+   Les règles ci-dessous n'utilisent que ces variables (pas de doublon clair/sombre).
+   ---------------------------------------- */
+
+:root {
+  --mmn-primary: #1f586c;
+  --mmn-outline: rgba(18, 61, 79, 0.28);
+  --mmn-outline-hover: rgba(18, 61, 79, 0.6);
+  --mmn-outline-strong: rgba(18, 61, 79, 0.5);
+  --mmn-hover-bg: rgba(18, 61, 79, 0.06);
+  --mmn-focus-ring: rgba(31, 88, 108, 0.28);
+  --mmn-field-halo: rgba(31, 88, 108, 0.18);
+  --mmn-field-bg: #fff;
+  --mmn-label: rgba(0, 0, 0, 0.72);
+  --mmn-backdrop: rgba(18, 61, 79, 0.32);
+  --mmn-scrim: rgba(18, 61, 79, 0.45);
+  --mmn-shadow-raised: 0 1px 2px rgba(18, 61, 79, 0.14);
+  --mmn-shadow-raised-hover: 0 2px 4px rgba(18, 61, 79, 0.14), 0 4px 10px rgba(18, 61, 79, 0.14);
+  --mmn-shadow-pressed: 0 1px 2px rgba(18, 61, 79, 0.24);
+  --mmn-shadow-outlined-hover: 0 2px 6px rgba(18, 61, 79, 0.14);
+  --mmn-shadow-dialog: 0 12px 32px rgba(0, 0, 0, 0.22), 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+body.black-theme {
+  --mmn-primary: #fff;
+  --mmn-outline: rgba(255, 255, 255, 0.32);
+  --mmn-outline-hover: rgba(255, 255, 255, 0.66);
+  --mmn-outline-strong: rgba(255, 255, 255, 0.6);
+  --mmn-hover-bg: rgba(255, 255, 255, 0.06);
+  --mmn-focus-ring: rgba(255, 255, 255, 0.24);
+  --mmn-field-halo: rgba(255, 255, 255, 0.16);
+  --mmn-field-bg: rgba(255, 255, 255, 0.04);
+  --mmn-label: rgba(255, 255, 255, 0.75);
+  --mmn-backdrop: rgba(6, 22, 30, 0.62);
+  /* Le theme sombre Material pose ici un voile BLANC a 60% : laiteux et delave */
+  --mmn-scrim: rgba(6, 22, 30, 0.62);
+  --mmn-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.38);
+  --mmn-shadow-raised-hover: 0 2px 4px rgba(0, 0, 0, 0.55), 0 6px 14px rgba(0, 0, 0, 0.45);
+  --mmn-shadow-outlined-hover: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --mmn-shadow-dialog: 0 12px 32px rgba(0, 0, 0, 0.65), 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* Tokens Material de couleur branchés sur nos variables.
+   Sur body (et pas :root) pour que var(--mmn-*) soit résolu avec les valeurs du thème sombre,
+   et body.black-theme pour l'emporter sur .black-theme (couleurs du thème sombre Material). */
+body,
+body.black-theme {
+  --mat-button-outlined-outline-color: var(--mmn-outline);
+  --mat-form-field-outlined-outline-color: var(--mmn-outline);
+  --mat-form-field-outlined-hover-outline-color: var(--mmn-outline-hover);
+  --mat-dialog-container-elevation-shadow: var(--mmn-shadow-dialog);
+  --mat-sidenav-scrim-color: var(--mmn-scrim);
+}
+
 :root {
   /* Coins arrondis des boutons */
   --mat-button-filled-container-shape: 8px;
@@ -468,15 +523,12 @@ mmn-mosaic-tile.cdk-drag-placeholder {
   --mat-button-protected-label-text-tracking: 0.01em;
   --mat-button-outlined-label-text-tracking: 0.01em;
   --mat-button-text-label-text-tracking: 0.01em;
-  --mat-button-outlined-outline-color: rgba(18, 61, 79, 0.28);
 
   /* Survol des boutons icônes : fond teinté plus lisible que les 4 % de M2 */
   --mat-icon-button-hover-state-layer-opacity: 0.08;
 
-  /* Champs en apparence "outline" : coins arrondis + contour adouci */
+  /* Champs en apparence "outline" : coins arrondis */
   --mat-form-field-outlined-container-shape: 8px;
-  --mat-form-field-outlined-outline-color: rgba(18, 61, 79, 0.28);
-  --mat-form-field-outlined-hover-outline-color: rgba(18, 61, 79, 0.6);
   --mat-form-field-outlined-focus-outline-width: 2px;
 }
 
@@ -491,38 +543,36 @@ mmn-mosaic-tile.cdk-drag-placeholder {
 /* --- Boutons pleins (mat-flat-button) et surelevés (mat-raised-button) --- */
 .mat-mdc-unelevated-button:not(:disabled),
 .mat-mdc-raised-button:not(:disabled) {
-  box-shadow: 0 1px 2px rgba(18, 61, 79, 0.14);
+  box-shadow: var(--mmn-shadow-raised);
 }
 
 .mat-mdc-unelevated-button:not(:disabled):hover,
 .mat-mdc-raised-button:not(:disabled):hover {
-  box-shadow:
-    0 2px 4px rgba(18, 61, 79, 0.14),
-    0 4px 10px rgba(18, 61, 79, 0.14);
+  box-shadow: var(--mmn-shadow-raised-hover);
   transform: translateY(-1px);
 }
 
 /* --- Boutons pleins sans couleur (Annuler, Fermer…) : bouton secondaire à contour fin --- */
 .mat-mdc-unelevated-button.mat-unthemed:not(:disabled) {
   background-color: transparent;
-  box-shadow: inset 0 0 0 1px rgba(18, 61, 79, 0.28);
+  box-shadow: inset 0 0 0 1px var(--mmn-outline);
 }
 
 .mat-mdc-unelevated-button.mat-unthemed:not(:disabled):hover {
-  background-color: rgba(18, 61, 79, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(18, 61, 79, 0.5);
+  background-color: var(--mmn-hover-bg);
+  box-shadow: inset 0 0 0 1px var(--mmn-outline-strong);
   transform: none;
 }
 
 .mat-mdc-unelevated-button:not(:disabled):active,
 .mat-mdc-raised-button:not(:disabled):active {
   transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(18, 61, 79, 0.24);
+  box-shadow: var(--mmn-shadow-pressed);
 }
 
 /* --- Boutons contour et texte --- */
 .mat-mdc-outlined-button:not(:disabled):hover {
-  box-shadow: 0 2px 6px rgba(18, 61, 79, 0.14);
+  box-shadow: var(--mmn-shadow-outlined-hover);
 }
 
 /* --- Boutons icônes : fond teinté au survol (token), léger enfoncement au clic --- */
@@ -533,46 +583,7 @@ mmn-mosaic-tile.cdk-drag-placeholder {
 /* --- Focus clavier : même halo que les champs --- */
 .mat-mdc-button-base:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(31, 88, 108, 0.28);
-}
-
-/* --- Theme sombre : ombres et contours adaptés --- */
-body.black-theme {
-  --mat-form-field-outlined-outline-color: rgba(255, 255, 255, 0.32);
-  --mat-form-field-outlined-hover-outline-color: rgba(255, 255, 255, 0.66);
-  --mat-button-outlined-outline-color: rgba(255, 255, 255, 0.32);
-
-  .mat-mdc-unelevated-button:not(:disabled),
-  .mat-mdc-raised-button:not(:disabled) {
-    box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.5),
-      0 2px 6px rgba(0, 0, 0, 0.38);
-  }
-
-  .mat-mdc-unelevated-button:not(:disabled):hover,
-  .mat-mdc-raised-button:not(:disabled):hover {
-    box-shadow:
-      0 2px 4px rgba(0, 0, 0, 0.55),
-      0 6px 14px rgba(0, 0, 0, 0.45);
-  }
-
-  .mat-mdc-outlined-button:not(:disabled):hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-  }
-
-  .mat-mdc-unelevated-button.mat-unthemed:not(:disabled) {
-    background-color: transparent;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
-  }
-
-  .mat-mdc-unelevated-button.mat-unthemed:not(:disabled):hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
-  }
-
-  .mat-mdc-button-base:focus-visible {
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.24);
-  }
+  box-shadow: 0 0 0 3px var(--mmn-focus-ring);
 }
 
 /* ========================================
@@ -582,30 +593,6 @@ body.black-theme {
                 <mat-form-field subscriptSizing="dynamic">…</mat-form-field></div>
    Sans label : <mat-form-field class="mmn-field-control" subscriptSizing="dynamic">
    ======================================== */
-
-@mixin mmn-field-control($focus-color, $halo-color, $background) {
-  --mat-form-field-container-height: 40px;
-  --mat-form-field-container-vertical-padding: 8px;
-  --mat-form-field-container-text-size: 13px;
-  --mat-form-field-container-text-line-height: 24px;
-  --mat-form-field-outlined-focus-outline-width: 1px;
-  --mat-form-field-outlined-focus-outline-color: #{$focus-color};
-
-  .mat-mdc-text-field-wrapper {
-    background-color: $background;
-    border-radius: 8px;
-    transition: box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  &.mat-focused .mat-mdc-text-field-wrapper {
-    box-shadow: 0 0 0 3px $halo-color;
-  }
-
-  .mat-mdc-form-field-hint-wrapper,
-  .mat-mdc-form-field-error-wrapper {
-    padding: 0 2px;
-  }
-}
 
 .mmn-field {
   display: flex;
@@ -617,7 +604,7 @@ body.black-theme {
     font-size: 12px;
     font-weight: 500;
     line-height: 18px;
-    color: rgba(0, 0, 0, 0.72);
+    color: var(--mmn-label);
   }
 
   .mat-mdc-form-field {
@@ -627,17 +614,26 @@ body.black-theme {
 
 .mmn-field .mat-mdc-form-field,
 .mat-mdc-form-field.mmn-field-control {
-  @include mmn-field-control(#1f586c, rgba(31, 88, 108, 0.18), #fff);
-}
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
+  --mat-form-field-container-text-size: 13px;
+  --mat-form-field-container-text-line-height: 24px;
+  --mat-form-field-outlined-focus-outline-width: 1px;
+  --mat-form-field-outlined-focus-outline-color: var(--mmn-primary);
 
-body.black-theme {
-  .mmn-field .mmn-field-label {
-    color: rgba(255, 255, 255, 0.75);
+  .mat-mdc-text-field-wrapper {
+    background-color: var(--mmn-field-bg);
+    border-radius: 8px;
+    transition: box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .mmn-field .mat-mdc-form-field,
-  .mat-mdc-form-field.mmn-field-control {
-    @include mmn-field-control(#fff, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
+  &.mat-focused .mat-mdc-text-field-wrapper {
+    box-shadow: 0 0 0 3px var(--mmn-field-halo);
+  }
+
+  .mat-mdc-form-field-hint-wrapper,
+  .mat-mdc-form-field-error-wrapper {
+    padding: 0 2px;
   }
 }
 
@@ -656,18 +652,17 @@ body.black-theme {
    ======================================== */
 
 .cdk-overlay-dark-backdrop {
-  background: rgba(18, 61, 79, 0.32);
+  background: var(--mmn-backdrop);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
 
 body.black-theme .cdk-overlay-dark-backdrop {
-  background: rgba(6, 22, 30, 0.62);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
 }
 
-/* Panneau des modales : coins arrondis et ombre portée cohérents (tokens Material) */
+/* Panneau des modales : coins arrondis (l'ombre portée est branchée plus haut sur --mmn-shadow-dialog) */
 :root {
   --mat-dialog-container-shape: 16px;
   /* Titre : plus gros, plus gras, sans espacement de lettres */
@@ -683,25 +678,12 @@ body.black-theme .cdk-overlay-dark-backdrop {
   /* Le theme M2 pose 8px : les boutons se retrouvent colles au bord,
      desalignes du contenu qui, lui, a 24px */
   --mat-dialog-actions-padding: 8px 24px 20px;
-  --mat-dialog-container-elevation-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), 0 4px 10px rgba(0, 0, 0, 0.12);
-}
-
-body.black-theme {
-  --mat-dialog-container-elevation-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 4px 10px rgba(0, 0, 0, 0.45);
 }
 
 /* ========================================
    Voile de fond du menu de navigation (mat-sidenav en mode "over")
+   La couleur est branchée plus haut sur --mmn-scrim.
    ======================================== */
-
-:root {
-  --mat-sidenav-scrim-color: rgba(18, 61, 79, 0.45);
-}
-
-body.black-theme {
-  /* Le theme sombre Material pose ici un voile BLANC a 60% : laiteux et delave */
-  --mat-sidenav-scrim-color: rgba(6, 22, 30, 0.62);
-}
 
 .mat-drawer-backdrop.mat-drawer-shown {
   backdrop-filter: blur(4px);

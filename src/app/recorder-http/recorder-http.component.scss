@@ -84,7 +84,7 @@
     margin: 1px 1px 1px 0;
     padding: 0;
     border: none;
-    border-left: 1px solid var(--mat-form-field-outlined-outline-color);
+    border-left: 1px solid var(--mmn-outline);
     border-radius: 0 7px 7px 0;
     background: transparent;
     color: inherit;
@@ -115,15 +115,15 @@
     font-size: 13px;
 
     &:hover:not(.mdc-list-item--disabled) {
-      background-color: rgba(var(--mat-sys-primary), 0.08) !important;
+      background-color: color-mix(in srgb, var(--mmn-primary) 8%, transparent) !important;
     }
 
     &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
-      background-color: rgba(var(--mat-sys-primary), 0.12) !important;
+      background-color: color-mix(in srgb, var(--mmn-primary) 12%, transparent) !important;
     }
 
     &.mat-mdc-option-active {
-      background-color: rgba(var(--mat-sys-primary), 0.08) !important;
+      background-color: color-mix(in srgb, var(--mmn-primary) 8%, transparent) !important;
     }
   }
 }
