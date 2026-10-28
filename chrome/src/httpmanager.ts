@@ -76,6 +76,7 @@ const MESSAGE_TYPES = {
   RECORD_HTTP_ACTIVATED: 'RECORD_HTTP_ACTIVATED',
   RECORD_HTTP_CALL_FOR_TAGS: 'RECORD_HTTP_CALL_FOR_TAGS',
   MOCK_HTTP_TUELLO_RECORDS: 'MOCK_HTTP_TUELLO_RECORDS',
+  MOCK_HTTP_PENDING: 'MOCK_HTTP_PENDING',
   RECORD_CONSOLE_LOG_ACTIVATED: 'RECORD_CONSOLE_LOG_ACTIVATED',
   AUTO_SCREENSHOT_ON_HTTP_ACTIVATED: 'AUTO_SCREENSHOT_ON_HTTP_ACTIVATED',
   VERBOSE_MODE: 'TUELLO_VERBOSE_MODE'
@@ -1732,6 +1733,14 @@ window.addEventListener(
         }
         break;
 
+      case MESSAGE_TYPES.MOCK_HTTP_PENDING:
+        // Rejeu Spy : ses réponses enregistrées arrivent juste après (lecture asynchrone
+        // du storage). D'ici là, les requêtes sont retenues au lieu de partir au serveur ;
+        // le content script envoie toujours ensuite MOCK_HTTP_ACTIVATED, qui les libère.
+        mockUserActivated = true;
+        tuelloRecordsReady = false;
+        manager.activateInterceptor(INTERCEPTOR_NAMES.HTTP_MOCK);
+        break;
       case MESSAGE_TYPES.MOCK_HTTP_TUELLO_RECORDS:
         deepMockLevel = data.deepMockLevel || 0;
         try {

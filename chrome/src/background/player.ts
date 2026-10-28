@@ -27,6 +27,14 @@ const MAX_COMMENT_DISPLAY_MS = 10000;
 const FAST_REPLAY_MIN_DELAY_MS = 250;
 
 /**
+ * Attente supplémentaire de la cible, une fois le délai enregistré écoulé. Une page plus
+ * lente qu'à l'enregistrement (premier chargement sans cache, appels HTTP non bouchonnés)
+ * n'a pas toujours affiché le bouton à temps : le clic partait dans le vide et le rejeu
+ * suivant, page en cache, réussissait. Une cible déjà affichée ne retarde rien.
+ */
+const TARGET_GRACE_MS = 5000;
+
+/**
  * Actions après lesquelles une navigation complète peut suivre. Le player se met en
  * pause sur onBeforeNavigate : si celle-ci démarre après coup (submit lent), une action
  * accélérée serait déjà partie dans l'ancienne page et perdue à son déchargement.
@@ -175,8 +183,14 @@ export class Player {
   private onFinished?: () => void;
   /** Réglage « Rejeu accéléré », lu à la création du player */
   private fastReplay = false;
-  /** Attente maximale de la cible transmise avec la prochaine action, quand elle est accélérée */
+  /** Attente maximale de la cible transmise avec la prochaine action */
   private nextMaxWaitMs: number | undefined;
+  /** L'attente de la prochaine action suit son délai enregistré (et non un rejeu accéléré) */
+  private nextWaitIsGrace = false;
+  /** Une action est partie vers la page et n'a pas encore répondu */
+  private actionInFlight = false;
+  /** Une navigation a démarré pendant l'action en cours : la page qui l'exécutait a disparu */
+  private interruptedByNavigation = false;
   /** Début du rejeu, pour la durée affichée par le panneau à la fin */
   private startedAt = Date.now();
   /** Rejeu sans retour visuel de Tuello (scénario lancé depuis la mosaïque) */
@@ -230,12 +244,35 @@ export class Player {
     }
   }
 
+  /**
+   * Pause demandée par le début d'une navigation de l'onglet rejoué. Une action en cours
+   * à ce moment-là est perdue avec sa page : treatAction la rejoue à la reprise.
+   */
+  pauseForNavigation(): void {
+    if (this.actionInFlight) {
+      this.interruptedByNavigation = true;
+    }
+    this.launchAction('PAUSE');
+  }
+
+  /** Attente de la cible après le délai enregistré, pour les actions qui savent la reconnaître */
+  private setGraceWait(action: Action | undefined): void {
+    this.nextWaitIsGrace = true;
+    this.nextMaxWaitMs = action && !notAccelerableReason(action) ? TARGET_GRACE_MS : undefined;
+  }
+
   private startTimeout(): void {
-    if (this.isDestroyed) return;
+    // Une action encore en cours planifiera elle-même la suite : un second minuteur
+    // ferait partir deux actions et en sauterait une.
+    if (this.isDestroyed || this.actionInFlight) return;
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+    }
 
     // Reprise (lancement, fin de navigation, PLAY après PAUSE) : toujours le délai enregistré
-    this.nextMaxWaitMs = undefined;
     const currentAction = this.initialActions[this.count];
+    this.setGraceWait(currentAction);
     if (currentAction && this.count > 0) {
       this.logFastReplay(`${this.describeAction(this.count)} : délai enregistré conservé (${currentAction.delay} ms), reprise après une navigation ou une pause`);
     }
@@ -253,6 +290,7 @@ export class Player {
 
     const userAction = action.value?.userAction ?? null;
     const maxWaitMs = this.nextMaxWaitMs;
+    const graceWait = this.nextWaitIsGrace;
     this.nextMaxWaitMs = undefined;
 
     if (action.done) {
@@ -260,6 +298,9 @@ export class Player {
       this.sendResults();
       return;
     }
+
+    this.actionInFlight = true;
+    this.interruptedByNavigation = false;
 
     let actionSuccess = true;
     let actionError: string | undefined;
@@ -279,12 +320,30 @@ export class Player {
         // dans handleUserAction sans userAction et le rejeu échouait sur cette étape.
         actionSuccess = true;
       } else {
-        actionSuccess = await this.handleUserAction(userAction, maxWaitMs);
+        actionSuccess = await this.handleUserAction(userAction, maxWaitMs, graceWait);
       }
     } catch (error) {
       actionSuccess = false;
       actionError = error instanceof Error ? error.message : String(error);
       console.warn(`Erreur action ${action.value.actionType}:`, error);
+    }
+    this.actionInFlight = false;
+
+    if (this.isDestroyed) return;
+
+    // La page a été déchargée avant d'avoir joué l'action (clic parti pendant un
+    // chargement, attente de cible coupée par une navigation) : on la rejoue dans la
+    // nouvelle page au lieu de passer à la suivante.
+    if (this.interruptedByNavigation && !actionSuccess && action.value.actionType !== ActionType.NAVIGATE) {
+      this.interruptedByNavigation = false;
+      this.count = currentIndex;
+      this.yieldActions = this.iterateGenerator(this.initialActions.slice(currentIndex));
+      console.warn(`Tuello: ${this.describeAction(currentIndex)} interrompue par une navigation, rejouée sur la nouvelle page`);
+      if (!this.pauseCurrentAction) {
+        // La navigation est déjà terminée : sa reprise a été ignorée tant que l'action tournait
+        this.startTimeout();
+      }
+      return;
     }
 
     // Enregistrer le résultat de l'action
@@ -419,7 +478,7 @@ export class Player {
     });
   }
 
-  private async handleUserAction(userAction: UserAction, maxWaitMs?: number): Promise<boolean> {
+  private async handleUserAction(userAction: UserAction, maxWaitMs?: number, graceWait = false): Promise<boolean> {
     let options: chrome.tabs.MessageSendOptions = { frameId: 0 };
 
     // Déterminer l'iframe cible
@@ -433,7 +492,7 @@ export class Player {
       }
     }
 
-    const played = await this.sendMessageToContent(userAction, options, maxWaitMs);
+    const played = await this.sendMessageToContent(userAction, options, maxWaitMs, graceWait);
     if (played) {
       return true;
     }
@@ -484,13 +543,15 @@ export class Player {
     if (this.fastReplay && nextAction) {
       const refusal = fastReplayRefusal(currentAction, nextAction, delay);
       if (!refusal) {
-        this.nextMaxWaitMs = delay - FAST_REPLAY_MIN_DELAY_MS;
+        this.nextMaxWaitMs = delay - FAST_REPLAY_MIN_DELAY_MS + TARGET_GRACE_MS;
+        this.nextWaitIsGrace = false;
         this.timeoutId = setTimeout(() => this.treatAction(), FAST_REPLAY_MIN_DELAY_MS);
         return;
       }
       this.logFastReplay(`${this.describeAction(this.count)} : délai enregistré conservé (${delay} ms), ${refusal}`);
     }
 
+    this.setGraceWait(nextAction);
     this.timeoutId = setTimeout(() => this.treatAction(), delay);
   }
 
@@ -523,6 +584,7 @@ export class Player {
         this.count = 0;
         this.comparisonResults = [];
         this.nextMaxWaitMs = undefined;
+        this.interruptedByNavigation = false;
         this.startedAt = Date.now();
         if (this.timeoutId) {
           clearTimeout(this.timeoutId);
@@ -563,7 +625,7 @@ export class Player {
     return true;
   }
 
-  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions, maxWaitMs?: number): Promise<boolean> {
+  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions, maxWaitMs?: number, graceWait = false): Promise<boolean> {
     return new Promise((resolve) => {
       // Créer un timeout pour éviter de bloquer indéfiniment. L'attente de la cible
       // (rejeu accéléré) s'y ajoute : un délai enregistré long ferait sinon échouer l'action.
@@ -624,7 +686,8 @@ export class Player {
             {
               action: 'PLAY_USER_ACTION',
               value: userAction,
-              maxWaitMs
+              maxWaitMs,
+              graceWait
             },
             options,
             (response: any) => {

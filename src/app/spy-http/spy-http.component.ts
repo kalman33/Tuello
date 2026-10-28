@@ -334,7 +334,12 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     if (!record || !this.actions?.length) {
       return;
     }
-    const data: SaveScenarioDialogData = { existingNames: this.scenarios.map((s) => s.name) };
+    // Scénario chargé puis modifié : on propose de l'écraser, sinon le recharger plus
+    // tard ramenait sa version d'origine
+    const data: SaveScenarioDialogData = {
+      name: this.scenarios.find((s) => s.id === record.scenarioId)?.name,
+      existingNames: this.scenarios.map((s) => s.name)
+    };
     this.dialog
       .open(SaveScenarioDialogComponent, { data })
       .afterClosed()
@@ -346,7 +351,9 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
         // Le record en mémoire peut être en retard sur les modifications faites
         // dans la liste (drag & drop, suppressions) : on repart des actions affichées.
         record.actions = this.actions;
-        await this.scenarioStorageService.saveFromRecord(name, record);
+        const scenario = await this.scenarioStorageService.saveFromRecord(name, record);
+        record.scenarioId = scenario.id;
+        this.recorderHistoryService.saveUiRecordToLocalStorage();
         this.snackBar.open(this.translate.instant('mmn.spy-http.scenario.saved', { name }), null, { duration: 2000 });
       });
   }
@@ -393,7 +400,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   loadScenario(scenario: Scenario) {
     this.playerService.comparisonResults = null;
     this.clearPlayDuration();
-    this.recorderHistoryService.importScenario(scenario.actions, scenario.windowSize);
+    this.recorderHistoryService.importScenario(scenario.actions, scenario.windowSize, scenario.id);
     this.actions = this.recorderHistoryService.record.actions;
     this.jsonContent = JSON.stringify(this.recorderHistoryService.record);
     this.tabGrp.selectedIndex = 0;
@@ -435,11 +442,14 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     }
   }
 
-  public startPlaying() {
+  public async startPlaying() {
     this.playerService.comparisonResults = null;
     this.clearPlayDuration();
     this.spyActif = false;
     this.playing = true;
+
+    // Avant tout message : la première page du rejeu doit trouver ces réponses en storage
+    const httpRecords = await this.recorderHistoryService.preparePlayHttpRecords();
 
     // permet de demander de scroller en 0,0 sur toutes les iframes
     chrome.runtime.sendMessage(
@@ -461,8 +471,8 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     chrome.runtime.sendMessage(
       {
         action: 'MOCK_HTTP_USER_ACTION',
-        value: true,
-        data: this.recorderHistoryService.record?.httpRecords
+        value: httpRecords.length > 0,
+        data: httpRecords
       },
       () => {}
     );

@@ -24,6 +24,26 @@ let dockedLeft = false;
 let verboseMode: boolean | undefined;
 
 /**
+ * Drapeau du localStorage de la page : un rejeu Spy est en cours. Il est lu de façon
+ * synchrone au chargement, pour retenir les premières requêtes de la page le temps de
+ * lire (de façon asynchrone) les réponses HTTP de l'enregistrement.
+ */
+const PLAY_HTTP_MOCK_KEY = 'TUELLO_PLAY_HTTP_MOCK';
+/** Clé du storage où le panneau dépose les réponses HTTP de l'enregistrement rejoué */
+const PLAY_HTTP_RECORDS_KEY = 'uiPlayHttpRecords';
+
+/**
+ * Rejeu Spy en cours : la page reçoit les réponses HTTP enregistrées avec les actions, et
+ * non les mocks de « Enregistrer & rejouer HTTP », qui ne doivent pas les écraser.
+ */
+let playHttpMock = false;
+try {
+  playHttpMock = localStorage.getItem(PLAY_HTTP_MOCK_KEY) === 'true';
+} catch {
+  // Ignorer les erreurs localStorage (peut échouer en contexte cross-origin)
+}
+
+/**
  * Applique la position du dock (gauche ou droite)
  */
 function applyDockPosition(iframe: HTMLIFrameElement, isVisible: boolean) {
@@ -108,36 +128,41 @@ function safeParseJson<T>(jsonString: string, validator?: (data: unknown) => dat
 // Récupération des données du localStorage
 // Si httpMock était actif lors de la dernière session, on envoie MOCK_HTTP_ACTIVATED
 // immédiatement (synchrone) pour éviter la race condition avec les requêtes XHR au démarrage.
-try {
-  const jsonData = localStorage.getItem('TUELLO_RECORDS');
-  const httpMockActive = localStorage.getItem('TUELLO_HTTP_MOCK') === 'true';
-  if (jsonData && httpMockActive) {
-    const parsed = safeParseJson(jsonData, validateTuelloRecords);
-    if (parsed) {
-      window.postMessage(
-        {
-          ...parsed,
-          type: 'MOCK_HTTP_ACTIVATED',
-          value: true
-        },
-        '*'
-      );
+// Pendant un rejeu Spy, ce sont ses propres réponses qui s'appliquent (voir restorePlayHttpMock).
+if (playHttpMock) {
+  window.postMessage({ type: 'MOCK_HTTP_PENDING' }, '*');
+} else {
+  try {
+    const jsonData = localStorage.getItem('TUELLO_RECORDS');
+    const httpMockActive = localStorage.getItem('TUELLO_HTTP_MOCK') === 'true';
+    if (jsonData && httpMockActive) {
+      const parsed = safeParseJson(jsonData, validateTuelloRecords);
+      if (parsed) {
+        window.postMessage(
+          {
+            ...parsed,
+            type: 'MOCK_HTTP_ACTIVATED',
+            value: true
+          },
+          '*'
+        );
+      }
+    } else if (jsonData) {
+      const parsed = safeParseJson(jsonData, validateTuelloRecords);
+      if (parsed) {
+        window.postMessage(
+          {
+            ...parsed,
+            type: 'MOCK_HTTP_TUELLO_RECORDS',
+            value: true
+          },
+          '*'
+        );
+      }
     }
-  } else if (jsonData) {
-    const parsed = safeParseJson(jsonData, validateTuelloRecords);
-    if (parsed) {
-      window.postMessage(
-        {
-          ...parsed,
-          type: 'MOCK_HTTP_TUELLO_RECORDS',
-          value: true
-        },
-        '*'
-      );
-    }
+  } catch (error) {
+    // Ignorer les erreurs localStorage (peut échouer en contexte cross-origin)
   }
-} catch (error) {
-  // Ignorer les erreurs localStorage (peut échouer en contexte cross-origin)
 }
 
 /**
@@ -158,6 +183,76 @@ function cacheTuelloRecords(tuelloRecords: unknown, deepMockLevel: number): void
   }
 }
 
+/** Rejeu Spy : sert à la page les réponses HTTP de l'enregistrement */
+function enablePlayHttpMock(records: unknown[], deepMockLevel: number): void {
+  playHttpMock = true;
+  try {
+    localStorage.setItem(PLAY_HTTP_MOCK_KEY, 'true');
+  } catch {
+    // Ignorer les erreurs localStorage
+  }
+  window.postMessage({ type: 'MOCK_HTTP_ACTIVATED', value: true, tuelloRecords: records, deepMockLevel }, '*');
+}
+
+/**
+ * Fin du rejeu Spy : la page retrouve l'état du Recorder HTTP (ses mocks s'ils sont
+ * activés, aucun sinon). Libère aussi les requêtes retenues par MOCK_HTTP_PENDING.
+ */
+function disablePlayHttpMock(): void {
+  playHttpMock = false;
+  try {
+    localStorage.removeItem(PLAY_HTTP_MOCK_KEY);
+  } catch {
+    // Ignorer les erreurs localStorage
+  }
+  loadCompressedMultiple<{ httpMock?: boolean; tuelloRecords?: unknown; deepMockLevel?: number }>(['httpMock', 'tuelloRecords', 'deepMockLevel'])
+    .then((results) => {
+      const deepMockLevel = results.deepMockLevel || 0;
+      if (results.httpMock) {
+        window.postMessage({ type: 'MOCK_HTTP_ACTIVATED', value: true, tuelloRecords: results.tuelloRecords, deepMockLevel }, '*');
+        return;
+      }
+      window.postMessage({ type: 'MOCK_HTTP_ACTIVATED', value: false }, '*');
+      // Les mocks du rejeu ne doivent pas rester dans la liste connue de la page
+      window.postMessage({ type: 'MOCK_HTTP_TUELLO_RECORDS', value: true, tuelloRecords: Array.isArray(results.tuelloRecords) ? results.tuelloRecords : [], deepMockLevel }, '*');
+    })
+    .catch(() => {
+      window.postMessage({ type: 'MOCK_HTTP_ACTIVATED', value: false }, '*');
+    });
+}
+
+/**
+ * Chargement d'une page pendant un rejeu Spy (sa première action est une navigation, et
+ * le scénario peut en contenir d'autres) : les réponses enregistrées, perdues avec la page
+ * précédente, sont relues depuis le storage.
+ */
+function restorePlayHttpMock(): void {
+  chrome.storage.local.get(['uiPlayActivated'], (flags: Record<string, any>) => {
+    if (chrome.runtime.lastError || !flags?.['uiPlayActivated']) {
+      // Drapeau resté d'un rejeu interrompu : on libère les requêtes retenues
+      if (playHttpMock) {
+        disablePlayHttpMock();
+      }
+      return;
+    }
+    loadCompressedMultiple<{ uiPlayHttpRecords?: unknown[]; deepMockLevel?: number }>([PLAY_HTTP_RECORDS_KEY, 'deepMockLevel'])
+      .then((results) => {
+        const records = results[PLAY_HTTP_RECORDS_KEY];
+        if (Array.isArray(records) && records.length > 0) {
+          enablePlayHttpMock(records, results.deepMockLevel || 0);
+        } else if (playHttpMock) {
+          disablePlayHttpMock();
+        }
+      })
+      .catch(() => {
+        if (playHttpMock) {
+          disablePlayHttpMock();
+        }
+      });
+  });
+}
+restorePlayHttpMock();
+
 type MockRecordsData = { tuelloRecords?: unknown; deepMockLevel?: number };
 
 // Lecture des mocks au chargement de la page, réutilisée par la première activation :
@@ -175,6 +270,9 @@ bootRecordsPromise
   .then((result) => {
     if (result.tuelloRecords && Array.isArray(result.tuelloRecords)) {
       cacheTuelloRecords(result.tuelloRecords, result.deepMockLevel || 0);
+      if (playHttpMock) {
+        return;
+      }
       window.postMessage(
         {
           type: 'MOCK_HTTP_TUELLO_RECORDS',
@@ -452,7 +550,7 @@ function activate() {
       } catch {
         // Ignorer les erreurs localStorage
       }
-      if (results.httpMock) {
+      if (results.httpMock && !playHttpMock) {
         window.postMessage(
           {
             type: 'MOCK_HTTP_ACTIVATED',
@@ -804,15 +902,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } catch {
           // Ignorer les erreurs localStorage
         }
-        window.postMessage(
-          {
-            type: 'MOCK_HTTP_ACTIVATED',
-            value: message.value,
-            tuelloRecords: results.tuelloRecords,
-            deepMockLevel: results.deepMockLevel || 0
-          },
-          '*'
-        );
+        // Rejeu Spy en cours : le réglage s'appliquera à sa fin (disablePlayHttpMock)
+        if (!playHttpMock) {
+          window.postMessage(
+            {
+              type: 'MOCK_HTTP_ACTIVATED',
+              value: message.value,
+              tuelloRecords: results.tuelloRecords,
+              deepMockLevel: results.deepMockLevel || 0
+            },
+            '*'
+          );
+        }
 
         sendResponse();
       });
@@ -822,7 +923,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Rafraîchir le cache de démarrage pour ne pas rejouer d'anciens mocks au
         // prochain chargement de la page
         cacheTuelloRecords(Array.isArray(results.tuelloRecords) ? results.tuelloRecords : [], results.deepMockLevel || 0);
-        if (results.httpMock) {
+        if (results.httpMock && !playHttpMock) {
           window.postMessage(
             {
               type: 'MOCK_HTTP_ACTIVATED',
@@ -929,7 +1030,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'PLAY_USER_ACTION':
       // Le résultat de run() doit être renvoyé tel quel : le player en déduit si
       // l'action a réussi (une image introuvable résout false).
-      run(message.value, message.maxWaitMs)
+      run(message.value, message.maxWaitMs, message.graceWait)
         .then((result) => {
           sendResponse(result !== false);
         })
@@ -938,22 +1039,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       return true;
     case 'MOCK_HTTP_USER_ACTION':
-      chrome.storage.local.get(['deepMockLevel'], (results) => {
-        try {
-          localStorage.setItem('TUELLO_HTTP_MOCK', message.value ? 'true' : 'false');
-        } catch {
-          // Ignorer les erreurs localStorage
-        }
-        window.postMessage(
-          {
-            type: 'MOCK_HTTP_ACTIVATED',
-            value: message.value,
-            tuelloRecords: message.data,
-            deepMockLevel: results.deepMockLevel || 0
-          },
-          '*'
-        );
-      });
+      // Début (réponses de l'enregistrement fournies) ou fin du rejeu Spy. Le drapeau
+      // TUELLO_HTTP_MOCK n'est plus touché : il appartient au Recorder HTTP, et le passer
+      // à true appliquait ses mocks à la page suivante du rejeu.
+      if (message.value && Array.isArray(message.data) && message.data.length > 0) {
+        chrome.storage.local.get(['deepMockLevel'], (results: Record<string, any>) => enablePlayHttpMock(message.data, results.deepMockLevel || 0));
+      } else {
+        disablePlayHttpMock();
+      }
       sendResponse();
       break;
   }

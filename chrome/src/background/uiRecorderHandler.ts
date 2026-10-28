@@ -753,22 +753,43 @@ export function addRecordWindowSize(windowSize: WindowSize, tabId?: number): Pro
  * réordonnancement, délais, import) étaient perdues.
  */
 export function replaceRecord(record: Record | null, tabId?: number): void {
-  const state = getState(tabId);
-
-  if (!record) {
-    state.record = null;
-    state.lastAction = null;
-    return;
+  // Le panneau vient d'écrire le record dans le storage : une sauvegarde différée de
+  // l'ancienne copie partirait 300 ms plus tard et écraserait ses modifications, que le
+  // panneau rechargeait ensuite (« les anciennes valeurs reviennent »).
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = null;
   }
+  pendingSaveRecord = null;
 
-  const updated = new Record(record.windowSize);
-  updated.actions = record.actions ?? [];
-  updated.httpRecords = record.httpRecords;
-  updated.consoleLogs = record.consoleLogs;
-  updated.last = record.last ?? Date.now();
+  // Le storage ne connaît qu'un record : tout onglet qui en garde une copie doit la
+  // remplacer. Le panneau n'est pas forcément ouvert dans l'onglet de l'enregistrement,
+  // et la copie de ce dernier, restée ancienne, était réécrite à sa prochaine action.
+  const states = new Set<RecordingState>([getState(tabId)]);
+  recordingStates.forEach((other) => {
+    if (other.record) {
+      states.add(other);
+    }
+  });
 
-  state.record = updated;
-  state.lastAction = updated.actions.length ? updated.actions[updated.actions.length - 1] : null;
+  states.forEach((state) => {
+    if (!record) {
+      state.record = null;
+      state.lastAction = null;
+      return;
+    }
+    const updated = new Record(record.windowSize);
+    updated.actions = record.actions ?? [];
+    updated.httpRecords = record.httpRecords;
+    updated.consoleLogs = record.consoleLogs;
+    // Perdus jusqu'ici à la première modification faite dans le panneau
+    updated.initialState = record.initialState;
+    updated.scenarioId = record.scenarioId;
+    updated.last = record.last ?? Date.now();
+
+    state.record = updated;
+    state.lastAction = updated.actions.length ? updated.actions[updated.actions.length - 1] : null;
+  });
 }
 
 export function addHttpUserAction(data: HttpReturn, tabId?: number): void {
@@ -861,6 +882,8 @@ export function loadRecordFromStorage(tabId?: number): Promise<void> {
               state.record.actions = data.actions ?? [];
               state.record.httpRecords = data.httpRecords;
               state.record.consoleLogs = data.consoleLogs;
+              state.record.initialState = data.initialState;
+              state.record.scenarioId = data.scenarioId;
               state.lastAction = state.record.actions.length ? state.record.actions[state.record.actions.length - 1] : null;
               state.last = data.last ?? Date.now();
             }

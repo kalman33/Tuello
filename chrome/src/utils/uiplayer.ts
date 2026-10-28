@@ -57,12 +57,27 @@ function mouseEvent(event: string, x: number, y: number, key: number) {
 }
 
 /**
- * Rejeu accéléré : attend que la cible de l'action soit prête. Se termine toujours, au
- * plus tard après maxWaitMs : l'action est alors jouée comme sans l'option.
+ * Attente de la cible d'une action, demandée par le player :
+ * - rejeu accéléré : l'action part avant son délai enregistré, dès que la cible est
+ *   affichée et immobile ;
+ * - attente de sécurité (graceWait) : le délai enregistré est déjà écoulé, l'action part
+ *   dès que la cible est là, au besoin un peu plus tard si la page est plus lente.
  */
-function waitForTarget(action: IUserAction, maxWaitMs: number, isReady: () => boolean): Promise<void> {
+interface TargetWait {
+  maxWaitMs?: number;
+  graceWait?: boolean;
+}
+
+/**
+ * Attend que la cible de l'action soit prête. Se termine toujours, au plus tard après
+ * maxWaitMs : l'action est alors jouée comme si la cible était là.
+ */
+function waitForTarget(action: IUserAction, wait: TargetWait, isReady: () => boolean): Promise<void> {
   const startedAt = Date.now();
-  const deadline = startedAt + maxWaitMs;
+  const deadline = startedAt + wait.maxWaitMs;
+  // Le délai enregistré écoulé, une cible présente n'a plus de raison d'attendre son immobilité
+  const stableChecks = wait.graceWait ? 1 : TARGET_STABLE_CHECKS;
+  const prefix = wait.graceWait ? '- Attente de la cible -' : '- Rejeu accéléré -';
   return new Promise((resolve) => {
     let matches = 0;
     const poll = () => {
@@ -73,11 +88,14 @@ function waitForTarget(action: IUserAction, maxWaitMs: number, isReady: () => bo
         // Une page en plein rendu ne doit pas bloquer l'action : on réessaie
       }
       matches = ready ? matches + 1 : 0;
-      if (matches >= TARGET_STABLE_CHECKS) {
-        logData(`- Rejeu accéléré - ${action.type} : cible trouvée après ${Date.now() - startedAt} ms`);
+      if (matches >= stableChecks) {
+        const waited = Date.now() - startedAt;
+        if (!wait.graceWait || waited > 0) {
+          logData(`${prefix} ${action.type} : cible trouvée après ${waited} ms`);
+        }
         resolve();
       } else if (Date.now() >= deadline) {
-        logData(`- Rejeu accéléré - ${action.type} : cible non trouvée après ${maxWaitMs} ms, action jouée comme sans l'option`);
+        logData(`${prefix} ${action.type} : cible non trouvée après ${wait.maxWaitMs} ms, action jouée quand même`);
         resolve();
       } else {
         setTimeout(poll, TARGET_POLL_MS);
@@ -87,10 +105,10 @@ function waitForTarget(action: IUserAction, maxWaitMs: number, isReady: () => bo
   });
 }
 
-/** Sans rejeu accéléré, appel direct : même déroulé qu'avant l'option */
-function playWhenReady(action: IUserAction, maxWaitMs: number | undefined, isReady: () => boolean, play: () => void): void {
-  if (maxWaitMs > 0) {
-    waitForTarget(action, maxWaitMs, isReady).then(play);
+/** Sans attente demandée, appel direct */
+function playWhenReady(action: IUserAction, wait: TargetWait, isReady: () => boolean, play: () => void): void {
+  if (wait.maxWaitMs > 0) {
+    waitForTarget(action, wait, isReady).then(play);
   } else {
     play();
   }
@@ -215,10 +233,11 @@ function enterKeypress(x: number, y: number, selector?: string) {
 }
 
 /**
- * @param maxWaitMs rejeu accéléré uniquement (clic, saisie, Entrée, Maj+clic, image) :
- * attente maximale de la cible
+ * @param maxWaitMs clic, saisie, Entrée, scroll, Maj+clic, image : attente maximale de la cible
+ * @param graceWait l'attente suit le délai enregistré (voir TargetWait)
  */
-export function run(action: IUserAction, maxWaitMs?: number) {
+export function run(action: IUserAction, maxWaitMs?: number, graceWait = false) {
+  const wait: TargetWait = { maxWaitMs, graceWait };
   return new Promise((resolve, reject) => {
     switch (action.type) {
       case 'click':
@@ -234,7 +253,7 @@ export function run(action: IUserAction, maxWaitMs?: number) {
             resolve(true);
           }, 100);
         };
-        playWhenReady(action, maxWaitMs, () => isClickTargetReady(action), playClick);
+        playWhenReady(action, wait, () => isClickTargetReady(action), playClick);
         break;
       case 'mouseup':
         mouseup(action.x, action.y, action.key);
@@ -243,7 +262,7 @@ export function run(action: IUserAction, maxWaitMs?: number) {
       case 'input':
         playWhenReady(
           action,
-          maxWaitMs,
+          wait,
           () => isDisplayed(findInputTarget(action)),
           () => resolve(input(action))
         );
@@ -251,7 +270,7 @@ export function run(action: IUserAction, maxWaitMs?: number) {
       case 'enterKey':
         playWhenReady(
           action,
-          maxWaitMs,
+          wait,
           () => isDisplayed(findBySelector(action.selector)),
           () => {
             enterKeypress(action.x, action.y, action.selector);
@@ -262,7 +281,7 @@ export function run(action: IUserAction, maxWaitMs?: number) {
       case 'scroll':
         playWhenReady(
           action,
-          maxWaitMs,
+          wait,
           () => canScrollTo(action.scrollX, action.scrollY),
           () => {
             scrollTo(action.scrollX, action.scrollY);
@@ -274,7 +293,7 @@ export function run(action: IUserAction, maxWaitMs?: number) {
         // findElementByLabel ne retient que les éléments visibles
         playWhenReady(
           action,
-          maxWaitMs,
+          wait,
           () => !!findElementByLabel(action.label, action.labelTag),
           () => {
             // Recherche par texte : l'élément a pu changer de position depuis

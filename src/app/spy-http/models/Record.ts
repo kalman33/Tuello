@@ -11,6 +11,8 @@ export class Record {
   public consoleLogs?: ConsoleLogEntry[];
   /** Stockage du navigateur au démarrage de l'enregistrement (export Playwright) */
   public initialState?: InitialState;
+  /** Scénario chargé dans l'éditeur : la sauvegarde propose de le mettre à jour */
+  public scenarioId?: string;
   public last: number;
 
   constructor(windowSize?: WindowSize) {

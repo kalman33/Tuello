@@ -3,6 +3,7 @@ import { Action } from '../models/Action';
 import { Record } from '../models/Record';
 import { WindowSize } from '../models/WindowSize';
 import { CompressionService } from '../../core/compression/compression.service';
+import { HttpReturn } from '../../recorder-http/models/http.return';
 
 @Injectable({ providedIn: 'root' })
 export class RecorderHistoryService {
@@ -44,6 +45,7 @@ export class RecorderHistoryService {
     this.record.actions = data.actions;
     this.record.httpRecords = data.httpRecords;
     this.record.consoleLogs = data.consoleLogs;
+    this.record.initialState = data.initialState;
     this.saveUiRecordToLocalStorage();
   }
 
@@ -51,10 +53,28 @@ export class RecorderHistoryService {
    * Charge un scénario (actions seules) dans l'enregistrement courant.
    * Les flux http du record précédent sont abandonnés : un scénario n'en embarque pas.
    */
-  public importScenario(actions: Action[], windowSize?: WindowSize) {
+  public importScenario(actions: Action[], windowSize?: WindowSize, scenarioId?: string) {
     this.record = new Record(windowSize);
     this.record.actions = actions.map((action) => ({ ...action }));
+    this.record.scenarioId = scenarioId;
     this.saveUiRecordToLocalStorage();
+  }
+
+  /**
+   * Dépose les réponses HTTP de l'enregistrement pour le rejeu : chaque page chargée
+   * pendant le rejeu les relit (le message envoyé à la page courante ne survit pas à la
+   * navigation qui ouvre le scénario). Les captures d'écran, inutiles ici, sont retirées.
+   *
+   * @returns les réponses à servir, vides si l'enregistrement n'en a pas
+   */
+  public async preparePlayHttpRecords(): Promise<HttpReturn[]> {
+    const httpRecords = (this.record?.httpRecords ?? []).map(({ screenshot, ...httpRecord }) => httpRecord);
+    if (httpRecords.length) {
+      await this.compressionService.saveCompressed('uiPlayHttpRecords', httpRecords);
+    } else {
+      await chrome.storage.local.remove('uiPlayHttpRecords');
+    }
+    return httpRecords;
   }
 
   public async loadUiRecordFromLocalStorage() {

@@ -198,6 +198,7 @@ chrome.runtime.onStartup.addListener(async () => {
   // Aucun rejeu ne survit à la fermeture du navigateur : le drapeau resté à true
   // laisserait le panneau bloqué sur le bouton stop.
   chrome.storage.local.set({ uiPlayActivated: false });
+  chrome.storage.local.remove('uiPlayHttpRecords');
 
   const result = await chrome.storage.local.get<Record<string, any>>(['mosaicConfig']);
   const config = result['mosaicConfig'];
@@ -586,6 +587,7 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
       // Le rejeu est terminé : le panneau doit repasser du bouton stop au bouton play
       player = null;
       chrome.storage.local.set({ uiPlayActivated: false });
+      chrome.storage.local.remove('uiPlayHttpRecords');
       break;
     case 'LOAD_UI_RECORDERS':
       // on charge les enregistrements du local storage : uniquement pour la frame principale
@@ -594,6 +596,11 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
       }
       break;
     case 'START_UI_RECORDER':
+      if (msg.value === false) {
+        // Les dernières actions attendent encore la sauvegarde différée : le panneau
+        // rouvert ensuite les relirait absentes du storage.
+        flushPendingSave();
+      }
       if (msg.value === true) {
         const recorderTabId = sender.tab?.id;
         if (recorderTabId !== undefined) {
@@ -904,16 +911,8 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
                   frameId: iframe.frameId
                 }
               : {};
-            // on envoie un message au bon content scrip
-            chrome.tabs.sendMessage(
-              sender.tab.id,
-              {
-                action: 'MOCK_HTTP_USER_ACTION',
-                value: false
-              },
-              options,
-              () => {}
-            );
+            // Pas de coupure des mocks ici : envoyée après coup, elle annulait ceux que
+            // le panneau active juste après (MOCK_HTTP_USER_ACTION) pour le rejeu.
             chrome.tabs.sendMessage(
               sender.tab.id,
               {
@@ -1207,6 +1206,7 @@ function stopPlayer(senderTabId?: number): void {
   chrome.webNavigation.onCompleted.removeListener(onCompletedPlayer);
   chrome.webNavigation.onBeforeNavigate.removeListener(onbeforePlayer);
   chrome.storage.local.set({ uiPlayActivated: false });
+  chrome.storage.local.remove('uiPlayHttpRecords');
   chrome.action.setIcon({ path: '/assets/logos/tuello-32x32.png' });
 
   if (playedTabId === undefined || playedTabId < 0) {
@@ -1237,7 +1237,7 @@ function onbeforePlayer(details) {
   // Seules les navigations de l'onglet rejoué concernent le player : une navigation
   // dans un autre onglet mettait le rejeu en pause sans le relancer.
   if (details.frameId === 0 && player !== null && details.tabId === player.chromeTabId) {
-    player.launchAction('PAUSE');
+    player.pauseForNavigation();
   }
 }
 
