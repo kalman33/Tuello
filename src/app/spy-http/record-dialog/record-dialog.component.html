@@ -4,6 +4,7 @@
 </mat-dialog-content>
 
 <div mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>{{ 'mmn.spy-http.record-dialog.new' | translate }}</button>
+  <button mat-button mat-dialog-close>{{ 'mmn.spy-http.record-dialog.cancel' | translate }}</button>
+  <button mat-button [mat-dialog-close]="'new'">{{ 'mmn.spy-http.record-dialog.new' | translate }}</button>
   <button mat-button [mat-dialog-close]="'add'" cdkFocusInitial>{{ 'mmn.spy-http.record-dialog.add' | translate }}</button>
 </div>

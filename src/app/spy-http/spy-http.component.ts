@@ -240,6 +240,10 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
         .afterClosed()
         .pipe(take(1))
         .subscribe(async (result) => {
+          // Annuler, Échap ou clic hors du dialogue : on ne touche à rien
+          if (result !== 'add' && result !== 'new') {
+            return;
+          }
           const append = result === 'add';
           if (!append) {
             this.actions = [];

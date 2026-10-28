@@ -181,6 +181,7 @@
   "mmn.spy-http.json-viewer.close": "Fermer",
   "mmn.spy-http.record-dialog.add": "Ajouter",
   "mmn.spy-http.record-dialog.new": "Créer",
+  "mmn.spy-http.record-dialog.cancel": "Annuler",
   "mmn.spy-http.record-dialog.content": "Voulez-vous ajouter ou créer un nouvel enregistrement?",
   "mmn.spy-http.actions.type.comment": "Commentaire",
   "mmn.spy-http.actions.type.screenshot": "Capture",

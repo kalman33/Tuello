@@ -180,6 +180,7 @@
   "mmn.spy-http.json-viewer.close": "Close",
   "mmn.spy-http.record-dialog.add": "Add",
   "mmn.spy-http.record-dialog.new": "New",
+  "mmn.spy-http.record-dialog.cancel": "Cancel",
   "mmn.spy-http.record-dialog.content": "Do you want to add or create a new record?",
   "mmn.spy-http.actions.type.comment": "Comment",
   "mmn.spy-http.actions.type.screenshot": "Screenshot",
