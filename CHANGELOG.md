@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.37.0] - 2026-10-28
+
+    - Spy : rejeu accéléré (option) : les actions partent dès que leur cible est affichée
+    - Spy : durée du rejeu affichée
+
 ## [1.2.36.0] - 2026-10-24
 
     - UI : champs, boutons et dialogs modernisés
