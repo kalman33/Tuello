@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, inject, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -19,7 +19,7 @@ import { faviconFor } from '../utils/mosaic-text';
   host: { '[class.is-active]': 'active', '[class.is-drop-target]': 'dropTarget' },
   imports: [MatIconModule, MatButtonModule, MatMenuModule, MatTooltipModule, MatProgressSpinnerModule, TranslatePipe]
 })
-export class MosaicTileComponent implements OnInit {
+export class MosaicTileComponent implements OnInit, OnChanges {
   @Input() item: MosaicCategory | MosaicUrl;
   @Input() type: 'category' | 'url';
   @Input() editable = true;
@@ -58,19 +58,31 @@ export class MosaicTileComponent implements OnInit {
 
   ngOnInit() {
     if (this.type === 'url') {
-      this.faviconUrl = faviconFor(this.asUrl.url);
       this.loadScreenshot();
+    }
+  }
+
+  // Les grilles suivent les tuiles par id : après une modification, la tuile est réutilisée
+  // avec un nouvel `item`, sans repasser par ngOnInit
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['item'] && this.type === 'url') {
+      this.faviconUrl = faviconFor(this.asUrl.url);
       this.loadScenarioName();
     }
   }
 
   private async loadScenarioName() {
-    if (!this.asUrl.scenarioId) {
+    const scenarioId = this.asUrl.scenarioId;
+    if (!scenarioId) {
+      this.scenarioName = null;
       return;
     }
     // load() met la liste en cache : une seule lecture du storage pour toute la grille
     await this.scenarioStorageService.load();
-    this.scenarioName = this.scenarioStorageService.getName(this.asUrl.scenarioId);
+    if (this.asUrl.scenarioId !== scenarioId) {
+      return;
+    }
+    this.scenarioName = this.scenarioStorageService.getName(scenarioId);
     this.cdr.detectChanges();
   }
 
