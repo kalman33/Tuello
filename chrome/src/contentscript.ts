@@ -919,6 +919,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       sendResponse(true);
       break;
+    case 'LOG_FAST_REPLAY':
+      // Décisions du player (service worker), affichées comme les autres logs du mode verbeux
+      if (verboseMode) {
+        console.log(prefix, message.value);
+      }
+      sendResponse();
+      break;
     case 'PLAY_USER_ACTION':
       // Le résultat de run() doit être renvoyé tel quel : le player en déduit si
       // l'action a réussi (une image introuvable résout false).

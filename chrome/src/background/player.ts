@@ -38,30 +38,44 @@ const SUBMITTING_INPUT_TYPES = ['submit', 'image', 'button', 'reset'];
 
 /**
  * L'action peut-elle attendre sa cible côté page ? Il faut de quoi la reconnaître :
- * - clic : une description qui désigne l'élément (testId, rôle, libellé ou texte ; mêmes
- *   critères que matchesTarget, non importé ici car module DOM, côté page) ;
+ * - clic : une description qui désigne l'élément (testId, rôle, libellé, texte ou à défaut
+ *   sélecteur CSS ; mêmes critères que matchesTarget, non importé ici car module DOM) ;
  * - saisie, Entrée : le sélecteur CSS du champ ;
- * - Maj+clic : le libellé ; image : l'image enregistrée.
+ * - Maj+clic : le libellé ; image : l'image enregistrée ;
+ * - scroll : rien (les scrolls successifs sont fusionnés et leurs délais additionnés :
+ *   c'est l'action dont le délai enregistré est le plus long).
  * Les iframes ne sont pas encore gérées.
+ *
+ * @returns la raison du refus, ou null si l'action peut attendre sa cible
  */
-function isAccelerable(action: Action): boolean {
+function notAccelerableReason(action: Action): string | null {
   const userAction = action.userAction;
-  if (!userAction || (userAction.frame?.frameId ?? 0) !== 0) {
-    return false;
+  if (!userAction) {
+    return `type d'action non géré (${action.actionType})`;
+  }
+  if ((userAction.frame?.frameId ?? 0) !== 0) {
+    return 'action dans une iframe';
   }
   switch (action.actionType) {
     case ActionType.EVENT:
       if (userAction.type === 'click') {
         const target = userAction.target;
-        return !!(target?.testId || target?.label || target?.placeholder || target?.role || target?.text);
+        return target?.testId || target?.label || target?.placeholder || target?.role || target?.text || target?.selector ? null : 'cible du clic sans description exploitable (ni testId, ni rôle et nom, ni libellé, ni texte, ni sélecteur)';
       }
-      return (userAction.type === 'input' || userAction.type === 'enterKey') && !!userAction.selector;
+      // Scroll : rien à reconnaître, la page attend seulement de pouvoir atteindre la position
+      if (userAction.type === 'scroll') {
+        return null;
+      }
+      if (userAction.type === 'input' || userAction.type === 'enterKey') {
+        return userAction.selector ? null : 'champ sans sélecteur CSS';
+      }
+      return `type d'action non géré (${userAction.type})`;
     case ActionType.RECORD_BY_LABEL:
-      return !!userAction.label;
+      return userAction.label ? null : 'libellé absent';
     case ActionType.RECORD_BY_IMAGE:
-      return !!userAction.value;
+      return userAction.value ? null : 'image absente';
     default:
-      return false;
+      return `type d'action non géré (${action.actionType})`;
   }
 }
 
@@ -74,36 +88,59 @@ function isFieldClick(previous: Action): boolean {
   return target.tag === 'textarea' || target.tag === 'select' || (target.tag === 'input' && !SUBMITTING_INPUT_TYPES.includes(target.inputType));
 }
 
-/** L'action précédente a-t-elle pu déclencher une navigation complète ? Dans le doute, oui. */
-function mayNavigate(previous: Action, next: Action): boolean {
-  if (previous.actionType === ActionType.NAVIGATE || MAY_NAVIGATE_TYPES.includes(previous.userAction?.type)) {
-    return true;
+/**
+ * L'action précédente a-t-elle pu déclencher une navigation complète ? Dans le doute, oui.
+ *
+ * @returns la raison (navigation possible), ou null si la page n'a pas changé
+ */
+function navigationReason(previous: Action, next: Action): string | null {
+  // Enregistrement qui note le document de chaque action : on sait si la page a été
+  // chargée entre les deux. Un changement de route d'une SPA (Angular...) garde le même
+  // document et peut donc être accéléré, quel que soit le type de l'action précédente.
+  const previousDocument = previous.userAction?.documentId;
+  const nextDocument = next.userAction?.documentId;
+  if (previousDocument && nextDocument) {
+    return previousDocument !== nextDocument ? "page rechargée entre les deux actions à l'enregistrement (document différent)" : null;
+  }
+
+  // Enregistrement plus ancien : on devine d'après le type d'action et l'URL
+  const legacy = ' (enregistrement sans identifiant de document : à réenregistrer)';
+  if (previous.actionType === ActionType.NAVIGATE) {
+    return 'action précédente de type navigation';
+  }
+  if (MAY_NAVIGATE_TYPES.includes(previous.userAction?.type)) {
+    return `action précédente de type ${previous.userAction.type}${legacy}`;
   }
   const previousHref = previous.userAction?.hrefLocation;
   if (!previousHref) {
-    return false;
+    return null;
   }
   // Un changement d'URL entre les deux actions signale une navigation (ou un changement
   // de route d'une SPA, écarté aussi par prudence)
   const nextHref = next.userAction?.hrefLocation;
   if (nextHref) {
-    return nextHref !== previousHref;
+    return nextHref !== previousHref ? `URL différente entre les deux actions${legacy}` : null;
   }
   // L'action suivante ne porte pas d'URL (saisie, Entrée, image) : seul un clic sur un
   // champ garantit que la page n'a pas changé entre les deux
-  return !isFieldClick(previous);
+  return isFieldClick(previous) ? null : `action sans URL après un clic${legacy}`;
 }
 
 /**
  * Une action peut être accélérée si la page sait reconnaître sa cible et que l'action
  * précédente ne peut pas déclencher de navigation. Sinon, le délai enregistré est
  * conservé tel quel.
+ *
+ * @returns la raison du refus, ou null si l'action peut être accélérée
  */
-function canFastReplay(previous: Action | undefined, next: Action | undefined, delay: number): boolean {
-  if (!previous || !next || delay <= FAST_REPLAY_MIN_DELAY_MS) {
-    return false;
+function fastReplayRefusal(previous: Action | undefined, next: Action | undefined, delay: number): string | null {
+  if (!previous || !next) {
+    return 'première action du rejeu';
   }
-  return isAccelerable(next) && !mayNavigate(previous, next);
+  if (delay <= FAST_REPLAY_MIN_DELAY_MS) {
+    return `délai enregistré déjà court (${delay} ms)`;
+  }
+  return notAccelerableReason(next) ?? navigationReason(previous, next);
 }
 
 /** Options de rejeu */
@@ -140,6 +177,8 @@ export class Player {
   private fastReplay = false;
   /** Attente maximale de la cible transmise avec la prochaine action, quand elle est accélérée */
   private nextMaxWaitMs: number | undefined;
+  /** Début du rejeu, pour la durée affichée par le panneau à la fin */
+  private startedAt = Date.now();
   /** Rejeu sans retour visuel de Tuello (scénario lancé depuis la mosaïque) */
   readonly silent: boolean;
 
@@ -153,7 +192,25 @@ export class Player {
     // enregistré (startTimeout), le réglage n'est consulté qu'à partir de la deuxième.
     chrome.storage.local.get(['fastReplay'], (results) => {
       this.fastReplay = !chrome.runtime.lastError && !!results?.fastReplay;
+      this.logFastReplay('activé');
     });
+  }
+
+  /**
+   * Mode verbeux, rejeu accéléré uniquement : trace dans la console de la page les
+   * décisions du player, invisibles sinon (il tourne dans le service worker).
+   */
+  private logFastReplay(message: string): void {
+    if (!this.fastReplay) {
+      return;
+    }
+    chrome.tabs.sendMessage(this.chromeTabId, { action: 'LOG_FAST_REPLAY', value: `- Rejeu accéléré - ${message}` }, { frameId: 0 }, () => chrome.runtime.lastError);
+  }
+
+  /** Libellé d'une action pour les logs : son rang dans la liste (à partir de 1) et son type */
+  private describeAction(index: number): string {
+    const action = this.initialActions[index];
+    return `action ${index + 1} (${action?.userAction?.type ?? action?.actionType})`;
   }
 
   /** Termine un rejeu silencieux (fin normale ou action en échec) */
@@ -179,6 +236,9 @@ export class Player {
     // Reprise (lancement, fin de navigation, PLAY après PAUSE) : toujours le délai enregistré
     this.nextMaxWaitMs = undefined;
     const currentAction = this.initialActions[this.count];
+    if (currentAction && this.count > 0) {
+      this.logFastReplay(`${this.describeAction(this.count)} : délai enregistré conservé (${currentAction.delay} ms), reprise après une navigation ou une pause`);
+    }
     if (currentAction?.delay !== undefined && currentAction?.delay !== null) {
       this.timeoutId = setTimeout(() => this.treatAction(), currentAction.delay);
     }
@@ -261,6 +321,10 @@ export class Player {
       this.onFinished();
       return;
     }
+
+    // Via le storage et pas un message : le panneau est recréé à chaque navigation du
+    // scénario et peut ne pas être ouvert sur l'écran Spy à la fin du rejeu.
+    chrome.storage.local.set({ uiPlayDurationMs: Date.now() - this.startedAt });
 
     chrome.tabs.sendMessage(
       this.chromeTabId,
@@ -417,10 +481,14 @@ export class Player {
 
     // Rejeu accéléré : le clic part après le délai minimum et la page attend sa cible
     // pendant le reste du délai enregistré, qui devient un plafond.
-    if (this.fastReplay && canFastReplay(currentAction, nextAction, delay)) {
-      this.nextMaxWaitMs = delay - FAST_REPLAY_MIN_DELAY_MS;
-      this.timeoutId = setTimeout(() => this.treatAction(), FAST_REPLAY_MIN_DELAY_MS);
-      return;
+    if (this.fastReplay && nextAction) {
+      const refusal = fastReplayRefusal(currentAction, nextAction, delay);
+      if (!refusal) {
+        this.nextMaxWaitMs = delay - FAST_REPLAY_MIN_DELAY_MS;
+        this.timeoutId = setTimeout(() => this.treatAction(), FAST_REPLAY_MIN_DELAY_MS);
+        return;
+      }
+      this.logFastReplay(`${this.describeAction(this.count)} : délai enregistré conservé (${delay} ms), ${refusal}`);
     }
 
     this.timeoutId = setTimeout(() => this.treatAction(), delay);
@@ -455,6 +523,7 @@ export class Player {
         this.count = 0;
         this.comparisonResults = [];
         this.nextMaxWaitMs = undefined;
+        this.startedAt = Date.now();
         if (this.timeoutId) {
           clearTimeout(this.timeoutId);
           this.timeoutId = null;

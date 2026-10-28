@@ -294,6 +294,17 @@ function test(tab)  {
 */
 
 /**
+ * Note le document d'où vient une action enregistrée : le rejeu accéléré distingue ainsi
+ * un changement de route d'une SPA (même document) d'un vrai chargement de page.
+ */
+function withDocumentId<T extends { documentId?: string }>(userAction: T, sender: chrome.runtime.MessageSender): T {
+  if (userAction && sender.documentId) {
+    userAction.documentId = sender.documentId;
+  }
+  return userAction;
+}
+
+/**
  * Attend qu'un onglet ait fini de charger (status "complete").
  */
 function waitForTabComplete(tabId: number, timeoutMs = 12000): Promise<void> {
@@ -991,21 +1002,21 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
       });
       return true;
     case 'RECORD_USER_ACTION':
-      addUserAction(msg.value, sender.tab.id, sender.frameId);
+      addUserAction(withDocumentId(msg.value, sender), sender.tab.id, sender.frameId);
       break;
     case 'PREPARE_CLICK_SCREENSHOT':
       prepareClickScreenshot(msg.value, sender.tab?.id);
       break;
     case 'RECORD_BY_IMAGE_ACTION':
-      addRecordByImage(msg.value, sender.tab.id, sender.frameId);
+      addRecordByImage(withDocumentId(msg.value, sender), sender.tab.id, sender.frameId);
       senderResponse();
       break;
     case 'RECORD_BY_LABEL_ACTION':
-      addRecordByLabel(msg.value, sender.tab.id, sender.frameId);
+      addRecordByLabel(withDocumentId(msg.value, sender), sender.tab.id, sender.frameId);
       senderResponse();
       break;
     case 'RECORD_ASSERTION_ACTION':
-      addAssertion(msg.value, sender.tab.id, sender.frameId);
+      addAssertion(withDocumentId(msg.value, sender), sender.tab.id, sender.frameId);
       senderResponse();
       break;
     case 'SCREENSHOT_ACTION':

@@ -196,4 +196,17 @@ mmn-spy-http .button-row {
   button {
     margin: 0 !important;
   }
+
+  .play-duration {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.8;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
 }

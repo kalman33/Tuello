@@ -339,6 +339,12 @@ export function matchesTarget(element: Element | null, descriptor: ITargetDescri
     if (descriptor.text) {
       return normalizeLabel(contentText(element)) === descriptor.text;
     }
+    // Élément sans rôle, libellé ni texte court (div portant un gestionnaire de clic,
+    // icône) : son sélecteur suffit, puisque c'est l'élément AUX COORDONNÉES enregistrées
+    // qu'on vérifie, et non un élément à retrouver dans toute la page.
+    if (descriptor.selector) {
+      return element.matches(descriptor.selector);
+    }
   } catch {
     return false;
   }

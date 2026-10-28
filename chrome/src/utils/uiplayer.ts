@@ -106,6 +106,16 @@ function isClickTargetReady(action: IUserAction): boolean {
   return matchesTarget(element, action.target);
 }
 
+/**
+ * Scroll : la page est assez grande pour atteindre la position enregistrée. Sinon, le
+ * contenu n'est pas encore chargé (liste, lazy-loading) et le scroll s'arrêterait avant.
+ */
+function canScrollTo(scrollX: number, scrollY: number): boolean {
+  const root = document.scrollingElement ?? document.documentElement;
+  // 1px de tolérance : les positions enregistrées peuvent être fractionnaires
+  return root.scrollWidth - root.clientWidth >= (scrollX ?? 0) - 1 && root.scrollHeight - root.clientHeight >= (scrollY ?? 0) - 1;
+}
+
 function isDisplayed(element: Element | null): boolean {
   return !!element && element.getClientRects().length > 0;
 }
@@ -250,8 +260,15 @@ export function run(action: IUserAction, maxWaitMs?: number) {
         );
         break;
       case 'scroll':
-        scrollTo(action.scrollX, action.scrollY);
-        resolve(true);
+        playWhenReady(
+          action,
+          maxWaitMs,
+          () => canScrollTo(action.scrollX, action.scrollY),
+          () => {
+            scrollTo(action.scrollX, action.scrollY);
+            resolve(true);
+          }
+        );
         break;
       case 'recordByLabel':
         // findElementByLabel ne retient que les éléments visibles

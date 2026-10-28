@@ -79,6 +79,8 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   spyActif: boolean;
   /** Un rejeu est en cours (éventuellement en pause) : le bouton stop peut l'interrompre */
   playing = false;
+  /** Durée du dernier rejeu terminé (ms), écrite par le player du background */
+  playDurationMs: number | null = null;
   pausable: PausableObservable<Action>;
   actions: Action[];
   pausedAction = 0;
@@ -163,18 +165,24 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     // Le panneau est recréé à chaque navigation du scénario rejoué : l'état du rejeu
     // vit dans le storage, où le background le tient à jour.
     this.storageListener = (changes, areaName) => {
-      if (areaName !== 'local' || !changes['uiPlayActivated']) {
+      if (areaName !== 'local' || (!changes['uiPlayActivated'] && !changes['uiPlayDurationMs'])) {
         return;
       }
       this.ngZone.run(() => {
-        this.playing = !!changes['uiPlayActivated'].newValue;
+        if (changes['uiPlayActivated']) {
+          this.playing = !!changes['uiPlayActivated'].newValue;
+        }
+        if (changes['uiPlayDurationMs']) {
+          this.playDurationMs = (changes['uiPlayDurationMs'].newValue as number) ?? null;
+        }
         this.changeDetectorRef.detectChanges();
       });
     };
     chrome.storage.onChanged.addListener(this.storageListener);
 
-    chrome.storage.local.get(['uiRecordActivated', 'uiPlayActivated', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
+    chrome.storage.local.get(['uiRecordActivated', 'uiPlayActivated', 'uiPlayDurationMs', 'tuelloKeyboardShortcut'], (results: Record<string, any>) => {
       this.playing = !!results['uiPlayActivated'];
+      this.playDurationMs = results['uiPlayDurationMs'] ?? null;
       if (results['uiRecordActivated']) {
         this.spyActif = true;
         // on previent background qui va prevenir contentscript qu'on a démarré le recording.
@@ -212,7 +220,19 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Durée du dernier rejeu en secondes, au dixième, dans le format de la langue courante */
+  get playDurationSeconds(): string {
+    return ((this.playDurationMs ?? 0) / 1000).toLocaleString(this.translate.currentLang || undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+
+  /** La durée affichée ne concerne plus le scénario courant (nouveau rejeu, enregistrement, autre scénario) */
+  private clearPlayDuration() {
+    this.playDurationMs = null;
+    chrome.storage.local.remove('uiPlayDurationMs');
+  }
+
   startRecording() {
+    this.clearPlayDuration();
     if (this.actions && this.actions.length > 0) {
       const dialogRef = this.dialog.open(RecordDialogComponent);
 
@@ -294,6 +314,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
   async deleteRecords() {
     this.playerService.comparisonResults = null;
+    this.clearPlayDuration();
     this.actions = [];
     this.jsonContent = '';
     await this.recorderHistoryService.deleteAll();
@@ -367,6 +388,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
   /** Charge un scénario dans l'éditeur, en remplacement de l'enregistrement courant */
   loadScenario(scenario: Scenario) {
     this.playerService.comparisonResults = null;
+    this.clearPlayDuration();
     this.recorderHistoryService.importScenario(scenario.actions, scenario.windowSize);
     this.actions = this.recorderHistoryService.record.actions;
     this.jsonContent = JSON.stringify(this.recorderHistoryService.record);
@@ -411,6 +433,7 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
   public startPlaying() {
     this.playerService.comparisonResults = null;
+    this.clearPlayDuration();
     this.spyActif = false;
     this.playing = true;
 

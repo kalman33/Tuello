@@ -38,6 +38,12 @@
           {{ 'mmn.spy-http.button.results' | translate }}
         </button>
       }
+      @if (playDurationMs !== null && !playing) {
+        <span class="play-duration">
+          <mat-icon>timer</mat-icon>
+          {{ 'mmn.spy-http.play.duration' | translate: { seconds: playDurationSeconds } }}
+        </span>
+      }
     </div>
 
     <mat-tab-group #tabGrp id="guide-spy-actions">

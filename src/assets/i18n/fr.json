@@ -143,6 +143,7 @@
   "mmn.spy-http.button.delete": "Supprimer",
   "mmn.spy-http.button.import": "Importer",
   "mmn.spy-http.button.results": "Résultats",
+  "mmn.spy-http.play.duration": "Rejoué en {{seconds}} secondes",
   "mmn.spy-http.results.button.viewReport": "Voir le rapport",
   "mmn.spy-http.import.message": "chargement du fichier",
   "mmn.spy-http.import.error.action": "Erreur",
