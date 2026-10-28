@@ -2,8 +2,14 @@ import { IUserAction } from '../../../src/app/spy-http/models/UserAction';
 import { searchImg } from './imageRecorder';
 import { findBySelector } from './cssSelector';
 import { findClickableAncestor, findElementByLabel } from './labelSelector';
-import { displayEffect, getOffset, getParentByTagName } from './utils';
+import { displayEffect, getOffset, getParentByTagName, logData } from './utils';
 import { playAssertion } from './playwrightCapture';
+import { matchesTarget } from './targetDescriptor';
+
+/** Rejeu accéléré : intervalle de vérification de la cible d'une action */
+const TARGET_POLL_MS = 100;
+/** Correspondances consécutives exigées : une cible encore en mouvement (animation) ne compte pas */
+const TARGET_STABLE_CHECKS = 2;
 
 /**
  * Convertit des coordonnées absolues (document) en coordonnées relatives (viewport)
@@ -48,6 +54,60 @@ function mouseEvent(event: string, x: number, y: number, key: number) {
     button: key
   });
   el.dispatchEvent(ev);
+}
+
+/**
+ * Rejeu accéléré : attend que la cible de l'action soit prête. Se termine toujours, au
+ * plus tard après maxWaitMs : l'action est alors jouée comme sans l'option.
+ */
+function waitForTarget(action: IUserAction, maxWaitMs: number, isReady: () => boolean): Promise<void> {
+  const startedAt = Date.now();
+  const deadline = startedAt + maxWaitMs;
+  return new Promise((resolve) => {
+    let matches = 0;
+    const poll = () => {
+      let ready = false;
+      try {
+        ready = isReady();
+      } catch {
+        // Une page en plein rendu ne doit pas bloquer l'action : on réessaie
+      }
+      matches = ready ? matches + 1 : 0;
+      if (matches >= TARGET_STABLE_CHECKS) {
+        logData(`- Rejeu accéléré - ${action.type} : cible trouvée après ${Date.now() - startedAt} ms`);
+        resolve();
+      } else if (Date.now() >= deadline) {
+        logData(`- Rejeu accéléré - ${action.type} : cible non trouvée après ${maxWaitMs} ms, action jouée comme sans l'option`);
+        resolve();
+      } else {
+        setTimeout(poll, TARGET_POLL_MS);
+      }
+    };
+    poll();
+  });
+}
+
+/** Sans rejeu accéléré, appel direct : même déroulé qu'avant l'option */
+function playWhenReady(action: IUserAction, maxWaitMs: number | undefined, isReady: () => boolean, play: () => void): void {
+  if (maxWaitMs > 0) {
+    waitForTarget(action, maxWaitMs, isReady).then(play);
+  } else {
+    play();
+  }
+}
+
+/**
+ * Clic : l'élément affiché aux coordonnées enregistrées est celui qui avait été cliqué.
+ * Le point du clic, lui, ne change jamais.
+ */
+function isClickTargetReady(action: IUserAction): boolean {
+  // Même remontée vers l'élément cliquable qu'à l'enregistrement (UserAction)
+  const element = findClickableAncestor(getElementAtAbsolutePosition(action.x, action.y));
+  return matchesTarget(element, action.target);
+}
+
+function isDisplayed(element: Element | null): boolean {
+  return !!element && element.getClientRects().length > 0;
 }
 
 function mouseup(x: number, y: number, key: number) {
@@ -144,56 +204,83 @@ function enterKeypress(x: number, y: number, selector?: string) {
   }
 }
 
-export function run(action: IUserAction) {
+/**
+ * @param maxWaitMs rejeu accéléré uniquement (clic, saisie, Entrée, Maj+clic, image) :
+ * attente maximale de la cible
+ */
+export function run(action: IUserAction, maxWaitMs?: number) {
   return new Promise((resolve, reject) => {
     switch (action.type) {
       case 'click':
         const x = action.x;
         const y = action.y;
-        displayEffect(x, y);
-        // Laisse le navigateur peindre le repère avant de déclencher le clic : sans ce délai,
-        // tout se joue dans la même tâche JS (avant le prochain repaint), et le repère n'est
-        // jamais visible avant que le clic n'ait déjà changé l'écran.
-        setTimeout(() => {
-          mouseEvent('click', x, y, 0);
-          resolve(true);
-        }, 100);
+        const playClick = () => {
+          displayEffect(x, y);
+          // Laisse le navigateur peindre le repère avant de déclencher le clic : sans ce délai,
+          // tout se joue dans la même tâche JS (avant le prochain repaint), et le repère n'est
+          // jamais visible avant que le clic n'ait déjà changé l'écran.
+          setTimeout(() => {
+            mouseEvent('click', x, y, 0);
+            resolve(true);
+          }, 100);
+        };
+        playWhenReady(action, maxWaitMs, () => isClickTargetReady(action), playClick);
         break;
       case 'mouseup':
         mouseup(action.x, action.y, action.key);
         resolve(true);
         break;
       case 'input':
-        resolve(input(action));
+        playWhenReady(
+          action,
+          maxWaitMs,
+          () => isDisplayed(findInputTarget(action)),
+          () => resolve(input(action))
+        );
         break;
       case 'enterKey':
-        enterKeypress(action.x, action.y, action.selector);
-        resolve(true);
+        playWhenReady(
+          action,
+          maxWaitMs,
+          () => isDisplayed(findBySelector(action.selector)),
+          () => {
+            enterKeypress(action.x, action.y, action.selector);
+            resolve(true);
+          }
+        );
         break;
       case 'scroll':
         scrollTo(action.scrollX, action.scrollY);
         resolve(true);
         break;
       case 'recordByLabel':
-        // Recherche par texte : l'élément a pu changer de position depuis
-        // l'enregistrement, ses coordonnées ne sont pas exploitables.
-        const labelElement = findElementByLabel(action.label, action.labelTag);
-        if (!labelElement) {
-          chrome.runtime.sendMessage(
-            {
-              action: 'PLAY_ACTION_ERROR'
-            },
-            () => resolve(false)
-          );
-          break;
-        }
-        const clickable = findClickableAncestor(labelElement) ?? labelElement;
-        const clickableOffset = getOffset(clickable);
-        displayEffect(clickableOffset.left + clickable.offsetWidth / 2, clickableOffset.top + clickable.offsetHeight / 2);
-        setTimeout(() => {
-          clickable.click();
-          resolve(true);
-        }, 100);
+        // findElementByLabel ne retient que les éléments visibles
+        playWhenReady(
+          action,
+          maxWaitMs,
+          () => !!findElementByLabel(action.label, action.labelTag),
+          () => {
+            // Recherche par texte : l'élément a pu changer de position depuis
+            // l'enregistrement, ses coordonnées ne sont pas exploitables.
+            const labelElement = findElementByLabel(action.label, action.labelTag);
+            if (!labelElement) {
+              chrome.runtime.sendMessage(
+                {
+                  action: 'PLAY_ACTION_ERROR'
+                },
+                () => resolve(false)
+              );
+              return;
+            }
+            const clickable = findClickableAncestor(labelElement) ?? labelElement;
+            const clickableOffset = getOffset(clickable);
+            displayEffect(clickableOffset.left + clickable.offsetWidth / 2, clickableOffset.top + clickable.offsetHeight / 2);
+            setTimeout(() => {
+              clickable.click();
+              resolve(true);
+            }, 100);
+          }
+        );
         break;
       case 'assertText':
       case 'assertVisible':
@@ -207,7 +294,9 @@ export function run(action: IUserAction) {
         });
         break;
       case 'recordByImg':
-        searchImg(action)
+        // La recherche d'image est trop coûteuse pour un poll toutes les 100 ms : c'est
+        // searchImg qui prolonge ses propres tentatives jusqu'à maxWaitMs.
+        searchImg(action, maxWaitMs)
           .then((img) => {
             if (img instanceof HTMLElement) {
               const offset = getOffset(img);

@@ -22,7 +22,22 @@ export const STORAGE_CATEGORIES: StorageCategory[] = [
   {
     id: 'config',
     icon: 'settings_applications',
-    keys: ['language', 'messages', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode', 'playwrightLocalHosts', 'settings', 'selectedMenu', 'tuelloKeyboardShortcut', 'tuelloDockedLeft', 'tuelloTagsPosition', 'tuelloGuideTourState'],
+    keys: [
+      'language',
+      'messages',
+      'darkMode',
+      'deepMockLevel',
+      'mouseCoordinates',
+      'verboseMode',
+      'fastReplay',
+      'playwrightLocalHosts',
+      'settings',
+      'selectedMenu',
+      'tuelloKeyboardShortcut',
+      'tuelloDockedLeft',
+      'tuelloTagsPosition',
+      'tuelloGuideTourState'
+    ],
     checkedByDefault: true
   },
   {

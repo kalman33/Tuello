@@ -1,10 +1,11 @@
 /**
  * Description de l'élément visé par une action (clic, saisie), prise à l'enregistrement.
  *
- * Le rejeu Tuello ne s'en sert pas (il garde coordonnées et sélecteur CSS) : elle sert à
- * l'export Playwright, qui désigne les éléments comme un utilisateur les voit (rôle,
- * libellé, texte) plutôt que par leur position, pour des tests qui survivent aux
- * évolutions de la mise en page.
+ * Elle sert surtout à l'export Playwright, qui désigne les éléments comme un utilisateur
+ * les voit (rôle, libellé, texte) plutôt que par leur position, pour des tests qui
+ * survivent aux évolutions de la mise en page. Le rejeu Tuello garde coordonnées et
+ * sélecteur CSS ; en rejeu accéléré, il s'en sert seulement pour savoir QUAND cliquer
+ * (cible affichée), jamais pour choisir où (matchesTarget).
  */
 export interface ITargetDescriptor {
   /** Balise de l'élément décrit (après remontée vers l'élément cliquable) */

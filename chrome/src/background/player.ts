@@ -1,4 +1,5 @@
 import { Action } from '../../../src/app/spy-http/models/Action';
+import { ActionType } from '../../../src/app/spy-http/models/ActionType';
 import { ComparisonResult } from '../models/ComparisonResult';
 import { IFrame } from '../models/IFrame';
 import { getFrameIdFromSrc } from './uiRecorderHandler';
@@ -18,6 +19,92 @@ const MAX_WINDOW_SIZE = 10000;
 /** Bornes d'affichage du commentaire pendant le rejeu (ms) */
 const MIN_COMMENT_DISPLAY_MS = 2000;
 const MAX_COMMENT_DISPLAY_MS = 10000;
+
+/**
+ * Rejeu accéléré : délai minimum avant une action. La cible peut être affichée avant
+ * que l'application n'y ait branché ses gestionnaires (fin de rendu, animation).
+ */
+const FAST_REPLAY_MIN_DELAY_MS = 250;
+
+/**
+ * Actions après lesquelles une navigation complète peut suivre. Le player se met en
+ * pause sur onBeforeNavigate : si celle-ci démarre après coup (submit lent), une action
+ * accélérée serait déjà partie dans l'ancienne page et perdue à son déchargement.
+ */
+const MAY_NAVIGATE_TYPES = ['enterKey', 'recordByImg', 'reload'];
+
+/** Types d'`<input>` dont le clic peut soumettre un formulaire */
+const SUBMITTING_INPUT_TYPES = ['submit', 'image', 'button', 'reset'];
+
+/**
+ * L'action peut-elle attendre sa cible côté page ? Il faut de quoi la reconnaître :
+ * - clic : une description qui désigne l'élément (testId, rôle, libellé ou texte ; mêmes
+ *   critères que matchesTarget, non importé ici car module DOM, côté page) ;
+ * - saisie, Entrée : le sélecteur CSS du champ ;
+ * - Maj+clic : le libellé ; image : l'image enregistrée.
+ * Les iframes ne sont pas encore gérées.
+ */
+function isAccelerable(action: Action): boolean {
+  const userAction = action.userAction;
+  if (!userAction || (userAction.frame?.frameId ?? 0) !== 0) {
+    return false;
+  }
+  switch (action.actionType) {
+    case ActionType.EVENT:
+      if (userAction.type === 'click') {
+        const target = userAction.target;
+        return !!(target?.testId || target?.label || target?.placeholder || target?.role || target?.text);
+      }
+      return (userAction.type === 'input' || userAction.type === 'enterKey') && !!userAction.selector;
+    case ActionType.RECORD_BY_LABEL:
+      return !!userAction.label;
+    case ActionType.RECORD_BY_IMAGE:
+      return !!userAction.value;
+    default:
+      return false;
+  }
+}
+
+/** Un clic sur un champ de saisie sert à le focaliser : il ne déclenche pas de navigation */
+function isFieldClick(previous: Action): boolean {
+  const target = previous.userAction?.type === 'click' ? previous.userAction.target : undefined;
+  if (!target) {
+    return false;
+  }
+  return target.tag === 'textarea' || target.tag === 'select' || (target.tag === 'input' && !SUBMITTING_INPUT_TYPES.includes(target.inputType));
+}
+
+/** L'action précédente a-t-elle pu déclencher une navigation complète ? Dans le doute, oui. */
+function mayNavigate(previous: Action, next: Action): boolean {
+  if (previous.actionType === ActionType.NAVIGATE || MAY_NAVIGATE_TYPES.includes(previous.userAction?.type)) {
+    return true;
+  }
+  const previousHref = previous.userAction?.hrefLocation;
+  if (!previousHref) {
+    return false;
+  }
+  // Un changement d'URL entre les deux actions signale une navigation (ou un changement
+  // de route d'une SPA, écarté aussi par prudence)
+  const nextHref = next.userAction?.hrefLocation;
+  if (nextHref) {
+    return nextHref !== previousHref;
+  }
+  // L'action suivante ne porte pas d'URL (saisie, Entrée, image) : seul un clic sur un
+  // champ garantit que la page n'a pas changé entre les deux
+  return !isFieldClick(previous);
+}
+
+/**
+ * Une action peut être accélérée si la page sait reconnaître sa cible et que l'action
+ * précédente ne peut pas déclencher de navigation. Sinon, le délai enregistré est
+ * conservé tel quel.
+ */
+function canFastReplay(previous: Action | undefined, next: Action | undefined, delay: number): boolean {
+  if (!previous || !next || delay <= FAST_REPLAY_MIN_DELAY_MS) {
+    return false;
+  }
+  return isAccelerable(next) && !mayNavigate(previous, next);
+}
 
 /** Options de rejeu */
 export interface PlayerOptions {
@@ -49,6 +136,10 @@ export class Player {
   actionResults: ActionResult[] = [];
   private isDestroyed = false;
   private onFinished?: () => void;
+  /** Réglage « Rejeu accéléré », lu à la création du player */
+  private fastReplay = false;
+  /** Attente maximale de la cible transmise avec la prochaine action, quand elle est accélérée */
+  private nextMaxWaitMs: number | undefined;
   /** Rejeu sans retour visuel de Tuello (scénario lancé depuis la mosaïque) */
   readonly silent: boolean;
 
@@ -58,6 +149,11 @@ export class Player {
     this.yieldActions = this.iterateGenerator(actions);
     this.onFinished = options?.onFinished;
     this.silent = !!options?.onFinished;
+    // Lecture asynchrone sans risque : la première action garde toujours son délai
+    // enregistré (startTimeout), le réglage n'est consulté qu'à partir de la deuxième.
+    chrome.storage.local.get(['fastReplay'], (results) => {
+      this.fastReplay = !chrome.runtime.lastError && !!results?.fastReplay;
+    });
   }
 
   /** Termine un rejeu silencieux (fin normale ou action en échec) */
@@ -80,6 +176,8 @@ export class Player {
   private startTimeout(): void {
     if (this.isDestroyed) return;
 
+    // Reprise (lancement, fin de navigation, PLAY après PAUSE) : toujours le délai enregistré
+    this.nextMaxWaitMs = undefined;
     const currentAction = this.initialActions[this.count];
     if (currentAction?.delay !== undefined && currentAction?.delay !== null) {
       this.timeoutId = setTimeout(() => this.treatAction(), currentAction.delay);
@@ -94,6 +192,8 @@ export class Player {
     this.count++;
 
     const userAction = action.value?.userAction ?? null;
+    const maxWaitMs = this.nextMaxWaitMs;
+    this.nextMaxWaitMs = undefined;
 
     if (action.done) {
       this.cleanup();
@@ -119,7 +219,7 @@ export class Player {
         // dans handleUserAction sans userAction et le rejeu échouait sur cette étape.
         actionSuccess = true;
       } else {
-        actionSuccess = await this.handleUserAction(userAction);
+        actionSuccess = await this.handleUserAction(userAction, maxWaitMs);
       }
     } catch (error) {
       actionSuccess = false;
@@ -255,7 +355,7 @@ export class Player {
     });
   }
 
-  private async handleUserAction(userAction: UserAction): Promise<boolean> {
+  private async handleUserAction(userAction: UserAction, maxWaitMs?: number): Promise<boolean> {
     let options: chrome.tabs.MessageSendOptions = { frameId: 0 };
 
     // Déterminer l'iframe cible
@@ -269,7 +369,7 @@ export class Player {
       }
     }
 
-    const played = await this.sendMessageToContent(userAction, options);
+    const played = await this.sendMessageToContent(userAction, options, maxWaitMs);
     if (played) {
       return true;
     }
@@ -315,6 +415,14 @@ export class Player {
     const currentAction = this.initialActions[this.count - 1];
     const delay = nextAction?.delay ?? currentAction?.delay ?? 0;
 
+    // Rejeu accéléré : le clic part après le délai minimum et la page attend sa cible
+    // pendant le reste du délai enregistré, qui devient un plafond.
+    if (this.fastReplay && canFastReplay(currentAction, nextAction, delay)) {
+      this.nextMaxWaitMs = delay - FAST_REPLAY_MIN_DELAY_MS;
+      this.timeoutId = setTimeout(() => this.treatAction(), FAST_REPLAY_MIN_DELAY_MS);
+      return;
+    }
+
     this.timeoutId = setTimeout(() => this.treatAction(), delay);
   }
 
@@ -346,6 +454,7 @@ export class Player {
         // d'un rejeu à l'autre.
         this.count = 0;
         this.comparisonResults = [];
+        this.nextMaxWaitMs = undefined;
         if (this.timeoutId) {
           clearTimeout(this.timeoutId);
           this.timeoutId = null;
@@ -385,13 +494,17 @@ export class Player {
     return true;
   }
 
-  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions): Promise<boolean> {
+  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions, maxWaitMs?: number): Promise<boolean> {
     return new Promise((resolve) => {
-      // Créer un timeout pour éviter de bloquer indéfiniment
-      const timeoutId = setTimeout(() => {
-        console.warn(`Timeout atteint pour l'action: ${userAction.type}`);
-        resolve(false);
-      }, ACTION_TIMEOUT_MS);
+      // Créer un timeout pour éviter de bloquer indéfiniment. L'attente de la cible
+      // (rejeu accéléré) s'y ajoute : un délai enregistré long ferait sinon échouer l'action.
+      const timeoutId = setTimeout(
+        () => {
+          console.warn(`Timeout atteint pour l'action: ${userAction.type}`);
+          resolve(false);
+        },
+        ACTION_TIMEOUT_MS + (maxWaitMs ?? 0)
+      );
 
       if (userAction.type === 'resize') {
         // Valider les dimensions avant de redimensionner
@@ -441,7 +554,8 @@ export class Player {
             this.chromeTabId,
             {
               action: 'PLAY_USER_ACTION',
-              value: userAction
+              value: userAction,
+              maxWaitMs
             },
             options,
             (response: any) => {

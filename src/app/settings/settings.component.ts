@@ -79,6 +79,8 @@ export class SettingsComponent implements OnInit {
   mouseCoordinates: boolean;
   desactivate = false;
   verboseMode: boolean;
+  /** Rejeu accéléré : un clic part dès que sa cible est affichée, sans attendre tout le délai enregistré */
+  fastReplay = false;
   /** Hôtes considérés comme locaux par l'export Playwright, en plus de localhost (saisie libre, séparés par des virgules) */
   playwrightLocalHosts = '';
   languages = [
@@ -160,7 +162,7 @@ export class SettingsComponent implements OnInit {
   }
 
   init() {
-    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode', 'playwrightLocalHosts'], (results: Record<string, any>) => {
+    chrome.storage.local.get(['language', 'darkMode', 'deepMockLevel', 'mouseCoordinates', 'verboseMode', 'fastReplay', 'playwrightLocalHosts'], (results: Record<string, any>) => {
       this.playwrightLocalHosts = (results['playwrightLocalHosts'] ?? []).join(', ');
       if (results['language']) {
         this.selectedLanguage = results['language'];
@@ -181,6 +183,8 @@ export class SettingsComponent implements OnInit {
       if (results['verboseMode']) {
         this.verboseMode = results['verboseMode'];
       }
+
+      this.fastReplay = !!results['fastReplay'];
 
       if (results['deepMockLevel']) {
         this.deepMockLevel = results['deepMockLevel'];
@@ -264,6 +268,11 @@ export class SettingsComponent implements OnInit {
 
   toggleVerboseMode(verboseModeValue: boolean) {
     chrome.storage.local.set({ verboseMode: verboseModeValue });
+  }
+
+  // Lu par le player à chaque lancement de rejeu : aucun message à envoyer
+  toggleFastReplay(fastReplayValue: boolean) {
+    chrome.storage.local.set({ fastReplay: fastReplayValue });
   }
 
   onLanguageSelect({ value }) {

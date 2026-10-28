@@ -313,3 +313,34 @@ export function describeTarget(element: Element | null): ITargetDescriptor | und
   }
   return descriptor;
 }
+
+/**
+ * Indique si un élément correspond à la description prise à l'enregistrement (rejeu
+ * accéléré : savoir quand la cible d'un clic est affichée). Seul le critère qui désigne
+ * l'élément est comparé : les rangs (`roleNth`, `textNth`) et le sélecteur dépendent du
+ * reste de la page, et les recalculer à chaque vérification coûterait trop cher. Ne lève
+ * jamais : un doute vaut non-correspondance, le clic part alors au délai enregistré.
+ */
+export function matchesTarget(element: Element | null, descriptor: ITargetDescriptor | undefined): boolean {
+  if (!element?.tagName || !descriptor || element.tagName.toLowerCase() !== descriptor.tag) {
+    return false;
+  }
+  try {
+    // Même ordre de préférence que describeTarget
+    if (descriptor.testId) {
+      return element.getAttribute('data-testid') === descriptor.testId;
+    }
+    if (descriptor.label || descriptor.placeholder) {
+      return (!descriptor.label || fieldLabel(element) === descriptor.label) && (!descriptor.placeholder || normalizeLabel(element.getAttribute('placeholder')) === descriptor.placeholder);
+    }
+    if (descriptor.role) {
+      return computeRole(element) === descriptor.role && computeName(element, descriptor.role) === descriptor.name;
+    }
+    if (descriptor.text) {
+      return normalizeLabel(contentText(element)) === descriptor.text;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}

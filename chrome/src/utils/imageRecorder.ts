@@ -224,8 +224,13 @@ function getCacheKey(action: IUserAction): string {
 /**
  * Recherche une image dans le DOM correspondant à l'action
  * Plusieurs passes sont effectuées : l'image peut être en lazy-loading ou pas encore rendue
+ *
+ * @param maxWaitMs rejeu accéléré : l'action part sans attendre le délai enregistré, les
+ * passes de recherche continuent donc jusqu'à ce plafond (au moins SEARCH_ATTEMPTS)
  */
-export async function searchImg(action: IUserAction): Promise<HTMLElement> {
+export async function searchImg(action: IUserAction, maxWaitMs?: number): Promise<HTMLElement> {
+  const deadline = maxWaitMs > 0 ? Date.now() + maxWaitMs : 0;
+
   // Vérifier le cache (en s'assurant que l'élément est toujours dans le document)
   const cacheKey = getCacheKey(action);
   const cached = cache.get(cacheKey);
@@ -236,7 +241,7 @@ export async function searchImg(action: IUserAction): Promise<HTMLElement> {
     cache.delete(cacheKey);
   }
 
-  for (let attempt = 0; attempt < SEARCH_ATTEMPTS; attempt++) {
+  for (let attempt = 0; attempt < SEARCH_ATTEMPTS || Date.now() < deadline; attempt++) {
     if (attempt > 0) {
       await delay(RETRY_DELAY_MS);
     }

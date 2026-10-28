@@ -37,6 +37,8 @@
   "mmn.settings.general.verbosemode.title": "Mode verbeux",
   "mmn.settings.general.verbosemode.information": "Affiche dans la console du navigateur les étapes détaillées de l'enregistrement et du rejeu HTTP : bouchons trouvés ou non, requêtes mises en attente, URLs exclues, réponses non-JSON ignorées, erreurs CORS.",
   "mmn.settings.general.mouse.title": "Afficher les coordonnées de la souris",
+  "mmn.settings.general.fastreplay.title": "Rejeu accéléré",
+  "mmn.settings.general.fastreplay.information": "Pendant le rejeu, un clic part dès que l'élément enregistré est affiché à sa position, au lieu d'attendre tout le délai enregistré. Le clic se fait toujours aux mêmes coordonnées ; le délai enregistré reste le maximum d'attente.",
   "mmn.settings.customize.title": "Personnaliser",
   "mmn.settings.customize.mode": "Mode sombre",
   "mmn.settings.customize.menu.title": "Libellés des menus",
