@@ -10,7 +10,7 @@ import { AddCategoryDialogComponent } from '../dialogs/add-category-dialog.compo
 import { AddUrlDialogComponent, AddUrlDialogResult } from '../dialogs/add-url-dialog.component';
 import { BookmarksImportDialogComponent } from '../dialogs/bookmarks-import-dialog.component';
 import { KeyboardShortcutsDialogComponent } from '../dialogs/keyboard-shortcuts-dialog.component';
-import { MosaicCategory, MosaicUrl, MosaicViewMode, MOSAIC_VIEW_MODE_KEY } from '../models/mosaic.models';
+import { MosaicCategory, MosaicUrl, MosaicViewMode, MOSAIC_CONFIG_KEY, MOSAIC_VIEW_MODE_KEY } from '../models/mosaic.models';
 import { MosaicToolbarComponent } from '../mosaic-toolbar/mosaic-toolbar.component';
 import { MosaicTreeAction, MosaicTreeComponent, MosaicUrlMove } from '../mosaic-tree/mosaic-tree.component';
 import { MosaicSearchResultsComponent } from '../search-results/search-results.component';
@@ -222,6 +222,10 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
           const dark = changes['darkMode'].newValue;
           document.body.classList.toggle('default-theme', !dark);
           document.body.classList.toggle('black-theme', !!dark);
+        }
+        if (changes[MOSAIC_CONFIG_KEY]) {
+          // Site ajouté depuis le menu contextuel (background) ou modifié dans un autre onglet mosaïque
+          this.storageService.loadConfig();
         }
         if (changes[MOSAIC_VIEW_MODE_KEY]) {
           const mode = changes[MOSAIC_VIEW_MODE_KEY].newValue as MosaicViewMode;

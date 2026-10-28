@@ -1,6 +1,7 @@
 import { Scenario, SCENARIOS_KEY, stripLeadingNavigations } from '../../src/app/core/scenarios/scenario.models';
 import { Action } from '../../src/app/spy-http/models/Action';
 import { Player } from './background/player';
+import { rebuildMosaicMenu } from './background/mosaicMenu';
 import {
   addAssertion,
   addComment,
@@ -484,6 +485,7 @@ async function init() {
 
   const msgs = results.messages?.default;
   await createContextMenus(msgs);
+  await rebuildMosaicMenu();
 }
 
 // listerner pour le pause et le resume du recorder (les commandes sont déclarées dans le manifest)
