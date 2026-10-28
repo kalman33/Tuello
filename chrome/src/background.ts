@@ -23,7 +23,8 @@ import {
   setActiveTab,
   setInitialState,
   setPause,
-  addTestStart
+  addTestStart,
+  getFrameIdFromSrc
 } from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
 import { loadCompressed } from './utils/compression';
@@ -785,19 +786,7 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
       break;
     case 'VIEW_CLICK_ACTION':
       if (sender && sender.tab && sender.tab.id >= 0) {
-        const action: UserAction = msg.value;
-        // on envoie un message au content scrip
-        chrome.tabs.sendMessage(
-          sender.tab.id,
-          {
-            action: 'VIEW_CLICK_ACTION',
-            value: action
-          },
-          {
-            frameId: action.frame && action.frame.frameId ? action.frame.frameId : 0
-          },
-          () => {}
-        );
+        viewClickAction(sender.tab.id, msg.value);
       }
       break;
     case 'SHOW':
@@ -1216,6 +1205,29 @@ function stopPlayer(senderTabId?: number): void {
   chrome.tabs.sendMessage(playedTabId, { action: 'MOCK_HTTP_USER_ACTION', value: false }, () => chrome.runtime.lastError);
   chrome.tabs.sendMessage(playedTabId, { action: 'HIDE_REPLAY_COMMENT' }, { frameId: 0 }, () => chrome.runtime.lastError);
   chrome.tabs.sendMessage(playedTabId, { action: 'SHOW' }, { frameId: 0 }, () => chrome.runtime.lastError);
+}
+
+/**
+ * Affiche le repère d'un clic enregistré (bouton œil). Le frameId stocké dans l'action ne vaut
+ * que pour la session d'enregistrement : pour un scénario rechargé il désigne un frame qui
+ * n'existe plus, et le message se perdait. On retrouve l'iframe par son src, comme le player,
+ * et on se rabat sur le frame principal si elle est introuvable ou ne répond pas.
+ */
+async function viewClickAction(tabId: number, action: UserAction): Promise<void> {
+  let frameId = 0;
+  if (action.frame?.src && action.frame.frameId > 0) {
+    try {
+      frameId = (await getFrameIdFromSrc(tabId, action.frame.src)).frameId;
+    } catch {
+      frameId = 0;
+    }
+  }
+  const message = { action: 'VIEW_CLICK_ACTION', value: action };
+  chrome.tabs.sendMessage(tabId, message, { frameId }, () => {
+    if (chrome.runtime.lastError && frameId !== 0) {
+      chrome.tabs.sendMessage(tabId, message, { frameId: 0 }, () => chrome.runtime.lastError);
+    }
+  });
 }
 
 /** Nettoyage de fin (ou d'échec) d'un scénario joué depuis la mosaïque */

@@ -1,6 +1,5 @@
 import { ICoordinates } from '../models/UserAction';
 
-
 // Mode verbeux tel que transmis par le content script (TUELLO_VERBOSE_MODE). Tant qu'il
 // est inconnu (démarrage de la page) on émet, pour ne pas perdre les logs du boot ; une
 // fois connu et coupé, plus aucun postMessage : chacun traversait les frames et coûtait
@@ -13,10 +12,13 @@ export function setVerboseLogging(value: boolean) {
 
 export function logData(...args: any[]) {
   if (verboseLogging === false) return;
-  window.top.postMessage({
-    action: 'LOG_DATA',
-    value: args
-  }, '*');
+  window.top.postMessage(
+    {
+      action: 'LOG_DATA',
+      value: args
+    },
+    '*'
+  );
 }
 
 /**
@@ -26,7 +28,7 @@ export function logData(...args: any[]) {
  */
 export type DuplicateKeySelector = (item: any) => string;
 
-const defaultKeySelector: DuplicateKeySelector = item => item.key;
+const defaultKeySelector: DuplicateKeySelector = (item) => item.key;
 
 /**
  * permet de supprimer les doublons dans le flux json (garde la premiere occurrence)
@@ -34,7 +36,7 @@ const defaultKeySelector: DuplicateKeySelector = item => item.key;
 export function removeDuplicateEntries(data: any, keySelector: DuplicateKeySelector = defaultKeySelector): any {
   // suppression doublons dans json
   const seen = new Set<string>();
-  return data.filter(item => {
+  return data.filter((item) => {
     const key = keySelector(item);
     if (seen.has(key)) {
       return false;
@@ -45,21 +47,21 @@ export function removeDuplicateEntries(data: any, keySelector: DuplicateKeySelec
 }
 
 /**
- * 
+ *
  * @param message Permet de créer un hash d'un string
- * @returns 
+ * @returns
  */
 async function hashString(message) {
   const msgBuffer = new TextEncoder().encode(message);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   return hashHex;
 }
 
 export function removeDuplicatesKeepLast(data, keySelector: DuplicateKeySelector = defaultKeySelector) {
   const temp = new Map<string, any>();
-  data.forEach(item => {
+  data.forEach((item) => {
     temp.set(keySelector(item), item); // Remplace chaque élément avec la même clé dans temp
   });
 
@@ -82,8 +84,6 @@ export function stringContainedInURL(stringData, url) {
   return regex.test(url);
 }
 
-
-
 export function crop(canvas, cropX, cropY, cropWidth, cropHeight) {
   // create a temporary canvas sized to the cropped size
   var canvas1 = document.createElement('canvas');
@@ -98,7 +98,7 @@ export function crop(canvas, cropX, cropY, cropWidth, cropHeight) {
   // Removes an element from the document
   ctx.clearRect(0, 0, cropWidth, cropHeight);
   // return the .toDataURL of the temp canvas
-  return (ret);
+  return ret;
 }
 
 export function getOffset(el) {
@@ -128,10 +128,6 @@ export function iframeURLChange(iframe, callback) {
   iframe.addEventListener('load', attachUnload, true);
   attachUnload();
 }
-
-
-
-
 
 /**
  * permet de rajouter une fonction sur le onload d'un element
@@ -165,38 +161,59 @@ export function addEventListener(type, func) {
  * @param x
  * @param y
  */
-export function displayEffect(x, y) {
+export function displayEffect(x, y, durationMs = 500) {
   const div = document.createElement('div');
-  div.style.left = (x - window.scrollX) + 'px';
-  div.style.top = (y - window.scrollY) + 'px';
-  // Position et insensibilité au pointeur posées en ligne : la feuille de style de
-  // Tuello peut manquer (page sans <head> au moment de l'injection), et le repère ne
-  // doit jamais décaler la mise en page ni s'interposer devant l'élément visé.
-  div.style.position = 'fixed';
-  div.style.pointerEvents = 'none';
   div.className = 'tuello-circle';
+  // Tout est posé en ligne et animé via l'API Web Animations : la feuille de style de
+  // Tuello peut manquer (page sans <head> au moment de l'injection), et des @keyframes
+  // au nom générique pouvaient être écrasées par ceux de la page (le cercle ne grandissait
+  // plus). Le repère ne doit jamais décaler la mise en page ni s'interposer devant l'élément visé.
+  Object.assign(div.style, {
+    position: 'fixed',
+    left: x - window.scrollX + 'px',
+    top: y - window.scrollY + 'px',
+    width: '30px',
+    height: '30px',
+    boxSizing: 'border-box',
+    borderRadius: '100%',
+    border: '6px solid #D12566',
+    transform: 'translate(-50%, -50%)',
+    pointerEvents: 'none',
+    zIndex: '2147483640'
+  });
   document.body.append(div);
 
   // L'action n'attend pas la fin de l'animation : le repère s'efface de son côté,
   // alors que l'attendre ajoutait une demi-seconde à chaque action du scénario.
+  // La durée de l'animation est celle d'affichage : avant, le cercle était retiré au tiers
+  // de son animation et on ne le voyait pas grandir.
   // remove() et pas removeChild() : si la page a re-rendu (SPA) le nœud n'a plus
   // body comme parent, et removeChild lèverait une exception.
-  setTimeout(() => div.remove(), 500);
+  div
+    .animate(
+      [
+        { width: '30px', height: '30px', opacity: 1 },
+        { width: '100px', height: '100px', opacity: 0 }
+      ],
+      { duration: durationMs, easing: 'ease-out', fill: 'forwards' }
+    )
+    .finished.then(
+      () => div.remove(),
+      () => div.remove()
+    );
 }
 
 /**
- * 
+ *
  * @param tagName recherche un element html à partir de sont type (a, button, ect...) et d'une coordonnée
- * @param x 
- * @param y 
+ * @param x
+ * @param y
  */
 export function getHTMLElement(tagName: string, x: number, y: number): HTMLElement {
-
   // recherche des a href
-  const elt = Array.from(document.getElementsByTagName(tagName)).find(item => {
+  const elt = Array.from(document.getElementsByTagName(tagName)).find((item) => {
     const rect = item.getBoundingClientRect();
-    if ((rect.left + window.scrollX < x && x < rect.left + window.scrollX + rect.width) &&
-      (rect.top + window.scrollY < y && y < rect.top + window.scrollY + rect.height)) {
+    if (rect.left + window.scrollX < x && x < rect.left + window.scrollX + rect.width && rect.top + window.scrollY < y && y < rect.top + window.scrollY + rect.height) {
       return true;
     } else {
       return false;
@@ -218,7 +235,7 @@ export function getParentByTagName(node: HTMLElement, tagname: string) {
   parent = node.parentNode;
   tagname = tagname.toUpperCase();
 
-  while (parent?.tagName !== "HTML") {
+  while (parent?.tagName !== 'HTML') {
     if (parent?.tagName.toLowerCase() === tagname.toLowerCase()) {
       return parent;
     }
@@ -232,19 +249,17 @@ export function getParentByTagName(node: HTMLElement, tagname: string) {
  * e provient de getXPath
  */
 export function isVisible(e: string) {
-  const elt = getElementFromXPath(e)
+  const elt = getElementFromXPath(e);
   return !!(elt && (elt.offsetWidth || elt.offsetHeight || elt.getClientRects().length));
 }
 
-
 /**
- * 
+ *
  * @param el Permet de récuperer une clef qui permettra de retrouver l'element via un querySelector
- * @returns 
+ * @returns
  */
 export function getCSSPath(el) {
-  if (!(el instanceof Element))
-    return null;
+  if (!(el instanceof Element)) return null;
   var path = [];
   while (el.nodeType === Node.ELEMENT_NODE) {
     var selector = el.nodeName.toLowerCase();
@@ -253,36 +268,33 @@ export function getCSSPath(el) {
       path.unshift(selector);
       break;
     } else {
-      var sib = el, nth = 1;
-      while (sib = sib.previousElementSibling) {
-        if (sib.nodeName.toLowerCase() == selector)
-          nth++;
+      var sib = el,
+        nth = 1;
+      while ((sib = sib.previousElementSibling)) {
+        if (sib.nodeName.toLowerCase() == selector) nth++;
       }
-      if (nth != 1)
-        selector += ":nth-of-type(" + nth + ")";
+      if (nth != 1) selector += ':nth-of-type(' + nth + ')';
     }
     path.unshift(selector);
     el = el.parentNode;
   }
-  return path.join(" > ");
+  return path.join(' > ');
 }
 
 /** Permet de savoir si le click est dans l'élement */
 export function clickInside(coord: ICoordinates, x: number, y: number): boolean {
   if (coord) {
-    return coord.top <= y && y <= (coord.top + coord.height) && coord.left <= x && x <= (coord.left + coord.width)
+    return coord.top <= y && y <= coord.top + coord.height && coord.left <= x && x <= coord.left + coord.width;
   } else {
     return false;
   }
 }
 
-
-
 /**
  * Get absolute xPath position from dom element
  * xPath position will does not contain any id, class or attribute, etc selector
  * Because, Some page use random id and class. This function should ignore that kind problem, so we're not using any selector
- * 
+ *
  * @param {Element} element element to get position
  * @returns {String} xPath string
  */
@@ -299,7 +311,7 @@ export function getXPath(element) {
 
   // Do action until we reach html element
   do {
-    // Get element tag name 
+    // Get element tag name
     tagName = currentElement?.tagName?.toLowerCase();
     // Get parent element
     parentElement = currentElement?.parentElement;
@@ -308,11 +320,13 @@ export function getXPath(element) {
     if (parentElement?.childElementCount > 1) {
       // Get children of parent element
       const parentsChildren = [...parentElement.children];
-      // Count current tag 
+      // Count current tag
       let tag = [];
-      parentsChildren.filter(elt => !elt.id || !elt.id.includes('tuello')).forEach(child => {
-        if (child.tagName.toLowerCase() === tagName) tag.push(child) // Append to tag
-      })
+      parentsChildren
+        .filter((elt) => !elt.id || !elt.id.includes('tuello'))
+        .forEach((child) => {
+          if (child.tagName.toLowerCase() === tagName) tag.push(child); // Append to tag
+        });
 
       // Is only of type
       if (tag.length === 1) {
@@ -324,7 +338,6 @@ export function getXPath(element) {
         // Append tag to selector
         selector = `/${tagName}[${position}]${selector}`;
       }
-
     } else {
       //* Current element has no siblings
       // Append tag to selector
@@ -333,24 +346,25 @@ export function getXPath(element) {
 
     // Set parent element to current element
     currentElement = parentElement;
-    // Is root  
+    // Is root
     foundRoot = parentElement?.tagName?.toLowerCase() === 'html';
     // Finish selector if found root element
     if (foundRoot) selector = `/html${selector}`;
-  }
-  while (foundRoot === false && tagName && parentElement);
+  } while (foundRoot === false && tagName && parentElement);
   // Return selector
   return selector;
 }
 
 export function getElementFromXPath(xpath: string): HTMLElement {
-  return (document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as HTMLElement);
+  return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue as HTMLElement;
 }
 
 /** Permet de savoir si un element est positionné dans un elément fixé */
 export function isFixedPosition(node) {
   while (node && node.nodeName.toLowerCase() !== 'body') {
-    if (window.getComputedStyle(node).getPropertyValue('position').toLowerCase() === 'fixed') { return true; }
+    if (window.getComputedStyle(node).getPropertyValue('position').toLowerCase() === 'fixed') {
+      return true;
+    }
     node = node.parentNode;
   }
   return false; // if got this far
@@ -371,7 +385,7 @@ export function addcss(cssUrl: string) {
 }
 
 export function isJSON(text) {
-  if (typeof text !== "string") {
+  if (typeof text !== 'string') {
     return false;
   }
   try {
@@ -409,33 +423,27 @@ export function removeURLPortAndQueryString(url: string) {
 
 /**
  * permet de parser le body envoyé dans une requete
- * @param data 
- * @returns 
+ * @param data
+ * @returns
  */
 export function getBodyFromData(data: any) {
   let result = {};
   try {
-
     if (data) {
       if (data instanceof ArrayBuffer) {
-
-        result = JSON.parse(new TextDecoder().decode((data) as ArrayBuffer));
+        result = JSON.parse(new TextDecoder().decode(data as ArrayBuffer));
         //result = JSON.parse(atob(decodeURIComponent(result['body'])))
-
-      }
-      else if (data instanceof FormData) {
+      } else if (data instanceof FormData) {
         let object = {};
-        data.forEach((value, key) => object[key] = value);
+        data.forEach((value, key) => (object[key] = value));
         result = JSON.stringify(object);
-      }
-      else if (data instanceof URLSearchParams) {
+      } else if (data instanceof URLSearchParams) {
         let object = {};
         data.forEach(function (value, key) {
           object[key] = value;
         });
         result = JSON.stringify(object);
-      }
-      else if (typeof data === 'string') {
+      } else if (typeof data === 'string') {
         //ok
         if (isJSON(data)) {
           result = data;
@@ -455,25 +463,25 @@ export function getBodyFromData(data: any) {
 // donne le keycode clavier à partir de la key
 export function getKeyCode(key) {
   const keyMap = {
-    'Backspace': 'Backspace',
-    'Tab': 'Tab',
-    'Enter': 'Enter',
-    'Shift': 'ShiftLeft',
-    'Control': 'ControlLeft',
-    'Alt': 'AltLeft',
-    'CapsLock': 'CapsLock',
-    'Escape': 'Escape',
-    'Space': 'Space',
-    'PageUp': 'PageUp',
-    'PageDown': 'PageDown',
-    'End': 'End',
-    'Home': 'Home',
-    'ArrowLeft': 'ArrowLeft',
-    'ArrowUp': 'ArrowUp',
-    'ArrowRight': 'ArrowRight',
-    'ArrowDown': 'ArrowDown',
-    'Insert': 'Insert',
-    'Delete': 'Delete',
+    Backspace: 'Backspace',
+    Tab: 'Tab',
+    Enter: 'Enter',
+    Shift: 'ShiftLeft',
+    Control: 'ControlLeft',
+    Alt: 'AltLeft',
+    CapsLock: 'CapsLock',
+    Escape: 'Escape',
+    Space: 'Space',
+    PageUp: 'PageUp',
+    PageDown: 'PageDown',
+    End: 'End',
+    Home: 'Home',
+    ArrowLeft: 'ArrowLeft',
+    ArrowUp: 'ArrowUp',
+    ArrowRight: 'ArrowRight',
+    ArrowDown: 'ArrowDown',
+    Insert: 'Insert',
+    Delete: 'Delete',
     '0': 'Digit0',
     '1': 'Digit1',
     '2': 'Digit2',
@@ -484,32 +492,32 @@ export function getKeyCode(key) {
     '7': 'Digit7',
     '8': 'Digit8',
     '9': 'Digit9',
-    'A': 'KeyA',
-    'B': 'KeyB',
-    'C': 'KeyC',
-    'D': 'KeyD',
-    'E': 'KeyE',
-    'F': 'KeyF',
-    'G': 'KeyG',
-    'H': 'KeyH',
-    'I': 'KeyI',
-    'J': 'KeyJ',
-    'K': 'KeyK',
-    'L': 'KeyL',
-    'M': 'KeyM',
-    'N': 'KeyN',
-    'O': 'KeyO',
-    'P': 'KeyP',
-    'Q': 'KeyQ',
-    'R': 'KeyR',
-    'S': 'KeyS',
-    'T': 'KeyT',
-    'U': 'KeyU',
-    'V': 'KeyV',
-    'W': 'KeyW',
-    'X': 'KeyX',
-    'Y': 'KeyY',
-    'Z': 'KeyZ',
+    A: 'KeyA',
+    B: 'KeyB',
+    C: 'KeyC',
+    D: 'KeyD',
+    E: 'KeyE',
+    F: 'KeyF',
+    G: 'KeyG',
+    H: 'KeyH',
+    I: 'KeyI',
+    J: 'KeyJ',
+    K: 'KeyK',
+    L: 'KeyL',
+    M: 'KeyM',
+    N: 'KeyN',
+    O: 'KeyO',
+    P: 'KeyP',
+    Q: 'KeyQ',
+    R: 'KeyR',
+    S: 'KeyS',
+    T: 'KeyT',
+    U: 'KeyU',
+    V: 'KeyV',
+    W: 'KeyW',
+    X: 'KeyX',
+    Y: 'KeyY',
+    Z: 'KeyZ',
     ';': 'Semicolon',
     '=': 'Equal',
     ',': 'Comma',
@@ -520,7 +528,7 @@ export function getKeyCode(key) {
     '[': 'BracketLeft',
     '\\': 'Backslash',
     ']': 'BracketRight',
-    '\'': 'Quote'
+    "'": 'Quote'
   };
 
   // Retourner le code correspondant si la touche existe dans la table

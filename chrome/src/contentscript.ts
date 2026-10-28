@@ -61,6 +61,18 @@ function applyDockPosition(iframe: HTMLIFrameElement, isVisible: boolean) {
 /**
  * Handler pour capturer l'élément cliqué (utilisé pour JSON Viewer)
  */
+/**
+ * Aperçu d'un clic enregistré (bouton œil) : x,y sont des coordonnées de page, un scénario
+ * rechargé peut donc viser un point hors de l'écran. On y fait défiler avant d'afficher le repère.
+ */
+function previewClick(action: IUserAction): void {
+  const outOfView = action.x < window.scrollX || action.x > window.scrollX + window.innerWidth || action.y < window.scrollY || action.y > window.scrollY + window.innerHeight;
+  if (outOfView) {
+    window.scrollTo({ left: action.x - window.innerWidth / 2, top: action.y - window.innerHeight / 2, behavior: 'instant' });
+  }
+  displayEffect(action.x, action.y, 1500);
+}
+
 function handleMousedown(event: MouseEvent): void {
   clickedElement = (event.target as HTMLElement)?.innerHTML || '';
 }
@@ -343,31 +355,6 @@ function init() {
           }
           .tuello-track:hover { 
             cursor: pointer;
-          }
-          .tuello-circle {
-              pointer-events: none;
-              width: 30px; height: 30px;
-              border-radius: 100%;
-              border: 6px solid #D12566;
-              position: fixed;
-              z-index: 2147483640;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              animation: ring 1.5s infinite;
-          }
-          
-          @keyframes ring {
-            0% {
-            width: 30px;
-            height: 30px;
-            opacity: 1;
-            }
-            100% {
-            width: 100px;
-            height: 100px;
-            opacity: 0;
-            }
           }
           #cover-spin {
             position:fixed;
@@ -833,8 +820,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse();
       break;
     case 'VIEW_CLICK_ACTION':
-      const action: IUserAction = message.value;
-      displayEffect(action.x, action.y);
+      previewClick(message.value);
+      sendResponse();
       break;
 
     case 'START_UI_RECORDER':
