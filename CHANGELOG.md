@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.38.0] - 2026-10-28
+
+    - Spy : bouton Annuler à l'enregistrement, aperçu d'un clic, rejeu fiabilisé
+    - Mosaïque : ajout d'un site par clic droit, badge scénario mis à jour immédiatement
+
 ## [1.2.37.0] - 2026-10-28
 
     - Spy : rejeu accéléré (option) : les actions partent dès que leur cible est affichée
