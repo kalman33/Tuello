@@ -6,12 +6,11 @@
 
   <!-- navigate -->
   @if (action.actionType === 'NAVIGATE') {
-    <div fxFlex="15%" class="label screenshot">
+    <div fxFlex="15%" class="label screenshot" [matTooltip]="navigationUrl" matTooltipClass="navigation-url-tooltip">
       <mat-icon class="v-align-middle">{{ isReload ? 'refresh' : 'my_location' }}</mat-icon>
       <span class="v-align-middle">{{ (isReload ? 'mmn.spy-http.actions.type.reload' : 'mmn.spy-http.actions.type.navigate') | translate }}</span>
     </div>
     <div fxFlex="50%">
-      <div fxFlex="50%" class="data">{{ domain }}</div>
       @if (action?.data) {
         <img style="display: block; width: 40px; height: 40px" (click)="chromeExtentionUtilsService.openImageViewer(action?.data)" [src]="action?.data" alt="Navigation" />
       }

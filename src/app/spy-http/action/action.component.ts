@@ -30,8 +30,8 @@ export class ActionComponent implements OnChanges {
     /** Place le repère « Début du test » juste avant cette action */
     @Output() testStart: EventEmitter<number> = new EventEmitter<number>();
 
-    /** Domain extrait de l'URL (calculé une seule fois quand l'action change) */
-    domain: string = '';
+    /** URL de navigation, affichée au survol du tag (l'afficher en ligne décalait les boutons) */
+    navigationUrl: string = '';
 
     /** Rechargement de page (F5) : même action que la navigation, mais rejouée sur place */
     isReload = false;
@@ -46,19 +46,10 @@ export class ActionComponent implements OnChanges {
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['action']) {
-            this.domain = this.extractDomain();
+            this.navigationUrl = this.action?.userAction?.hrefLocation || '';
             this.isReload = this.action?.userAction?.type === 'reload';
             const target = this.action?.userAction?.target;
             this.assertionSubject = target?.name || target?.label || target?.text || target?.placeholder || this.action?.userAction?.selector || '';
-        }
-    }
-
-    private extractDomain(): string {
-        try {
-            const url = new URL(this.action?.userAction?.hrefLocation);
-            return url.hostname;
-        } catch {
-            return '';
         }
     }
 

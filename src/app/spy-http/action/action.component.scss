@@ -72,3 +72,9 @@ mat-icon {
 ::ng-deep .mat-mdc-tooltip {
   font-size: 10px;
 }
+
+// URL de navigation au survol : une URL longue n'a pas d'espace où passer à la ligne
+::ng-deep .navigation-url-tooltip .mdc-tooltip__surface {
+  max-width: 320px;
+  word-break: break-all;
+}
