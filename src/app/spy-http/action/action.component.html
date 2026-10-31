@@ -50,11 +50,12 @@
 
   <!-- Comment -->
   @if (action.actionType === 'COMMENT') {
-    <div fxFlex="15%" class="label screenshot">
+    <!-- commentaire au survol : affiché en ligne, il décalait les boutons d'action -->
+    <div fxFlex="15%" class="label screenshot" [matTooltip]="action?.data" matTooltipClass="comment-tooltip">
       <mat-icon>comment</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.comment' | translate }}</span>
     </div>
-    <div fxFlex="50%" class="data">{{ action?.data }}</div>
+    <div fxFlex="50%"></div>
   }
 
   <!-- début du test (export Playwright) -->
