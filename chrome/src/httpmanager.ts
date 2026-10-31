@@ -13,6 +13,10 @@ interface TuelloRecord {
   httpCode: number;
   delay?: number;
   headers?: Record<string, string>;
+  // Niveau de frame d'où est partie la requête enregistrée (0 = page principale,
+  // 1 = iframe directe...). Absent sur les mocks antérieurs : le mock s'applique
+  // alors dans toutes les frames (joker).
+  frameLevel?: number;
 }
 
 interface HttpMessage {
@@ -27,6 +31,7 @@ interface HttpMessage {
   requestId?: string;
   body?: unknown;
   hrefLocation?: string;
+  frameLevel?: number;
   headers?: Record<string, string>;
   // Headers posés par l'application sur la requête (setRequestHeader / init.headers / Request) :
   // ceux ajoutés par le navigateur lui-même (Cookie, User-Agent...) ne sont pas visibles en JS.
@@ -110,6 +115,33 @@ const originalFetch = window.fetch.bind(window);
 let messageForHTTPRecorderQueue: HttpMessage[] = [];
 let messageForHTTPTagsQueue: HttpMessage[] = [];
 let deepMockLevel = 0;
+
+/**
+ * Niveau d'imbrication de la frame courante : 0 pour la page principale, 1 pour une
+ * iframe directe, etc. Contrairement à l'hôte ou au contextRoot, il reste identique
+ * d'un environnement à l'autre : il permet de ne servir un mock qu'aux requêtes de la
+ * frame qui l'a enregistré, même quand la profondeur de comparaison rend deux URL
+ * identiques (ex. app1.com/app1/api/map et app2.com/app2/api/map en profondeur 2).
+ * Remonter les parents est autorisé même en cross-origin (seule la comparaison de
+ * références est faite, sans accès au contenu des fenêtres).
+ */
+const computeFrameLevel = (): number => {
+  let level = 0;
+  try {
+    let current: Window = window;
+    while (current !== current.parent && level < 50) {
+      current = current.parent;
+      level++;
+    }
+  } catch {
+    // Accès refusé (cas exotique) : on garde le niveau atteint
+  }
+  return level;
+};
+const FRAME_LEVEL = computeFrameLevel();
+
+/** Un mock enregistré dans une autre frame ne s'applique pas ici (sauf mock sans niveau = joker). */
+const frameLevelMatches = (record: TuelloRecord): boolean => typeof record.frameLevel !== 'number' || record.frameLevel === FRAME_LEVEL;
 
 // Deux fonctionnalités indépendantes (Recorder HTTP /recorder, et Spy /spy) partagent ce même
 // hook d'interception et peuvent chacune l'activer/désactiver à tout moment (chacune sur la foi
@@ -526,7 +558,14 @@ const buildMockIndex = (records: TuelloRecord[]): void => {
   mockIndexVersion++;
   mockIndexBuilt = true;
 
+  let skippedOtherFrames = 0;
   for (const record of records) {
+    // Mock enregistré dans une autre frame (page principale vs iframe) : on ne
+    // l'indexe pas, il ne doit jamais répondre aux requêtes de cette frame.
+    if (!frameLevelMatches(record)) {
+      skippedOtherFrames++;
+      continue;
+    }
     const { normalized, segments } = normalizeUrlForIndex(record.key);
     const hasWildcard = record.key.includes('*');
 
@@ -567,7 +606,9 @@ const buildMockIndex = (records: TuelloRecord[]): void => {
   }
 
   const elapsed = performance.now() - startTime;
-  logData(`- Mock HTTP - Index construit en ${elapsed.toFixed(2)}ms (${records.length} records, ${mockIndexExact.size} exact, ${mockWildcardRecords.length} wildcards)`);
+  logData(
+    `- Mock HTTP - Index construit en ${elapsed.toFixed(2)}ms (${records.length} records, ${mockIndexExact.size} exact, ${mockWildcardRecords.length} wildcards, ${skippedOtherFrames} ignorés car enregistrés dans une autre frame, niveau de frame ${FRAME_LEVEL})`
+  );
 };
 
 /**
@@ -685,7 +726,7 @@ const findMockRecord = (url: string, method?: string): TuelloRecord | undefined 
   }
 
   // Fallback sur la recherche linéaire si l'index n'est pas construit
-  return records.find((record: TuelloRecord) => compareWithMockLevel(url, record.key) && methodMatches(record, method));
+  return records.find((record: TuelloRecord) => frameLevelMatches(record) && compareWithMockLevel(url, record.key) && methodMatches(record, method));
 };
 
 /**
@@ -1276,6 +1317,7 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
         requestId,
         body: parsedBody,
         hrefLocation: window.location.href,
+        frameLevel: FRAME_LEVEL,
         headers,
         requestHeaders: req.xhrRequestHeaders
       };
@@ -1355,6 +1397,7 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
     requestId,
     body: init?.body as unknown,
     hrefLocation: window.location.href,
+    frameLevel: FRAME_LEVEL,
     response: responseData,
     headers,
     requestHeaders: extractFetchRequestHeaders(input, init)

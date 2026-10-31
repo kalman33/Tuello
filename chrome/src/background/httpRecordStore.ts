@@ -17,6 +17,7 @@ export interface HttpRecordEntry {
   httpCode: number;
   delay?: number;
   headers?: Record<string, string>;
+  frameLevel?: number;
 }
 
 interface MockProfile {

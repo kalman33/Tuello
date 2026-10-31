@@ -5,6 +5,7 @@ interface NewRecord {
   httpCode: number;
   delay: number | undefined;
   headers: Record<string, string> | undefined;
+  frameLevel: number | undefined;
 }
 
 // Debounce : on attend que la rafale de requêtes se calme avant de transmettre le
@@ -27,7 +28,9 @@ export function recordHttpListener(event: MessageEvent) {
     response: event.data.error || event.data.response,
     httpCode: event.data.status,
     delay: event.data.delay,
-    headers: event.data.headers
+    headers: event.data.headers,
+    // Niveau de frame (0 = page principale) : au rejeu, le mock ne répond qu'aux requêtes de ce niveau
+    frameLevel: typeof event.data.frameLevel === 'number' ? event.data.frameLevel : undefined
   });
 
   // Flush immédiat si la rafale dépasse le seuil
@@ -73,13 +76,13 @@ export function flushPendingRecords(): Promise<void> {
         // lastError est lu pour éviter les "Unchecked runtime.lastError" quand le
         // service worker est indisponible (extension rechargée, page orpheline).
         if (chrome.runtime.lastError) {
-          console.warn("Tuello: Enregistrement HTTP non transmis:", chrome.runtime.lastError.message);
+          console.warn('Tuello: Enregistrement HTTP non transmis:', chrome.runtime.lastError.message);
         }
         resolve();
       });
     } catch (error) {
       // Contexte d'extension invalidé : le content script ne peut plus rien écrire
-      console.warn("Tuello: Enregistrement HTTP impossible:", error);
+      console.warn('Tuello: Enregistrement HTTP impossible:', error);
       resolve();
     }
   });
