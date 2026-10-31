@@ -11,7 +11,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { take } from 'rxjs';
-import { AddCategoryDialogComponent } from '../mosaic/dialogs/add-category-dialog.component';
+import { AddCategoryDialogComponent, AddCategoryDialogResult } from '../mosaic/dialogs/add-category-dialog.component';
 import { AddUrlDialogComponent, AddUrlDialogResult } from '../mosaic/dialogs/add-url-dialog.component';
 import { BookmarksImportDialogComponent } from '../mosaic/dialogs/bookmarks-import-dialog.component';
 import { ImportExportDialogComponent } from '../mosaic/dialogs/import-export-dialog.component';
@@ -78,18 +78,18 @@ export class MosaicManagerComponent implements OnInit {
       .open(AddCategoryDialogComponent, { data: {} })
       .afterClosed()
       .pipe(take(1))
-      .subscribe((name: string) => {
-        if (name) this.storageService.addCategory(name);
+      .subscribe((result?: AddCategoryDialogResult) => {
+        if (result) this.storageService.addCategory(result.name);
       });
   }
 
   editCategory(category: MosaicCategory) {
     this.dialog
-      .open(AddCategoryDialogComponent, { data: { name: category.name } })
+      .open(AddCategoryDialogComponent, { data: { name: category.name, urls: category.urls } })
       .afterClosed()
       .pipe(take(1))
-      .subscribe((name: string) => {
-        if (name) this.storageService.updateCategory({ ...category, name });
+      .subscribe((result?: AddCategoryDialogResult) => {
+        if (result) this.storageService.editCategory(category, result.name, result.scenarioId);
       });
   }
 

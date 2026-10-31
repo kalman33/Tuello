@@ -57,6 +57,15 @@ export class MosaicStorageService {
     await this.saveConfig(config);
   }
 
+  /**
+   * Renomme une catégorie et, si `scenarioId` est fourni, l'associe à tous ses sites
+   * (`null` retire l'association). Les deux changements sont écrits en une fois.
+   */
+  async editCategory(category: MosaicCategory, name: string, scenarioId?: string | null): Promise<void> {
+    const urls = scenarioId === undefined ? category.urls : category.urls.map((u) => ({ ...u, scenarioId: scenarioId ?? undefined }));
+    await this.updateCategory({ ...category, name, urls });
+  }
+
   async deleteCategory(categoryId: string): Promise<void> {
     const config = { ...this.configSubject.getValue() };
     config.categories = config.categories.filter((c) => c.id !== categoryId);

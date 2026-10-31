@@ -6,7 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { take } from 'rxjs';
 import { ConfirmDialogComponent } from '../../core/confirmation-dialog/confirmation-dialog.component';
 import { CategoriesGridComponent, GridItem, UrlDroppedInCategory } from '../categories-grid/categories-grid.component';
-import { AddCategoryDialogComponent } from '../dialogs/add-category-dialog.component';
+import { AddCategoryDialogComponent, AddCategoryDialogResult } from '../dialogs/add-category-dialog.component';
 import { AddUrlDialogComponent, AddUrlDialogResult } from '../dialogs/add-url-dialog.component';
 import { BookmarksImportDialogComponent } from '../dialogs/bookmarks-import-dialog.component';
 import { KeyboardShortcutsDialogComponent } from '../dialogs/keyboard-shortcuts-dialog.component';
@@ -336,9 +336,9 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
       .open(AddCategoryDialogComponent, { data: {} })
       .afterClosed()
       .pipe(take(1))
-      .subscribe((name: string) => {
-        if (name) {
-          this.storageService.addCategory(name);
+      .subscribe((result?: AddCategoryDialogResult) => {
+        if (result) {
+          this.storageService.addCategory(result.name);
         }
       });
   }
@@ -427,12 +427,17 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
 
   private editCategory(category: MosaicCategory): void {
     this.dialog
-      .open(AddCategoryDialogComponent, { data: { name: category.name } })
+      .open(AddCategoryDialogComponent, { data: { name: category.name, urls: category.urls } })
       .afterClosed()
       .pipe(take(1))
-      .subscribe((name: string) => {
-        if (name) {
-          this.storageService.updateCategory({ ...category, name });
+      .subscribe(async (result?: AddCategoryDialogResult) => {
+        if (!result) {
+          return;
+        }
+        await this.storageService.editCategory(category, result.name, result.scenarioId);
+        if (result.scenarioId !== undefined && category.urls.length > 0) {
+          const key = result.scenarioId ? 'mmn.mosaic.category.scenario.applied' : 'mmn.mosaic.category.scenario.removed';
+          this.snackBar.open(this.translate.instant(key, { count: category.urls.length }), undefined, { duration: 3000 });
         }
       });
   }
