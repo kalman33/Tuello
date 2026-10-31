@@ -752,6 +752,11 @@ function tuelloHttpSearchKeydown(event) {
     }
 
     if (typeof value === 'string') {
+      // Image encodée dans le flux (data:image...) : miniature cliquable plutôt qu'une chaîne
+      // base64 illisible de plusieurs milliers de caractères.
+      if (this.isSafeImageDataUrl(value)) {
+        return `<img class="tree-image tuello-zoomable" src="${this.escapeHtml(value)}" alt="" />`;
+      }
       return `<span class="tree-string">"${this.escapeHtml(value)}"</span>`;
     }
 
@@ -883,7 +888,18 @@ function tuelloHttpSearchKeydown(event) {
     if (typeof action.data === 'string' && action.data.startsWith('data:image')) {
       return action.data;
     }
+    // « Enregistrer par image » : l'image de référence est dans userAction.value et non dans data.
+    // Sans ce repli, elle finissait en texte brut (« Valeur : data:image/png;base64,... »).
+    const value = action.userAction?.value;
+    if (typeof value === 'string' && value.startsWith('data:image')) {
+      return value;
+    }
     return null;
+  }
+
+  /** Data URL d'image affichable telle quelle dans un <img> (SVG exclu : il peut embarquer du script). */
+  private isSafeImageDataUrl(value: string): boolean {
+    return /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[A-Za-z0-9+/=\s]+$/i.test(value);
   }
 
   /** Reprend les mêmes clés i18n que `action.component.html` pour ne pas dupliquer les libellés de type d'action. */
@@ -924,7 +940,8 @@ function tuelloHttpSearchKeydown(event) {
     if (userAction?.label) {
       parts.push(`${this.translate.instant('mmn.report.action.label')} : ${userAction.label}`);
     }
-    if (userAction?.value) {
+    // Une image (data:image...) n'a aucun sens en texte : elle est rendue en <img> à la place
+    if (userAction?.value && !String(userAction.value).startsWith('data:image')) {
       parts.push(`${this.translate.instant('mmn.report.action.value')} : ${userAction.value}`);
     }
     return parts.join(' — ');
@@ -1082,7 +1099,7 @@ mark.tuello-search-mark--active { background: var(--c-amber); color: #fff; }
 .http-summary-text { flex: 1; min-width: 0; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .http-duration.http-slow { color: var(--c-amber); font-weight: 700; }
 .http-url { word-break: break-all; color: var(--c-text); }
-.http-subsection { margin: 12px 0 0 4px; }
+.http-subsection { margin: 12px 0 0 4px; min-width: 0; max-width: 100%; overflow-x: auto; }
 .http-subsection-title { font-weight: 700; font-size: 11px; color: var(--c-text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
 .http-screenshot { max-width: 100%; border: 1px solid rgba(255, 255, 255, .6); border-radius: 14px; display: block; box-shadow: 0 4px 16px rgba(27, 80, 100, .1); }
 
@@ -1107,9 +1124,10 @@ details { margin: 2px 0; }
 summary { outline: none; }
 summary.tree-summary { cursor: pointer; font-family: monospace; font-size: 12px; color: var(--c-text-muted); }
 .tree-children { margin-left: 18px; border-left: 1px dashed rgba(27, 80, 100, .2); padding-left: 10px; }
-.tree-row { font-family: monospace; font-size: 12px; margin: 2px 0; }
-.tree-key { color: var(--c-petrol-light); margin-right: 4px; }
-.tree-string { color: #0a7a2f; }
+.tree-row { font-family: monospace; font-size: 12px; margin: 2px 0; min-width: 0; overflow-wrap: anywhere; }
+.tree-key { color: var(--c-petrol-light); margin-right: 4px; word-break: break-all; }
+.tree-string { color: #0a7a2f; word-break: break-all; }
+.tree-image { display: inline-block; vertical-align: top; max-width: min(200px, 100%); max-height: 120px; height: auto; border: 1px solid rgba(27, 80, 100, .15); border-radius: 8px; cursor: zoom-in; }
 .tree-number { color: #1464c2; }
 .tree-boolean { color: #b4530a; }
 .tree-null { color: #999; font-style: italic; }
