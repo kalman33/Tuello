@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.40.0] - 2026-10-31
+
+    - Mock HTTP : mocks filtrés par niveau de frame (page principale / iframe)
+    - Spy : URL de navigation et commentaire affichés au survol du tag
+    - Rapport HTML : images affichées en image, JSON contenu dans la colonne
+
 ## [1.2.39.0] - 2026-10-31
 
     - Spy : rejeu par élément avec position en secours (cibles auto-réparées)
