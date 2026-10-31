@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.39.0] - 2026-10-31
+
+    - Spy : rejeu par élément avec position en secours (cibles auto-réparées)
+    - Mosaïque : association d'un scénario à tous les sites d'une catégorie
+
 ## [1.2.38.0] - 2026-10-28
 
     - Spy : bouton Annuler à l'enregistrement, aperçu d'un clic, rejeu fiabilisé
