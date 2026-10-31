@@ -34,6 +34,12 @@ const FAST_REPLAY_MIN_DELAY_MS = 250;
  */
 const TARGET_GRACE_MS = 5000;
 
+/** Rejeu accéléré : intervalle entre deux recherches de l'iframe d'une action (en cours de chargement) */
+const FRAME_POLL_MS = 100;
+
+/** Issue de l'envoi d'une action à la page (voir deliverUserAction) */
+type DeliveryStatus = 'played' | 'failed' | 'unreachable';
+
 /**
  * Actions après lesquelles une navigation complète peut suivre. Le player se met en
  * pause sur onBeforeNavigate : si celle-ci démarre après coup (submit lent), une action
@@ -52,7 +58,8 @@ const SUBMITTING_INPUT_TYPES = ['submit', 'image', 'button', 'reset'];
  * - Maj+clic : le libellé ; image : l'image enregistrée ;
  * - scroll : rien (les scrolls successifs sont fusionnés et leurs délais additionnés :
  *   c'est l'action dont le délai enregistré est le plus long).
- * Les iframes ne sont pas encore gérées.
+ * Une action dans une iframe s'accélère comme les autres : l'attente de la cible tourne
+ * dans la frame qui la joue, et le player attend que l'iframe soit chargée (handleUserAction).
  *
  * @returns la raison du refus, ou null si l'action peut attendre sa cible
  */
@@ -60,9 +67,6 @@ function notAccelerableReason(action: Action): string | null {
   const userAction = action.userAction;
   if (!userAction) {
     return `type d'action non géré (${action.actionType})`;
-  }
-  if ((userAction.frame?.frameId ?? 0) !== 0) {
-    return 'action dans une iframe';
   }
   switch (action.actionType) {
     case ActionType.EVENT:
@@ -134,21 +138,60 @@ function navigationReason(previous: Action, next: Action): string | null {
   return isFieldClick(previous) ? null : `action sans URL après un clic${legacy}`;
 }
 
+/** Frame où l'action a été enregistrée (0 = page principale) */
+function frameOf(action: Action): number {
+  return action.userAction?.frame?.frameId ?? 0;
+}
+
+/**
+ * Action à laquelle comparer `next` pour savoir si sa page a été rechargée : la précédente,
+ * ou, si celle-ci a été jouée dans une autre frame (page principale ↔ iframe), la dernière
+ * action de la même frame. Deux frames ont toujours des documents différents : comparer
+ * leurs documentId ferait croire à un rechargement à chaque passage de l'une à l'autre.
+ *
+ * @returns l'action de référence, ou la raison du refus si aucune n'est sûre
+ */
+function referenceAction(actions: Action[], index: number): Action | string {
+  const previous = actions[index - 1];
+  const next = actions[index];
+  if (!previous.userAction || frameOf(previous) === frameOf(next)) {
+    return previous;
+  }
+  for (let i = index - 1; i >= 0; i--) {
+    const candidate = actions[i];
+    // Une navigation de la page principale recrée aussi ses iframes
+    if (candidate.actionType === ActionType.NAVIGATE) {
+      return 'navigation de la page depuis la dernière action de cette frame';
+    }
+    if (candidate.userAction && frameOf(candidate) === frameOf(next)) {
+      return candidate;
+    }
+  }
+  return 'première action dans cette frame';
+}
+
 /**
  * Une action peut être accélérée si la page sait reconnaître sa cible et que l'action
  * précédente ne peut pas déclencher de navigation. Sinon, le délai enregistré est
  * conservé tel quel.
  *
+ * @param index rang de l'action à jouer dans `actions`
  * @returns la raison du refus, ou null si l'action peut être accélérée
  */
-function fastReplayRefusal(previous: Action | undefined, next: Action | undefined, delay: number): string | null {
-  if (!previous || !next) {
+function fastReplayRefusal(actions: Action[], index: number, delay: number): string | null {
+  const next = actions[index];
+  if (index < 1 || !next) {
     return 'première action du rejeu';
   }
   if (delay <= FAST_REPLAY_MIN_DELAY_MS) {
     return `délai enregistré déjà court (${delay} ms)`;
   }
-  return notAccelerableReason(next) ?? navigationReason(previous, next);
+  const notAccelerable = notAccelerableReason(next);
+  if (notAccelerable) {
+    return notAccelerable;
+  }
+  const reference = referenceAction(actions, index);
+  return typeof reference === 'string' ? reference : navigationReason(reference, next);
 }
 
 /** Options de rejeu */
@@ -488,24 +531,62 @@ export class Player {
   }
 
   private async handleUserAction(userAction: UserAction, maxWaitMs?: number, graceWait = false, relocateAfterMs?: number): Promise<boolean> {
-    let options: chrome.tabs.MessageSendOptions = { frameId: 0 };
+    const startedAt = Date.now();
+    const inIframe = !!userAction.frame?.src && userAction.frame.frameId > 0;
+    // Rejeu accéléré : l'action part avant son délai enregistré, l'iframe peut ne pas être
+    // encore chargée (ou son script Tuello pas encore prêt). On lui laisse jusqu'au délai
+    // enregistré pour apparaître, au lieu de jouer aussitôt l'action dans la page principale.
+    const frameDeadline = startedAt + (inIframe && !graceWait && relocateAfterMs ? relocateAfterMs : 0);
 
-    // Déterminer l'iframe cible
-    if (userAction.frame?.src && userAction.frame.frameId > 0) {
-      try {
-        const iframe = await getFrameIdFromSrc(this.chromeTabId, userAction.frame.src);
-        options = { frameId: iframe.frameId };
-      } catch {
+    let frameId = 0;
+    if (inIframe) {
+      const found = await this.findFrameUntil(userAction.frame.src, frameDeadline);
+      if (found === null) {
         // Frame non trouvée, utiliser le frame principal
-        options = { frameId: 0 };
+        if (!graceWait && relocateAfterMs) {
+          this.logFastReplay(`${this.describeAction(this.count - 1)} : iframe « ${userAction.frame.src} » introuvable, action jouée dans la page principale`);
+        }
+      } else {
+        frameId = found;
       }
     }
+    if (this.isDestroyed) {
+      return false;
+    }
 
-    const played = await this.sendMessageToContent(userAction, options, maxWaitMs, graceWait, relocateAfterMs);
-    if (played) {
+    // Le temps passé à attendre l'iframe est pris sur l'attente de la cible : l'action ne
+    // part jamais plus tard qu'à l'enregistrement (+ la marge habituelle).
+    const remaining = (ms: number | undefined) => (ms === undefined ? undefined : Math.max(ms - (Date.now() - startedAt), 0));
+
+    let status = await this.deliverUserAction(userAction, { frameId }, remaining(maxWaitMs), graceWait, remaining(relocateAfterMs));
+    // Iframe trouvée mais son script Tuello pas encore injecté : on réessaie tant que le délai le permet
+    while (status === 'unreachable' && frameId !== 0 && Date.now() < frameDeadline && !this.isDestroyed) {
+      await new Promise((resolve) => setTimeout(resolve, FRAME_POLL_MS));
+      status = await this.deliverUserAction(userAction, { frameId }, remaining(maxWaitMs), graceWait, remaining(relocateAfterMs));
+    }
+    if (status === 'played') {
       return true;
     }
-    return this.retryOnOtherFrames(userAction, options.frameId);
+    return this.retryOnOtherFrames(userAction, frameId);
+  }
+
+  /**
+   * Retrouve l'iframe d'une action par son URL, en réessayant jusqu'à `deadline` (rejeu
+   * accéléré : elle peut être en cours de chargement).
+   *
+   * @returns son frameId, ou null si elle reste introuvable
+   */
+  private async findFrameUntil(src: string, deadline: number): Promise<number | null> {
+    for (;;) {
+      try {
+        return (await getFrameIdFromSrc(this.chromeTabId, src)).frameId;
+      } catch {
+        if (this.isDestroyed || Date.now() >= deadline) {
+          return null;
+        }
+        await new Promise((resolve) => setTimeout(resolve, FRAME_POLL_MS));
+      }
+    }
   }
 
   /**
@@ -550,7 +631,7 @@ export class Player {
     // Rejeu accéléré : le clic part après le délai minimum et la page attend sa cible
     // pendant le reste du délai enregistré, qui devient un plafond.
     if (this.fastReplay && nextAction) {
-      const refusal = fastReplayRefusal(currentAction, nextAction, delay);
+      const refusal = fastReplayRefusal(this.initialActions, this.count, delay);
       if (!refusal) {
         this.nextMaxWaitMs = delay - FAST_REPLAY_MIN_DELAY_MS + TARGET_GRACE_MS;
         this.nextWaitIsGrace = false;
@@ -635,14 +716,24 @@ export class Player {
     return true;
   }
 
-  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions, maxWaitMs?: number, graceWait = false, relocateAfterMs?: number): Promise<boolean> {
+  async sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions, maxWaitMs?: number, graceWait = false, relocateAfterMs?: number): Promise<boolean> {
+    return (await this.deliverUserAction(userAction, options, maxWaitMs, graceWait, relocateAfterMs)) === 'played';
+  }
+
+  /**
+   * Envoie l'action à la page.
+   *
+   * @returns 'played' si la page l'a jouée, 'failed' si elle a échoué, 'unreachable' si
+   * aucun script Tuello n'a répondu dans la frame visée (pas encore injecté, ou frame disparue)
+   */
+  private deliverUserAction(userAction: UserAction, options?: chrome.tabs.MessageSendOptions, maxWaitMs?: number, graceWait = false, relocateAfterMs?: number): Promise<DeliveryStatus> {
     return new Promise((resolve) => {
       // Créer un timeout pour éviter de bloquer indéfiniment. L'attente de la cible
       // (rejeu accéléré) s'y ajoute : un délai enregistré long ferait sinon échouer l'action.
       const timeoutId = setTimeout(
         () => {
           console.warn(`Timeout atteint pour l'action: ${userAction.type}`);
-          resolve(false);
+          resolve('failed');
         },
         ACTION_TIMEOUT_MS + (maxWaitMs ?? 0)
       );
@@ -651,7 +742,7 @@ export class Player {
         // Valider les dimensions avant de redimensionner
         if (!this.validateWindowDimensions(userAction.htmlCoordinates)) {
           clearTimeout(timeoutId);
-          resolve(false);
+          resolve('failed');
           return;
         }
 
@@ -659,7 +750,7 @@ export class Player {
           if (chrome.runtime.lastError || !window?.id) {
             clearTimeout(timeoutId);
             console.warn('Erreur récupération fenêtre:', chrome.runtime.lastError?.message);
-            resolve(false);
+            resolve('failed');
             return;
           }
 
@@ -675,9 +766,9 @@ export class Player {
             clearTimeout(timeoutId);
             if (chrome.runtime.lastError) {
               console.warn('Erreur redimensionnement:', chrome.runtime.lastError.message);
-              resolve(false);
+              resolve('failed');
             } else {
-              resolve(true);
+              resolve('played');
             }
           });
         });
@@ -687,7 +778,7 @@ export class Player {
           if (chrome.runtime.lastError || !tab) {
             clearTimeout(timeoutId);
             console.warn('Onglet fermé ou introuvable:', chrome.runtime.lastError?.message);
-            resolve(false);
+            resolve('failed');
             return;
           }
 
@@ -705,9 +796,9 @@ export class Player {
               clearTimeout(timeoutId);
               if (chrome.runtime.lastError) {
                 console.warn('Erreur envoi message:', chrome.runtime.lastError.message);
-                resolve(false);
+                resolve('unreachable');
               } else {
-                resolve(response !== false);
+                resolve(response !== false ? 'played' : 'failed');
               }
             }
           );
