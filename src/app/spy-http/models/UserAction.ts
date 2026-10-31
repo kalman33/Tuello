@@ -33,9 +33,11 @@ export interface IUserAction {
    * horodatées elles aussi dans la page. */
   eventTimestamp?: number;
   /** Élément visé (rôle, libellé, texte), pris à l'enregistrement : sert à l'export
-   * Playwright ; le rejeu Tuello garde coordonnées et sélecteur, et ne s'en sert en rejeu
-   * accéléré que pour savoir quand la cible est affichée. */
+   * Playwright, et au rejeu Tuello à retrouver la cible quand elle n'est plus aux
+   * coordonnées enregistrées (voir ITargetDescriptor). */
   target?: ITargetDescriptor;
+  /** Point du clic relatif au coin haut-gauche de l'élément visé */
+  targetOffset?: { x: number; y: number };
   /** Document (au sens Chrome) où l'action a été enregistrée. Un changement de route d'une
    * SPA garde le même document, un vrai chargement de page en crée un nouveau : le rejeu
    * accéléré sait ainsi si une navigation complète a eu lieu entre deux actions. */

@@ -187,6 +187,12 @@ export class Player {
   private nextMaxWaitMs: number | undefined;
   /** L'attente de la prochaine action suit son délai enregistré (et non un rejeu accéléré) */
   private nextWaitIsGrace = false;
+  /**
+   * Rejeu accéléré : délai avant lequel un clic n'accepte que sa cible à la position
+   * enregistrée. Retrouvée ailleurs dans la page, elle ne part qu'une fois le délai
+   * enregistré écoulé (voir TargetWait côté page).
+   */
+  private nextRelocateAfterMs: number | undefined;
   /** Une action est partie vers la page et n'a pas encore répondu */
   private actionInFlight = false;
   /** Une navigation a démarré pendant l'action en cours : la page qui l'exécutait a disparu */
@@ -258,6 +264,7 @@ export class Player {
   /** Attente de la cible après le délai enregistré, pour les actions qui savent la reconnaître */
   private setGraceWait(action: Action | undefined): void {
     this.nextWaitIsGrace = true;
+    this.nextRelocateAfterMs = undefined;
     this.nextMaxWaitMs = action && !notAccelerableReason(action) ? TARGET_GRACE_MS : undefined;
   }
 
@@ -291,7 +298,9 @@ export class Player {
     const userAction = action.value?.userAction ?? null;
     const maxWaitMs = this.nextMaxWaitMs;
     const graceWait = this.nextWaitIsGrace;
+    const relocateAfterMs = this.nextRelocateAfterMs;
     this.nextMaxWaitMs = undefined;
+    this.nextRelocateAfterMs = undefined;
 
     if (action.done) {
       this.cleanup();
@@ -320,7 +329,7 @@ export class Player {
         // dans handleUserAction sans userAction et le rejeu échouait sur cette étape.
         actionSuccess = true;
       } else {
-        actionSuccess = await this.handleUserAction(userAction, maxWaitMs, graceWait);
+        actionSuccess = await this.handleUserAction(userAction, maxWaitMs, graceWait, relocateAfterMs);
       }
     } catch (error) {
       actionSuccess = false;
@@ -478,7 +487,7 @@ export class Player {
     });
   }
 
-  private async handleUserAction(userAction: UserAction, maxWaitMs?: number, graceWait = false): Promise<boolean> {
+  private async handleUserAction(userAction: UserAction, maxWaitMs?: number, graceWait = false, relocateAfterMs?: number): Promise<boolean> {
     let options: chrome.tabs.MessageSendOptions = { frameId: 0 };
 
     // Déterminer l'iframe cible
@@ -492,7 +501,7 @@ export class Player {
       }
     }
 
-    const played = await this.sendMessageToContent(userAction, options, maxWaitMs, graceWait);
+    const played = await this.sendMessageToContent(userAction, options, maxWaitMs, graceWait, relocateAfterMs);
     if (played) {
       return true;
     }
@@ -545,6 +554,7 @@ export class Player {
       if (!refusal) {
         this.nextMaxWaitMs = delay - FAST_REPLAY_MIN_DELAY_MS + TARGET_GRACE_MS;
         this.nextWaitIsGrace = false;
+        this.nextRelocateAfterMs = delay - FAST_REPLAY_MIN_DELAY_MS;
         this.timeoutId = setTimeout(() => this.treatAction(), FAST_REPLAY_MIN_DELAY_MS);
         return;
       }
@@ -625,7 +635,7 @@ export class Player {
     return true;
   }
 
-  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions, maxWaitMs?: number, graceWait = false): Promise<boolean> {
+  sendMessageToContent(userAction: UserAction, options?: chrome.tabs.MessageSendOptions, maxWaitMs?: number, graceWait = false, relocateAfterMs?: number): Promise<boolean> {
     return new Promise((resolve) => {
       // Créer un timeout pour éviter de bloquer indéfiniment. L'attente de la cible
       // (rejeu accéléré) s'y ajoute : un délai enregistré long ferait sinon échouer l'action.
@@ -687,7 +697,8 @@ export class Player {
               action: 'PLAY_USER_ACTION',
               value: userAction,
               maxWaitMs,
-              graceWait
+              graceWait,
+              relocateAfterMs
             },
             options,
             (response: any) => {

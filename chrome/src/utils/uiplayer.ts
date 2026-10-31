@@ -4,7 +4,7 @@ import { findBySelector } from './cssSelector';
 import { findClickableAncestor, findElementByLabel } from './labelSelector';
 import { displayEffect, getOffset, getParentByTagName, logData } from './utils';
 import { playAssertion } from './playwrightCapture';
-import { matchesTarget } from './targetDescriptor';
+import { findByDescriptor, matchesTarget } from './targetDescriptor';
 
 /** Rejeu accéléré : intervalle de vérification de la cible d'une action */
 const TARGET_POLL_MS = 100;
@@ -30,15 +30,15 @@ function getElementAtAbsolutePosition(x: number, y: number): Element | null {
   return document.elementFromPoint(viewport.x, viewport.y);
 }
 
-function mouseEvent(event: string, x: number, y: number, key: number) {
+function areValidCoordinates(event: string, x: number, y: number): boolean {
   if (!Number.isFinite(x) || !Number.isFinite(y)) {
     console.warn(`Tuello: Coordonnées invalides pour l'événement ${event}: x=${x}, y=${y}`);
-    return;
+    return false;
   }
-  const el = getElementAtAbsolutePosition(x, y);
-  if (!el) {
-    return;
-  }
+  return true;
+}
+
+function dispatchMouseEvent(el: Element, event: string, x: number, y: number, key: number): void {
   // clientX/clientY sont des coordonnées viewport : passer les coordonnées absolues
   // donnait une position fausse à tout code applicatif lisant l'événement (menus,
   // tooltips, drag) dès que la page était scrollée.
@@ -56,6 +56,107 @@ function mouseEvent(event: string, x: number, y: number, key: number) {
   el.dispatchEvent(ev);
 }
 
+function mouseEvent(event: string, x: number, y: number, key: number) {
+  if (!areValidCoordinates(event, x, y)) {
+    return;
+  }
+  const el = getElementAtAbsolutePosition(x, y);
+  if (el) {
+    dispatchMouseEvent(el, event, x, y, key);
+  }
+}
+
+/**
+ * Signale une cible retrouvée ailleurs qu'à sa position enregistrée : toujours en console
+ * (le scénario vieillit, mieux vaut le savoir), et dans les logs du mode verbeux.
+ */
+function reportRepair(action: IUserAction, message: string): void {
+  console.warn(`Tuello: ${action.type} : ${message}`);
+  logData(`- Ciblage - ${action.type} : ${message}`);
+}
+
+function formatPoint(x: number, y: number): string {
+  return `${Math.round(x)},${Math.round(y)}`;
+}
+
+/** Point d'un clic, en coordonnées document, et l'élément retrouvé qu'il doit atteindre */
+interface ClickTarget {
+  x: number;
+  y: number;
+  /** Absent quand le clic part à la position enregistrée */
+  element?: HTMLElement;
+}
+
+function isInViewport(rect: DOMRect): boolean {
+  return rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth;
+}
+
+/**
+ * Point à cliquer dans l'élément retrouvé : au même endroit de l'élément qu'à
+ * l'enregistrement, ou en son centre si ce point n'y tient plus (élément redimensionné)
+ * ou n'a pas été enregistré (anciens scénarios).
+ */
+function pointInElement(element: HTMLElement, offset: IUserAction['targetOffset']): { x: number; y: number } {
+  let rect = element.getBoundingClientRect();
+  if (!isInViewport(rect)) {
+    // 'instant' : un défilement animé (scroll-behavior: smooth) fausserait le point calculé
+    element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' as ScrollBehavior });
+    rect = element.getBoundingClientRect();
+  }
+  const fits = !!offset && offset.x >= 0 && offset.y >= 0 && offset.x <= rect.width && offset.y <= rect.height;
+  return {
+    x: rect.left + (fits ? offset.x : rect.width / 2) + window.scrollX,
+    y: rect.top + (fits ? offset.y : rect.height / 2) + window.scrollY
+  };
+}
+
+/**
+ * Choisit où cliquer :
+ * - l'élément affiché à la position enregistrée est toujours la cible (cas courant) : on
+ *   clique à cette position, exactement comme elle a été enregistrée ;
+ * - sinon la cible est cherchée dans la page par sa description (data-testid, libellé,
+ *   rôle et nom, texte, sélecteur) et le clic part sur elle : « cible réparée » ;
+ * - introuvable, ou action enregistrée sans description : position enregistrée.
+ */
+function resolveClickTarget(action: IUserAction): ClickTarget {
+  const recorded: ClickTarget = { x: action.x, y: action.y };
+  if (!action.target) {
+    return recorded;
+  }
+  try {
+    if (matchesTarget(findClickableAncestor(getElementAtAbsolutePosition(action.x, action.y)), action.target)) {
+      return recorded;
+    }
+    const found = findByDescriptor(action.target);
+    if (!found) {
+      logData(`- Ciblage - ${action.type} : cible introuvable, clic à la position enregistrée ${formatPoint(action.x, action.y)}`);
+      return recorded;
+    }
+    const point = pointInElement(found.element, action.targetOffset);
+    reportRepair(action, `cible réparée automatiquement (via ${found.strategy}) : ${formatPoint(action.x, action.y)} → ${formatPoint(point.x, point.y)}`);
+    return { ...point, element: found.element };
+  } catch {
+    // Page en plein rendu : la position enregistrée reste le meilleur choix
+    return recorded;
+  }
+}
+
+/**
+ * Clique au point choisi. Pour une cible retrouvée, l'événement va à l'élément affiché
+ * sous ce point s'il en fait partie (un <span> dans le bouton), sinon à la cible
+ * elle-même : un calque posé dessus ne doit pas avaler le clic.
+ */
+function clickOn(target: ClickTarget): void {
+  if (!areValidCoordinates('click', target.x, target.y)) {
+    return;
+  }
+  const atPoint = getElementAtAbsolutePosition(target.x, target.y);
+  const el = target.element && !(atPoint && target.element.contains(atPoint)) ? target.element : atPoint;
+  if (el) {
+    dispatchMouseEvent(el, 'click', target.x, target.y, 0);
+  }
+}
+
 /**
  * Attente de la cible d'une action, demandée par le player :
  * - rejeu accéléré : l'action part avant son délai enregistré, dès que la cible est
@@ -66,13 +167,21 @@ function mouseEvent(event: string, x: number, y: number, key: number) {
 interface TargetWait {
   maxWaitMs?: number;
   graceWait?: boolean;
+  /**
+   * Rejeu accéléré : pendant ce délai (le délai enregistré, moins le délai minimum déjà
+   * écoulé), un clic n'accepte que sa cible affichée à la position enregistrée. Accepter
+   * plus tôt une cible retrouvée ailleurs ferait recliquer l'écran précédent encore
+   * affiché (bouton « Suivant » de l'étape d'avant). Une cible déplacée ne part ainsi
+   * jamais plus tôt qu'à l'enregistrement.
+   */
+  relocateAfterMs?: number;
 }
 
 /**
  * Attend que la cible de l'action soit prête. Se termine toujours, au plus tard après
  * maxWaitMs : l'action est alors jouée comme si la cible était là.
  */
-function waitForTarget(action: IUserAction, wait: TargetWait, isReady: () => boolean): Promise<void> {
+function waitForTarget(action: IUserAction, wait: TargetWait, isReady: (allowElsewhere: boolean) => boolean): Promise<void> {
   const startedAt = Date.now();
   const deadline = startedAt + wait.maxWaitMs;
   // Le délai enregistré écoulé, une cible présente n'a plus de raison d'attendre son immobilité
@@ -83,7 +192,7 @@ function waitForTarget(action: IUserAction, wait: TargetWait, isReady: () => boo
     const poll = () => {
       let ready = false;
       try {
-        ready = isReady();
+        ready = isReady(!!wait.graceWait || Date.now() - startedAt >= (wait.relocateAfterMs ?? 0));
       } catch {
         // Une page en plein rendu ne doit pas bloquer l'action : on réessaie
       }
@@ -106,7 +215,7 @@ function waitForTarget(action: IUserAction, wait: TargetWait, isReady: () => boo
 }
 
 /** Sans attente demandée, appel direct */
-function playWhenReady(action: IUserAction, wait: TargetWait, isReady: () => boolean, play: () => void): void {
+function playWhenReady(action: IUserAction, wait: TargetWait, isReady: (allowElsewhere: boolean) => boolean, play: () => void): void {
   if (wait.maxWaitMs > 0) {
     waitForTarget(action, wait, isReady).then(play);
   } else {
@@ -115,13 +224,15 @@ function playWhenReady(action: IUserAction, wait: TargetWait, isReady: () => boo
 }
 
 /**
- * Clic : l'élément affiché aux coordonnées enregistrées est celui qui avait été cliqué.
- * Le point du clic, lui, ne change jamais.
+ * Clic : l'élément affiché aux coordonnées enregistrées est celui qui avait été cliqué,
+ * ou bien, si allowElsewhere, il est affiché ailleurs dans la page (il sera alors
+ * cliqué là où il est).
  */
-function isClickTargetReady(action: IUserAction): boolean {
+function isClickTargetReady(action: IUserAction, allowElsewhere: boolean): boolean {
   // Même remontée vers l'élément cliquable qu'à l'enregistrement (UserAction)
   const element = findClickableAncestor(getElementAtAbsolutePosition(action.x, action.y));
-  return matchesTarget(element, action.target);
+  // La vérification au point, peu coûteuse, passe avant la recherche dans la page
+  return matchesTarget(element, action.target) || (allowElsewhere && !!findByDescriptor(action.target));
 }
 
 /**
@@ -158,28 +269,61 @@ function isFillable(el: Element | null): el is HTMLElement {
 /**
  * Retrouve le champ à remplir.
  *
- * Le sélecteur passe avant les coordonnées : celles-ci désignent le coin haut-gauche
- * du champ au moment de l'enregistrement, et le moindre décalage de mise en page
- * (bandeau, iframe redimensionnée, contenu chargé plus tard) fait pointer
- * `elementFromPoint` sur un conteneur — la valeur partait alors dans le vide.
+ * Le sélecteur, puis la description du champ (libellé, placeholder...), passent avant
+ * les coordonnées : celles-ci désignent le coin haut-gauche du champ au moment de
+ * l'enregistrement, et le moindre décalage de mise en page (bandeau, iframe
+ * redimensionnée, contenu chargé plus tard) fait pointer `elementFromPoint` sur un
+ * conteneur — la valeur partait alors dans le vide.
+ *
+ * @param report signale le critère de repli utilisé (appel au moment de jouer l'action,
+ * et non à chaque vérification de l'attente)
  */
-function findInputTarget(action: IUserAction): HTMLElement | null {
+function findInputTarget(action: IUserAction, report = false): HTMLElement | null {
   const bySelector = findBySelector(action.selector);
   if (isFillable(bySelector)) {
     return bySelector;
   }
 
+  const found = findByDescriptor(action.target);
+  if (found && isFillable(found.element)) {
+    if (report) {
+      reportRepair(action, `cible réparée automatiquement (via ${found.strategy})${action.selector ? `, sélecteur « ${action.selector} » introuvable` : ''}`);
+    }
+    return found.element;
+  }
+
   const atPoint = getElementAtAbsolutePosition(action.x, action.y);
+  let byPoint: HTMLElement | null = null;
   if (isFillable(atPoint)) {
-    return atPoint as HTMLElement;
+    byPoint = atPoint;
+  } else {
+    // Le point peut tomber sur l'habillage du champ (bordure, conteneur) : on
+    // accepte le champ qu'il contient s'il n'y en a qu'un.
+    const nested = atPoint?.querySelectorAll<HTMLElement>('input, textarea, select');
+    if (nested && nested.length === 1) {
+      byPoint = nested[0];
+    }
   }
-  // Le point peut tomber sur l'habillage du champ (bordure, conteneur) : on
-  // accepte le champ qu'il contient s'il n'y en a qu'un.
-  const nested = atPoint?.querySelectorAll<HTMLElement>('input, textarea, select');
-  if (nested && nested.length === 1) {
-    return nested[0];
+  if (byPoint && report && (action.selector || action.target)) {
+    logData(`- Ciblage - ${action.type} : champ introuvable par sélecteur et description, saisie à la position enregistrée ${formatPoint(action.x, action.y)}`);
   }
-  return null;
+  return byPoint;
+}
+
+/**
+ * Champ sur lequel Entrée a été pressée : sélecteur, puis description, sans repli sur
+ * les coordonnées (qui désignent toujours un élément, même le mauvais).
+ */
+function findEnterKeyTarget(action: IUserAction, report = false): Element | null {
+  const bySelector = findBySelector(action.selector);
+  if (bySelector) {
+    return bySelector;
+  }
+  const found = findByDescriptor(action.target);
+  if (found && report) {
+    reportRepair(action, `cible réparée automatiquement (via ${found.strategy})${action.selector ? `, sélecteur « ${action.selector} » introuvable` : ''}`);
+  }
+  return found?.element ?? null;
 }
 
 /**
@@ -198,7 +342,7 @@ function setNativeValue(el: HTMLElement, value: string): void {
 }
 
 function input(action: IUserAction): boolean {
-  const el = findInputTarget(action);
+  const el = findInputTarget(action, true);
   if (!el) {
     console.warn('Tuello: champ de saisie introuvable', { selector: action.selector, x: action.x, y: action.y });
     return false;
@@ -219,8 +363,8 @@ function input(action: IUserAction): boolean {
   return true;
 }
 
-function enterKeypress(x: number, y: number, selector?: string) {
-  const el = findBySelector(selector) ?? getElementAtAbsolutePosition(x, y);
+function enterKeypress(action: IUserAction) {
+  const el = findEnterKeyTarget(action, true) ?? getElementAtAbsolutePosition(action.x, action.y);
   if (!el) return;
 
   const form = getParentByTagName(el as HTMLElement, 'form');
@@ -235,25 +379,26 @@ function enterKeypress(x: number, y: number, selector?: string) {
 /**
  * @param maxWaitMs clic, saisie, Entrée, scroll, Maj+clic, image : attente maximale de la cible
  * @param graceWait l'attente suit le délai enregistré (voir TargetWait)
+ * @param relocateAfterMs rejeu accéléré : délai avant d'accepter une cible déplacée (voir TargetWait)
  */
-export function run(action: IUserAction, maxWaitMs?: number, graceWait = false) {
-  const wait: TargetWait = { maxWaitMs, graceWait };
+export function run(action: IUserAction, maxWaitMs?: number, graceWait = false, relocateAfterMs?: number) {
+  const wait: TargetWait = { maxWaitMs, graceWait, relocateAfterMs };
   return new Promise((resolve, reject) => {
     switch (action.type) {
       case 'click':
-        const x = action.x;
-        const y = action.y;
         const playClick = () => {
-          displayEffect(x, y);
+          // Résolue au moment de jouer, après l'attente : la page a fini de bouger
+          const target = resolveClickTarget(action);
+          displayEffect(target.x, target.y);
           // Laisse le navigateur peindre le repère avant de déclencher le clic : sans ce délai,
           // tout se joue dans la même tâche JS (avant le prochain repaint), et le repère n'est
           // jamais visible avant que le clic n'ait déjà changé l'écran.
           setTimeout(() => {
-            mouseEvent('click', x, y, 0);
+            clickOn(target);
             resolve(true);
           }, 100);
         };
-        playWhenReady(action, wait, () => isClickTargetReady(action), playClick);
+        playWhenReady(action, wait, (allowElsewhere) => isClickTargetReady(action, allowElsewhere), playClick);
         break;
       case 'mouseup':
         mouseup(action.x, action.y, action.key);
@@ -271,9 +416,9 @@ export function run(action: IUserAction, maxWaitMs?: number, graceWait = false) 
         playWhenReady(
           action,
           wait,
-          () => isDisplayed(findBySelector(action.selector)),
+          () => isDisplayed(findEnterKeyTarget(action)),
           () => {
-            enterKeypress(action.x, action.y, action.selector);
+            enterKeypress(action);
             resolve(true);
           }
         );

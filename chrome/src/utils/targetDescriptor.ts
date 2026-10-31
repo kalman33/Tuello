@@ -10,7 +10,7 @@
  */
 import { ITargetDescriptor } from '../models/TargetDescriptor';
 import { buildSelector } from './cssSelector';
-import { findAllByText, normalizeLabel } from './labelSelector';
+import { findAllByText, findClickableAncestor, normalizeLabel } from './labelSelector';
 
 /** Au-delà, un nom ou un texte ne sert plus à désigner un élément mais à le décrire */
 const MAX_NAME_LENGTH = 80;
@@ -315,8 +315,11 @@ export function describeTarget(element: Element | null): ITargetDescriptor | und
 }
 
 /**
- * Indique si un élément correspond à la description prise à l'enregistrement (rejeu
- * accéléré : savoir quand la cible d'un clic est affichée). Seul le critère qui désigne
+ * Indique si un élément correspond à la description prise à l'enregistrement : au rejeu,
+ * l'élément affiché aux coordonnées enregistrées est-il toujours la cible ? Si oui, le
+ * clic part à la position enregistrée ; sinon la cible est cherchée dans la page
+ * (findByDescriptor). Sert aussi au rejeu accéléré à savoir quand la cible est affichée.
+ * Seul le critère qui désigne
  * l'élément est comparé : les rangs (`roleNth`, `textNth`) et le sélecteur dépendent du
  * reste de la page, et les recalculer à chaque vérification coûterait trop cher. Ne lève
  * jamais : un doute vaut non-correspondance, le clic part alors au délai enregistré.
@@ -349,4 +352,120 @@ export function matchesTarget(element: Element | null, descriptor: ITargetDescri
     return false;
   }
   return false;
+}
+
+/** Élément retrouvé par findByDescriptor, et le critère qui l'a désigné (pour les logs) */
+export interface FoundTarget {
+  element: HTMLElement;
+  strategy: string;
+}
+
+/**
+ * Choisit parmi des homonymes : sans rang enregistré, l'élément devait être unique et
+ * doit l'être encore ; avec un rang, on prend l'élément à ce rang, comme Playwright.
+ */
+function pickByRank<T>(matching: T[], nth: number | undefined): T | null {
+  if (nth === undefined || nth === null) {
+    return matching.length === 1 ? matching[0] : null;
+  }
+  return matching[nth] ?? null;
+}
+
+function findByTestId(descriptor: ITargetDescriptor): HTMLElement | null {
+  const escaped = descriptor.testId.replace(/["\\]/g, '\\$&');
+  const matching = Array.from(document.querySelectorAll<HTMLElement>(`[data-testid="${escaped}"]`)).filter((candidate) => candidate.tagName.toLowerCase() === descriptor.tag && isVisible(candidate));
+  return matching.length === 1 ? matching[0] : null;
+}
+
+function findByFieldLabel(descriptor: ITargetDescriptor): HTMLElement | null {
+  const matching = Array.from(document.querySelectorAll<HTMLElement>(descriptor.tag)).filter(
+    (candidate) =>
+      (!descriptor.inputType || (candidate.getAttribute('type') || 'text').toLowerCase() === descriptor.inputType) &&
+      (!descriptor.label || fieldLabel(candidate) === descriptor.label) &&
+      (!descriptor.placeholder || normalizeLabel(candidate.getAttribute('placeholder')) === descriptor.placeholder) &&
+      isVisible(candidate)
+  );
+  return matching.length === 1 ? matching[0] : null;
+}
+
+function findByRole(descriptor: ITargetDescriptor): HTMLElement | null {
+  const selector = ROLE_SELECTORS[descriptor.role] ?? `[role~="${descriptor.role}"]`;
+  const candidates = Array.from(document.querySelectorAll<HTMLElement>(selector));
+  if (candidates.length > MAX_ROLE_CANDIDATES) {
+    return null;
+  }
+  // Même filtre que rankByRole à l'enregistrement : le rang garde le même sens
+  const matching = candidates.filter((candidate) => computeRole(candidate) === descriptor.role && isVisible(candidate) && computeName(candidate, descriptor.role) === descriptor.name);
+  const element = pickByRank(matching, descriptor.roleNth);
+  return element && element.tagName.toLowerCase() === descriptor.tag ? element : null;
+}
+
+function findByText(descriptor: ITargetDescriptor): HTMLElement | null {
+  // Même liste que rankByText à l'enregistrement : le rang garde le même sens
+  const carrier = pickByRank(findAllByText(descriptor.text), descriptor.textNth);
+  if (!carrier) {
+    return null;
+  }
+  // Le texte est souvent porté par un <span> : la cible enregistrée est l'élément cliquable
+  // qui l'englobe (même remontée qu'à l'enregistrement), sinon l'ancêtre de même balise.
+  const candidates = [carrier, findClickableAncestor(carrier), carrier.closest(descriptor.tag) as HTMLElement | null];
+  return candidates.find((candidate) => candidate?.tagName.toLowerCase() === descriptor.tag) ?? null;
+}
+
+/** Chemin construit par position (`div > button:nth-of-type(3)`), et non par un identifiant */
+function isStructuralSelector(selector: string): boolean {
+  return selector.includes('>') || selector.includes(':nth-of-type(');
+}
+
+/**
+ * Seul un sélecteur par identifiant (#id, [name], [data-testid]...) désigne l'élément.
+ * Un chemin par position désigne le voisin dès que la page a bougé (cible supprimée,
+ * bloc inséré avant) : il n'est jamais utilisé pour réparer, la position enregistrée
+ * reste alors le repli.
+ */
+function findBySelector(descriptor: ITargetDescriptor): HTMLElement | null {
+  if (isStructuralSelector(descriptor.selector)) {
+    return null;
+  }
+  const matching = Array.from(document.querySelectorAll<HTMLElement>(descriptor.selector)).filter(isVisible);
+  return matching.length === 1 && matching[0].tagName.toLowerCase() === descriptor.tag ? matching[0] : null;
+}
+
+/** Recherches dans l'ordre de préférence de describeTarget, sélecteur CSS en dernier */
+const SEARCHES: { strategy: (descriptor: ITargetDescriptor) => string | null; find: (descriptor: ITargetDescriptor) => HTMLElement | null }[] = [
+  { strategy: (d) => (d.testId ? `testId « ${d.testId} »` : null), find: findByTestId },
+  { strategy: (d) => (d.label || d.placeholder ? `libellé « ${d.label || d.placeholder} »` : null), find: findByFieldLabel },
+  { strategy: (d) => (d.role && d.name ? `rôle « ${d.role} » « ${d.name} »` : null), find: findByRole },
+  { strategy: (d) => (d.text ? `texte « ${d.text} »` : null), find: findByText },
+  { strategy: (d) => (d.selector ? `sélecteur « ${d.selector} »` : null), find: findBySelector }
+];
+
+/**
+ * Retrouve dans la page l'élément décrit à l'enregistrement, quand il n'est plus aux
+ * coordonnées enregistrées (mise en page décalée, bandeau, contenu chargé plus tard).
+ *
+ * Ne retient qu'un élément visible, de même balise, désigné sans ambiguïté : cliquer
+ * en silence sur un autre élément serait pire que de garder la position enregistrée.
+ * Un critère qui ne donne rien de sûr cède la place au suivant (un data-testid retiré
+ * n'empêche pas de retrouver l'élément par son sélecteur). Ne lève jamais.
+ */
+export function findByDescriptor(descriptor: ITargetDescriptor | undefined): FoundTarget | null {
+  if (!descriptor?.tag || !document.body) {
+    return null;
+  }
+  for (const search of SEARCHES) {
+    const strategy = search.strategy(descriptor);
+    if (!strategy) {
+      continue;
+    }
+    try {
+      const element = search.find(descriptor);
+      if (element) {
+        return { element, strategy };
+      }
+    } catch {
+      // Sélecteur invalide, page en plein rendu : critère suivant
+    }
+  }
+  return null;
 }

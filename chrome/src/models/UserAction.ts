@@ -33,8 +33,17 @@ export interface IUserAction {
   clientHeight?: number;
   /** Date.now() pris dans la page au moment de l'évènement (voir IUserAction côté Angular) */
   eventTimestamp?: number;
-  /** Élément visé (rôle, libellé, texte) : sert uniquement à l'export Playwright */
+  /** Élément visé (rôle, libellé, texte) : export Playwright, et cible du rejeu quand
+   * la mise en page a bougé (voir ITargetDescriptor) */
   target?: ITargetDescriptor;
+  /** Point du clic relatif au coin haut-gauche de l'élément visé : un clic rejoué sur la
+   * cible retrouvée ailleurs dans la page tombe au même endroit de l'élément */
+  targetOffset?: ITargetOffset;
+}
+
+export interface ITargetOffset {
+  x: number;
+  y: number;
 }
 
 export class UserAction implements IUserAction {
@@ -60,6 +69,7 @@ export class UserAction implements IUserAction {
   public clientHeight: number;
   public eventTimestamp = Date.now();
   public target: ITargetDescriptor;
+  public targetOffset: ITargetOffset;
 
   constructor(e: MouseEvent) {
     if (e) {
@@ -70,7 +80,12 @@ export class UserAction implements IUserAction {
           this.y = e.pageY;
           this.hrefLocation = window.location.href;
           // Le texte cliqué est souvent un <span> : c'est le bouton qui l'englobe qu'on décrit
-          this.target = describeTarget(findClickableAncestor(e.target as Element));
+          const clickable = findClickableAncestor(e.target as Element);
+          this.target = describeTarget(clickable);
+          if (clickable?.getBoundingClientRect) {
+            const clickableRect = clickable.getBoundingClientRect();
+            this.targetOffset = { x: e.clientX - clickableRect.left, y: e.clientY - clickableRect.top };
+          }
           break;
         case 'scroll':
           this.scrollX = (window as any).scrollX;

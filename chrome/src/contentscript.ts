@@ -1017,7 +1017,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'PLAY_USER_ACTION':
       // Le résultat de run() doit être renvoyé tel quel : le player en déduit si
       // l'action a réussi (une image introuvable résout false).
-      run(message.value, message.maxWaitMs, message.graceWait)
+      run(message.value, message.maxWaitMs, message.graceWait, message.relocateAfterMs)
         .then((result) => {
           sendResponse(result !== false);
         })
