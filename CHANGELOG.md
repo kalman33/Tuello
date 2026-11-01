@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.42.0] - 2026-11-01
+
+    - Mosaïque : sections repliables dans les catégories et sites épinglés
+
 ## [1.2.41.0] - 2026-10-31
 
     - Spy : rejeu accéléré étendu aux actions dans les iframes
