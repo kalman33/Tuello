@@ -5,22 +5,62 @@
       <p>{{ 'mmn.mosaic.empty.urls' | translate }}</p>
     </div>
   } @else {
-    <div cdkDropList cdkDropListOrientation="mixed" class="tiles-list" (cdkDropListDropped)="drop($event)" [@staggerList]>
-      @for (url of displayUrls; track url.id) {
-        <mmn-mosaic-tile
-          cdkDrag
-          [cdkDragData]="url"
-          [item]="url"
-          type="url"
-          [editable]="editable"
-          [active]="activeIndex() === $index"
-          [attr.data-nav-index]="$index"
-          (mouseenter)="selectItem($index)"
-          (cdkDragStarted)="onDragStarted()"
-          (cdkDragEnded)="onDragEnded()"
-          (edit)="editUrl.emit(url)"
-          (delete)="deleteUrl.emit(url)"
-        ></mmn-mosaic-tile>
+    <div class="sections" cdkDropListGroup [@staggerList]>
+      @for (section of sections; track section.name) {
+        @if (section.urls.length > 0 || editable) {
+          <section class="mosaic-section">
+            @if (section.name) {
+              <header class="section-header">
+                @if (renamingSection === section.name) {
+                  <input #renameInput class="section-rename" [value]="section.name" (keydown.enter)="commitRename(renameInput.value)" (keydown.escape)="cancelRename()" (blur)="commitRename(renameInput.value)" />
+                } @else {
+                  <button type="button" class="section-toggle" [attr.aria-expanded]="!section.collapsed" (click)="toggleSection(section.name)">
+                    <mat-icon class="chevron" [class.open]="!section.collapsed">chevron_right</mat-icon>
+                    <span class="section-name">{{ section.name }}</span>
+                    <span class="section-count">{{ section.urls.length }}</span>
+                  </button>
+                  @if (editable) {
+                    <button mat-icon-button class="section-action" [matTooltip]="'mmn.mosaic.section.rename' | translate" (click)="startRename(section.name)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button class="section-action" [matTooltip]="'mmn.mosaic.section.remove' | translate" (click)="removeSection(section.name)">
+                      <mat-icon>folder_off</mat-icon>
+                    </button>
+                  }
+                }
+              </header>
+            }
+
+            @if (!section.collapsed) {
+              <div
+                cdkDropList
+                cdkDropListOrientation="mixed"
+                class="tiles-list"
+                [class.is-empty]="section.urls.length === 0"
+                [attr.data-hint]="'mmn.mosaic.section.dropUngrouped' | translate"
+                [cdkDropListData]="section.name"
+                (cdkDropListDropped)="drop($event)"
+              >
+                @for (url of section.urls; track url.id) {
+                  <mmn-mosaic-tile
+                    cdkDrag
+                    [cdkDragData]="url"
+                    [item]="url"
+                    type="url"
+                    [editable]="editable"
+                    [active]="activeIndex() === section.navStart + $index"
+                    [attr.data-nav-index]="section.navStart + $index"
+                    (mouseenter)="selectItem(section.navStart + $index)"
+                    (cdkDragStarted)="onDragStarted()"
+                    (cdkDragEnded)="onDragEnded()"
+                    (edit)="editUrl.emit(url)"
+                    (delete)="deleteUrl.emit(url)"
+                  ></mmn-mosaic-tile>
+                }
+              </div>
+            }
+          </section>
+        }
       }
     </div>
   }

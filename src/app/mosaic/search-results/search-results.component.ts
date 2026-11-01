@@ -83,7 +83,8 @@ export class MosaicSearchResultsComponent extends MosaicGridNavigationBase imple
       const t = (it.url.title ?? '').toLowerCase();
       const u = (it.url.url ?? '').toLowerCase();
       const c = (it.categoryName ?? '').toLowerCase();
-      return t.includes(q) || u.includes(q) || c.includes(q);
+      const g = (it.url.group ?? '').toLowerCase();
+      return t.includes(q) || u.includes(q) || c.includes(q) || g.includes(q);
     });
 
     this.results = filtered.map(

@@ -2,12 +2,21 @@ import { animate, query, stagger, style, transition, trigger } from '@angular/an
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, inject, Input, NgZone, Output } from '@angular/core';
 import { CdkDrag, CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '@ngx-translate/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicTileComponent } from '../mosaic-tile/mosaic-tile.component';
 import { MosaicLauncherService } from '../services/mosaic-launcher.service';
+import { MosaicStorageService } from '../services/mosaic-storage.service';
 import { MosaicDropTargetTracker } from '../utils/mosaic-drop-target';
 import { MosaicGridNavigationBase } from '../utils/mosaic-grid-navigation.base';
+import { collectPins, MosaicPin } from '../utils/mosaic-sections';
+import { faviconFor } from '../utils/mosaic-text';
+
+interface PinView extends MosaicPin {
+  faviconUrl: string;
+}
 
 export interface GridItem {
   kind: 'category' | 'url';
@@ -25,18 +34,11 @@ export interface UrlDroppedInCategory {
   templateUrl: './categories-grid.component.html',
   styleUrls: ['./categories-grid.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatIconModule, MosaicTileComponent, TranslatePipe, DragDropModule],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule, MosaicTileComponent, TranslatePipe, DragDropModule],
   animations: [
     trigger('staggerList', [
       transition(':enter', [
-        query(
-          'mmn-mosaic-tile',
-          [
-            style({ opacity: 0, transform: 'translateY(40px) scale(0.9)' }),
-            stagger(50, [animate('0.5s cubic-bezier(0.35, 0, 0.25, 1)', style({ opacity: 1, transform: 'translateY(0) scale(1)' }))])
-          ],
-          { optional: true }
-        )
+        query('mmn-mosaic-tile', [style({ opacity: 0, transform: 'translateY(40px) scale(0.9)' }), stagger(50, [animate('0.5s cubic-bezier(0.35, 0, 0.25, 1)', style({ opacity: 1, transform: 'translateY(0) scale(1)' }))])], { optional: true })
       ])
     ])
   ]
@@ -60,6 +62,8 @@ export class CategoriesGridComponent extends MosaicGridNavigationBase {
   private _categories: MosaicCategory[] = [];
   private _rootUrls: MosaicUrl[] = [];
   gridItems: GridItem[] = [];
+  /** Raccourcis affichés avant la grille : ils occupent les premiers index clavier */
+  pins: PinView[] = [];
 
   /** Dossier actuellement survolé par le site glissé, null en dehors d'un dossier */
   dropTargetId: string | null = null;
@@ -71,6 +75,7 @@ export class CategoriesGridComponent extends MosaicGridNavigationBase {
   private liveItems: GridItem[] = [];
 
   private launcherService = inject(MosaicLauncherService);
+  private storageService = inject(MosaicStorageService);
   private ngZone = inject(NgZone);
   private cdr = inject(ChangeDetectorRef);
 
@@ -98,7 +103,11 @@ export class CategoriesGridComponent extends MosaicGridNavigationBase {
 
   /** Entrée / Alt+chiffre : on ouvre le site, ou on entre dans la catégorie */
   protected override activateNavItem(index: number, background: boolean): void {
-    const item = this.gridItems[index];
+    if (index < this.pins.length) {
+      this.openPin(this.pins[index], background);
+      return;
+    }
+    const item = this.gridItems[index - this.pins.length];
     if (!item) {
       return;
     }
@@ -113,7 +122,23 @@ export class CategoriesGridComponent extends MosaicGridNavigationBase {
     this.navigationService.setActive(index);
   }
 
+  openPin(pin: MosaicPin, background = false): void {
+    this.launcherService.open(pin.url, background);
+  }
+
+  unpin(pin: MosaicPin, event: Event): void {
+    event.stopPropagation();
+    this.storageService.togglePinned(pin.url.id);
+  }
+
+  /** Les raccourcis occupent les premiers index : ils comptent dans le total navigable */
+  private syncGridNavigation(): void {
+    this.syncNavigation(this.pins.length + this.gridItems.length);
+  }
+
   private buildGridItems(): void {
+    this.pins = collectPins(this._categories, this._rootUrls).map((pin) => ({ ...pin, faviconUrl: faviconFor(pin.url.url) }));
+
     const catMax = this._categories.length > 0 ? Math.max(...this._categories.map((c) => c.order)) : -1;
     const urlMax = this._rootUrls.length > 0 ? Math.max(...this._rootUrls.map((u) => u.order)) : -1;
     // Si les ordres sont encore indépendants (0..N-1 pour chaque type), afficher cats d'abord puis urls.
@@ -128,7 +153,7 @@ export class CategoriesGridComponent extends MosaicGridNavigationBase {
       this.gridItems = all;
     }
 
-    this.syncNavigation(this.gridItems.length);
+    this.syncGridNavigation();
   }
 
   get hasItems(): boolean {
@@ -171,14 +196,14 @@ export class CategoriesGridComponent extends MosaicGridNavigationBase {
       // Retrait immédiat : la tuile ne doit pas rester à la racine le temps de
       // l'écriture dans le storage.
       this.gridItems = this.gridItems.filter((item) => item !== dragged);
-      this.syncNavigation(this.gridItems.length);
+      this.syncGridNavigation();
       this.urlDroppedInCategory.emit({ urlId: (dragged.data as MosaicUrl).id, categoryId: targetCategoryId });
       return;
     }
 
     moveItemInArray(this.gridItems, event.previousIndex, event.currentIndex);
     this.gridItems = [...this.gridItems];
-    this.syncNavigation(this.gridItems.length);
+    this.syncGridNavigation();
     const newCategories: MosaicCategory[] = [];
     const newRootUrls: MosaicUrl[] = [];
     this.gridItems.forEach((item, i) => {

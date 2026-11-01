@@ -78,11 +78,11 @@ export class MosaicStorageService {
     await this.saveConfig(config);
   }
 
-  async addUrl(categoryId: string, url: string, title: string, scenarioId?: string): Promise<MosaicUrl> {
+  async addUrl(categoryId: string, url: string, title: string, scenarioId?: string, group?: string): Promise<MosaicUrl> {
     const config = { ...this.configSubject.getValue() };
     config.categories = config.categories.map((c) => {
       if (c.id !== categoryId) return c;
-      const newUrl: MosaicUrl = { id: this.generateId(), url, title, order: c.urls.length, scenarioId };
+      const newUrl: MosaicUrl = { id: this.generateId(), url, title, order: c.urls.length, scenarioId, group };
       return { ...c, urls: [...c.urls, newUrl] };
     });
     await this.saveConfig(config);
@@ -144,6 +144,15 @@ export class MosaicStorageService {
     await this.saveConfig(config);
   }
 
+  /** Épingle ou désépingle un site, qu'il soit à la racine ou dans une catégorie */
+  async togglePinned(urlId: string): Promise<void> {
+    const config = { ...this.configSubject.getValue() };
+    const toggle = (u: MosaicUrl): MosaicUrl => (u.id === urlId ? { ...u, pinned: !u.pinned } : u);
+    config.urls = (config.urls ?? []).map(toggle);
+    config.categories = config.categories.map((c) => ({ ...c, urls: c.urls.map(toggle) }));
+    await this.saveConfig(config);
+  }
+
   async reorderGridItems(categories: MosaicCategory[], urls: MosaicUrl[]): Promise<void> {
     const config = { ...this.configSubject.getValue() };
     config.categories = categories;
@@ -173,7 +182,9 @@ export class MosaicStorageService {
       return;
     }
     const [moved] = source.splice(fromIndex, 1);
-    target.splice(Math.max(0, Math.min(toIndex, target.length)), 0, moved);
+    // Une section n'a de sens que dans sa catégorie : elle ne suit pas le site ailleurs.
+    const placed = fromCategoryId === toCategoryId ? moved : { ...moved, group: undefined };
+    target.splice(Math.max(0, Math.min(toIndex, target.length)), 0, placed);
 
     const config: MosaicConfig = {
       ...current,

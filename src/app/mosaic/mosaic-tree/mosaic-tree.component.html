@@ -20,6 +20,30 @@
       </div>
     }
 
+    @if (pinNodes.length > 0) {
+      <section class="pins">
+        <h2 class="pins-title">
+          <mat-icon>push_pin</mat-icon>
+          {{ 'mmn.mosaic.pins.title' | translate }}
+        </h2>
+        @for (node of pinNodes; track node.url.id) {
+          <div
+            class="url-row root-url"
+            [class.is-active]="activeIndex() === node.navIndex"
+            [attr.data-nav-index]="node.navIndex"
+            (mouseenter)="selectRow(node.navIndex)"
+            role="button"
+            tabindex="0"
+            (click)="openUrl(node.url, $event.ctrlKey || $event.metaKey)"
+            (keydown.enter)="openUrl(node.url)"
+            (keydown.space)="openUrl(node.url)"
+          >
+            <ng-container *ngTemplateOutlet="urlContent; context: { $implicit: node }"></ng-container>
+          </div>
+        }
+      </section>
+    }
+
     <div class="tree" cdkDropListGroup [@staggerTree]>
       <div class="root-list" [class.is-empty]="rootNodes.length === 0" cdkDropList [cdkDropListData]="null" [cdkDropListDisabled]="isSearching" (cdkDropListDropped)="drop($event)">
         @for (node of rootNodes; track node.url.id) {
@@ -128,9 +152,24 @@
       <span [class.hl]="part.match">{{ part.text }}</span>
     }
   </span>
+  @if (node.url.group) {
+    <span class="section-chip">{{ node.url.group }}</span>
+  }
   @if (scenarioName(node.url)) {
     <mat-icon class="scenario-icon" [matTooltip]="scenarioName(node.url)">play_circle</mat-icon>
   }
+  <button
+    mat-icon-button
+    class="row-action pin-action"
+    [class.is-pinned]="node.url.pinned"
+    [attr.aria-pressed]="!!node.url.pinned"
+    [matTooltip]="(node.url.pinned ? 'mmn.mosaic.pin.remove' : 'mmn.mosaic.pin.add') | translate"
+    (click)="$event.stopPropagation(); togglePin(node.url)"
+    (keydown.enter)="$event.stopPropagation()"
+    (keydown.space)="$event.stopPropagation()"
+  >
+    <mat-icon>push_pin</mat-icon>
+  </button>
   @if (editable) {
     <span class="row-actions" (click)="$event.stopPropagation()">
       <button mat-icon-button class="row-action" [matTooltip]="'mmn.mosaic.tile.edit' | translate" (click)="action.emit({ type: 'edit-url', categoryId: categoryIdOf(node.url), url: node.url })">

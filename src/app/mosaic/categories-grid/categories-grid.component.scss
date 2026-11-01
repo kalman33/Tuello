@@ -11,6 +11,129 @@
   justify-content: flex-start;
 }
 
+.pins {
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(143, 172, 182, 0.35);
+}
+
+.pins-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  color: #1b5064;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+  }
+}
+
+.pins-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 240px;
+  min-height: 48px;
+  padding: 0 4px 0 12px;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: background 0.18s ease;
+
+  &:hover {
+    background: #fff;
+  }
+
+  &.is-active {
+    outline: 2px solid #1b5064;
+    outline-offset: 2px;
+  }
+}
+
+.pin-favicon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 20px;
+  line-height: 20px;
+  color: #8facb6;
+}
+
+.pin-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pin-title,
+.pin-category {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pin-title {
+  color: #2c3e50;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pin-category {
+  color: #7f8c8d;
+  font-size: 11px;
+}
+
+.pin-scenario {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e53935;
+}
+
+.pin-remove {
+  flex-shrink: 0;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  line-height: 28px !important;
+  color: #8facb6;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+  }
+
+  &:focus-visible {
+    opacity: 1;
+  }
+}
+
+.pin:hover .pin-remove {
+  opacity: 1;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -42,6 +165,31 @@
 }
 
 :host-context(.black-theme) {
+  .pins-title {
+    color: #8facb6;
+  }
+
+  .pin {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(35, 35, 35, 0.9);
+
+    &:hover {
+      background: #2d2d2d;
+    }
+
+    &.is-active {
+      outline-color: #8facb6;
+    }
+  }
+
+  .pin-title {
+    color: #ecf0f1;
+  }
+
+  .pin-category {
+    color: #bdc3c7;
+  }
+
   .empty-state {
     background: rgba(45, 45, 45, 0.4);
     border-color: rgba(255, 255, 255, 0.1);

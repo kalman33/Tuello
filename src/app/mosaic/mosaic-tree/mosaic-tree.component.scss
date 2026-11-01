@@ -295,6 +295,70 @@
   }
 }
 
+.pins {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(143, 172, 182, 0.35);
+}
+
+.pins-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  color: #1b5064;
+  font-size: 13px;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+  }
+}
+
+.section-chip {
+  flex-shrink: 0;
+  max-width: 160px;
+  overflow: hidden;
+  padding: 1px 9px;
+  border-radius: 11px;
+  background: rgba(27, 80, 100, 0.1);
+  color: #1b5064;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Masqué hors survol pour alléger les lignes, sauf si le site est épinglé */
+.pin-action {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  &.is-pinned {
+    opacity: 1;
+    color: #1b5064;
+
+    mat-icon {
+      transform: rotate(45deg);
+    }
+  }
+}
+
+.url-row:hover .pin-action {
+  opacity: 1;
+}
+
 .row-actions {
   display: flex;
   align-items: center;
@@ -398,5 +462,15 @@
 
   .row-action:hover {
     color: #ecf0f1;
+  }
+
+  .pins-title,
+  .pin-action.is-pinned {
+    color: #8facb6;
+  }
+
+  .section-chip {
+    background: rgba(143, 172, 182, 0.18);
+    color: #8facb6;
   }
 }

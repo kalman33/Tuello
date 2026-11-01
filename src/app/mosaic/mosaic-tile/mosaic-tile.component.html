@@ -3,7 +3,7 @@
     <div class="stack-layer layer-1"></div>
     <div class="stack-layer layer-2"></div>
   }
-  
+
   <div class="tile" (click)="onTileClick()" [class.has-screenshot]="!!screenshot">
     @if (scenarioName) {
       <span class="scenario-badge" [matTooltip]="scenarioName"></span>
@@ -45,6 +45,12 @@
         <span class="tile-url" [matTooltip]="asUrl.url">{{ asUrl.url }}</span>
       }
     </div>
+
+    @if (type === 'url') {
+      <button mat-icon-button class="action-btn tile-pin" [class.is-pinned]="asUrl.pinned" [attr.aria-pressed]="!!asUrl.pinned" [matTooltip]="(asUrl.pinned ? 'mmn.mosaic.pin.remove' : 'mmn.mosaic.pin.add') | translate" (click)="onTogglePin($event)">
+        <mat-icon>push_pin</mat-icon>
+      </button>
+    }
 
     @if (editable) {
       <div class="tile-actions" (click)="$event.stopPropagation()">

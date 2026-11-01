@@ -9,6 +9,7 @@ import { ScenarioStorageService } from '../../core/scenarios/scenario-storage.se
 import { MosaicCategory, MosaicUrl } from '../models/mosaic.models';
 import { MosaicLauncherService } from '../services/mosaic-launcher.service';
 import { MosaicScreenshotService } from '../services/mosaic-screenshot.service';
+import { MosaicStorageService } from '../services/mosaic-storage.service';
 import { faviconFor } from '../utils/mosaic-text';
 
 @Component({
@@ -42,6 +43,7 @@ export class MosaicTileComponent implements OnInit, OnChanges {
   private screenshotService = inject(MosaicScreenshotService);
   private scenarioStorageService = inject(ScenarioStorageService);
   private launcherService = inject(MosaicLauncherService);
+  private storageService = inject(MosaicStorageService);
   private cdr = inject(ChangeDetectorRef);
 
   get asUrl(): MosaicUrl {
@@ -99,6 +101,11 @@ export class MosaicTileComponent implements OnInit, OnChanges {
     this.capturing = false;
     this.cdr.detectChanges();
     this.capture.emit();
+  }
+
+  onTogglePin(event: Event) {
+    event.stopPropagation();
+    this.storageService.togglePinned(this.asUrl.id);
   }
 
   onTileClick() {

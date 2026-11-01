@@ -17,6 +17,7 @@ import { MosaicSearchResultsComponent } from '../search-results/search-results.c
 import { MosaicNavigationService } from '../services/mosaic-navigation.service';
 import { MosaicStorageService } from '../services/mosaic-storage.service';
 import { UrlsGridComponent } from '../urls-grid/urls-grid.component';
+import { sectionNames } from '../utils/mosaic-sections';
 
 @Component({
   selector: 'mmn-mosaic-shell',
@@ -402,8 +403,11 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
 
   /** Création si `url` vaut null, modification sinon. `categoryId` null = racine. */
   private openUrlDialog(url: MosaicUrl | null, categoryId: string | null): void {
+    // Les sections n'existent que dans une catégorie : à la racine, le champ est masqué.
+    const category = this.categories.find((c) => c.id === categoryId);
+    const sections = category ? sectionNames(category.urls) : undefined;
     this.dialog
-      .open(AddUrlDialogComponent, { data: url ? { url: url.url, title: url.title, scenarioId: url.scenarioId } : {} })
+      .open(AddUrlDialogComponent, { data: { ...(url ? { url: url.url, title: url.title, scenarioId: url.scenarioId, group: url.group } : {}), sections } })
       .afterClosed()
       .pipe(take(1))
       .subscribe((result: AddUrlDialogResult) => {
@@ -411,14 +415,14 @@ export class MosaicShellComponent implements OnInit, OnDestroy {
           return;
         }
         if (url) {
-          const updated: MosaicUrl = { ...url, url: result.url, title: result.title, scenarioId: result.scenarioId };
+          const updated: MosaicUrl = { ...url, url: result.url, title: result.title, scenarioId: result.scenarioId, group: result.group };
           if (categoryId) {
             this.storageService.updateUrl(categoryId, updated);
           } else {
             this.storageService.updateRootUrl(updated);
           }
         } else if (categoryId) {
-          this.storageService.addUrl(categoryId, result.url, result.title, result.scenarioId);
+          this.storageService.addUrl(categoryId, result.url, result.title, result.scenarioId, result.group);
         } else {
           this.storageService.addRootUrl(result.url, result.title, result.scenarioId);
         }

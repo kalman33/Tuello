@@ -1,4 +1,4 @@
-import { MOSAIC_CONFIG_KEY, MOSAIC_SCREENSHOT_PREFIX, MOSAIC_TREE_EXPANDED_KEY, MOSAIC_VIEW_MODE_KEY } from '../../mosaic/models/mosaic.models';
+import { MOSAIC_COLLAPSED_SECTIONS_KEY, MOSAIC_CONFIG_KEY, MOSAIC_SCREENSHOT_PREFIX, MOSAIC_TREE_EXPANDED_KEY, MOSAIC_VIEW_MODE_KEY } from '../../mosaic/models/mosaic.models';
 import { SCENARIOS_KEY } from '../../core/scenarios/scenario.models';
 
 export type StorageCategoryId = 'config' | 'mocks' | 'scenarios' | 'mosaic' | 'tracks' | 'search' | 'other';
@@ -55,7 +55,7 @@ export const STORAGE_CATEGORIES: StorageCategory[] = [
   {
     id: 'mosaic',
     icon: 'grid_view',
-    keys: [MOSAIC_CONFIG_KEY, MOSAIC_VIEW_MODE_KEY, MOSAIC_TREE_EXPANDED_KEY],
+    keys: [MOSAIC_CONFIG_KEY, MOSAIC_VIEW_MODE_KEY, MOSAIC_TREE_EXPANDED_KEY, MOSAIC_COLLAPSED_SECTIONS_KEY],
     prefixes: [MOSAIC_SCREENSHOT_PREFIX],
     checkedByDefault: true
   },

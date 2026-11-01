@@ -2,9 +2,9 @@ import { Directive, ElementRef, effect, inject, OnDestroy } from '@angular/core'
 import { MosaicNavigationService } from '../services/mosaic-navigation.service';
 
 /**
- * Navigation clavier des vues en grille (tuiles). L'arbre et les résultats de
- * recherche gèrent leur propre curseur : eux seuls savent traduire un index en
- * ligne affichée. Ici la correspondance est directe, d'où la mutualisation.
+ * Navigation clavier des vues en grille (tuiles). L'arbre gère son propre curseur :
+ * lui seul sait traduire un index en ligne affichée. Ici la correspondance est
+ * directe, d'où la mutualisation.
  *
  * Les classes filles déclarent le nombre d'éléments via `syncNavigation()` et
  * implémentent `activateNavItem()` (Entrée, Alt+chiffre).
@@ -17,7 +17,6 @@ export abstract class MosaicGridNavigationBase implements OnDestroy {
   readonly activeIndex = this.navigationService.activeIndex;
 
   private readonly activateSub = this.navigationService.activate$.subscribe(({ index, background }) => this.activateNavItem(index, background));
-  private readonly onResize = () => this.measureColumns();
 
   constructor() {
     // Le template lit activeIndex() pour la surbrillance ; l'effet ne sert qu'au
@@ -26,11 +25,9 @@ export abstract class MosaicGridNavigationBase implements OnDestroy {
       const index = this.activeIndex();
       requestAnimationFrame(() => this.scrollIntoView(index));
     });
-    window.addEventListener('resize', this.onResize);
   }
 
   ngOnDestroy(): void {
-    window.removeEventListener('resize', this.onResize);
     this.activateSub.unsubscribe();
     this.navigationService.reset();
   }
@@ -41,18 +38,37 @@ export abstract class MosaicGridNavigationBase implements OnDestroy {
   /** À appeler dès que la liste affichée change */
   protected syncNavigation(count: number): void {
     this.navigationService.setCount(count);
-    // Les tuiles ne sont pas encore posées : la mesure attend le rendu.
-    requestAnimationFrame(() => this.measureColumns());
+    this.navigationService.setRowNavigator((current, delta) => this.neighborInRow(current, delta));
   }
 
-  /** Tuiles alignées sur la première rangée : le pas des flèches haut/bas */
-  private measureColumns(): void {
-    const tiles = Array.from(this.hostRef.nativeElement.querySelectorAll<HTMLElement>('[data-nav-index]'));
-    if (tiles.length === 0) {
-      return;
+  /**
+   * Cherche la rangée voisine sur la position réelle des éléments : d'un bloc à
+   * l'autre (épinglés, sections), les rangées n'ont ni la même largeur ni le même
+   * nombre d'éléments, aucun pas fixe ne conviendrait.
+   */
+  private neighborInRow(current: number, delta: number): number | null {
+    const items = Array.from(this.hostRef.nativeElement.querySelectorAll<HTMLElement>('[data-nav-index]')).map((element) => ({
+      index: Number(element.dataset['navIndex']),
+      rect: element.getBoundingClientRect()
+    }));
+    const from = items.find((item) => item.index === current)?.rect;
+    if (!from) {
+      return null;
     }
-    const firstRowTop = tiles[0].offsetTop;
-    this.navigationService.setColumns(tiles.filter((tile) => tile.offsetTop === firstRowTop).length);
+
+    const fromCenter = (from.top + from.bottom) / 2;
+    const beyond = items.filter(({ rect }) => (delta > 0 ? rect.top > fromCenter : rect.bottom < fromCenter));
+    if (beyond.length === 0) {
+      return null;
+    }
+
+    const distance = (top: number) => Math.abs(top - from.top);
+    const rowTop = beyond.reduce((nearest, { rect }) => (distance(rect.top) < distance(nearest) ? rect.top : nearest), beyond[0].rect.top);
+    const row = beyond.filter(({ rect }) => rect.top <= rowTop + from.height / 2 && rect.bottom >= rowTop);
+
+    const center = (rect: DOMRect) => (rect.left + rect.right) / 2;
+    const offset = (rect: DOMRect) => Math.abs(center(rect) - center(from));
+    return row.reduce((closest, item) => (offset(item.rect) < offset(closest.rect) ? item : closest)).index;
   }
 
   private scrollIntoView(index: number): void {

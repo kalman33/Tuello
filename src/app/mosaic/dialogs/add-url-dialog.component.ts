@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -13,6 +14,9 @@ export interface AddUrlDialogData {
   url?: string;
   title?: string;
   scenarioId?: string;
+  group?: string;
+  /** Sections existantes de la catégorie ; absent à la racine, où le champ est masqué */
+  sections?: string[];
 }
 
 export interface AddUrlDialogResult {
@@ -20,6 +24,8 @@ export interface AddUrlDialogResult {
   title: string;
   /** undefined = aucun scénario associé */
   scenarioId?: string;
+  /** undefined = aucune section */
+  group?: string;
 }
 
 @Component({
@@ -45,6 +51,18 @@ export interface AddUrlDialogResult {
         </mat-select>
         <mat-hint>{{ 'mmn.mosaic.url.scenario.hint' | translate }}</mat-hint>
       </mat-form-field>
+      @if (data.sections) {
+        <mat-form-field class="full-width section-field">
+          <mat-label>{{ 'mmn.mosaic.url.section' | translate }}</mat-label>
+          <input matInput [(ngModel)]="group" [matAutocomplete]="sectionOptions" />
+          <mat-autocomplete #sectionOptions="matAutocomplete">
+            @for (section of matchingSections; track section) {
+              <mat-option [value]="section">{{ section }}</mat-option>
+            }
+          </mat-autocomplete>
+          <mat-hint>{{ 'mmn.mosaic.url.section.hint' | translate }}</mat-hint>
+        </mat-form-field>
+      }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>{{ 'mmn.mosaic.dialog.cancel' | translate }}</button>
@@ -53,9 +71,9 @@ export interface AddUrlDialogResult {
       </button>
     </mat-dialog-actions>
   `,
-  styles: ['.full-width { width: 100%; min-width: 320px; display: block; margin-bottom: 8px; }'],
+  styles: ['.full-width { width: 100%; min-width: 320px; display: block; margin-bottom: 8px; }', '.section-field { margin-top: 16px; }'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, FormsModule, TranslatePipe]
+  imports: [MatAutocompleteModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, FormsModule, TranslatePipe]
 })
 export class AddUrlDialogComponent implements OnInit {
   private dialogRef = inject(MatDialogRef<AddUrlDialogComponent>);
@@ -66,7 +84,13 @@ export class AddUrlDialogComponent implements OnInit {
   url = this.data.url ?? '';
   title = this.data.title ?? '';
   scenarioId: string | null = this.data.scenarioId ?? null;
+  group = this.data.group ?? '';
   scenarios: Scenario[] = [];
+
+  get matchingSections(): string[] {
+    const typed = this.group.trim().toLowerCase();
+    return (this.data.sections ?? []).filter((section) => section.toLowerCase().includes(typed));
+  }
 
   ngOnInit() {
     this.scenarioStorageService.load().then((scenarios) => {
@@ -80,7 +104,8 @@ export class AddUrlDialogComponent implements OnInit {
       this.dialogRef.close({
         url: this.url.trim(),
         title: this.title.trim(),
-        scenarioId: this.scenarioId ?? undefined
+        scenarioId: this.scenarioId ?? undefined,
+        group: this.group.trim() || undefined
       } as AddUrlDialogResult);
     }
   }

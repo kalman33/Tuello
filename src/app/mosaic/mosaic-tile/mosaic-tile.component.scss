@@ -87,6 +87,9 @@
       opacity: 1;
       transform: translateY(0);
     }
+    .tile-pin {
+      opacity: 1;
+    }
     .screenshot {
       transform: scale(1.1);
     }
@@ -255,6 +258,31 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+/* En bas de l'aperçu : le haut de la tuile porte déjà le badge scénario et les actions */
+.tile-pin {
+  position: absolute !important;
+  top: 104px;
+  right: 8px;
+  z-index: 2;
+  opacity: 0;
+  background: rgba(255, 255, 255, 0.8) !important;
+  transition: opacity 0.3s;
+
+  &:focus-visible {
+    opacity: 1;
+  }
+
+  /* Un site épinglé reste repérable sans survol */
+  &.is-pinned {
+    opacity: 1;
+    color: #1b5064;
+
+    mat-icon {
+      transform: rotate(45deg);
+    }
+  }
+}
+
 .action-btn {
   width: 32px !important;
   height: 32px !important;
@@ -287,9 +315,7 @@
       outline-color: #43e97b;
     }
     .category-preview {
-      background:
-        radial-gradient(circle at 28% 22%, rgba(67, 233, 123, 0.25), transparent 62%),
-        linear-gradient(135deg, #1c6b57 0%, #14554a 45%, #0d3a33 100%);
+      background: radial-gradient(circle at 28% 22%, rgba(67, 233, 123, 0.25), transparent 62%), linear-gradient(135deg, #1c6b57 0%, #14554a 45%, #0d3a33 100%);
     }
   }
 
@@ -315,6 +341,13 @@
   .tile-url {
     color: #bdc3c7;
   }
+  .tile-pin {
+    background: rgba(45, 45, 45, 0.85) !important;
+
+    &.is-pinned {
+      color: #8facb6;
+    }
+  }
   .tile-actions {
     background: rgba(45, 45, 45, 0.8);
     border-color: rgba(255, 255, 255, 0.1);
@@ -332,9 +365,7 @@
     background: rgba(255, 255, 255, 0.1);
   }
   .category-preview {
-    background:
-      radial-gradient(circle at 28% 22%, rgba(213, 159, 93, 0.22), transparent 62%),
-      linear-gradient(135deg, #1f5d75 0%, #14455a 45%, #0d2c3a 100%);
+    background: radial-gradient(circle at 28% 22%, rgba(213, 159, 93, 0.22), transparent 62%), linear-gradient(135deg, #1f5d75 0%, #14455a 45%, #0d2c3a 100%);
   }
   .category-icon-wrapper {
     background: rgba(255, 255, 255, 0.08);

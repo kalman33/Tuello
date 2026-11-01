@@ -7,6 +7,9 @@ export interface MosaicNavActivation {
   background: boolean;
 }
 
+/** Élément de la rangée voisine, ou null s'il n'y a plus de rangée dans ce sens */
+export type MosaicRowNavigator = (current: number, delta: number) => number | null;
+
 /**
  * Curseur clavier partagé par la vue affichée. Le shell traduit les touches, la
  * vue déclare le nombre d'éléments navigables et décide de ce qu'« activer »
@@ -17,8 +20,11 @@ export class MosaicNavigationService {
   readonly activeIndex = signal(-1);
 
   private count = 0;
-  /** 1 pour une liste (arbre) ; le nombre de tuiles par rangée pour une grille */
-  private columns = 1;
+  /**
+   * Fourni par les vues en grille : selon l'affichage, l'élément au-dessus ou
+   * au-dessous du curseur. Sans lui (arbre), une rangée vaut un élément.
+   */
+  private rowNavigator: MosaicRowNavigator | null = null;
   private activateSubject = new Subject<MosaicNavActivation>();
   readonly activate$ = this.activateSubject.asObservable();
 
@@ -32,9 +38,8 @@ export class MosaicNavigationService {
     }
   }
 
-  /** Mesuré après rendu par les vues en grille : il dépend de la largeur de la fenêtre */
-  setColumns(columns: number): void {
-    this.columns = Math.max(1, columns);
+  setRowNavigator(navigator: MosaicRowNavigator): void {
+    this.rowNavigator = navigator;
   }
 
   moveBy(delta: number): void {
@@ -56,7 +61,7 @@ export class MosaicNavigationService {
     if (this.count === 0) {
       return;
     }
-    if (this.columns === 1) {
+    if (!this.rowNavigator) {
       this.moveBy(delta);
       return;
     }
@@ -65,8 +70,7 @@ export class MosaicNavigationService {
       this.activeIndex.set(delta > 0 ? 0 : this.count - 1);
       return;
     }
-    const next = current + delta * this.columns;
-    this.activeIndex.set(next < 0 || next >= this.count ? (delta > 0 ? this.count - 1 : 0) : next);
+    this.activeIndex.set(this.rowNavigator(current, delta) ?? (delta > 0 ? this.count - 1 : 0));
   }
 
   setActive(index: number): void {
@@ -91,7 +95,7 @@ export class MosaicNavigationService {
   /** À la destruction d'une vue : la suivante repartira d'un curseur vierge */
   reset(): void {
     this.count = 0;
-    this.columns = 1;
+    this.rowNavigator = null;
     this.activeIndex.set(-1);
   }
 }

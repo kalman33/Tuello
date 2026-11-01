@@ -30,6 +30,7 @@
     } @else if (selectedCategoryId()) {
       <mmn-urls-grid
         [urls]="categoryUrls"
+        [categoryId]="selectedCategoryId()"
         [editable]="editMode()"
         (reordered)="onUrlsReordered($event)"
         (draggingChange)="onCategoryDragging($event)"

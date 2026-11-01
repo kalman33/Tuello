@@ -7,6 +7,10 @@ export interface MosaicUrl {
   order: number;
   /** Scénario Spy & Replay joué automatiquement après l'ouverture du site */
   scenarioId?: string;
+  /** Section du site dans sa catégorie : une section n'existe que tant qu'un site la porte */
+  group?: string;
+  /** Raccourci affiché en haut de la mosaïque, le site restant aussi à sa place */
+  pinned?: boolean;
 }
 
 export interface MosaicCategory {
@@ -68,3 +72,5 @@ export const MOSAIC_SCREENSHOT_PREFIX = 'mosaic_screenshot_';
 export const MOSAIC_VIEW_MODE_KEY = 'mosaicViewMode';
 /** Ids des catégories dépliées en vue arbre, pour retrouver l'écran tel qu'il a été laissé */
 export const MOSAIC_TREE_EXPANDED_KEY = 'mosaicTreeExpanded';
+/** Sections repliées, sous la forme `idCatégorie/nomSection` */
+export const MOSAIC_COLLAPSED_SECTIONS_KEY = 'mosaicCollapsedSections';

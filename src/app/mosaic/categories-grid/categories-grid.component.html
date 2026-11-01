@@ -5,6 +5,38 @@
       <p>{{ 'mmn.mosaic.empty.main' | translate }}</p>
     </div>
   } @else {
+    @if (pins.length > 0) {
+      <section class="pins">
+        <h2 class="pins-title">
+          <mat-icon>push_pin</mat-icon>
+          {{ 'mmn.mosaic.pins.title' | translate }}
+        </h2>
+        <div class="pins-list">
+          @for (pin of pins; track pin.url.id) {
+            <div class="pin" role="button" [class.is-active]="activeIndex() === $index" [attr.data-nav-index]="$index" [matTooltip]="pin.url.url" (mouseenter)="selectItem($index)" (click)="openPin(pin, $event.ctrlKey || $event.metaKey)">
+              @if (pin.faviconUrl) {
+                <img [src]="pin.faviconUrl" class="pin-favicon" alt="" />
+              } @else {
+                <mat-icon class="pin-favicon">language</mat-icon>
+              }
+              <span class="pin-text">
+                <span class="pin-title">{{ pin.url.title }}</span>
+                @if (pin.categoryName) {
+                  <span class="pin-category">{{ pin.categoryName }}</span>
+                }
+              </span>
+              @if (pin.url.scenarioId) {
+                <span class="pin-scenario"></span>
+              }
+              <button mat-icon-button class="pin-remove" [matTooltip]="'mmn.mosaic.pin.remove' | translate" (click)="unpin(pin, $event)">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
     <div cdkDropList cdkDropListOrientation="mixed" class="tiles-list" [cdkDropListSortPredicate]="sortPredicate" (cdkDropListSorted)="onSorted($event)" (cdkDropListDropped)="drop($event)" [@staggerList]>
       @for (item of gridItems; track item.data.id) {
         <mmn-mosaic-tile
@@ -13,11 +45,11 @@
           [item]="item.data"
           [type]="item.kind"
           [editable]="editable"
-          [active]="activeIndex() === $index"
+          [active]="activeIndex() === pins.length + $index"
           [dropTarget]="item.kind === 'category' && dropTargetId === item.data.id"
-          [attr.data-nav-index]="$index"
+          [attr.data-nav-index]="pins.length + $index"
           [attr.data-mosaic-drop]="item.kind === 'category' ? item.data.id : null"
-          (mouseenter)="selectItem($index)"
+          (mouseenter)="selectItem(pins.length + $index)"
           (cdkDragStarted)="onDragStarted(item)"
           (cdkDragEnded)="onDragEnded()"
           (tileClick)="onTileClick(item)"

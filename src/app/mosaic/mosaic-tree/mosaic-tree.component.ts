@@ -10,6 +10,8 @@ import { ScenarioStorageService } from '../../core/scenarios/scenario-storage.se
 import { MosaicCategory, MosaicUrl, MOSAIC_TREE_EXPANDED_KEY } from '../models/mosaic.models';
 import { MosaicLauncherService } from '../services/mosaic-launcher.service';
 import { MosaicNavigationService } from '../services/mosaic-navigation.service';
+import { MosaicStorageService } from '../services/mosaic-storage.service';
+import { collectPins } from '../utils/mosaic-sections';
 import { faviconFor, splitMatches, TextPart } from '../utils/mosaic-text';
 
 interface TreeUrlNode {
@@ -74,6 +76,8 @@ export class MosaicTreeComponent implements OnInit, OnChanges, OnDestroy {
   @Output() urlMoved = new EventEmitter<MosaicUrlMove>();
   @Output() action = new EventEmitter<MosaicTreeAction>();
 
+  /** Raccourcis en tête d'arbre, masqués pendant une recherche pour ne pas doubler les résultats */
+  pinNodes: TreeUrlNode[] = [];
   rootNodes: TreeUrlNode[] = [];
   categoryNodes: TreeCategoryNode[] = [];
 
@@ -91,6 +95,7 @@ export class MosaicTreeComponent implements OnInit, OnChanges, OnDestroy {
   private scenarioStorageService = inject(ScenarioStorageService);
   private launcherService = inject(MosaicLauncherService);
   private navigationService = inject(MosaicNavigationService);
+  private storageService = inject(MosaicStorageService);
   private host = inject(ElementRef<HTMLElement>);
   private cdr = inject(ChangeDetectorRef);
   private activateSub?: { unsubscribe(): void };
@@ -98,8 +103,8 @@ export class MosaicTreeComponent implements OnInit, OnChanges, OnDestroy {
   readonly activeIndex = this.navigationService.activeIndex;
 
   /**
-   * Index clavier des lignes, dans l'ordre où elles s'affichent : sites racine,
-   * puis chaque catégorie suivie de ses sites quand elle est dépliée. Recalculé
+   * Index clavier des lignes, dans l'ordre où elles s'affichent : épinglés, sites
+   * racine, puis chaque catégorie suivie de ses sites quand elle est dépliée. Recalculé
    * à chaque pliage/dépliage, sinon le curseur pointerait une ligne masquée.
    */
   private navRows: ({ kind: 'url'; url: MosaicUrl } | { kind: 'category'; categoryId: string })[] = [];
@@ -168,7 +173,7 @@ export class MosaicTreeComponent implements OnInit, OnChanges, OnDestroy {
 
   private rebuildNavRows(): void {
     const rows: typeof this.navRows = [];
-    for (const node of this.rootNodes) {
+    for (const node of [...this.pinNodes, ...this.rootNodes]) {
       node.navIndex = rows.length;
       rows.push({ kind: 'url', url: node.url });
     }
@@ -197,6 +202,7 @@ export class MosaicTreeComponent implements OnInit, OnChanges, OnDestroy {
   private buildNodes(): void {
     const q = this.query.trim().toLowerCase();
 
+    this.pinNodes = q ? [] : collectPins(this.categories, this.rootUrls).map((pin) => this.toUrlNode(pin.url, q));
     this.rootNodes = this.rootUrls.filter((url) => this.urlMatches(url, q)).map((url) => this.toUrlNode(url, q));
 
     this.categoryNodes = this.categories
@@ -232,7 +238,7 @@ export class MosaicTreeComponent implements OnInit, OnChanges, OnDestroy {
     if (!q) {
       return true;
     }
-    return (url.title ?? '').toLowerCase().includes(q) || (url.url ?? '').toLowerCase().includes(q);
+    return (url.title ?? '').toLowerCase().includes(q) || (url.url ?? '').toLowerCase().includes(q) || (url.group ?? '').toLowerCase().includes(q);
   }
 
   private toUrlNode(url: MosaicUrl, q: string): TreeUrlNode {
@@ -297,6 +303,10 @@ export class MosaicTreeComponent implements OnInit, OnChanges, OnDestroy {
 
   openUrl(url: MosaicUrl, background = false): void {
     this.launcherService.open(url, background);
+  }
+
+  togglePin(url: MosaicUrl): void {
+    this.storageService.togglePinned(url.id);
   }
 
   drop(event: CdkDragDrop<string | null>): void {
