@@ -40,12 +40,15 @@
           @for (element of tagsService.elements; track element; let i = $index) {
             <mat-expansion-panel class="animated lightSpeedIn">
               <mat-expansion-panel-header>
-                <mat-panel-title id="tagPanel">
-                  {{ 'mmn.recorder-http.addTags.input.display' | translate }} :
-                  <input (change)="onChange()" [(ngModel)]="element.display" matInput />
-                </mat-panel-title>
+                <mat-panel-title class="tag-panel-title">{{ element.display }}</mat-panel-title>
               </mat-expansion-panel-header>
               <div fxLayout="column">
+                <div class="mmn-field">
+                  <label class="mmn-field-label" [for]="'tag-display-' + i">{{ 'mmn.recorder-http.addTags.input.display' | translate }}</label>
+                  <mat-form-field subscriptSizing="dynamic">
+                    <input #displayInput [id]="'tag-display-' + i" [ngModel]="element.display" (change)="updateKey(element, 'display', displayInput)" matInput />
+                  </mat-form-field>
+                </div>
                 <div class="mmn-field">
                   <label class="mmn-field-label" [for]="'tag-http-key-' + i">{{ 'mmn.recorder-http.addTags.input.httpKey' | translate }}</label>
                   <mat-form-field subscriptSizing="dynamic">

@@ -62,15 +62,11 @@ export class AddTagsComponent {
         }
     }
 
-    public onChange(): void {
-        this.tagsService.updateData();
-    }
-
     /**
-     * Modification de l'url de l'api ou de la clef json d'un tag existant.
+     * Modification du libellé, de l'url de l'api ou de la clef json d'un tag existant.
      * Une valeur vide est refusée : le champ reprend sa valeur précédente.
      */
-    updateKey(element: TagElement, field: 'httpKey' | 'jsonKey', input: HTMLInputElement): void {
+    updateKey(element: TagElement, field: 'display' | 'httpKey' | 'jsonKey', input: HTMLInputElement): void {
         const value = input.value.trim();
         if (!value) {
             input.value = element[field];

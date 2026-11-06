@@ -70,6 +70,9 @@ cdk-virtual-scroll-viewport {
   margin-bottom: 15px !important;
 }
 
-#tagPanel input {
-  margin-left: 10px !important;
+.tag-panel-title {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
