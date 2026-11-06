@@ -31,8 +31,8 @@
 
   "mmn.settings.deeprecord.title": "Profondeur pour le mock HTTP",
   "mmn.settings.playwright.title": "Export Playwright",
-  "mmn.settings.playwright.hosts": "Hôtes locaux supplémentaires",
-  "mmn.settings.playwright.hosts.hint": "Séparés par des virgules ; localhost et 127.0.0.1 sont toujours acceptés",
+  "mmn.settings.playwright.hosts": "Autres adresses de votre application en local",
+  "mmn.settings.playwright.hosts.hint": "L'export Playwright n'est proposé que pour une application lancée sur votre poste. localhost est déjà reconnu ; ajoutez ici les autres noms (ex. : local.monapp.fr), séparés par des virgules.",
   "mmn.settings.general.desactivate.title": "Désactiver le plugin",
   "mmn.settings.general.verbosemode.title": "Mode verbeux",
   "mmn.settings.general.verbosemode.information": "Affiche dans la console du navigateur les étapes détaillées de l'enregistrement et du rejeu HTTP : bouchons trouvés ou non, requêtes mises en attente, URLs exclues, réponses non-JSON ignorées, erreurs CORS.",

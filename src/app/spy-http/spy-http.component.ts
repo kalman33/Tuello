@@ -32,7 +32,8 @@ import { ChromeExtentionUtilsService } from '../core/utils/chrome-extention-util
 import { formatDate } from '../core/utils/date-utils';
 import { HttpReturn } from '../recorder-http/models/http.return';
 import { ActionComponent } from './action/action.component';
-import { ExportChoice, ExportDialogComponent } from './export-dialog/export-dialog.component';
+import { ExportChoice, ExportDialogComponent, ExportDialogData } from './export-dialog/export-dialog.component';
+import { findStartUrl, isLocalHost } from './playwright-export/playwright-export';
 import { PlaywrightExportDialogComponent, PlaywrightExportDialogData } from './playwright-export/playwright-export-dialog.component';
 import { Action } from './models/Action';
 import { ActionType } from './models/ActionType';
@@ -361,11 +362,22 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
   /** Bouton « Exporter » : la fenêtre propose les destinations, l'export lui-même est fait ici */
   openExport() {
-    if (!this.recorderHistoryService.record || !this.actions?.length) {
+    const record = this.recorderHistoryService.record;
+    if (!record || !this.actions?.length) {
       return;
     }
+    // Hôtes locaux déclarés dans les Paramètres : l'option Playwright n'apparaît que pour une application locale
+    chrome.storage.local.get(['playwrightLocalHosts'], (results: { [key: string]: unknown }) => {
+      const hosts = Array.isArray(results['playwrightLocalHosts']) ? (results['playwrightLocalHosts'] as string[]) : [];
+      const start = findStartUrl({ ...record, actions: this.actions });
+      const data: ExportDialogData = { playwright: !!start && isLocalHost(start.hostname, hosts) };
+      this.ngZone.run(() => this.openExportDialog(data));
+    });
+  }
+
+  private openExportDialog(data: ExportDialogData) {
     this.dialog
-      .open<ExportDialogComponent, void, ExportChoice>(ExportDialogComponent)
+      .open<ExportDialogComponent, ExportDialogData, ExportChoice>(ExportDialogComponent, { data })
       .afterClosed()
       .pipe(take(1))
       .subscribe((choice) => {

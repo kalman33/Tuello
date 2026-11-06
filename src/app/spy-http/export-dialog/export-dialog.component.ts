@@ -1,11 +1,16 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 
 /** Destination choisie ; l'écran Enregistrement/Rejeu réalise l'export correspondant */
 export type ExportChoice = 'report' | 'playwright' | 'scenario' | 'file';
+
+export interface ExportDialogData {
+  /** true si l'enregistrement a été fait sur une application locale */
+  playwright: boolean;
+}
 
 interface ExportOption {
   choice: ExportChoice;
@@ -52,12 +57,17 @@ interface ExportOption {
 export class ExportDialogComponent {
   private dialogRef = inject(MatDialogRef<ExportDialogComponent, ExportChoice>);
 
-  options: ExportOption[] = [
-    { choice: 'report', icon: 'description' },
-    { choice: 'playwright', icon: 'science' },
-    { choice: 'scenario', icon: 'bookmark_add' },
-    { choice: 'file', icon: 'save' }
-  ];
+  private data: ExportDialogData | null = inject(MAT_DIALOG_DATA, { optional: true });
+
+  // L'export Playwright n'est proposé que pour un enregistrement fait en local
+  options: ExportOption[] = (
+    [
+      { choice: 'report', icon: 'description' },
+      { choice: 'playwright', icon: 'science' },
+      { choice: 'scenario', icon: 'bookmark_add' },
+      { choice: 'file', icon: 'save' }
+    ] as ExportOption[]
+  ).filter((option) => option.choice !== 'playwright' || !!this.data?.playwright);
 
   choose(choice: ExportChoice) {
     this.dialogRef.close(choice);
