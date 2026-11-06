@@ -32,6 +32,7 @@ import { loadCompressed } from './utils/compression';
 import { appendHttpRecords, clearHttpRecords } from './background/httpRecordStore';
 import { appendTrack, clearTracks, initTrackStore } from './background/trackStore';
 import { formatShortcut, resolvePlatform } from './utils/platform';
+import { buildResizeOnCurrentScreen } from './utils/windowPlacement';
 import Port = chrome.runtime.Port;
 
 let port;
@@ -1156,18 +1157,11 @@ async function playScenarioOnTab(scenario: Scenario, actions: Action[], tabId: n
   if (windowSize?.width && windowSize?.height) {
     // On cible la fenêtre de l'onglet rejoué : getCurrent() depuis le service
     // worker ne désigne pas forcément celle de la mosaïque.
+    // Seule la taille est reprise : la position enregistrée appartient au bureau
+    // de la machine d'origine et ferait changer la fenêtre d'écran.
     const playedTab = await chrome.tabs.get(tabId);
-    const updateInfo: chrome.windows.UpdateInfo = {
-      state: 'normal',
-      width: windowSize.width,
-      height: windowSize.height
-    };
-    if (windowSize.top !== undefined) {
-      updateInfo.top = windowSize.top;
-    }
-    if (windowSize.left !== undefined) {
-      updateInfo.left = windowSize.left;
-    }
+    const playedWindow = await chrome.windows.get(playedTab.windowId);
+    const updateInfo = await buildResizeOnCurrentScreen(playedWindow, windowSize.width, windowSize.height);
     await chrome.windows.update(playedTab.windowId, updateInfo);
   }
 

@@ -5,6 +5,7 @@ import { IFrame } from '../models/IFrame';
 import { getFrameIdFromSrc } from './uiRecorderHandler';
 import { UserAction } from '../models/UserAction';
 import { comparePngDataUrls } from '../utils/imageCompare';
+import { buildResizeOnCurrentScreen } from '../utils/windowPlacement';
 
 /** Timeout par défaut pour les actions en ms */
 const ACTION_TIMEOUT_MS = 30000;
@@ -754,22 +755,20 @@ export class Player {
             return;
           }
 
-          const updateInfo: chrome.windows.UpdateInfo = {
-            width: userAction.htmlCoordinates.width,
-            height: userAction.htmlCoordinates.height,
-            top: userAction.htmlCoordinates.top,
-            left: userAction.htmlCoordinates.left,
-            state: 'normal'
-          };
-
-          chrome.windows.update(window.id, updateInfo, (updatedWindow) => {
-            clearTimeout(timeoutId);
-            if (chrome.runtime.lastError) {
-              console.warn('Erreur redimensionnement:', chrome.runtime.lastError.message);
-              resolve('failed');
-            } else {
-              resolve('played');
-            }
+          // Seule la taille enregistrée est reprise : top/left viennent du bureau de
+          // la machine d'origine et enverraient la fenêtre sur un autre écran.
+          const width = userAction.htmlCoordinates.width ?? window.width;
+          const height = userAction.htmlCoordinates.height ?? window.height;
+          buildResizeOnCurrentScreen(window, width, height).then((updateInfo) => {
+            chrome.windows.update(window.id!, updateInfo, () => {
+              clearTimeout(timeoutId);
+              if (chrome.runtime.lastError) {
+                console.warn('Erreur redimensionnement:', chrome.runtime.lastError.message);
+                resolve('failed');
+              } else {
+                resolve('played');
+              }
+            });
           });
         });
       } else {

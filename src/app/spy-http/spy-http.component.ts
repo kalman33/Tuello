@@ -20,6 +20,7 @@ import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { MAC_MODIFIER_LABELS, MAC_MODIFIER_TITLES, resolvePlatform, TuelloPlatform } from 'chrome/src/utils/platform';
 import { getKeyCode } from 'chrome/src/utils/utils';
+import { buildResizeOnCurrentScreen } from 'chrome/src/utils/windowPlacement';
 import { saveAs } from 'file-saver';
 import { Subscription, take } from 'rxjs';
 import { PausableObservable } from 'rxjs-pausable';
@@ -482,16 +483,14 @@ export class SpyHttpComponent implements OnInit, OnDestroy {
 
     // on retaille l'écran à la meme taille que celle de l'enregistrement
 
-    chrome.windows.getCurrent((window) => {
+    // Seule la taille enregistrée est reprise ; la fenêtre reste sur son écran actuel
+    // (la position enregistrée appartient au bureau de la machine d'origine).
+    chrome.windows.getCurrent(async (window) => {
       const windowSize = this.recorderHistoryService.record?.windowSize;
-      // Utiliser les dimensions actuelles si windowSize n'est pas défini
-      let updateInfo = {
-        width: windowSize?.width ?? window.width,
-        height: windowSize?.height ?? window.height,
-        top: windowSize?.top ?? window.top,
-        left: windowSize?.left ?? window.left
-      };
-      (((updateInfo as any).state = 'normal'), chrome.windows.update(window.id, updateInfo, () => this.launchActions()));
+      const width = windowSize?.width ?? window.width;
+      const height = windowSize?.height ?? window.height;
+      const updateInfo = await buildResizeOnCurrentScreen(window, width, height);
+      chrome.windows.update(window.id, updateInfo, () => this.launchActions());
     });
   }
 
