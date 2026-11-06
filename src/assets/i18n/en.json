@@ -196,6 +196,10 @@
   "mmn.track.input": "Data to track",
   "mmn.track.input.required": "Data to track is required",
   "mmn.track.input.data.display": "Data to display",
+  "mmn.track.data.display.type": "Source of the data to display",
+  "mmn.track.data.display.type.help": "Where to look for the key entered in « Data to display », shown instead of the URL of each tracked request",
+  "mmn.track.data.display.type.querystring.tooltip": "URL parameters (after the ?). E.g. for /api?user=42, enter « user »",
+  "mmn.track.data.display.type.body.tooltip": "JSON body sent by the request (POST, PUT, PATCH). E.g. « name » or « name, id »",
 
   "mmn.record.placeholder": "Add comment",
   "mmn.record.button.submit": "Submit",

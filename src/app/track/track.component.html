@@ -14,10 +14,16 @@
     <div class="button-row" fxLayout="row" fxLayoutAlign="start center">
       <mat-slide-toggle id="guide-track-toggle" fxFlex="50%" [checked]="trackPlayActivated" [(ngModel)]="trackPlayActivated" (change)="toggleTrackPlay($event)">{{ 'mmn.track.button.play' | translate }}</mat-slide-toggle>
 
-      <mat-radio-group [(ngModel)]="trackDataDisplayType" fxFlex="49%" aria-label="Select an option">
-        <mat-radio-button value="querystring">Query string</mat-radio-button>
-        <mat-radio-button class="plm" value="body">Body</mat-radio-button>
-      </mat-radio-group>
+      <div fxFlex="49%" class="mmn-field">
+        <label class="mmn-field-label" id="track-data-display-type-label">
+          {{ 'mmn.track.data.display.type' | translate }}
+          <mat-icon class="track-help-icon" [matTooltip]="'mmn.track.data.display.type.help' | translate">help_outline</mat-icon>
+        </label>
+        <mat-radio-group [(ngModel)]="trackDataDisplayType" aria-labelledby="track-data-display-type-label">
+          <mat-radio-button value="querystring" [matTooltip]="'mmn.track.data.display.type.querystring.tooltip' | translate">Query string</mat-radio-button>
+          <mat-radio-button class="plm" value="body" [matTooltip]="'mmn.track.data.display.type.body.tooltip' | translate">Body</mat-radio-button>
+        </mat-radio-group>
+      </div>
     </div>
     <div class="track-fields" fxLayout="row" fxLayoutAlign="start end">
       <div id="guide-track-input" fxFlex="50%" class="mmn-field track-width">

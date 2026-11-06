@@ -196,6 +196,10 @@
   "mmn.track.input": "Données à tracker",
   "mmn.track.input.required": "Renseigner le champs Données à tracker",
   "mmn.track.input.data.display": "Element à afficher",
+  "mmn.track.data.display.type": "Source de l'élément à afficher",
+  "mmn.track.data.display.type.help": "Indique où chercher la clé saisie dans « Element à afficher » pour l'afficher à la place de l'URL de chaque requête trackée",
+  "mmn.track.data.display.type.querystring.tooltip": "Paramètres de l'URL (après le ?). Ex. pour /api?user=42, saisir « user »",
+  "mmn.track.data.display.type.body.tooltip": "Corps JSON envoyé par la requête (POST, PUT, PATCH). Ex. « name » ou « name, id »",
 
   "mmn.record.placeholder": "Ajouter un commentaire",
   "mmn.record.button.submit": "Soumettre",

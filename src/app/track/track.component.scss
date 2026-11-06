@@ -33,6 +33,15 @@ mat-list {
   margin-bottom: 16px;
 }
 
+.track-help-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  cursor: help;
+  opacity: 0.7;
+}
+
 :host ::ng-deep mat-list mat-list-item span.mat-mdc-list-item-content {
   padding-right: 0px !important;
 }

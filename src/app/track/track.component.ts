@@ -10,6 +10,7 @@ import { MatList, MatListItem } from '@angular/material/list';
 import { MatRadioButton, MatRadioGroup } from '@angular/material/radio';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltip } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { ExtendedModule } from '@ngbracket/ngx-layout/extended';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
@@ -25,11 +26,11 @@ import { SelectTrackDirective } from './selec.track.directive';
 import { TrackService } from './services/track.service';
 
 @Component({
-    selector: 'mmn-track',
-    templateUrl: './track.component.html',
-    styleUrls: ['./track.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, MatRadioGroup, MatRadioButton, MatFormField, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslatePipe]
+  selector: 'mmn-track',
+  templateUrl: './track.component.html',
+  styleUrls: ['./track.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FlexModule, FormsModule, NgClass, ExtendedModule, MatButton, MatIcon, MatSlideToggle, MatRadioGroup, MatRadioButton, MatFormField, MatInput, MatList, SelectTrackDirective, MatListItem, TrackDetailComponent, TranslatePipe, MatTooltip]
 })
 export class TrackComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput: ElementRef;
@@ -55,7 +56,7 @@ export class TrackComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private trackService: TrackService,
     private compressionService: CompressionService
-  ) { }
+  ) {}
 
   get trackDataDisplayType(): string {
     return this._trackDataDisplayType;
@@ -79,24 +80,22 @@ export class TrackComponent implements OnInit, OnDestroy {
     // Le composant est réutilisé quand on clique une autre pastille : la sélection suit
     // les queryParams (auparavant, la stratégie de réutilisation des routes de toute
     // l'application était modifiée pour forcer la recréation du composant).
-    this.sub = this.route.queryParams.subscribe(params => {
+    this.sub = this.route.queryParams.subscribe((params) => {
       this.selectedTrackId = params['trackId'];
       this.ref.markForCheck();
     });
 
     // Chargement des données non compressées
-    chrome.storage.local.get([
-      'trackPlay',
-      'tuelloTrackData',
-      'tuelloTrackDataDisplay',
-      'tuelloTrackDataDisplayType'
-    ], (results: Record<string, any>) => {
+    chrome.storage.local.get(['trackPlay', 'tuelloTrackData', 'tuelloTrackDataDisplay', 'tuelloTrackDataDisplayType'], (results: Record<string, any>) => {
       if (results['trackPlay']) {
         this.trackPlayActivated = results['trackPlay'];
-        chrome.runtime.sendMessage({
-          action: 'TRACK_PLAY_STATE',
-          value: true
-        }, () => { });
+        chrome.runtime.sendMessage(
+          {
+            action: 'TRACK_PLAY_STATE',
+            value: true
+          },
+          () => {}
+        );
       }
       this.trackData = results['tuelloTrackData'];
       this._trackDataDisplay = results['tuelloTrackDataDisplay'];
@@ -105,13 +104,16 @@ export class TrackComponent implements OnInit, OnDestroy {
     });
 
     // Chargement des tracks avec décompression LZ
-    this.compressionService.loadCompressed<any[]>('tuelloTracks').then(tracks => {
-      this.tracks = tracks || [];
-      this.ref.detectChanges();
-    }).catch(() => {
-      this.tracks = [];
-      this.ref.detectChanges();
-    });
+    this.compressionService
+      .loadCompressed<any[]>('tuelloTracks')
+      .then((tracks) => {
+        this.tracks = tracks || [];
+        this.ref.detectChanges();
+      })
+      .catch(() => {
+        this.tracks = [];
+        this.ref.detectChanges();
+      });
 
     this.chromeMessageListener = (message, sender, sendResponse) => {
       // Ce listener reçoit tous les messages de l'extension, y compris ceux
@@ -121,24 +123,26 @@ export class TrackComponent implements OnInit, OnDestroy {
         return false;
       }
       // recupération des enregistrements avec décompression LZ
-      this.compressionService.loadCompressed<any[]>('tuelloTracks').then(tracks => {
-        this.ngZone.run(() => {
-          this.tracks = tracks || [];
-          this.ref.detectChanges();
+      this.compressionService
+        .loadCompressed<any[]>('tuelloTracks')
+        .then((tracks) => {
+          this.ngZone.run(() => {
+            this.tracks = tracks || [];
+            this.ref.detectChanges();
+          });
+          sendResponse();
+        })
+        .catch(() => {
+          this.ngZone.run(() => {
+            this.tracks = [];
+            this.ref.detectChanges();
+          });
+          sendResponse();
         });
-        sendResponse();
-      }).catch(() => {
-        this.ngZone.run(() => {
-          this.tracks = [];
-          this.ref.detectChanges();
-        });
-        sendResponse();
-      });
       return true;
     };
     chrome.runtime.onMessage.addListener(this.chromeMessageListener);
   }
-
 
   /**
    * Efface les enregistrements stockés dans le localstorage
@@ -169,10 +173,13 @@ export class TrackComponent implements OnInit, OnDestroy {
       });
     }
     chrome.storage.local.set(values);
-    chrome.runtime.sendMessage({
-      action: 'TRACK_PLAY_STATE',
-      value: this.trackPlayActivated
-    }, () => { });
+    chrome.runtime.sendMessage(
+      {
+        action: 'TRACK_PLAY_STATE',
+        value: this.trackPlayActivated
+      },
+      () => {}
+    );
   }
 
   /**
@@ -190,13 +197,15 @@ export class TrackComponent implements OnInit, OnDestroy {
       this.trackPlayActivated = false;
     } else {
       chrome.storage.local.set({ trackPlay: this.trackPlayActivated });
-
     }
 
-    chrome.runtime.sendMessage({
-      action: 'TRACK_PLAY_STATE',
-      value: this.trackPlayActivated
-    }, () => { });
+    chrome.runtime.sendMessage(
+      {
+        action: 'TRACK_PLAY_STATE',
+        value: this.trackPlayActivated
+      },
+      () => {}
+    );
   }
 
   save() {
@@ -222,6 +231,4 @@ export class TrackComponent implements OnInit, OnDestroy {
       chrome.runtime.onMessage.removeListener(this.chromeMessageListener);
     }
   }
-
-
 }
