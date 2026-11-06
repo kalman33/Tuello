@@ -51,10 +51,6 @@ export class AddTagsComponent {
         });
     }
 
-    trackByFn(index: number, item: TagElement): string {
-        return item.httpKey + item.jsonKey;
-    }
-
     addElement() {
         if (this.httpKey && this.jsonKey) {
             const element: TagElement = {
@@ -68,6 +64,22 @@ export class AddTagsComponent {
 
     public onChange(): void {
         this.tagsService.updateData();
+    }
+
+    /**
+     * Modification de l'url de l'api ou de la clef json d'un tag existant.
+     * Une valeur vide est refusée : le champ reprend sa valeur précédente.
+     */
+    updateKey(element: TagElement, field: 'httpKey' | 'jsonKey', input: HTMLInputElement): void {
+        const value = input.value.trim();
+        if (!value) {
+            input.value = element[field];
+            return;
+        }
+        if (value !== element[field]) {
+            element[field] = value;
+            this.tagsService.updateData();
+        }
     }
 
     /**
