@@ -126,7 +126,8 @@ async function getResponseByPartialUrl(map: Map<string, any>, partialKey: Tag): 
   for (const [key, value] of map.entries()) {
     // on ne traite que celles qui ne sont pas filtrée ou si le filtre est vide
     if (!httpFilter || stringContainedInURL(httpFilter, key)) {
-      if (key.includes(partialKey?.httpKey)) {
+      // L'url de l'api peut contenir des * (ex. https://my-server/api/*/users)
+      if (partialKey?.httpKey && stringContainedInURL(partialKey.httpKey, key)) {
         return value;
       }
     }
