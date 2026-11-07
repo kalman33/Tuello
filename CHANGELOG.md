@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.43.0] - 2026-11-07
+
+    - Tags : * dans l'url de l'api, édition de l'url, de la clef json et du libellé
+    - Spy : rejeu sur l'écran courant, export Playwright uniquement en local
+    - Track : explication du choix Query string / Body
+
 ## [1.2.42.0] - 2026-11-01
 
     - Mosaïque : sections repliables dans les catégories et sites épinglés
