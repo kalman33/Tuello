@@ -1,8 +1,9 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
   "version": "2.0.0",
   "tasks": [
+    { "label": "install", "type": "shell", "command": "npm install", "problemMatcher": [] },
     {
+      "label": "start",
       "type": "npm",
       "script": "start",
       "isBackground": true,
@@ -11,32 +12,30 @@
         "pattern": "$tsc",
         "background": {
           "activeOnStart": true,
-          "beginsPattern": {
-            "regexp": "(.*?)"
-          },
-          "endsPattern": {
-            "regexp": "bundle generation complete"
-          }
+          "beginsPattern": { "regexp": "(.*?)" },
+          "endsPattern": { "regexp": "bundle generation complete" }
         }
       }
     },
+    { "label": "build", "type": "npm", "script": "build", "group": { "kind": "build", "isDefault": true }, "problemMatcher": ["$tsc"] },
+    { "label": "build:prod", "type": "npm", "script": "build:prod", "group": "build", "problemMatcher": ["$tsc"] },
     {
+      "label": "test",
       "type": "npm",
       "script": "test",
       "isBackground": true,
+      "group": { "kind": "test", "isDefault": true },
       "problemMatcher": {
         "owner": "typescript",
         "pattern": "$tsc",
         "background": {
           "activeOnStart": true,
-          "beginsPattern": {
-            "regexp": "(.*?)"
-          },
-          "endsPattern": {
-            "regexp": "bundle generation complete"
-          }
+          "beginsPattern": { "regexp": "(.*?)" },
+          "endsPattern": { "regexp": "bundle generation complete" }
         }
       }
-    }
+    },
+    { "label": "lint", "type": "npm", "script": "lint", "problemMatcher": ["$eslint-stylish"] },
+    { "label": "claude", "type": "shell", "command": "claude", "presentation": { "panel": "dedicated", "focus": true }, "problemMatcher": [] }
   ]
 }

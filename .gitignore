@@ -28,6 +28,7 @@ yarn-error.log
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+!.vscode/*.code-snippets
 .history/*
 
 # Miscellaneous
@@ -42,3 +43,8 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Claude Code (settings.json, hooks, agents, skills versionnés ; pas la config perso)
+.claude/settings.local.json
+.claude/*.log
+CLAUDE.local.md

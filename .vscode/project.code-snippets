@@ -1,0 +1,8 @@
+{
+  "Changelog entry": {
+    "scope": "markdown",
+    "prefix": "chlog",
+    "body": ["## [${1:x.y.z}] - ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}", "", "### ${2|Added,Changed,Fixed,Removed,Security,Deprecated|}", "", "- $0"],
+    "description": "Nouvelle entrée de CHANGELOG (Keep a Changelog)"
+  }
+}

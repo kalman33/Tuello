@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Contrôle mensuel des dépendances npm. Les paquets Angular sont groupés (ils doivent
+  # monter ensemble), le reste des mineurs/patchs aussi, pour limiter le nombre de PR.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      angular:
+        patterns: ['@angular/*', '@angular-devkit/*', '@angular-eslint/*']
+      minor-and-patch:
+        update-types: ['minor', 'patch']
