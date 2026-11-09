@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.44.0] - 2026-11-09
+
+    - Enregistrer & rejouer HTTP / Spy : requêtes des iframes qui naviguent aussitôt désormais enregistrées
+
 ## [1.2.43.0] - 2026-11-07
 
     - Tags : * dans l'url de l'api, édition de l'url, de la clef json et du libellé
