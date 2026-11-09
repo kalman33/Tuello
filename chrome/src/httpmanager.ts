@@ -36,7 +36,12 @@ interface HttpMessage {
   // Headers posés par l'application sur la requête (setRequestHeader / init.headers / Request) :
   // ceux ajoutés par le navigateur lui-même (Cookie, User-Agent...) ne sont pas visibles en JS.
   requestHeaders?: Record<string, string>;
+  // Posé sur les messages rejoués depuis une file de boot : seul ce consommateur
+  // ('recorder' ou 'spy') doit les traiter, l'autre les a déjà eus ou n'en veut pas.
+  target?: RecordConsumer;
 }
+
+type RecordConsumer = 'recorder' | 'spy';
 
 interface ExtendedXMLHttpRequest extends XMLHttpRequest {
   originalURL?: string;
@@ -112,7 +117,9 @@ const originalFetch = window.fetch.bind(window);
 // État global
 // ============================================================================
 
-let messageForHTTPRecorderQueue: HttpMessage[] = [];
+// Requêtes terminées avant que chaque consommateur (Recorder HTTP, Spy) ait fait connaître sa
+// décision : une file par consommateur, car chacun décide à son rythme (voir recordConsumers).
+const bootQueues: Record<RecordConsumer, HttpMessage[]> = { recorder: [], spy: [] };
 let messageForHTTPTagsQueue: HttpMessage[] = [];
 let deepMockLevel = 0;
 
@@ -153,8 +160,13 @@ const frameLevelMatches = (record: TuelloRecord): boolean => typeof record.frame
 // cette iframe, sans toucher à celui de la page hôte (déjà activé plus tôt, hors de toute
 // course). Un indicateur par fonctionnalité, combiné par OR, rend l'activation finale
 // indépendante de l'ordre d'arrivée des deux messages.
-let recorderHttpWantsActivation = false;
-let spyWantsActivation = false;
+//
+// Trois états par fonctionnalité : `undefined` tant qu'elle n'a rien dit (fenêtre de boot : son
+// content script lit encore le storage), puis true/false. Tant qu'une fonctionnalité est
+// indécise, les requêtes lui sont gardées dans SA file (bootQueues) : avec une file commune, la
+// première à répondre la vidait — en la jetant (false) ou en la rejouant (true) alors que
+// l'autre n'écoutait pas encore — et l'autre perdait les premiers appels du document.
+const recordConsumers: Record<RecordConsumer, boolean | undefined> = { recorder: undefined, spy: undefined };
 
 // État pour le mock HTTP - gestion de la race condition
 let tuelloRecordsReady = false;
@@ -389,6 +401,28 @@ const flushQueue = (targetWindow: Window | null, queue: HttpMessage[]): void => 
   while (queue.length > 0) {
     const message = queue.shift();
     if (message) sendMessage(targetWindow, message);
+  }
+};
+
+/**
+ * Remet une requête enregistrée à ses consommateurs : envoi direct dès que l'un d'eux est
+ * actif, mise en file pour ceux qui n'ont pas encore tranché. Retourne true si envoyée.
+ */
+const dispatchRecordedMessage = (message: HttpMessage): boolean => {
+  (Object.keys(bootQueues) as RecordConsumer[]).forEach((consumer) => {
+    if (recordConsumers[consumer] === undefined) addToQueue(message, bootQueues[consumer]);
+  });
+  const live = recordConsumers.recorder === true || recordConsumers.spy === true;
+  if (live) sendMessage(window, message);
+  return live;
+};
+
+/** Rejoue la file de boot d'un consommateur, à sa seule intention (voir HttpMessage.target) */
+const flushBootQueue = (consumer: RecordConsumer): void => {
+  const queue = bootQueues[consumer];
+  while (queue.length > 0) {
+    const message = queue.shift();
+    if (message) sendMessage(window, { ...message, target: consumer });
   }
 };
 
@@ -1322,16 +1356,13 @@ intercepteurHTTPRecorder.interceptXHR = function (req: ExtendedXMLHttpRequest): 
         requestHeaders: req.xhrRequestHeaders
       };
 
-      if (self.userActivation) {
-        sendMessage(window, message);
+      if (dispatchRecordedMessage(message)) {
         logData(`- Capture auto HTTP - RECORD_HTTP envoyé (XHR) pour ${requestId}, toggle actif : ${autoScreenshotOnHttpActivated}`);
         if (autoScreenshotOnHttpActivated) {
           startSettleWatch(requestId);
         }
       } else {
-        // Mettre en queue pour une éventuelle activation utilisateur
         logData(`- Capture auto HTTP - Enregistrement non activé, requête mise en file d'attente (${requestId}) pour ${url}`);
-        addToQueue(message, messageForHTTPRecorderQueue);
       }
     } catch {
       // req.responseText (ou getAllResponseHeaders) peut lever une InvalidStateError quand
@@ -1403,16 +1434,13 @@ intercepteurHTTPRecorder.interceptFetch = async function (response: Response, ..
     requestHeaders: extractFetchRequestHeaders(input, init)
   };
 
-  if (this.userActivation) {
-    sendMessage(window, message);
+  if (dispatchRecordedMessage(message)) {
     logData(`- Capture auto HTTP - RECORD_HTTP envoyé (fetch) pour ${requestId}, toggle actif : ${autoScreenshotOnHttpActivated}`);
     if (autoScreenshotOnHttpActivated) {
       startSettleWatch(requestId);
     }
   } else {
-    // Mettre en queue pour une éventuelle activation utilisateur
     logData(`- Capture auto HTTP - Enregistrement non activé, requête mise en file d'attente (${requestId}) pour ${response.url || requestUrl}`);
-    addToQueue(message, messageForHTTPRecorderQueue);
   }
 
   return response;
@@ -1629,6 +1657,42 @@ const startSettleWatch = (requestId: string): void => {
 };
 
 // ============================================================================
+// Vidage synchrone de la file du recorder (document sur le point de disparaître)
+// ============================================================================
+
+// Tant qu'un consommateur (Recorder HTTP, Spy) n'a pas tranché, les requêtes terminées
+// attendent dans sa file de boot. Si le document est quitté avant cette décision (iframe qui
+// appelle ses services puis navigue aussitôt vers une autre application), la file disparaissait
+// avec lui. postMessage étant asynchrone, il n'aboutit plus à ce stade : le content script la
+// réclame donc par un événement DOM, dispatché de façon synchrone entre les deux mondes. Seule
+// une chaîne passe la frontière MAIN/ISOLATED, d'où le JSON.
+const serializeQueue = (queue: HttpMessage[]): string[] => {
+  const serialized: string[] = [];
+  for (const message of queue) {
+    try {
+      serialized.push(JSON.stringify(message));
+    } catch {
+      try {
+        // Body de requête non sérialisable (référence circulaire, BigInt...) : on s'en passe
+        serialized.push(JSON.stringify({ ...message, body: undefined }));
+      } catch {
+        // Réponse non sérialisable : rien à transmettre pour cette requête
+      }
+    }
+  }
+  return serialized;
+};
+
+window.addEventListener('TUELLO_DRAIN_RECORD_QUEUE', () => {
+  if (bootQueues.recorder.length === 0 && bootQueues.spy.length === 0) return;
+  // Chaque message est sérialisé à part : un seul message illisible ne fait pas perdre le lot
+  const detail = JSON.stringify({ recorder: serializeQueue(bootQueues.recorder), spy: serializeQueue(bootQueues.spy) });
+  bootQueues.recorder.length = 0;
+  bootQueues.spy.length = 0;
+  window.dispatchEvent(new CustomEvent('TUELLO_RECORD_QUEUE_DRAINED', { detail }));
+});
+
+// ============================================================================
 // Gestionnaire de messages
 // ============================================================================
 
@@ -1720,28 +1784,25 @@ window.addEventListener(
       case MESSAGE_TYPES.RECORD_HTTP_ACTIVATED: {
         // Sans `source` (ex. désactivation globale de Tuello sur l'onglet) : les deux
         // fonctionnalités s'alignent sur la même valeur, pour un arrêt total sans équivoque.
-        if (data.source === 'spy') {
-          spyWantsActivation = !!data.value;
-        } else if (data.source === 'recorder') {
-          recorderHttpWantsActivation = !!data.value;
-        } else {
-          spyWantsActivation = !!data.value;
-          recorderHttpWantsActivation = !!data.value;
-        }
-
-        if (spyWantsActivation || recorderHttpWantsActivation) {
-          // Ne flusher la queue que si c'est une activation utilisateur (pas une restauration au chargement)
-          if (!data.isRestore) {
-            flushQueue(window, messageForHTTPRecorderQueue);
+        const decided: RecordConsumer[] = data.source === 'spy' ? ['spy'] : data.source === 'recorder' ? ['recorder'] : ['recorder', 'spy'];
+        decided.forEach((consumer) => {
+          recordConsumers[consumer] = !!data.value;
+          if (data.value) {
+            // Requêtes terminées pendant la fenêtre de boot : l'enregistrement était déjà
+            // actif quand elles sont parties (restauration au chargement du document).
+            flushBootQueue(consumer);
           } else {
-            // Vider la queue sans envoyer les messages (restauration depuis le storage)
-            messageForHTTPRecorderQueue = [];
+            bootQueues[consumer].length = 0;
           }
+        });
+
+        if (recordConsumers.recorder === true || recordConsumers.spy === true) {
           manager.activateInterceptorByUser(INTERCEPTOR_NAMES.HTTP_RECORDER);
-        } else {
+        } else if (recordConsumers.recorder === false && recordConsumers.spy === false) {
           manager.deactivateInterceptor(INTERCEPTOR_NAMES.HTTP_RECORDER);
-          messageForHTTPRecorderQueue = [];
         }
+        // Sinon l'un des deux n'a pas encore tranché : l'intercepteur reste actif pour lui
+        // garder les requêtes en file (auparavant un `false` de l'autre le coupait).
         break;
       }
 

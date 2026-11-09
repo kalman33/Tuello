@@ -549,18 +549,19 @@ function activate() {
         );
       }
       if (results.httpRecord) {
+        // Listener posé avant l'activation : httpmanager.ts y répond en transmettant les
+        // requêtes déjà terminées pendant la fenêtre de boot de ce document.
+        window.addEventListener('message', recordHttpListener);
         window.postMessage(
           {
             type: 'RECORD_HTTP_ACTIVATED',
             value: true,
-            isRestore: true, // Restauration depuis le storage, ne pas flusher la queue
             // Distingue cette activation de celle, indépendante, de Spy (/spy) : voir
             // httpmanager.ts, qui combine les deux sources plutôt que de les laisser s'écraser.
             source: 'recorder'
           },
           '*'
         );
-        window.addEventListener('message', recordHttpListener);
       } else {
         // Fin de la fenêtre de boot async : l'utilisateur n'a pas activé le record.
         // On désactive l'intercepteur recorder pour ne pas accumuler les requêtes

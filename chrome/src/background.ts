@@ -29,7 +29,7 @@ import {
 } from './background/uiRecorderHandler';
 import { UserAction } from './models/UserAction';
 import { loadCompressed } from './utils/compression';
-import { appendHttpRecords, clearHttpRecords } from './background/httpRecordStore';
+import { appendHttpRecords, clearHttpRecords, isHttpRecordingActive } from './background/httpRecordStore';
 import { appendTrack, clearTracks, initTrackStore } from './background/trackStore';
 import { formatShortcut, resolvePlatform } from './utils/platform';
 import { buildResizeOnCurrentScreen } from './utils/windowPlacement';
@@ -1025,7 +1025,16 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
       // Ce cas est conservé pour la compatibilité avec les anciens appels
       break;
     case 'RECORD_HTTP':
-      addHttpUserAction(msg.value, sender.tab?.id);
+      if (msg.onlyIfRecording) {
+        // Requête d'un document quitté avant d'avoir su si un enregistrement Spy était en cours
+        chrome.storage.local.get(['uiRecordActivated'], (results: Record<string, any>) => {
+          if (!chrome.runtime.lastError && results?.uiRecordActivated) {
+            addHttpUserAction(msg.value, sender.tab?.id);
+          }
+        });
+      } else {
+        addHttpUserAction(msg.value, sender.tab?.id);
+      }
       break;
     case 'RECORD_CONSOLE_LOG':
       addConsoleLogs(msg.value, sender.tab?.id);
@@ -1040,7 +1049,9 @@ function handleMessage(msg, sender: chrome.runtime.MessageSender, senderResponse
     case 'RECORD_HTTP_BATCH':
       // Persistance centralisée ici : plusieurs onglets peuvent enregistrer en même
       // temps, un verrou par page ne les protégeait pas les uns des autres.
-      appendHttpRecords(msg.value)
+      // onlyIfRecording : lot d'un document quitté avant d'avoir su si l'enregistrement était actif
+      (msg.onlyIfRecording ? isHttpRecordingActive() : Promise.resolve(true))
+        .then((active) => (active ? appendHttpRecords(msg.value) : false))
         .then((added) => {
           if (added) {
             // Prévenir le panneau Angular (s'il est ouvert) de rafraîchir sa vue

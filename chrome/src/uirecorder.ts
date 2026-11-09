@@ -91,7 +91,13 @@ export function launchUIRecorderHandler() {
       addListeners();
     } else {
       removeListeners();
-      //httpRecordUI(false);
+      // Spy fait connaître sa décision à httpmanager.js : tant qu'il ne l'a pas fait, celui-ci
+      // lui garde en file les requêtes du document (fenêtre de boot). Seul ce message est
+      // envoyé — pas httpRecordUI(false) : `source` limite son effet à Spy, sans toucher à un
+      // enregistrement Recorder HTTP en cours.
+      // Cible '*' : exécuté dans toutes les frames, y compris d'origine opaque (sandbox,
+      // about:blank) où `window.location.origin` vaut "null" et ferait lever postMessage.
+      window.postMessage({ type: 'RECORD_HTTP_ACTIVATED', value: false, source: 'spy' }, '*');
     }
   });
 }

@@ -1,3 +1,8 @@
+import { createFirstSeenFilter } from './recordDedup';
+import { sendDrainedHttpUserActions } from './recordUserActionListener';
+
+const isFirstSeen = createFirstSeenFilter();
+
 interface NewRecord {
   key: string;
   method: string | undefined;
@@ -16,25 +21,44 @@ const FLUSH_DEBOUNCE_MS = 500;
 // pour éviter que le buffer grossisse indéfiniment en mémoire et que l'UI tarde trop.
 const MAX_BUFFER_SIZE = 20;
 
+// Après un beforeunload, le document peut être détruit à tout instant : on ne peut plus
+// compter sur le timer du debounce. On retombe sur le debounce au-delà de ce délai, au cas
+// où la navigation aurait été annulée (boîte de dialogue "quitter la page ?", téléchargement...).
+const UNLOAD_GRACE_MS = 5000;
+
 let pendingRecords: NewRecord[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
+let unloadingSince = 0;
+
+const isUnloading = (): boolean => unloadingSince > 0 && Date.now() - unloadingSince < UNLOAD_GRACE_MS;
+
+/** Convertit un message RECORD_HTTP de httpmanager.js en enregistrement à persister */
+function toRecord(data: any): NewRecord {
+  return {
+    key: data.url,
+    method: typeof data.method === 'string' && data.method ? data.method.toUpperCase() : undefined,
+    response: data.error || data.response,
+    httpCode: data.status,
+    delay: data.delay,
+    headers: data.headers,
+    // Niveau de frame (0 = page principale) : au rejeu, le mock ne répond qu'aux requêtes de ce niveau
+    frameLevel: typeof data.frameLevel === 'number' ? data.frameLevel : undefined
+  };
+}
 
 export function recordHttpListener(event: MessageEvent) {
   if (event?.data?.type !== 'RECORD_HTTP') return;
+  // Message rejoué depuis la file de boot de Spy : pas pour Recorder HTTP
+  if (event.data.target && event.data.target !== 'recorder') return;
+  if (!isFirstSeen(event.data.requestId)) return;
 
-  pendingRecords.push({
-    key: event.data.url,
-    method: typeof event.data.method === 'string' && event.data.method ? event.data.method.toUpperCase() : undefined,
-    response: event.data.error || event.data.response,
-    httpCode: event.data.status,
-    delay: event.data.delay,
-    headers: event.data.headers,
-    // Niveau de frame (0 = page principale) : au rejeu, le mock ne répond qu'aux requêtes de ce niveau
-    frameLevel: typeof event.data.frameLevel === 'number' ? event.data.frameLevel : undefined
-  });
+  pendingRecords.push(toRecord(event.data));
 
-  // Flush immédiat si la rafale dépasse le seuil
-  if (pendingRecords.length >= MAX_BUFFER_SIZE) {
+  // Flush immédiat si la rafale dépasse le seuil, ou si le document est en train d'être
+  // quitté : une réponse arrivée entre beforeunload et la destruction du document (cas
+  // typique d'une iframe qui navigue vers une autre application juste après ses appels)
+  // serait sinon perdue avec le timer du debounce.
+  if (pendingRecords.length >= MAX_BUFFER_SIZE || isUnloading()) {
     if (flushTimer) {
       clearTimeout(flushTimer);
       flushTimer = null;
@@ -59,7 +83,7 @@ export function recordHttpListener(event: MessageEvent) {
  *  - automatiquement quand le buffer dépasse MAX_BUFFER_SIZE
  *  - manuellement par contentscript juste avant de désactiver le record
  *    (sinon les records bufferisés seraient perdus)
- *  - sur beforeunload (best-effort)
+ *  - sur beforeunload / pagehide (best-effort)
  */
 export function flushPendingRecords(): Promise<void> {
   flushTimer = null;
@@ -88,11 +112,83 @@ export function flushPendingRecords(): Promise<void> {
   });
 }
 
-// Best-effort : flush ce qui reste si la page se ferme avant le debounce.
+// Best-effort : flush ce qui reste si le document disparaît avant le debounce.
 // L'envoi part immédiatement vers le service worker, qui survit à la page :
-// l'écriture aboutit donc même si l'onglet disparaît juste après.
-window.addEventListener('beforeunload', () => {
+// l'écriture aboutit donc même si l'onglet (ou l'iframe) disparaît juste après.
+//  - beforeunload : navigation du document ; les records arrivant ensuite partent sans debounce
+//  - pagehide : dernier point de passage, y compris quand il n'y a pas eu de beforeunload
+//    (iframe retirée du DOM ou remplacée par la page parente)
+const flushOnExit = (): void => {
+  if (flushTimer) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
   if (pendingRecords.length > 0) {
     flushPendingRecords();
   }
+};
+
+/**
+ * Récupère les requêtes que httpmanager.js garde en attente tant que les content scripts
+ * n'ont pas décidé si l'enregistrement est actif (lecture asynchrone du storage, lancée
+ * seulement quand le document devient interactif) — une file pour Recorder HTTP, une pour Spy.
+ * Un document quitté avant cette décision emportait ces requêtes avec lui. L'échange est
+ * synchrone (événements DOM) : c'est le seul qui aboutisse encore pendant un pagehide.
+ *
+ * Ce content script ne sachant pas encore si l'enregistrement est actif, c'est le service
+ * worker qui le vérifie avant de persister (`onlyIfRecording`).
+ */
+function flushBootQueue(): void {
+  const parseMessages = (serialized: unknown): any[] => {
+    if (!Array.isArray(serialized)) return [];
+    const messages: any[] = [];
+    for (const item of serialized) {
+      try {
+        const message = JSON.parse(item);
+        if (message?.type === 'RECORD_HTTP' && typeof message.url === 'string') messages.push(message);
+      } catch {
+        // Message illisible : ignoré
+      }
+    }
+    return messages;
+  };
+
+  let forRecorder: any[] = [];
+  let forSpy: any[] = [];
+  const onDrained = (event: Event) => {
+    try {
+      const queues = JSON.parse((event as CustomEvent).detail);
+      forRecorder = parseMessages(queues?.recorder);
+      forSpy = parseMessages(queues?.spy);
+    } catch {
+      // Détail illisible : rien à récupérer
+    }
+  };
+  window.addEventListener('TUELLO_RECORD_QUEUE_DRAINED', onDrained);
+  window.dispatchEvent(new Event('TUELLO_DRAIN_RECORD_QUEUE'));
+  window.removeEventListener('TUELLO_RECORD_QUEUE_DRAINED', onDrained);
+
+  const drained = forRecorder.filter((m) => isFirstSeen(m.requestId)).map(toRecord);
+  if (drained.length > 0) {
+    try {
+      chrome.runtime.sendMessage({ action: 'RECORD_HTTP_BATCH', value: drained, onlyIfRecording: true }, () => chrome.runtime.lastError);
+    } catch {
+      // Contexte d'extension invalidé : plus rien à transmettre
+    }
+  }
+  if (forSpy.length > 0) {
+    sendDrainedHttpUserActions(forSpy);
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  unloadingSince = Date.now();
+  flushOnExit();
+});
+
+window.addEventListener('pagehide', () => {
+  unloadingSince = Date.now();
+  // Uniquement ici (pas sur beforeunload, annulable) : le document disparaît pour de bon
+  flushBootQueue();
+  flushOnExit();
 });

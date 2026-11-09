@@ -42,6 +42,12 @@ const mockDuplicateKey = (item: { key: string; method?: string }): string => `${
 
 const getLocal = <T>(key: string): Promise<T | undefined> => new Promise((resolve) => chrome.storage.local.get([key], (r: Record<string, any>) => resolve(r[key])));
 
+/**
+ * L'enregistrement HTTP est-il actif (et Tuello non désactivé) ? Sert aux lots envoyés par
+ * un document quitté avant d'avoir pu lire lui-même cet état.
+ */
+export const isHttpRecordingActive = (): Promise<boolean> => new Promise((resolve) => chrome.storage.local.get(['httpRecord', 'disabled'], (r: Record<string, any>) => resolve(!chrome.runtime.lastError && !!r?.httpRecord && !r?.disabled)));
+
 // Chaîne de promesses : chaque batch attend la fin du précédent.
 let writeChain: Promise<void> = Promise.resolve();
 
