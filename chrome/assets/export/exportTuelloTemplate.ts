@@ -56,6 +56,24 @@
 
     const getStatusText = (code: number): string => HTTP_STATUS_TEXT[code] || '';
 
+    // Headers qui décrivent le transport de la réponse d'origine : les rejouer tels
+    // quels annoncerait une taille ou une compression qui ne sont plus celles du mock.
+    const TRANSPORT_HEADERS = new Set(['content-length', 'content-encoding', 'transfer-encoding', 'connection', 'keep-alive', 'trailer', 'upgrade']);
+
+    // Statuts pour lesquels la spec Fetch interdit un corps : construire une Response
+    // avec un body sur l'un d'eux lève un TypeError.
+    const BODYLESS_STATUS = new Set([204, 205, 304]);
+
+    // Un record importé ou édité à la main peut ne pas avoir de httpCode (ou en avoir un
+    // hors plage) : new Response() lèverait alors un RangeError et xhr.status vaudrait
+    // undefined. On retombe sur 200, comme le fait déjà Response par défaut.
+    const normalizeHttpStatus = (code: unknown): number => {
+      const parsed = typeof code === 'number' ? code : parseInt(String(code ?? ''), 10);
+      if (!Number.isFinite(parsed)) return 200;
+      const truncated = Math.trunc(parsed);
+      return truncated < 200 || truncated > 599 ? 200 : truncated;
+    };
+
     // ============================================================================
     // Logs (mode verbeux uniquement)
     // ============================================================================
@@ -115,6 +133,63 @@
       }
     };
 
+    const tryParseJson = (text: string): unknown => {
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
+    };
+
+    const getRecordContentType = (headers?: Record<string, string>): string => {
+      if (!headers) return '';
+      const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === 'content-type');
+      return entry ? entry[1] : '';
+    };
+
+    // À l'enregistrement, un corps non JSON (texte brut, HTML, réponse vide) est stocké tel
+    // quel sous forme de chaîne. Le repasser dans JSON.stringify au rejeu l'entourait de
+    // guillemets ("valeur" au lieu de valeur, '""' au lieu d'un corps vide). Une chaîne
+    // n'est re-sérialisée en JSON que si la réponse d'origine était déclarée JSON.
+    const isRawTextMockResponse = (record: TuelloRecord): boolean => typeof record.response === 'string' && !/json/i.test(getRecordContentType(record.headers));
+
+    // JSON.stringify(undefined) renvoie undefined : on garantit toujours une chaîne.
+    const serializeMockBody = (record: TuelloRecord): string => {
+      if (isRawTextMockResponse(record)) return record.response as string;
+      const serialized = JSON.stringify(record.response);
+      return serialized === undefined ? '' : serialized;
+    };
+
+    // Content-Type par défaut quand le record n'en a pas enregistré.
+    const defaultMockContentType = (record: TuelloRecord): string => (isRawTextMockResponse(record) ? 'text/plain' : 'application/json');
+
+    /**
+     * Construit la valeur de xhr.response en respectant responseType : la spec impose
+     * une chaîne pour '' et 'text', un objet pour 'json', un Blob ou un ArrayBuffer
+     * pour les types binaires.
+     */
+    const buildXhrResponseValue = (responseType: XMLHttpRequestResponseType, record: TuelloRecord, responseBody: string): unknown => {
+      if (!responseBody) return responseType === 'json' || responseType === 'document' ? null : '';
+
+      switch (responseType) {
+        case 'json':
+          // Texte brut : la spec renvoie null quand le corps n'est pas du JSON valide.
+          if (isRawTextMockResponse(record)) {
+            const parsed = tryParseJson(responseBody);
+            return parsed === responseBody ? null : parsed;
+          }
+          return cloneMockResponse(record.response);
+        case 'blob':
+          return new Blob([responseBody], { type: defaultMockContentType(record) });
+        case 'arraybuffer':
+          return new TextEncoder().encode(responseBody).buffer;
+        case 'document':
+          return null;
+        default:
+          return responseBody;
+      }
+    };
+
     // Extrait l'URL d'un input fetch qui peut être une string, un URL ou un Request.
     const extractFetchUrl = (input: unknown): string => {
       if (typeof input === 'string') return input;
@@ -134,14 +209,16 @@
 
     // Fusionne les headers par défaut avec ceux du record en normalisant la casse
     // (sinon on peut se retrouver avec "Content-Type" et "content-type" dupliqués).
-    const buildMockHeaders = (responseBody: string, recordHeaders?: Record<string, string>): Record<string, string> => {
+    const buildMockHeaders = (responseBody: string, recordHeaders?: Record<string, string>, defaultContentType = 'application/json'): Record<string, string> => {
       const headers: Record<string, string> = {
-        'content-type': 'application/json',
+        'content-type': defaultContentType,
         'content-length': new TextEncoder().encode(responseBody).length.toString()
       };
       if (recordHeaders) {
         for (const [key, value] of Object.entries(recordHeaders)) {
-          headers[key.toLowerCase()] = value;
+          const name = key.toLowerCase();
+          if (TRANSPORT_HEADERS.has(name)) continue;
+          headers[name] = value;
         }
       }
       return headers;
@@ -429,7 +506,37 @@
     // ============================================================================
 
     const createMockedResponse = (record: TuelloRecord): Response => {
-      const body = JSON.stringify(record.response);
+      const status = normalizeHttpStatus(record.httpCode);
+      // 204 / 205 / 304 : la spec Fetch interdit un corps, new Response(body, { status })
+      // lèverait un TypeError et le mock ne serait jamais servi.
+      const isBodyless = BODYLESS_STATUS.has(status);
+      const body = isBodyless ? '' : serializeMockBody(record);
+
+      const headers = new Headers();
+      if (!isBodyless) {
+        headers.set('Content-Type', defaultMockContentType(record));
+        headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
+      }
+
+      if (record.headers) {
+        Object.entries(record.headers).forEach(([key, value]) => {
+          if (TRANSPORT_HEADERS.has(key.toLowerCase())) return;
+          try {
+            headers.set(key, value);
+          } catch {
+            // Nom ou valeur de header invalide : on l'ignore plutôt que de faire
+            // échouer la construction de toute la réponse mockée.
+            logVerbose('Header ignoré (invalide) :', key);
+          }
+        });
+      }
+
+      const init: ResponseInit = { headers, status, statusText: getStatusText(status) };
+
+      if (isBodyless) {
+        return new Response(null, init);
+      }
+
       const stream = new ReadableStream({
         start(controller) {
           controller.enqueue(new TextEncoder().encode(body));
@@ -437,21 +544,7 @@
         }
       });
 
-      const headers = new Headers();
-      headers.set('Content-Type', 'application/json');
-      headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
-
-      if (record.headers) {
-        Object.entries(record.headers).forEach(([key, value]) => {
-          headers.set(key, value);
-        });
-      }
-
-      return new Response(stream, {
-        headers,
-        status: record.httpCode,
-        statusText: getStatusText(record.httpCode)
-      });
+      return new Response(stream, init);
     };
 
     // ============================================================================
@@ -494,17 +587,20 @@
       const record = findMockRecord(url, method);
 
       if (record) {
-        logVerbose('XHR bouchonné :', method, url, '→ clé :', record.key, '| statut :', record.httpCode, '| délai :', record.delay || 0, 'ms');
+        const status = normalizeHttpStatus(record.httpCode);
+        logVerbose('XHR bouchonné :', method, url, '→ clé :', record.key, '| statut :', status, '| délai :', record.delay || 0, 'ms');
         logVerbose('XHR réponse :', url, record.response);
-        const responseBody = JSON.stringify(record.response);
+        const responseBody = BODYLESS_STATUS.has(status) ? '' : serializeMockBody(record);
+        // xhr.responseType doit être lu avant que les propriétés ne soient redéfinies
+        const mockedResponse = buildXhrResponseValue(this.responseType, record, responseBody);
         Object.defineProperty(this, 'readyState', { writable: true, value: XMLHttpRequest.DONE });
-        Object.defineProperty(this, 'status', { writable: true, value: record.httpCode });
-        Object.defineProperty(this, 'statusText', { writable: true, value: getStatusText(record.httpCode) });
+        Object.defineProperty(this, 'status', { writable: true, value: status });
+        Object.defineProperty(this, 'statusText', { writable: true, value: getStatusText(status) });
         Object.defineProperty(this, 'responseText', { writable: true, value: responseBody });
-        Object.defineProperty(this, 'response', { writable: true, value: cloneMockResponse(record.response) });
+        Object.defineProperty(this, 'response', { writable: true, value: mockedResponse });
         Object.defineProperty(this, 'responseURL', { writable: true, value: url });
 
-        const mockHeaders = buildMockHeaders(responseBody, record.headers);
+        const mockHeaders = buildMockHeaders(responseBody, record.headers, defaultMockContentType(record));
 
         this.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] ?? null;
         this.getAllResponseHeaders = () =>
@@ -534,7 +630,7 @@
       const record = findMockRecord(url, method);
 
       if (record) {
-        logVerbose('Fetch bouchonné :', url, '→ clé :', record.key, '| statut :', record.httpCode, '| délai :', record.delay || 0, 'ms');
+        logVerbose('Fetch bouchonné :', url, '→ clé :', record.key, '| statut :', normalizeHttpStatus(record.httpCode), '| délai :', record.delay || 0, 'ms');
         logVerbose('Fetch réponse :', url, record.response);
         if (record.delay) {
           await new Promise((resolve) => setTimeout(resolve, record.delay));
