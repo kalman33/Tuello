@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.45.0] - 2026-11-10
+
+    - Enregistrer & rejouer HTTP / Export librairie : réponses texte rejouées sans guillemets, statuts 204 servis
+
 ## [1.2.44.0] - 2026-11-09
 
     - Enregistrer & rejouer HTTP / Spy : requêtes des iframes qui naviguent aussitôt désormais enregistrées
