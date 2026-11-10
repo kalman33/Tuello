@@ -287,11 +287,28 @@ const logMockApplied = (context: string, method: string | undefined, url: string
   logData(`- Mock HTTP (${context}) - ${method || '?'} ${url} → clé : ${record.key} | statut : ${normalizeHttpStatus(record.httpCode)} | délai : ${record.delay || 0}ms`);
 };
 
+const getRecordContentType = (headers?: Record<string, string>): string => {
+  if (!headers) return '';
+  const entry = Object.entries(headers).find(([key]) => key.toLowerCase() === 'content-type');
+  return entry ? entry[1] : '';
+};
+
+// À l'enregistrement, un corps non JSON (texte brut, HTML, réponse vide) est stocké tel
+// quel sous forme de chaîne (cf. tryParseJson). Le repasser dans JSON.stringify au rejeu
+// l'entourait de guillemets ("valeur" au lieu de valeur, '""' au lieu d'un corps vide) :
+// l'application recevait une valeur différente de l'originale. Une chaîne n'est
+// re-sérialisée en JSON que si la réponse d'origine était déclarée JSON.
+const isRawTextMockResponse = (record: TuelloRecord): boolean => typeof record.response === 'string' && !/json/i.test(getRecordContentType(record.headers));
+
 // JSON.stringify(undefined) renvoie undefined : on garantit toujours une chaîne.
-const serializeMockBody = (response: unknown): string => {
-  const serialized = JSON.stringify(response);
+const serializeMockBody = (record: TuelloRecord): string => {
+  if (isRawTextMockResponse(record)) return record.response as string;
+  const serialized = JSON.stringify(record.response);
   return serialized === undefined ? '' : serialized;
 };
+
+// Content-Type par défaut quand le record n'en a pas enregistré.
+const defaultMockContentType = (record: TuelloRecord): string => (isRawTextMockResponse(record) ? 'text/plain' : 'application/json');
 
 // Un abort explicite (AbortController) doit toujours rejeter : le convertir en
 // réponse casserait les patterns d'annulation de l'application.
@@ -352,9 +369,9 @@ const extractFetchUrl = (input: unknown): string => {
 
 // Fusionne les headers par défaut avec ceux du record en normalisant la casse
 // (sinon on peut se retrouver avec "Content-Type" et "content-type" dupliqués).
-const buildMockHeaders = (responseBody: string, recordHeaders?: Record<string, string>): Record<string, string> => {
+const buildMockHeaders = (responseBody: string, recordHeaders?: Record<string, string>, defaultContentType = 'application/json'): Record<string, string> => {
   const headers: Record<string, string> = {
-    'content-type': 'application/json',
+    'content-type': defaultContentType,
     'content-length': new TextEncoder().encode(responseBody).length.toString()
   };
   if (recordHeaders) {
@@ -773,6 +790,11 @@ const buildXhrResponseValue = (responseType: XMLHttpRequestResponseType, record:
 
   switch (responseType) {
     case 'json':
+      // Texte brut : la spec renvoie null quand le corps n'est pas du JSON valide.
+      if (isRawTextMockResponse(record)) {
+        const parsed = tryParseJson(responseBody);
+        return parsed === responseBody ? null : parsed;
+      }
       return cloneMockResponse(record.response);
     case 'blob':
       return new Blob([responseBody], { type: 'application/json' });
@@ -794,7 +816,7 @@ const buildXhrResponseValue = (responseType: XMLHttpRequestResponseType, record:
  */
 const applyMockToXhr = (xhr: ExtendedXMLHttpRequest, record: TuelloRecord, url: string): void => {
   const status = normalizeHttpStatus(record.httpCode);
-  const responseBody = BODYLESS_STATUS.has(status) ? '' : serializeMockBody(record.response);
+  const responseBody = BODYLESS_STATUS.has(status) ? '' : serializeMockBody(record);
   // xhr.responseType doit être lu avant que les propriétés ne soient redéfinies
   const mockedResponse = buildXhrResponseValue(xhr.responseType, record, responseBody);
 
@@ -805,7 +827,7 @@ const applyMockToXhr = (xhr: ExtendedXMLHttpRequest, record: TuelloRecord, url: 
   Object.defineProperty(xhr, 'response', { writable: true, value: mockedResponse });
   Object.defineProperty(xhr, 'responseURL', { writable: true, value: url });
 
-  const mockHeaders = buildMockHeaders(responseBody, record.headers);
+  const mockHeaders = buildMockHeaders(responseBody, record.headers, defaultMockContentType(record));
 
   xhr.getResponseHeader = (name: string) => mockHeaders[name.toLowerCase()] ?? null;
   xhr.getAllResponseHeaders = () =>
@@ -927,14 +949,14 @@ const createMockedResponse = (originalResponse: Response, record: TuelloRecord):
   // 204 / 205 / 304 : la spec Fetch interdit un corps, new Response(body, { status })
   // lèverait un TypeError et le mock ne serait jamais servi.
   const isBodyless = BODYLESS_STATUS.has(status);
-  const body = isBodyless ? '' : serializeMockBody(record.response);
+  const body = isBodyless ? '' : serializeMockBody(record);
 
   // Créer les headers avec des valeurs par défaut
   const headers = new Headers();
 
   // Ajouter les headers de base par défaut (sans objet, pas de corps à décrire)
   if (!isBodyless) {
-    headers.set('Content-Type', 'application/json');
+    headers.set('Content-Type', defaultMockContentType(record));
     headers.set('Content-Length', new TextEncoder().encode(body).length.toString());
   }
 
@@ -1461,7 +1483,11 @@ const stringifyConsoleArg = (arg: unknown): string => {
   try {
     return JSON.stringify(arg);
   } catch {
-    return String(arg);
+    try {
+      return String(arg);
+    } catch {
+      return Object.prototype.toString.call(arg);
+    }
   }
 };
 
@@ -1497,7 +1523,14 @@ const pushConsoleEntry = (level: ConsoleLogMessage['level'], message: string): v
   console[level] = (...args: unknown[]) => {
     original(...args);
     if (!consoleLogActivated) return;
-    pushConsoleEntry(level, args.map(stringifyConsoleArg).join(' '));
+    // Ne jamais faire échouer un console.* de la page : Angular (ErrorHandler) et beaucoup
+    // d'apps loguent leurs erreurs via console.error, une exception ici casserait leur
+    // gestion d'erreur (ex : String() sur un Object.create(null) lève un TypeError).
+    try {
+      pushConsoleEntry(level, args.map(stringifyConsoleArg).join(' '));
+    } catch {
+      // capture best-effort
+    }
   };
 });
 
