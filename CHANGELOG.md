@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.46.0] - 2026-11-10
+
+    - Mock HTTP / Export librairie : avertissement quand la profondeur confond deux API
+
 ## [1.2.45.0] - 2026-11-10
 
     - Enregistrer & rejouer HTTP / Export librairie : réponses texte rejouées sans guillemets, statuts 204 servis
