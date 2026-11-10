@@ -284,6 +284,7 @@ const normalizeHttpStatus = (code: unknown): number => {
 // garder un seul format détaillé évite d'avoir des logs plus pauvres que ceux de la
 // librairie exportée (cf. exportTuelloTemplate.ts), qui affiche clé/statut/délai.
 const logMockApplied = (context: string, method: string | undefined, url: string, record: TuelloRecord): void => {
+  warnIfDepthCollision(url, record);
   logData(`- Mock HTTP (${context}) - ${method || '?'} ${url} → clé : ${record.key} | statut : ${normalizeHttpStatus(record.httpCode)} | délai : ${record.delay || 0}ms`);
 };
 
@@ -507,8 +508,9 @@ const normalizeUrl = (url: string): string => {
 /**
  * Normalise une URL pour l'indexation (applique deepMockLevel)
  */
-const normalizeUrlForIndex = (url: string): { normalized: string; segments: string[] } => {
-  let normalized = removeURLPortAndProtocol(url);
+const normalizeUrlForIndex = (url: string): { normalized: string; segments: string[]; strippedPrefix: string } => {
+  const fullPath = removeURLPortAndProtocol(url);
+  let normalized = fullPath;
 
   let inc = deepMockLevel;
   while (inc > 0) {
@@ -519,10 +521,41 @@ const normalizeUrlForIndex = (url: string): { normalized: string; segments: stri
     inc--;
   }
 
+  // Partie du chemin ignorée par la profondeur de comparaison (ex. "/api1" en profondeur 2)
+  const strippedPrefix = fullPath.substring(0, fullPath.length - normalized.length);
+
   normalized = normalizeUrl(normalized.replace(/^\//, ''));
   const segments = normalized.split('/').filter((s) => s);
 
-  return { normalized, segments };
+  return { normalized, segments, strippedPrefix };
+};
+
+// Paires "préfixe requête → préfixe mock" déjà signalées, pour ne pas inonder la console
+const warnedPrefixMismatches = new Set<string>();
+
+/**
+ * Avertit (même hors mode verbeux) quand un mock répond à une URL dont la partie ignorée
+ * par la profondeur de comparaison diffère de celle enregistrée : deux API distinctes
+ * (ex. /api1/... et /api2/..., l'une dans la page, l'autre dans une iframe) deviennent
+ * alors identiques pour Tuello et l'une reçoit silencieusement les réponses de l'autre.
+ * Limité aux correspondances exactes après profondeur : la comparaison par suffixe
+ * (contextRoot volontairement absent de la requête) n'est pas concernée.
+ */
+const warnIfDepthCollision = (url: string, record: TuelloRecord): void => {
+  if (deepMockLevel <= 0 || record.key.includes('*')) return;
+  const request = normalizeUrlForIndex(url);
+  const mock = normalizeUrlForIndex(record.key);
+  if (request.normalized !== mock.normalized || request.strippedPrefix === mock.strippedPrefix) return;
+
+  const pairKey = `${request.strippedPrefix}→${mock.strippedPrefix}`;
+  if (warnedPrefixMismatches.has(pairKey)) return;
+  warnedPrefixMismatches.add(pairKey);
+
+  console.warn(
+    `[Tuello] Mock enregistré pour "${mock.strippedPrefix}/${mock.normalized}" servi pour "${request.strippedPrefix}/${request.normalized}" : ` +
+      `la profondeur de comparaison (${deepMockLevel}) ignore "${request.strippedPrefix}" et "${mock.strippedPrefix}", ces deux URL sont donc considérées identiques. ` +
+      `Si ce sont deux API différentes, réduisez la « Profondeur pour le mock HTTP » dans les paramètres de Tuello.`
+  );
 };
 
 /**

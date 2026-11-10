@@ -268,8 +268,9 @@
     // Normalisation des URLs pour l'index
     // ============================================================================
 
-    const normalizeUrlForIndex = (url: string): { normalized: string; segments: string[] } => {
-      let normalized = removeURLPortAndProtocol(url);
+    const normalizeUrlForIndex = (url: string): { normalized: string; segments: string[]; strippedPrefix: string } => {
+      const fullPath = removeURLPortAndProtocol(url);
+      let normalized = fullPath;
 
       let inc = deepMockLevel;
       while (inc > 0) {
@@ -280,10 +281,40 @@
         inc--;
       }
 
+      // Partie du chemin ignorée par la profondeur de comparaison (ex. "/api1" en profondeur 2)
+      const strippedPrefix = fullPath.substring(0, fullPath.length - normalized.length);
+
       normalized = normalizeUrl(normalized.replace(/^\//, ''));
       const segments = normalized.split('/').filter((s) => s);
 
-      return { normalized, segments };
+      return { normalized, segments, strippedPrefix };
+    };
+
+    // Paires "préfixe requête → préfixe mock" déjà signalées, pour ne pas inonder la console
+    const warnedPrefixMismatches = new Set<string>();
+
+    /**
+     * Avertit (même hors mode verbeux) quand un bouchon répond à une URL dont la partie
+     * ignorée par la profondeur de comparaison diffère de celle enregistrée : deux API
+     * distinctes (ex. /api1/... et /api2/...) deviennent alors identiques et l'une reçoit
+     * silencieusement les réponses de l'autre. Limité aux correspondances exactes après
+     * profondeur : la comparaison par suffixe (contextRoot absent) n'est pas concernée.
+     */
+    const warnIfDepthCollision = (url: string, record: TuelloRecord): void => {
+      if (deepMockLevel <= 0 || record.key.includes('*')) return;
+      const request = normalizeUrlForIndex(url);
+      const mock = normalizeUrlForIndex(record.key);
+      if (request.normalized !== mock.normalized || request.strippedPrefix === mock.strippedPrefix) return;
+
+      const pairKey = `${request.strippedPrefix}→${mock.strippedPrefix}`;
+      if (warnedPrefixMismatches.has(pairKey)) return;
+      warnedPrefixMismatches.add(pairKey);
+
+      console.warn(
+        `${LOG_PREFIX} Bouchon enregistré pour "${mock.strippedPrefix}/${mock.normalized}" servi pour "${request.strippedPrefix}/${request.normalized}" : ` +
+          `la profondeur de comparaison (${deepMockLevel}) ignore "${request.strippedPrefix}" et "${mock.strippedPrefix}", ces deux URL sont donc considérées identiques. ` +
+          `Si ce sont deux API différentes, diminuez la valeur de deepMockLevel en tête du fichier de la librairie.`
+      );
     };
 
     const getSuffixKey = (segments: string[], count: number = 3): string => {
@@ -588,6 +619,7 @@
 
       if (record) {
         const status = normalizeHttpStatus(record.httpCode);
+        warnIfDepthCollision(url, record);
         logVerbose('XHR bouchonné :', method, url, '→ clé :', record.key, '| statut :', status, '| délai :', record.delay || 0, 'ms');
         logVerbose('XHR réponse :', url, record.response);
         const responseBody = BODYLESS_STATUS.has(status) ? '' : serializeMockBody(record);
@@ -630,6 +662,7 @@
       const record = findMockRecord(url, method);
 
       if (record) {
+        warnIfDepthCollision(url, record);
         logVerbose('Fetch bouchonné :', url, '→ clé :', record.key, '| statut :', normalizeHttpStatus(record.httpCode), '| délai :', record.delay || 0, 'ms');
         logVerbose('Fetch réponse :', url, record.response);
         if (record.delay) {
