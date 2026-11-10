@@ -14,23 +14,14 @@ import { welcomeDialogAnimation } from '../guide-tour.animations';
   styleUrls: ['./welcome-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [
-    FormsModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatIconModule,
-    MatCheckboxModule,
-    TranslatePipe
-  ],
+  imports: [FormsModule, MatDialogModule, MatButtonModule, MatIconModule, MatCheckboxModule, TranslatePipe],
   animations: [welcomeDialogAnimation]
 })
 export class WelcomeDialogComponent {
   features: WelcomeFeature[] = WELCOME_FEATURES;
   neverShowAgain = false;
 
-  constructor(
-    public dialogRef: MatDialogRef<WelcomeDialogComponent>
-  ) {}
+  constructor(public dialogRef: MatDialogRef<WelcomeDialogComponent>) {}
 
   startTour(): void {
     const result: WelcomeDialogResult = {

@@ -12,11 +12,11 @@ export const routes: Routes = [
       {
         path: '',
         component: RecorderHttpPageComponent
-      }, {
+      },
+      {
         path: 'tags',
         component: AddTagsComponent
-      }],
+      }
+    ]
   }
-
-
 ];

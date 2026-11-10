@@ -3,9 +3,9 @@ import { LayoutComponent } from '../core/layout/layout.component';
 import { JsonFormatterComponent } from './json-formatter.component';
 
 export const routes: Routes = [
-    {
-        path: '',
-        component: LayoutComponent,
-        children: [{ path: '', component: JsonFormatterComponent }]
-    }
+  {
+    path: '',
+    component: LayoutComponent,
+    children: [{ path: '', component: JsonFormatterComponent }]
+  }
 ];

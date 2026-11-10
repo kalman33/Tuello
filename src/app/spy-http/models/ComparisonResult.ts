@@ -1,7 +1,6 @@
 export class CompareResult {
   misMatchPercentage: number;
   imageDataUrl: string;
-
 }
 
 export class ComparisonResult {

@@ -9,13 +9,10 @@ import { RecorderHttpService } from '../services/recorder-http.service';
  * Permet de démarrer/arrêter le loader pour chaque requête HTTP en cours
  */
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class RecorderHttpInterceptorService {
-  constructor(private recorderService: RecorderHttpService) {
-   
-
-  }
+  constructor(private recorderService: RecorderHttpService) {}
   /**
   interceptXHR(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     return next.handle(req).pipe(

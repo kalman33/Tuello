@@ -1,21 +1,18 @@
 <div fxLayout="row">
   <div fxFlex="8%" class="label actionType">
     @if (track.type === 'CLICK') {
-      <mat-icon  matTooltip="Click">ads_click</mat-icon>
+      <mat-icon matTooltip="Click">ads_click</mat-icon>
     }
     @if (track.type === 'PAGE') {
-      <mat-icon  matTooltip="PAGE">pageview</mat-icon>
+      <mat-icon matTooltip="PAGE">pageview</mat-icon>
     }
   </div>
   <div fxFlex class="data">
-    {{displayData}}
+    {{ displayData }}
   </div>
   <div fxFlex="8%" class="actions">
-    <button mat-icon-button
-      color="primary" (click)='previewTrack()'>
+    <button mat-icon-button color="primary" (click)="previewTrack()">
       <mat-icon>remove_red_eye</mat-icon>
     </button>
   </div>
 </div>
-
-

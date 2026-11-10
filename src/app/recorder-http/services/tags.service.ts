@@ -5,10 +5,9 @@ import { TagElement } from '../models/TagElement';
  * Permet de gérer les tags
  */
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class TagsService {
-  
   elements: TagElement[];
 
   constructor() {}
@@ -39,21 +38,21 @@ export class TagsService {
 
   updateData() {
     chrome.storage.local.set({ tuelloHTTPTags: this.elements });
-    chrome.runtime.sendMessage({
-      action: 'MMA_TAGS_CHANGE'
-    }, () => { });
-    this.elements = [...this.elements]
+    chrome.runtime.sendMessage(
+      {
+        action: 'MMA_TAGS_CHANGE'
+      },
+      () => {}
+    );
+    this.elements = [...this.elements];
   }
 
   deleteElement(index: number) {
     if (index >= 0) {
       this.elements.splice(index, 1);
       this.elements = [...this.elements];
-      // on sauvegarde 
+      // on sauvegarde
       this.updateData();
     }
   }
-  
-  
-
 }

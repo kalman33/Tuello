@@ -17,23 +17,7 @@ import { MockProfilesService } from '../services/mock-profiles.service';
   templateUrl: './profiles-dialog.component.html',
   styleUrls: ['./profiles-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    MatDialogTitle,
-    MatDialogContent,
-    MatDialogActions,
-    MatButton,
-    MatIconButton,
-    MatIcon,
-    MatList,
-    MatListItem,
-    MatRadioGroup,
-    MatRadioButton,
-    MatFormField,
-    MatInput,
-    MatTooltip,
-    FormsModule,
-    TranslatePipe
-  ]
+  imports: [MatDialogTitle, MatDialogContent, MatDialogActions, MatButton, MatIconButton, MatIcon, MatList, MatListItem, MatRadioGroup, MatRadioButton, MatFormField, MatInput, MatTooltip, FormsModule, TranslatePipe]
 })
 export class ProfilesDialogComponent implements OnInit {
   profiles: MockProfile[] = [];

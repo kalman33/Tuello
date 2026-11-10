@@ -4,34 +4,24 @@ import { MatIconButton } from '@angular/material/button';
 import { MatFormField } from '@angular/material/form-field';
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
-import { TranslatePipe } from "@ngx-translate/core";
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
-    selector: 'mmn-settings-menu',
-    templateUrl: './settings-menu.component.html',
-    styleUrls: ['./settings-menu.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FormsModule, MatIcon, MatFormField, MatInput, MatIconButton, TranslatePipe]
+  selector: 'mmn-settings-menu',
+  templateUrl: './settings-menu.component.html',
+  styleUrls: ['./settings-menu.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule, MatIcon, MatFormField, MatInput, MatIconButton, TranslatePipe]
 })
 export class SettingsMenuComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   @Input() index: number;
   label: string;
   menuLabels: string[] = [];
-  icons = [
-    'camera',
-    'queue_play_next',
-    'search',
-    'remove_red_eye'
-  ];
-  defaultLabels = [
-    'mmn.layout.mockAndRecord',
-    'mmn.layout.spyAndReplay',
-    'mmn.layout.trackResources',
-    'mmn.layout.searchElements'
-  ]
+  icons = ['camera', 'queue_play_next', 'search', 'remove_red_eye'];
+  defaultLabels = ['mmn.layout.mockAndRecord', 'mmn.layout.spyAndReplay', 'mmn.layout.trackResources', 'mmn.layout.searchElements'];
 
-  constructor() { }
+  constructor() {}
 
   ngOnInit(): void {
     chrome.storage.local.get(['settings'], (results: Record<string, any>) => {
@@ -43,7 +33,6 @@ export class SettingsMenuComponent implements OnInit {
       }
       this.cdr.detectChanges();
     });
-
   }
 
   deleteLabel() {
@@ -68,5 +57,4 @@ export class SettingsMenuComponent implements OnInit {
       this.cdr.detectChanges();
     });
   }
-
 }

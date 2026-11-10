@@ -1,12 +1,11 @@
-import {Injectable} from '@angular/core';
-import {TranslateService} from '@ngx-translate/core';
+import { Injectable } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import * as enMessages from '../../../assets/i18n/en.json';
 import * as frMessages from '../../../assets/i18n/fr.json';
 
 @Injectable({ providedIn: 'root' })
 export class ConfigurationService {
-
-  constructor(private translate: TranslateService) { }
+  constructor(private translate: TranslateService) {}
 
   init(): Promise<any> {
     this.translate.setDefaultLang('en');
@@ -39,5 +38,4 @@ export class ConfigurationService {
       chrome.runtime.sendMessage({ action: 'UPDATE_MENU' }, () => chrome.runtime.lastError);
     });
   }
-
 }

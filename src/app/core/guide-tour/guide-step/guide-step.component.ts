@@ -1,18 +1,5 @@
 import { NgClass, NgStyle } from '@angular/common';
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  ElementRef,
-  EventEmitter,
-  HostListener,
-  Input,
-  NgZone,
-  OnDestroy,
-  OnInit,
-  Output
-} from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, NgZone, OnDestroy, OnInit, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -31,13 +18,7 @@ const POSITION_THROTTLE_MS = 100;
   styleUrls: ['./guide-step.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [
-    NgClass,
-    NgStyle,
-    MatButtonModule,
-    MatIconModule,
-    TranslatePipe
-  ],
+  imports: [NgClass, NgStyle, MatButtonModule, MatIconModule, TranslatePipe],
   animations: [guideOverlayAnimation, guideTooltipAnimation]
 })
 export class GuideStepComponent implements OnInit, AfterViewInit, OnDestroy {

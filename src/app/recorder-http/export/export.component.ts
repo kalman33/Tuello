@@ -1,4 +1,3 @@
-/* eslint-disable @angular-eslint/prefer-inject */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Inject, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';

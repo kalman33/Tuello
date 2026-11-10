@@ -1,4 +1,3 @@
-
 import { enableProdMode, importProvidersFrom, inject, provideAppInitializer } from '@angular/core';
 
 import { OverlayModule } from '@angular/cdk/overlay';
@@ -21,31 +20,33 @@ if (environment.production) {
 }
 
 function configurationInit(config: ConfigurationService) {
-    return () => config.init();
-  }
+  return () => config.init();
+}
 
 bootstrapApplication(AppComponent, {
-    providers: [
-        provideTranslateService({
-            loader: provideTranslateHttpLoader({
-                prefix: './assets/i18n/',
-                suffix: '.json'
-            }),
-        }),
-        provideRouter(routes),
-        importProvidersFrom(BrowserModule,
-        // flex-layout
-        FlexLayoutModule,
-        // Module Applicatif
-        OverlayModule),
-        provideAppInitializer(() => {
-        const initializerFn = (configurationInit)(inject(ConfigurationService));
-        return initializerFn();
-      }), PlayerService,
-        provideAnimations(),
-        provideHttpClient(withInterceptorsFromDi()),
-        // Apparence par defaut des champs de formulaire : contour (au lieu de "fill")
-        { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } },
-    ]
-})
-  .catch(err => console.error(err));
+  providers: [
+    provideTranslateService({
+      loader: provideTranslateHttpLoader({
+        prefix: './assets/i18n/',
+        suffix: '.json'
+      })
+    }),
+    provideRouter(routes),
+    importProvidersFrom(
+      BrowserModule,
+      // flex-layout
+      FlexLayoutModule,
+      // Module Applicatif
+      OverlayModule
+    ),
+    provideAppInitializer(() => {
+      const initializerFn = configurationInit(inject(ConfigurationService));
+      return initializerFn();
+    }),
+    PlayerService,
+    provideAnimations(),
+    provideHttpClient(withInterceptorsFromDi()),
+    // Apparence par defaut des champs de formulaire : contour (au lieu de "fill")
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'outline' } }
+  ]
+}).catch((err) => console.error(err));

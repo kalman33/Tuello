@@ -2,8 +2,8 @@ import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
 import { LayoutComponent } from '../core/layout/layout.component';
-import {SpyHttpComponent} from './spy-http.component';
-import {ResultsComponent} from './results/results.component';
+import { SpyHttpComponent } from './spy-http.component';
+import { ResultsComponent } from './results/results.component';
 
 export const routes: Routes = [
   {
@@ -15,7 +15,5 @@ export const routes: Routes = [
     path: 'results',
     component: LayoutComponent,
     children: [{ path: '', component: ResultsComponent }]
-    
-  },
+  }
 ];
-

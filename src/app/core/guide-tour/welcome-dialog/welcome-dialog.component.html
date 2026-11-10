@@ -1,7 +1,7 @@
 <div class="welcome-dialog" @welcomeDialog>
   <!-- Header avec logo et titre -->
   <div class="welcome-header">
-    <img src="assets/img/tuello-128x128.png" alt="Tuello">
+    <img src="assets/img/tuello-128x128.png" alt="Tuello" />
     <h1>{{ 'mmn.guide.welcome.title' | translate }}</h1>
     <p>{{ 'mmn.guide.welcome.subtitle' | translate }}</p>
   </div>
@@ -21,10 +21,7 @@
 
   <!-- Actions -->
   <div class="welcome-actions">
-    <mat-checkbox
-      class="welcome-checkbox"
-      [(ngModel)]="neverShowAgain"
-      color="primary">
+    <mat-checkbox class="welcome-checkbox" [(ngModel)]="neverShowAgain" color="primary">
       {{ 'mmn.guide.welcome.neverShow' | translate }}
     </mat-checkbox>
 

@@ -9,11 +9,11 @@ import { MatIcon } from '@angular/material/icon';
 import { FlexModule } from '@ngbracket/ngx-layout/flex';
 
 @Component({
-    selector: 'mmn-track-detail',
-    templateUrl: './track-detail.component.html',
-    styleUrls: ['./track-detail.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [FlexModule, MatIcon, MatTooltip, MatIconButton]
+  selector: 'mmn-track-detail',
+  templateUrl: './track-detail.component.html',
+  styleUrls: ['./track-detail.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FlexModule, MatIcon, MatTooltip, MatIconButton]
 })
 export class TrackDetailComponent implements OnChanges {
   @Input() track: Track;
@@ -24,7 +24,7 @@ export class TrackDetailComponent implements OnChanges {
   // la recherche JsonFind parcourt tout le body
   displayData: string;
 
-  constructor(public dialog: MatDialog) { }
+  constructor(public dialog: MatDialog) {}
 
   ngOnChanges() {
     this.displayData = this.computeDisplayData();
@@ -56,8 +56,8 @@ export class TrackDetailComponent implements OnChanges {
 
   /**
    * permet d'enlever une clef dans le flux json
-   * @param obj 
-   * @param key 
+   * @param obj
+   * @param key
    * @returns le flux json avec la clef supprimée
    */
   omit(obj, key) {
@@ -65,14 +65,13 @@ export class TrackDetailComponent implements OnChanges {
     return rest;
   }
 
-
   findInJson(data: any, keyString: string) {
     keyString = keyString.trim();
     let result = '';
     const doc = JsonFind(data);
     try {
       if (keyString.includes(',') || keyString.includes(';')) {
-        keyString.split(/,|;/).forEach(elt => {
+        keyString.split(/,|;/).forEach((elt) => {
           elt = elt.trim();
           result += result ? ' | ' : '';
           result += elt + ' : ' + doc.findValues(elt)[elt];

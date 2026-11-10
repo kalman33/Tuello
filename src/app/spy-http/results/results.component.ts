@@ -1,5 +1,5 @@
 import { NgClass, SlicePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatCell, MatCellDef, MatColumnDef, MatHeaderCell, MatHeaderCellDef, MatHeaderRow, MatHeaderRowDef, MatRow, MatRowDef, MatTable } from '@angular/material/table';
@@ -18,7 +18,7 @@ import { PlayerService } from '../services/player.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FlexModule, NgClass, ExtendedModule, MatButton, MatIconButton, MatIcon, MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow, SlicePipe, TranslatePipe, RouterLink]
 })
-export class ResultsComponent implements OnInit, OnDestroy {
+export class ResultsComponent {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS;
 
   displayedColumns: string[];
@@ -31,14 +31,10 @@ export class ResultsComponent implements OnInit, OnDestroy {
     this.displayedColumns = ['id', 'comparisonImage', 'actualImage', 'misMatchPercentage', 'imageDataUrl'];
   }
 
-  ngOnInit() {}
-
   /**
    * Retour sur le spy-http
    */
   back() {
     this.router.navigate(['/spy'], { skipLocationChange: true });
   }
-
-  ngOnDestroy() {}
 }

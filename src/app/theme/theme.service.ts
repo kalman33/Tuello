@@ -1,22 +1,19 @@
 import { Injectable } from '@angular/core';
-import {OverlayContainer} from '@angular/cdk/overlay';
+import { OverlayContainer } from '@angular/cdk/overlay';
 
 /**
  * Permet de stocker les flux json de tous les services
  */
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class ThemeService {
-
-  constructor(private overlay: OverlayContainer) {
-  }
+  constructor(private overlay: OverlayContainer) {}
 
   /**
    * Permet de switch de theme
    */
   toggleTheme(darkModevalue: boolean): void {
-
     if (darkModevalue !== document.body.classList.contains('black-theme')) {
       if (this.overlay.getContainerElement().classList.contains('black-theme')) {
         this.overlay.getContainerElement().classList.remove('black-theme');
@@ -38,5 +35,4 @@ export class ThemeService {
       }
     }
   }
-
 }

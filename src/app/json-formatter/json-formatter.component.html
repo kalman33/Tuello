@@ -6,24 +6,19 @@
         {{ 'mmn.json-formatter.button.format' | translate }}
       </button>
 
-      <button id="guide-json-copy" mat-flat-button
-                color="primary"
-                (click)="copyToClipboard()"
-                [matTooltip]="'mmn.json-formatter.button.copyToClipboard' | translate"
-                [attr.aria-label]="'mmn.json-formatter.button.copyToClipboard' | translate">
-          <mat-icon>content_copy</mat-icon>
-          {{ 'mmn.json-formatter.button.copy' | translate }}
-        </button>
+      <button id="guide-json-copy" mat-flat-button color="primary" (click)="copyToClipboard()" [matTooltip]="'mmn.json-formatter.button.copyToClipboard' | translate" [attr.aria-label]="'mmn.json-formatter.button.copyToClipboard' | translate">
+        <mat-icon>content_copy</mat-icon>
+        {{ 'mmn.json-formatter.button.copy' | translate }}
+      </button>
 
-        <button mat-flat-button color="primary" (click)="cleanInputText()">
-          <mat-icon>delete</mat-icon>
-          {{ 'mmn.json-formatter.button.clean' | translate }}
-        </button>
-      </div>
+      <button mat-flat-button color="primary" (click)="cleanInputText()">
+        <mat-icon>delete</mat-icon>
+        {{ 'mmn.json-formatter.button.clean' | translate }}
+      </button>
+    </div>
 
-      <div id="guide-json-input" class="editor-wrapper">
-        <div id="jsonEditorContainer" class="json-editor-container" [class.jse-theme-dark]="isBlackTheme"></div>
-      </div>
-
+    <div id="guide-json-input" class="editor-wrapper">
+      <div id="jsonEditorContainer" class="json-editor-container" [class.jse-theme-dark]="isBlackTheme"></div>
+    </div>
   </div>
 </div>

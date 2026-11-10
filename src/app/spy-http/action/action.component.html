@@ -73,11 +73,7 @@
     <div
       fxFlex="15%"
       class="label assertion"
-      [matTooltip]="
-        action.userAction?.type === 'assertVisible'
-          ? ('mmn.spy-http.actions.assertion.visible' | translate: { name: assertionSubject })
-          : ('mmn.spy-http.actions.assertion.text' | translate: { text: action.userAction?.value })
-      "
+      [matTooltip]="action.userAction?.type === 'assertVisible' ? ('mmn.spy-http.actions.assertion.visible' | translate: { name: assertionSubject }) : ('mmn.spy-http.actions.assertion.text' | translate: { text: action.userAction?.value })"
     >
       <mat-icon class="v-align-middle">fact_check</mat-icon>
       <span class="v-align-middle">{{ 'mmn.spy-http.actions.type.assertion' | translate }}</span>
