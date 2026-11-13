@@ -31,11 +31,18 @@
       "Bash(jq *)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs",
-      "mcp__context7__get-library-docs"
+      "mcp__context7__get-library-docs",
+      "Bash(npx -y modern-web-guidance@latest:*)",
+      "Bash(npx modern-web-guidance@latest:*)"
     ],
     "ask": ["Bash(git push*)", "Bash(git reset --hard*)", "Bash(git rebase*)", "Bash(npm publish*)"],
     "deny": ["Read(./.env)", "Read(./.env.*)", "Read(./**/*.pem)", "Read(./**/*.key)", "Read(./secrets/**)", "Bash(git push --force*)", "Bash(git push -f*)", "Bash(sudo *)", "Bash(rm -rf /*)", "Bash(rm -rf ~*)"]
   },
+  "env": { "DISABLE_TELEMETRY": "1" },
+  "extraKnownMarketplaces": {
+    "googlechrome": { "source": { "source": "github", "repo": "GoogleChrome/modern-web-guidance" } }
+  },
+  "enabledPlugins": { "modern-web-guidance@googlechrome": true },
   "enabledMcpjsonServers": ["context7", "primeng"],
   "statusLine": { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR:-.}\"/.claude/statusline.sh" },
   "hooks": {
