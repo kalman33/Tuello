@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.47.0] - 2026-11-19
+
+    - Mock HTTP : plusieurs mocks par URL selon le body de la requête
+
 ## [1.2.46.0] - 2026-11-10
 
     - Mock HTTP / Export librairie : avertissement quand la profondeur confond deux API
