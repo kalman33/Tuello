@@ -5,6 +5,7 @@ export interface HttpReturn {
   headers?: Record<string, string>;
   requestHeaders?: Record<string, string>; // headers posés par l'application sur la requête (pas ceux ajoutés par le navigateur)
   method?: string;
+  bodyMatch?: unknown; // condition sur le body de la requête (JSON partiel) : le mock ne répond que si le body la contient (cf. chrome/src/utils/bodyMatch.ts)
   duration?: number; // en millisecondes
   body?: any; // corps envoyé (POST/PUT...), pour l'affichage en arbre dans le rapport
   timestamp?: number; // Date.now() au départ de la requête, pour entrelacer avec les actions dans le rapport

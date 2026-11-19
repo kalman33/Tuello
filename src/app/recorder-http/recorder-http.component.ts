@@ -15,9 +15,11 @@ import { FlexModule } from '@ngbracket/ngx-layout/flex';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import JSON5 from 'json5';
 import { take } from 'rxjs';
+import { bodyConditionKey, bodyMatchWeight, mockDuplicateKey } from 'chrome/src/utils/bodyMatch';
 import { ContextMenuItem, createJSONEditor, JSONContent, JsonEditor, RenderContextMenuContext } from 'vanilla-jsoneditor';
 import { ROUTE_ANIMATIONS_ELEMENTS } from '../core/animations/route.animations';
 import { ConfirmDialogComponent } from '../core/confirmation-dialog/confirmation-dialog.component';
+import { BodyConditionDialogComponent, BodyConditionDialogData, BodyConditionDialogMode, BodyConditionDialogResult } from './body-condition-dialog/body-condition-dialog.component';
 import { ExportComponent } from './export/export.component';
 import { ImportDialogComponent, ImportMode } from './import-dialog/import-dialog.component';
 import { MockProfile } from './models/mock-profile';
@@ -88,6 +90,10 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       const index = typeof path[0] === 'number' ? path[0] : parseInt(path[0] as string, 10);
       if (!isNaN(index) && this.duplicateIndices.has(index)) {
         return 'http-row-duplicate';
+      }
+      // Mock qui ne répond que pour certains body de requête
+      if (bodyMatchWeight((value as { bodyMatch?: unknown }).bodyMatch) > 0) {
+        return 'http-row-conditional';
       }
     }
 
@@ -190,12 +196,16 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Détecte les doublons dans les mocks, sur le couple URL + méthode HTTP.
+   * Détecte les doublons dans les mocks : même URL, même méthode HTTP et même condition
+   * sur le body (cf. mockDuplicateKey, clé partagée avec le dédoublonnage à l'enregistrement).
    * Le mock effectivement servi est le PREMIER de la liste (httpmanager parcourt le
    * tableau dans l'ordre, et l'enregistrement place le plus récent en tête) : ce sont
    * donc tous les suivants qui sont signalés comme doublons.
-   * Un mock sans méthode s'applique à toutes les méthodes : il fait doublon avec
-   * n'importe quel autre mock de la même URL.
+   * Ne sont PAS des doublons, car httpmanager les départage :
+   *  - un mock sans méthode et un mock POST de la même URL (la méthode exacte prime,
+   *    le mock sans méthode répond aux autres verbes) ;
+   *  - deux mocks de même méthode avec des conditions sur le body différentes, ou un
+   *    mock conditionnel et le mock par défaut (sans condition).
    */
   private detectDuplicates(records: any) {
     this.duplicateIndices.clear();
@@ -205,23 +215,68 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
     }
 
     // Une seule passe : la première occurrence d'une clé est celle qui sera utilisée
-    const seenByUrl = new Map<string, Set<string>>();
+    const seen = new Set<string>();
     records.forEach((record, index) => {
       if (!record || !record.key) {
         return;
       }
-      const method = (record.method || '').toUpperCase();
-      const methods = seenByUrl.get(record.key);
-      if (!methods) {
-        seenByUrl.set(record.key, new Set([method]));
-        return;
-      }
-      // '' (aucune méthode) est un joker : il masque et est masqué par tous les autres
-      if (methods.has(method) || methods.has('') || method === '') {
+      const duplicateKey = mockDuplicateKey(record);
+      if (seen.has(duplicateKey)) {
         this.duplicateIndices.add(index);
       }
-      methods.add(method);
+      seen.add(duplicateKey);
     });
+  }
+
+  /**
+   * Ouvre la saisie de la condition sur le body du mock d'index `index` :
+   *  - 'duplicate' : insère juste après une copie portant la condition saisie ;
+   *  - 'edit' : remplace (ou supprime) la condition du mock lui-même.
+   * `bodyMatch` est placé juste après la méthode pour rester visible dans l'arbre.
+   */
+  private openBodyConditionDialog(index: number, mode: BodyConditionDialogMode) {
+    const json = (this.jsonEditorTree.get() as JSONContent).json;
+    if (!Array.isArray(json) || !json[index] || typeof json[index] !== 'object') return;
+    const mock = json[index];
+
+    // Conditions déjà portées par les autres mocks de même URL + méthode
+    const sameTarget = (other: any) => other && other.key === mock.key && (other.method || '').toUpperCase() === (mock.method || '').toUpperCase();
+    const existingConditionKeys = json
+      .filter((other, otherIndex) => sameTarget(other) && !(mode === 'edit' && otherIndex === index))
+      .map((other) => bodyConditionKey(other.bodyMatch))
+      .filter((conditionKey) => conditionKey !== '');
+
+    const data: BodyConditionDialogData = { mode, key: mock.key, method: mock.method, condition: mock.bodyMatch, existingConditionKeys };
+    this.dialog
+      .open<BodyConditionDialogComponent, BodyConditionDialogData, BodyConditionDialogResult>(BodyConditionDialogComponent, { width: '560px', data })
+      .afterClosed()
+      .pipe(take(1))
+      .subscribe((result) => {
+        if (!result) return;
+        // Relire l'éditeur : le contenu a pu changer pendant que le dialogue était ouvert
+        const current = (this.jsonEditorTree.get() as JSONContent).json;
+        if (!Array.isArray(current) || current[index]?.key !== mock.key) return;
+
+        const { key, method, bodyMatch, ...rest } = structuredClone(current[index]);
+        const withCondition: any = { key, method, ...(result.condition === null ? {} : { bodyMatch: result.condition }), ...rest };
+        if (withCondition.method === undefined) delete withCondition.method;
+
+        const targetIndex = mode === 'duplicate' ? index + 1 : index;
+        const updated = mode === 'duplicate' ? [...current.slice(0, index + 1), withCondition, ...current.slice(index + 1)] : current.map((record, i) => (i === index ? withCondition : record));
+
+        this.jsonEditorTree.update({ json: updated });
+        if (result.condition !== null) {
+          this.jsonEditorTree.expand([String(targetIndex)], (relativePath) => relativePath.length === 0 || relativePath[0] === 'bodyMatch');
+          this.jsonEditorTree.scrollTo([String(targetIndex), 'bodyMatch']).catch(() => undefined);
+        }
+        this.updateData();
+
+        const doneKey = mode === 'duplicate' ? 'duplicateWithBodyCondition.done' : result.condition === null ? 'editBodyCondition.removed' : 'editBodyCondition.done';
+        this.infoBar.open(this.translate.instant(`mmn.jsoneditor.menu.${doneKey}`), '', {
+          duration: 4000,
+          verticalPosition: 'top'
+        });
+      });
   }
 
   gererRefresh() {
@@ -266,7 +321,36 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
           items.splice(1, 2);
 
           const path = context.selection?.['path'];
-          if (!path || path.length < 2) return items;
+          if (!path || path.length < 1) return items;
+
+          // Menu "Dupliquer avec condition sur le body" : sur un mock ou n'importe lequel de ses champs
+          const mockIndex = typeof path[0] === 'number' ? path[0] : parseInt(String(path[0]), 10);
+          const bodyConditionMenus: ContextMenuItem[] = [];
+          if (!isNaN(mockIndex)) {
+            const currentMock = ((this.jsonEditorTree.get() as JSONContent).json as any[])?.[mockIndex];
+            bodyConditionMenus.push({
+              type: 'button',
+              text: this.translate.instant('mmn.jsoneditor.menu.duplicateWithBodyCondition'),
+              title: this.translate.instant('mmn.jsoneditor.menu.duplicateWithBodyCondition.title'),
+              disabled: false,
+              onClick: () => this.openBodyConditionDialog(mockIndex, 'duplicate')
+            });
+            // Modifier : seulement sur un mock qui porte déjà une condition
+            if (bodyMatchWeight(currentMock?.bodyMatch) > 0) {
+              bodyConditionMenus.push({
+                type: 'button',
+                text: this.translate.instant('mmn.jsoneditor.menu.editBodyCondition'),
+                title: this.translate.instant('mmn.jsoneditor.menu.editBodyCondition.title'),
+                disabled: false,
+                onClick: () => this.openBodyConditionDialog(mockIndex, 'edit')
+              });
+            }
+          }
+
+          if (path.length < 2) {
+            if (bodyConditionMenus.length) items.push({ type: 'separator' }, ...bodyConditionMenus);
+            return items;
+          }
 
           // Vérifie si on est sur 'response' ou sur une clé enfant de 'response'
           const isOnResponse = path[path.length - 1] === 'response';
@@ -323,10 +407,11 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
             };
           }
 
-          if (menuClearResponse || menuAddTag) {
+          if (menuClearResponse || menuAddTag || bodyConditionMenus.length) {
             items.push({ type: 'separator' });
             if (menuClearResponse) items.push(menuClearResponse);
             if (menuAddTag) items.push(menuAddTag);
+            items.push(...bodyConditionMenus);
           }
 
           return items;
@@ -675,9 +760,10 @@ export class RecorderHttpComponent implements OnInit, OnDestroy {
       const currentData = (this.jsonEditorTree.get() as JSONContent).json;
       const existingRecords: any[] = Array.isArray(currentData) ? currentData : [];
 
-      // Créer un Map avec les enregistrements existants (clé = méthode + key, pour
-      // qu'un GET et un POST partageant la même URL ne s'écrasent pas mutuellement)
-      const mergeKey = (record: any): string => `${(record.method || '').toUpperCase()} ${record.key}`;
+      // Créer un Map avec les enregistrements existants (clé = méthode + key + condition sur
+      // le body, pour qu'un GET et un POST, ou deux POST conditionnels, partageant la même
+      // URL ne s'écrasent pas mutuellement)
+      const mergeKey = mockDuplicateKey;
       const recordsMap = new Map<string, any>();
       for (const record of existingRecords) {
         if (record.key) {

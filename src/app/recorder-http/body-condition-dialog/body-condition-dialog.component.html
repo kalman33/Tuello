@@ -1,0 +1,28 @@
+<h1 mat-dialog-title>{{ (data.mode === 'edit' ? 'mmn.recorder-http.body-condition-dialog.title.edit' : 'mmn.recorder-http.body-condition-dialog.title.duplicate') | translate }}</h1>
+<div mat-dialog-content>
+  <p class="mock-target">
+    <span class="method">{{ data.method || '*' }}</span>
+    <span class="url">{{ data.key }}</span>
+  </p>
+
+  <p class="explanation">{{ 'mmn.recorder-http.body-condition-dialog.explanation' | translate }}</p>
+
+  <mat-form-field appearance="outline" class="condition-field">
+    <mat-label>bodyMatch</mat-label>
+    <textarea matInput cdkFocusInitial rows="8" spellcheck="false" [placeholder]="example" [ngModel]="text" (ngModelChange)="onTextChange($event)" (keydown.control.enter)="submit()" (keydown.meta.enter)="submit()"></textarea>
+    @if (error && text.trim()) {
+      <mat-error>{{ 'mmn.recorder-http.body-condition-dialog.error.' + error | translate }}</mat-error>
+    } @else {
+      <mat-hint>{{ 'mmn.recorder-http.body-condition-dialog.hint' | translate }}</mat-hint>
+    }
+  </mat-form-field>
+</div>
+<div mat-dialog-actions align="end">
+  @if (hasCurrentCondition) {
+    <button mat-button color="warn" class="remove-button" (click)="removeCondition()">{{ 'mmn.recorder-http.body-condition-dialog.button.remove' | translate }}</button>
+  }
+  <button mat-button mat-dialog-close>{{ 'mmn.recorder-http.body-condition-dialog.button.cancel' | translate }}</button>
+  <button mat-flat-button color="primary" [disabled]="!canSubmit" (click)="submit()">
+    {{ (data.mode === 'edit' ? 'mmn.recorder-http.body-condition-dialog.button.save' : 'mmn.recorder-http.body-condition-dialog.button.duplicate') | translate }}
+  </button>
+</div>

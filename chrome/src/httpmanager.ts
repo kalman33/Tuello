@@ -1,3 +1,4 @@
+import { bodyMatches, bodyMatchWeight, parseRequestBody } from './utils/bodyMatch';
 import { logData, setVerboseLogging } from './utils/utils';
 
 // ============================================================================
@@ -17,7 +18,16 @@ interface TuelloRecord {
   // 1 = iframe directe...). Absent sur les mocks antérieurs : le mock s'applique
   // alors dans toutes les frames (joker).
   frameLevel?: number;
+  // Condition sur le body de la requête (JSON partiel, cf. utils/bodyMatch) : le mock ne
+  // répond que si le body envoyé contient ces valeurs. Absente : mock « par défaut ».
+  bodyMatch?: unknown;
 }
+
+/**
+ * Body de la requête, lu au plus une fois et seulement si un mock conditionnel est
+ * candidat : la plupart des recherches n'en ont jamais besoin.
+ */
+type RequestBodyReader = () => unknown;
 
 interface HttpMessage {
   type: string;
@@ -188,12 +198,21 @@ let pendingMockFetchQueue: Array<{
 // Index de recherche optimisé pour les mocks
 // ============================================================================
 
-interface NormalizedRecord {
+interface MockCandidate {
   record: TuelloRecord;
+  // Nombre de critères de bodyMatch (0 = pas de condition), précalculé à l'indexation
+  bodyWeight: number;
+}
+
+interface NormalizedRecord extends MockCandidate {
   normalizedKey: string;
   segments: string[];
   hasWildcard: boolean;
 }
+
+// Au moins un mock indexé porte une condition sur le body : sans ça, on ne lit jamais
+// le body des requêtes (en particulier celui d'un Request fetch, qui exige un clone).
+let hasBodyConditions = false;
 
 // Index pour recherche rapide O(1). Une même URL peut porter plusieurs records
 // (un par méthode HTTP), conservés dans l'ordre du tableau : le premier gagne.
@@ -559,30 +578,76 @@ const warnIfDepthCollision = (url: string, record: TuelloRecord): void => {
 };
 
 /**
- * Choisit, parmi des records dont l'URL correspond déjà, celui qui répond à la
- * méthode HTTP de la requête :
- *  - une correspondance exacte de méthode est prioritaire ;
- *  - à défaut, un mock sans méthode (ancien format ou import) sert de joker ;
- *  - les candidats sont parcourus dans l'ordre du tableau, donc le premier gagne.
+ * Contexte d'une recherche : `bodyDependent` passe à true dès qu'un mock conditionnel
+ * a été examiné. Le résultat dépend alors du body et ne doit pas aller dans le cache
+ * (indexé par méthode + URL seulement).
  */
-const pickByMethod = (candidates: NormalizedRecord[] | undefined, method?: string): TuelloRecord | undefined => {
-  if (!candidates || candidates.length === 0) return undefined;
-  // Méthode inconnue côté requête : on ne filtre pas (comportement historique)
-  if (!method) return candidates[0].record;
+interface MockLookup {
+  readBody?: RequestBodyReader;
+  bodyDependent: boolean;
+  bodyRead: boolean;
+  body: unknown;
+}
 
-  const requestMethod = method.toUpperCase();
-  let genericMatch: TuelloRecord | undefined;
+const createMockLookup = (readBody?: RequestBodyReader): MockLookup => ({ readBody, bodyDependent: false, bodyRead: false, body: undefined });
+
+/**
+ * Parmi des candidats de même niveau de méthode, choisit selon le body :
+ *  - un mock dont la condition est satisfaite gagne ; entre plusieurs, le plus précis
+ *    (le plus de critères), puis le premier du tableau ;
+ *  - à défaut, le premier mock sans condition (comportement historique).
+ * Un body illisible (Blob, flux...) ne satisfait aucune condition.
+ */
+const pickByBody = (candidates: MockCandidate[], lookup: MockLookup): TuelloRecord | undefined => {
+  let fallback: TuelloRecord | undefined;
+  let best: TuelloRecord | undefined;
+  let bestWeight = 0;
 
   for (const candidate of candidates) {
-    const recordMethod = candidate.record.method;
-    if (!recordMethod) {
-      if (!genericMatch) genericMatch = candidate.record;
-    } else if (recordMethod.toUpperCase() === requestMethod) {
-      return candidate.record;
+    if (candidate.bodyWeight === 0) {
+      if (!fallback) fallback = candidate.record;
+      continue;
+    }
+    lookup.bodyDependent = true;
+    if (candidate.bodyWeight <= bestWeight) continue;
+    if (!lookup.bodyRead) {
+      lookup.bodyRead = true;
+      try {
+        lookup.body = lookup.readBody?.();
+      } catch {
+        lookup.body = undefined;
+      }
+    }
+    if (lookup.body !== undefined && bodyMatches(lookup.body, candidate.record.bodyMatch)) {
+      best = candidate.record;
+      bestWeight = candidate.bodyWeight;
     }
   }
 
-  return genericMatch;
+  return best ?? fallback;
+};
+
+/**
+ * Choisit, parmi des records dont l'URL correspond déjà, celui qui répond à la
+ * méthode HTTP de la requête puis à son body :
+ *  - une correspondance exacte de méthode est prioritaire ;
+ *  - à défaut, un mock sans méthode (ancien format ou import) sert de joker ;
+ *  - dans chaque groupe, le body départage (cf. pickByBody), sinon le premier gagne.
+ */
+const pickByMethod = (candidates: MockCandidate[] | undefined, method: string | undefined, lookup: MockLookup): TuelloRecord | undefined => {
+  if (!candidates || candidates.length === 0) return undefined;
+  // Méthode inconnue côté requête : on ne filtre pas (comportement historique)
+  if (!method) return pickByBody(candidates, lookup);
+
+  const requestMethod = method.toUpperCase();
+  const exact = candidates.filter((candidate) => candidate.record.method?.toUpperCase() === requestMethod);
+  return (
+    pickByBody(exact, lookup) ??
+    pickByBody(
+      candidates.filter((candidate) => !candidate.record.method),
+      lookup
+    )
+  );
 };
 
 /**
@@ -641,6 +706,7 @@ const buildMockIndex = (records: TuelloRecord[]): void => {
   mockSearchCache.clear();
   mockIndexVersion++;
   mockIndexBuilt = true;
+  hasBodyConditions = false;
 
   let skippedOtherFrames = 0;
   for (const record of records) {
@@ -652,9 +718,12 @@ const buildMockIndex = (records: TuelloRecord[]): void => {
     }
     const { normalized, segments } = normalizeUrlForIndex(record.key);
     const hasWildcard = record.key.includes('*');
+    const bodyWeight = bodyMatchWeight(record.bodyMatch);
+    if (bodyWeight > 0) hasBodyConditions = true;
 
     const normalizedRecord: NormalizedRecord = {
       record,
+      bodyWeight,
       normalizedKey: normalized,
       segments,
       hasWildcard
@@ -712,24 +781,30 @@ const addToCache = (key: string, result: TuelloRecord | null): void => {
 };
 
 /**
- * Recherche optimisée d'un mock pour une URL et une méthode HTTP
+ * Recherche optimisée d'un mock pour une URL, une méthode HTTP et (si des mocks
+ * conditionnels existent) le body de la requête
  */
-const findMockRecordOptimized = (url: string, method?: string): TuelloRecord | undefined => {
+const findMockRecordOptimized = (url: string, method?: string, readBody?: RequestBodyReader): TuelloRecord | undefined => {
   const { normalized, segments } = normalizeUrlForIndex(url);
   // La méthode fait partie de la clé de cache : deux verbes sur la même URL
   // peuvent répondre des mocks différents.
   const cacheKey = `${mockIndexVersion}:${(method || '').toUpperCase()}:${normalized}`;
+  const lookup = createMockLookup(readBody);
+  // Un résultat qui dépend du body ne se met pas en cache : la clé ne le contient pas
+  const remember = (result: TuelloRecord | null): void => {
+    if (!lookup.bodyDependent) addToCache(cacheKey, result);
+  };
 
-  // 1. Vérifier le cache
+  // 1. Vérifier le cache (seules les recherches indépendantes du body y figurent)
   if (mockSearchCache.has(cacheKey)) {
     const cached = mockSearchCache.get(cacheKey);
     return cached ?? undefined;
   }
 
   // 2. Recherche exacte O(1)
-  const exactMatch = pickByMethod(mockIndexExact.get(normalized), method);
+  const exactMatch = pickByMethod(mockIndexExact.get(normalized), method, lookup);
   if (exactMatch) {
-    addToCache(cacheKey, exactMatch);
+    remember(exactMatch);
     return exactMatch;
   }
 
@@ -741,9 +816,9 @@ const findMockRecordOptimized = (url: string, method?: string): TuelloRecord | u
 
     if (candidates) {
       const suffixMatches = candidates.filter((candidate) => matchesBySuffix(candidate.segments, segments));
-      const suffixMatch = pickByMethod(suffixMatches, method);
+      const suffixMatch = pickByMethod(suffixMatches, method, lookup);
       if (suffixMatch) {
-        addToCache(cacheKey, suffixMatch);
+        remember(suffixMatch);
         return suffixMatch;
       }
     }
@@ -752,14 +827,14 @@ const findMockRecordOptimized = (url: string, method?: string): TuelloRecord | u
   // 4. Vérifier les wildcards, absents des index précédents : d'abord par regex
   // complète, puis par suffixe comme le fait la recherche linéaire de repli.
   const wildcardMatches = mockWildcardRecords.filter((wildcardRecord) => getCachedRegex(wildcardRecord.normalizedKey).test(normalized) || matchesBySuffix(wildcardRecord.segments, segments));
-  const wildcardMatch = pickByMethod(wildcardMatches, method);
+  const wildcardMatch = pickByMethod(wildcardMatches, method, lookup);
   if (wildcardMatch) {
-    addToCache(cacheKey, wildcardMatch);
+    remember(wildcardMatch);
     return wildcardMatch;
   }
 
   // Pas de match trouvé
-  addToCache(cacheKey, null);
+  remember(null);
   return undefined;
 };
 
@@ -798,7 +873,7 @@ const compareWithMockLevel = (url1: string, url2: string): boolean => {
   return matchesBySuffix(segments2, segments1);
 };
 
-const findMockRecord = (url: string, method?: string): TuelloRecord | undefined => {
+const findMockRecord = (url: string, method?: string, readBody?: RequestBodyReader): TuelloRecord | undefined => {
   const records = window.tuelloRecords;
   if (!records || typeof records === 'string') return undefined;
 
@@ -806,11 +881,43 @@ const findMockRecord = (url: string, method?: string): TuelloRecord | undefined 
   // On se base sur mockIndexBuilt et non sur la taille de l'index : un index
   // volontairement vide (tous les mocks supprimés) doit rester prioritaire.
   if (mockIndexBuilt) {
-    return findMockRecordOptimized(url, method);
+    return findMockRecordOptimized(url, method, readBody);
   }
 
-  // Fallback sur la recherche linéaire si l'index n'est pas construit
-  return records.find((record: TuelloRecord) => frameLevelMatches(record) && compareWithMockLevel(url, record.key) && methodMatches(record, method));
+  // Fallback sur la recherche linéaire si l'index n'est pas construit : mêmes règles
+  // de priorité (méthode exacte, puis body) que la recherche indexée.
+  const candidates: MockCandidate[] = records
+    .filter((record: TuelloRecord) => frameLevelMatches(record) && compareWithMockLevel(url, record.key) && methodMatches(record, method))
+    .map((record: TuelloRecord) => ({ record, bodyWeight: bodyMatchWeight(record.bodyMatch) }));
+  return pickByMethod(candidates, method, createMockLookup(readBody));
+};
+
+/** Lecteur du body d'un XHR (ou d'un fetch avec init.body) : lecture synchrone uniquement. */
+const syncBodyReader =
+  (body: unknown): RequestBodyReader =>
+  () =>
+    parseRequestBody(body);
+
+/**
+ * Body d'un appel fetch, lu seulement si des mocks conditionnels existent :
+ *  - init.body prime, comme pour fetch lui-même ;
+ *  - un Request est lu sur un clone (asynchrone), pour laisser son body intact
+ *    si la requête part finalement vers le réseau ;
+ *  - un body déjà consommé ou illisible donne undefined (aucune condition satisfaite).
+ */
+const readFetchRequestBody = async (args: Parameters<typeof fetch>): Promise<unknown> => {
+  if (!hasBodyConditions) return undefined;
+  const init = args[1] as RequestInit | undefined;
+  if (init && init.body !== undefined && init.body !== null) return parseRequestBody(init.body);
+  const input = args[0];
+  if (input instanceof Request && input.body !== null && !input.bodyUsed) {
+    try {
+      return parseRequestBody(await input.clone().text());
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
 };
 
 /**
@@ -898,7 +1005,7 @@ const processPendingMockXhrQueue = (): void => {
 
     const { xhr, originalCallback, body } = pending;
     const url = xhr.originalURL || '';
-    const record = findMockRecord(url, xhr.xhrMethod);
+    const record = findMockRecord(url, xhr.xhrMethod, syncBodyReader(body));
 
     if (record) {
       applyMockToXhr(xhr, record, url);
@@ -928,41 +1035,50 @@ const processPendingMockFetchQueue = (): void => {
     const pending = pendingMockFetchQueue.shift();
     if (!pending) continue;
 
-    const { resolve, reject, url, method, args } = pending;
-    const record = findMockRecord(url, method);
+    // Body lu (de façon asynchrone pour un Request) seulement si un mock en dépend
+    if (hasBodyConditions) {
+      readFetchRequestBody(pending.args).then((fetchBody) => resolvePendingMockFetch(pending, fetchBody));
+    } else {
+      resolvePendingMockFetch(pending, undefined);
+    }
+  }
+};
 
-    if (record) {
-      logMockApplied("Fetch, file d'attente", method, url, record);
-      if (record.delay) {
-        setTimeout(() => {
-          decInFlightRequests();
-          resolve(createMockedResponse(new Response(), record));
-        }, record.delay);
-      } else {
+const resolvePendingMockFetch = (pending: (typeof pendingMockFetchQueue)[number], fetchBody: unknown): void => {
+  const { resolve, reject, url, method, args } = pending;
+  const record = findMockRecord(url, method, () => fetchBody);
+
+  if (record) {
+    logMockApplied("Fetch, file d'attente", method, url, record);
+    if (record.delay) {
+      setTimeout(() => {
         decInFlightRequests();
         resolve(createMockedResponse(new Response(), record));
-      }
+      }, record.delay);
     } else {
-      // Pas de mock trouvé - laisser passer la requête normalement
-      logData('- Mock HTTP - Pas de mock pour ' + url + ' - Requête envoyée normalement');
-      originalFetch(...args)
-        .then((response) => manager.runInterceptorsFetch(response, ...args))
-        .then((response) => {
-          decInFlightRequests();
-          resolve(response);
-        })
-        .catch((error) => {
-          // Un abort doit rester un abort : seule une erreur réseau/CORS devient une 404
-          if (isAbortError(error)) {
-            decInFlightRequests();
-            reject(error);
-            return;
-          }
-          logData(`- Tuello HTTP - Erreur fetch en queue (probablement CORS) pour ${url} : ${error}`);
-          decInFlightRequests();
-          resolve(buildFallbackResponse(url));
-        });
+      decInFlightRequests();
+      resolve(createMockedResponse(new Response(), record));
     }
+  } else {
+    // Pas de mock trouvé - laisser passer la requête normalement
+    logData('- Mock HTTP - Pas de mock pour ' + url + ' - Requête envoyée normalement');
+    originalFetch(...args)
+      .then((response) => manager.runInterceptorsFetch(response, ...args))
+      .then((response) => {
+        decInFlightRequests();
+        resolve(response);
+      })
+      .catch((error) => {
+        // Un abort doit rester un abort : seule une erreur réseau/CORS devient une 404
+        if (isAbortError(error)) {
+          decInFlightRequests();
+          reject(error);
+          return;
+        }
+        logData(`- Tuello HTTP - Erreur fetch en queue (probablement CORS) pour ${url} : ${error}`);
+        decInFlightRequests();
+        resolve(buildFallbackResponse(url));
+      });
   }
 };
 
@@ -1177,7 +1293,7 @@ XMLHttpRequest.prototype.send = function (this: ExtendedXMLHttpRequest, body?: D
     }
 
     // Records prêts, chercher le mock
-    const record = findMockRecord(url, this.xhrMethod);
+    const record = findMockRecord(url, this.xhrMethod, syncBodyReader(body));
     if (record) {
       // Mock trouvé - intercepter la requête (log détaillé posé dans applyMockToXhr)
       applyMockToXhr(this, record, url);
@@ -1248,7 +1364,9 @@ window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
       });
     }
 
-    const record = findMockRecord(url, method);
+    // Pas d'attente supplémentaire quand aucun mock ne dépend du body
+    const fetchBody = hasBodyConditions ? await readFetchRequestBody(args) : undefined;
+    const record = findMockRecord(url, method, () => fetchBody);
     if (record) {
       logMockApplied('Fetch', method, url, record);
       if (record.delay) await sleepAsync(record.delay);
@@ -1325,7 +1443,8 @@ intercepteurHTTPMock.interceptFetch = async function (response: Response, ...arg
   }
 
   // tuelloRecords est prêt, appliquer le mock normalement
-  const record = findMockRecord(url, extractFetchMethod(args as Parameters<typeof fetch>));
+  // Le Request éventuel a déjà été consommé par l'appel réseau : seul init.body reste lisible
+  const record = findMockRecord(url, extractFetchMethod(args as Parameters<typeof fetch>), syncBodyReader((args[1] as RequestInit | undefined)?.body));
   if (!record) {
     logData('- Mock HTTP - Mock non trouvé de ' + url);
     return response;

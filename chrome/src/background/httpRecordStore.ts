@@ -1,3 +1,4 @@
+import { mockDuplicateKey } from '../utils/bodyMatch';
 import { loadCompressed, saveCompressed } from '../utils/compression';
 import { removeDuplicateEntries, removeDuplicatesKeepLast, stringContainedInURL } from '../utils/utils';
 
@@ -18,6 +19,9 @@ export interface HttpRecordEntry {
   delay?: number;
   headers?: Record<string, string>;
   frameLevel?: number;
+  // Condition sur le body de la requête (JSON partiel) : jamais posée par l'enregistrement,
+  // seulement à la main. Fait partie de la clé de dédoublonnage (cf. mockDuplicateKey).
+  bodyMatch?: unknown;
 }
 
 interface MockProfile {
@@ -32,13 +36,6 @@ interface MockProfilesStorage {
   profiles: MockProfile[];
   activeProfileId: string;
 }
-
-/**
- * Clé d'unicité d'un mock : URL + méthode HTTP.
- * Les enregistrements antérieurs n'ont pas de `method` : ils gardent une clé
- * sans méthode et restent donc dédoublonnés comme avant.
- */
-const mockDuplicateKey = (item: { key: string; method?: string }): string => `${(item.method || '').toUpperCase()} ${item.key}`;
 
 const getLocal = <T>(key: string): Promise<T | undefined> => new Promise((resolve) => chrome.storage.local.get([key], (r: Record<string, any>) => resolve(r[key])));
 

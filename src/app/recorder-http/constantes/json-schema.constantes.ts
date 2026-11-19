@@ -15,6 +15,11 @@ export const JSON_SCHEMA = {
       httpCode: {
         type: 'number'
       },
+      // Condition sur le body de la requête (JSON partiel) : cf. chrome/src/utils/bodyMatch.ts
+      bodyMatch: {
+        type: ['object', 'array', 'string', 'number', 'boolean', 'null'],
+        nullable: true
+      },
       erreur: {
         type: ['object']
       }

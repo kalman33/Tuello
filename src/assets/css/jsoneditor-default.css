@@ -28,6 +28,12 @@
   background-color: rgba(226, 156, 69, 0.15) !important;
 }
 
+/* Mock conditionné par le body de la requête (bodyMatch) */
+.http-row-conditional {
+  box-shadow: inset 3px 0 0 #6f42c1 !important;
+  background-color: rgba(111, 66, 193, 0.06) !important;
+}
+
 /* Style pour les doublons (mocks qui ne seront pas pris en compte) */
 .http-row-duplicate {
   opacity: 0.5 !important;

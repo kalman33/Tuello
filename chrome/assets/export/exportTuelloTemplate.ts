@@ -19,14 +19,25 @@
       httpCode: number;
       delay?: number;
       headers?: Record<string, string>;
+      // Condition sur le body de la requête (JSON partiel) : le mock ne répond que si le
+      // body envoyé contient ces valeurs. Absente : mock « par défaut ».
+      bodyMatch?: unknown;
     }
 
-    interface NormalizedRecord {
+    interface MockCandidate {
       record: TuelloRecord;
+      // Nombre de critères de bodyMatch (0 = pas de condition), précalculé à l'indexation
+      bodyWeight: number;
+    }
+
+    interface NormalizedRecord extends MockCandidate {
       normalizedKey: string;
       segments: string[];
       hasWildcard: boolean;
     }
+
+    // Body de la requête, lu au plus une fois et seulement si un mock conditionnel est candidat
+    type RequestBodyReader = () => unknown;
 
     // ============================================================================
     // Constantes
@@ -323,6 +334,114 @@
     };
 
     // ============================================================================
+    // Condition sur le body (copie de chrome/src/utils/bodyMatch.ts : la librairie
+    // exportée est autonome et ne peut rien importer)
+    // ============================================================================
+
+    // Au moins un mock porte une condition : sans ça, le body des requêtes n'est jamais lu
+    let hasBodyConditions = false;
+
+    const isPlainObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+    /** Nombre de critères d'une condition ; 0 pour une condition vide ou absente. */
+    const bodyMatchWeight = (condition: unknown, isRoot = true): number => {
+      if (condition === undefined) return 0;
+      if (Array.isArray(condition)) {
+        if (condition.length === 0) return isRoot ? 0 : 1;
+        return condition.reduce((sum: number, item) => sum + bodyMatchWeight(item, false), 0);
+      }
+      if (isPlainObject(condition)) {
+        const keys = Object.keys(condition);
+        if (keys.length === 0) return isRoot ? 0 : 1;
+        return keys.reduce((sum, key) => sum + bodyMatchWeight(condition[key], false), 0);
+      }
+      if (condition === null) return isRoot ? 0 : 1;
+      return 1;
+    };
+
+    /** Objet : clés de la condition présentes et égales ; tableau : chaque élément trouvé ; sinon égalité stricte. */
+    const bodyMatches = (actual: unknown, expected: unknown): boolean => {
+      if (Array.isArray(expected)) {
+        if (!Array.isArray(actual)) return false;
+        return expected.every((expectedItem) => actual.some((actualItem) => bodyMatches(actualItem, expectedItem)));
+      }
+      if (isPlainObject(expected)) {
+        if (!isPlainObject(actual)) return false;
+        return Object.keys(expected).every((key) => Object.prototype.hasOwnProperty.call(actual, key) && bodyMatches(actual[key], expected[key]));
+      }
+      return actual === expected;
+    };
+
+    const FORM_URLENCODED_PATTERN = /^[^=&\s]+=[^&\s]*(?:&[^=&\s]+=[^&\s]*)*$/;
+
+    const entriesToObject = (entries: [string, unknown][]): Record<string, unknown> => {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of entries) {
+        if (!Object.prototype.hasOwnProperty.call(result, key)) {
+          result[key] = value;
+        } else if (Array.isArray(result[key])) {
+          (result[key] as unknown[]).push(value);
+        } else {
+          result[key] = [result[key], value];
+        }
+      }
+      return result;
+    };
+
+    const searchParamsToObject = (params: URLSearchParams): Record<string, unknown> => {
+      const entries: [string, unknown][] = [];
+      params.forEach((value, key) => entries.push([key, value]));
+      return entriesToObject(entries);
+    };
+
+    /** Body comparable : JSON, formulaire encodé, FormData (champs texte) ; undefined si illisible. */
+    const parseRequestBody = (body: unknown): unknown => {
+      if (body === undefined || body === null) return undefined;
+      if (typeof body === 'string') {
+        const trimmed = body.trim();
+        if (!trimmed) return undefined;
+        try {
+          return JSON.parse(trimmed);
+        } catch {
+          // Pas du JSON : formulaire encodé ou texte brut
+        }
+        if (FORM_URLENCODED_PATTERN.test(trimmed)) {
+          try {
+            return searchParamsToObject(new URLSearchParams(trimmed));
+          } catch {
+            return body;
+          }
+        }
+        return body;
+      }
+      if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) return searchParamsToObject(body);
+      if (typeof FormData !== 'undefined' && body instanceof FormData) {
+        const textEntries: [string, unknown][] = [];
+        body.forEach((value, key) => {
+          if (typeof value === 'string') textEntries.push([key, value]);
+        });
+        return entriesToObject(textEntries);
+      }
+      return undefined;
+    };
+
+    /** Body d'un fetch : init.body prime, un Request est lu sur un clone. */
+    const readFetchRequestBody = async (args: Parameters<typeof fetch>): Promise<unknown> => {
+      if (!hasBodyConditions) return undefined;
+      const init = args[1] as RequestInit | undefined;
+      if (init && init.body !== undefined && init.body !== null) return parseRequestBody(init.body);
+      const input = args[0];
+      if (input instanceof Request && input.body !== null && !input.bodyUsed) {
+        try {
+          return parseRequestBody(await input.clone().text());
+        } catch {
+          return undefined;
+        }
+      }
+      return undefined;
+    };
+
+    // ============================================================================
     // Construction de l'index
     // ============================================================================
 
@@ -331,13 +450,17 @@
       mockIndexSuffix.clear();
       mockWildcardRecords = [];
       mockSearchCache.clear();
+      hasBodyConditions = false;
 
       for (const record of records) {
         const { normalized, segments } = normalizeUrlForIndex(record.key);
         const hasWildcard = record.key.includes('*');
+        const bodyWeight = bodyMatchWeight(record.bodyMatch);
+        if (bodyWeight > 0) hasBodyConditions = true;
 
         const normalizedRecord: NormalizedRecord = {
           record,
+          bodyWeight,
           normalizedKey: normalized,
           segments,
           hasWildcard
@@ -385,30 +508,72 @@
     // ============================================================================
 
     /**
-     * Choisit, parmi des records dont l'URL correspond déjà, celui qui répond à la
-     * méthode HTTP de la requête :
-     *  - une correspondance exacte de méthode est prioritaire ;
-     *  - à défaut, un mock sans méthode (ancien format ou import) sert de joker ;
-     *  - les candidats sont parcourus dans l'ordre du tableau, donc le premier gagne.
+     * Contexte d'une recherche : `bodyDependent` passe à true dès qu'un mock conditionnel
+     * a été examiné ; le résultat ne va alors pas dans le cache (indexé sans le body).
      */
-    const pickByMethod = (candidates: NormalizedRecord[] | undefined, method?: string): TuelloRecord | undefined => {
-      if (!candidates || candidates.length === 0) return undefined;
-      // Méthode inconnue côté requête : on ne filtre pas (comportement historique)
-      if (!method) return candidates[0].record;
+    interface MockLookup {
+      readBody?: RequestBodyReader;
+      bodyDependent: boolean;
+      bodyRead: boolean;
+      body: unknown;
+    }
 
-      const requestMethod = method.toUpperCase();
-      let genericMatch: TuelloRecord | undefined;
+    const createMockLookup = (readBody?: RequestBodyReader): MockLookup => ({ readBody, bodyDependent: false, bodyRead: false, body: undefined });
+
+    /**
+     * Parmi des candidats de même niveau de méthode : le mock conditionnel satisfait le
+     * plus précis gagne (puis le premier), sinon le premier mock sans condition.
+     */
+    const pickByBody = (candidates: MockCandidate[], lookup: MockLookup): TuelloRecord | undefined => {
+      let fallback: TuelloRecord | undefined;
+      let best: TuelloRecord | undefined;
+      let bestWeight = 0;
 
       for (const candidate of candidates) {
-        const recordMethod = candidate.record.method;
-        if (!recordMethod) {
-          if (!genericMatch) genericMatch = candidate.record;
-        } else if (recordMethod.toUpperCase() === requestMethod) {
-          return candidate.record;
+        if (candidate.bodyWeight === 0) {
+          if (!fallback) fallback = candidate.record;
+          continue;
+        }
+        lookup.bodyDependent = true;
+        if (candidate.bodyWeight <= bestWeight) continue;
+        if (!lookup.bodyRead) {
+          lookup.bodyRead = true;
+          try {
+            lookup.body = lookup.readBody?.();
+          } catch {
+            lookup.body = undefined;
+          }
+        }
+        if (lookup.body !== undefined && bodyMatches(lookup.body, candidate.record.bodyMatch)) {
+          best = candidate.record;
+          bestWeight = candidate.bodyWeight;
         }
       }
 
-      return genericMatch;
+      return best ?? fallback;
+    };
+
+    /**
+     * Choisit, parmi des records dont l'URL correspond déjà, celui qui répond à la
+     * méthode HTTP de la requête puis à son body :
+     *  - une correspondance exacte de méthode est prioritaire ;
+     *  - à défaut, un mock sans méthode (ancien format ou import) sert de joker ;
+     *  - dans chaque groupe, le body départage (cf. pickByBody), sinon le premier gagne.
+     */
+    const pickByMethod = (candidates: MockCandidate[] | undefined, method: string | undefined, lookup: MockLookup): TuelloRecord | undefined => {
+      if (!candidates || candidates.length === 0) return undefined;
+      // Méthode inconnue côté requête : on ne filtre pas (comportement historique)
+      if (!method) return pickByBody(candidates, lookup);
+
+      const requestMethod = method.toUpperCase();
+      const exact = candidates.filter((candidate) => candidate.record.method?.toUpperCase() === requestMethod);
+      return (
+        pickByBody(exact, lookup) ??
+        pickByBody(
+          candidates.filter((candidate) => !candidate.record.method),
+          lookup
+        )
+      );
     };
 
     /**
@@ -479,20 +644,25 @@
     // Recherche optimisée d'un mock
     // ============================================================================
 
-    const findMockRecordOptimized = (url: string, method?: string): TuelloRecord | undefined => {
+    const findMockRecordOptimized = (url: string, method?: string, readBody?: RequestBodyReader): TuelloRecord | undefined => {
       const { normalized, segments } = normalizeUrlForIndex(url);
       // La méthode fait partie de la clé de cache : deux verbes sur la même URL
       // peuvent répondre des mocks différents.
       const cacheKey = `${(method || '').toUpperCase()}:${normalized}`;
+      const lookup = createMockLookup(readBody);
+      // Un résultat qui dépend du body ne se met pas en cache : la clé ne le contient pas
+      const remember = (result: TuelloRecord | null): void => {
+        if (!lookup.bodyDependent) addToCache(cacheKey, result);
+      };
 
       if (mockSearchCache.has(cacheKey)) {
         const cached = mockSearchCache.get(cacheKey);
         return cached ?? undefined;
       }
 
-      const exactMatch = pickByMethod(mockIndexExact.get(normalized), method);
+      const exactMatch = pickByMethod(mockIndexExact.get(normalized), method, lookup);
       if (exactMatch) {
-        addToCache(cacheKey, exactMatch);
+        remember(exactMatch);
         return exactMatch;
       }
 
@@ -502,34 +672,36 @@
 
         if (candidates) {
           const suffixMatches = candidates.filter((candidate) => matchesBySuffix(candidate.segments, segments));
-          const suffixMatch = pickByMethod(suffixMatches, method);
+          const suffixMatch = pickByMethod(suffixMatches, method, lookup);
           if (suffixMatch) {
-            addToCache(cacheKey, suffixMatch);
+            remember(suffixMatch);
             return suffixMatch;
           }
         }
       }
 
       const wildcardMatches = mockWildcardRecords.filter((wildcardRecord) => getCachedRegex(wildcardRecord.normalizedKey).test(normalized) || matchesBySuffix(wildcardRecord.segments, segments));
-      const wildcardMatch = pickByMethod(wildcardMatches, method);
+      const wildcardMatch = pickByMethod(wildcardMatches, method, lookup);
       if (wildcardMatch) {
-        addToCache(cacheKey, wildcardMatch);
+        remember(wildcardMatch);
         return wildcardMatch;
       }
 
-      addToCache(cacheKey, null);
+      remember(null);
       return undefined;
     };
 
-    const findMockRecord = (url: string, method?: string): TuelloRecord | undefined => {
+    const findMockRecord = (url: string, method?: string, readBody?: RequestBodyReader): TuelloRecord | undefined => {
       const records = window['tuelloRecords'] as TuelloRecord[] | string | undefined;
       if (!records || typeof records === 'string') return undefined;
 
       if (mockIndexExact.size > 0 || mockWildcardRecords.length > 0) {
-        return findMockRecordOptimized(url, method);
+        return findMockRecordOptimized(url, method, readBody);
       }
 
-      return records.find((record) => compareWithMockLevel(url, record.key) && methodMatches(record, method));
+      // Recherche linéaire de repli : mêmes règles de priorité (méthode exacte, puis body)
+      const candidates: MockCandidate[] = records.filter((record) => compareWithMockLevel(url, record.key) && methodMatches(record, method)).map((record) => ({ record, bodyWeight: bodyMatchWeight(record.bodyMatch) }));
+      return pickByMethod(candidates, method, createMockLookup(readBody));
     };
 
     // ============================================================================
@@ -615,7 +787,7 @@
     (window as any).XMLHttpRequest.prototype.send = function (this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
       const url = this['originalURL'] || '';
       const method = this['xhrMethod'] || 'GET';
-      const record = findMockRecord(url, method);
+      const record = findMockRecord(url, method, () => parseRequestBody(body));
 
       if (record) {
         const status = normalizeHttpStatus(record.httpCode);
@@ -659,7 +831,9 @@
     (window as any).fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
       const url = extractFetchUrl(args[0]);
       const method = extractFetchMethod(args);
-      const record = findMockRecord(url, method);
+      // Pas d'attente supplémentaire quand aucun mock ne dépend du body
+      const fetchBody = hasBodyConditions ? await readFetchRequestBody(args) : undefined;
+      const record = findMockRecord(url, method, () => fetchBody);
 
       if (record) {
         warnIfDepthCollision(url, record);
