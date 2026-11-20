@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.48.0] - 2026-11-20
+
+    - Enregistrer & rejouer HTTP : « Vider » puis enregistrer ne fait plus revenir les anciens mocks
+
 ## [1.2.47.0] - 2026-11-19
 
     - Mock HTTP : plusieurs mocks par URL selon le body de la requête
