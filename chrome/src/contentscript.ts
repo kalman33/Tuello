@@ -141,6 +141,8 @@ function safeParseJson<T>(jsonString: string, validator?: (data: unknown) => dat
 // Si httpMock était actif lors de la dernière session, on envoie MOCK_HTTP_ACTIVATED
 // immédiatement (synchrone) pour éviter la race condition avec les requêtes XHR au démarrage.
 // Pendant un rejeu Spy, ce sont ses propres réponses qui s'appliquent (voir restorePlayHttpMock).
+// Mocks activés depuis ce cache, à confirmer (ou couper) par activate() une fois chrome.storage lu
+let bootMockActivated = false;
 if (playHttpMock) {
   window.postMessage({ type: 'MOCK_HTTP_PENDING' }, '*');
 } else {
@@ -158,6 +160,7 @@ if (playHttpMock) {
           },
           '*'
         );
+        bootMockActivated = true;
       }
     } else if (jsonData) {
       const parsed = safeParseJson(jsonData, validateTuelloRecords);
@@ -547,7 +550,13 @@ function activate() {
           },
           '*'
         );
+      } else if (bootMockActivated && !playHttpMock) {
+        // Le cache localStorage (propre à chaque origine) avait activé les mocks au démarrage
+        // alors qu'ils sont désactivés : sans ce message, la page continuait de servir
+        // d'anciens mocks, y compris pendant un enregistrement.
+        window.postMessage({ type: 'MOCK_HTTP_ACTIVATED', value: false }, '*');
       }
+      bootMockActivated = false;
       if (results.httpRecord) {
         // Listener posé avant l'activation : httpmanager.ts y répond en transmettant les
         // requêtes déjà terminées pendant la fenêtre de boot de ce document.

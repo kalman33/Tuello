@@ -40,6 +40,23 @@ interface MockProfilesStorage {
 const getLocal = <T>(key: string): Promise<T | undefined> => new Promise((resolve) => chrome.storage.local.get([key], (r: Record<string, any>) => resolve(r[key])));
 
 /**
+ * Profil actif, résolu exactement comme le panneau (MockProfilesService.getActiveProfile) :
+ * `tuelloActiveProfileId` fait foi, puis l'id embarqué dans tuelloMockProfiles, puis le
+ * premier profil. Se fier au seul id embarqué faisait diverger le service worker du
+ * panneau : « Vider » effaçait un autre profil (ou aucun), les enregistrements partaient
+ * ailleurs, et le panneau réaffichait les anciens mocks à son rechargement.
+ * Resynchronise l'id embarqué au passage.
+ */
+function resolveActiveProfile(data: MockProfilesStorage | null | undefined, activeIdFromStorage: string | undefined): MockProfile | null {
+  if (!data || !Array.isArray(data.profiles) || data.profiles.length === 0) {
+    return null;
+  }
+  const profile = (activeIdFromStorage && data.profiles.find((p) => p.id === activeIdFromStorage)) || (data.activeProfileId && data.profiles.find((p) => p.id === data.activeProfileId)) || data.profiles[0];
+  data.activeProfileId = profile.id;
+  return profile;
+}
+
+/**
  * L'enregistrement HTTP est-il actif (et Tuello non désactivé) ? Sert aux lots envoyés par
  * un document quitté avant d'avoir pu lire lui-même cet état.
  */
@@ -84,26 +101,25 @@ export function clearHttpRecords(): Promise<void> {
 }
 
 async function persistClear(): Promise<void> {
-  const mockProfilesData = await loadCompressed<MockProfilesStorage>('tuelloMockProfiles');
+  const [mockProfilesData, activeProfileId] = await Promise.all([loadCompressed<MockProfilesStorage>('tuelloMockProfiles'), getLocal<string>('tuelloActiveProfileId')]);
 
   await saveCompressed('tuelloRecords', []);
 
-  if (mockProfilesData?.activeProfileId && mockProfilesData?.profiles) {
-    const activeProfile = mockProfilesData.profiles.find((p) => p.id === mockProfilesData.activeProfileId);
-    if (activeProfile) {
-      activeProfile.mocks = [];
-      activeProfile.updatedAt = Date.now();
-      await saveCompressed('tuelloMockProfiles', mockProfilesData);
-    }
+  const activeProfile = resolveActiveProfile(mockProfilesData, activeProfileId);
+  if (activeProfile) {
+    activeProfile.mocks = [];
+    activeProfile.updatedAt = Date.now();
+    await saveCompressed('tuelloMockProfiles', mockProfilesData);
   }
 }
 
 async function persistBatch(batch: HttpRecordEntry[]): Promise<boolean> {
-  const [tuelloRecords, tuelloHTTPOverWrite, tuelloHTTPFilter, mockProfilesData] = await Promise.all([
+  const [tuelloRecords, tuelloHTTPOverWrite, tuelloHTTPFilter, mockProfilesData, activeProfileId] = await Promise.all([
     loadCompressed<any[]>('tuelloRecords'),
     getLocal<boolean>('tuelloHTTPOverWrite'),
     getLocal<string>('tuelloHTTPFilter'),
-    loadCompressed<MockProfilesStorage>('tuelloMockProfiles')
+    loadCompressed<MockProfilesStorage>('tuelloMockProfiles'),
+    getLocal<string>('tuelloActiveProfileId')
   ]);
 
   const accepted = batch.filter((r) => !tuelloHTTPFilter || stringContainedInURL(tuelloHTTPFilter, r.key));
@@ -126,13 +142,11 @@ async function persistBatch(batch: HttpRecordEntry[]): Promise<boolean> {
   await saveCompressed('tuelloRecords', records);
 
   // Synchroniser avec le profil actif
-  if (mockProfilesData?.activeProfileId && mockProfilesData?.profiles) {
-    const activeProfile = mockProfilesData.profiles.find((p) => p.id === mockProfilesData.activeProfileId);
-    if (activeProfile) {
-      activeProfile.mocks = records;
-      activeProfile.updatedAt = Date.now();
-      await saveCompressed('tuelloMockProfiles', mockProfilesData);
-    }
+  const activeProfile = resolveActiveProfile(mockProfilesData, activeProfileId);
+  if (activeProfile) {
+    activeProfile.mocks = records;
+    activeProfile.updatedAt = Date.now();
+    await saveCompressed('tuelloMockProfiles', mockProfilesData);
   }
 
   return true;

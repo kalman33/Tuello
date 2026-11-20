@@ -43,9 +43,12 @@ export class MockProfilesService {
 
   async saveProfiles(profiles: MockProfile[]): Promise<void> {
     const activeId = await this.getActiveProfileId();
+    // Même résolution que getActiveProfile() : un id actif qui ne désigne plus aucun profil
+    // retombe sur le premier, sinon le service worker (httpRecordStore) ciblerait un autre profil.
+    const resolvedActiveId = profiles.some((p) => p.id === activeId) ? activeId : profiles[0]?.id;
     const storage: MockProfilesStorage = {
       profiles,
-      activeProfileId: activeId || profiles[0]?.id || ''
+      activeProfileId: resolvedActiveId || ''
     };
     await this.compressionService.saveCompressed('tuelloMockProfiles', storage);
     this.profilesSubject.next(profiles);
