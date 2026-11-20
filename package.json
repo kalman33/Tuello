@@ -44,7 +44,7 @@
     "json5": "^2.2.3",
     "lz-string": "^1.5.0",
     "ngx-json-viewer": "^3.2.1",
-    "pixelmatch": "^7.1.0",
+    "pixelmatch": "^8.0.0",
     "pngjs": "^7.0.0",
     "rxjs": "^7.8.2",
     "rxjs-pausable": "^1.0.0",
